@@ -1,0 +1,160 @@
+# Agent Architectures
+
+This project provides a simple framework for autonomous coding loops.
+
+## Core API
+
+```typescript
+import { loop, work, generate, halt, supervisor, runPi, runCommand } from "./core";
+```
+
+### loop()
+
+The main function. Runs until done.
+
+```typescript
+loop({
+  name: "my-loop",              // For logs
+  taskFile: ".ralph/TODO.md",   // Task tracking
+  timeout: "5m",                // Per-run timeout
+  pushEvery: 4,                 // Push every N commits (default: 4)
+  maxIterations: 400,           // Safety limit (default: 400)
+  supervisor: { ... },          // Optional
+
+  run(state) {
+    // Return work(), generate(), or halt()
+  },
+});
+```
+
+### Actions
+
+```typescript
+// Do work, continue looping
+work(prompt, options?)
+
+// Generate tasks, then exit for review
+generate(prompt, options?)
+
+// Stop the loop
+halt(reason)
+```
+
+### RunOptions
+
+All options are optional:
+
+```typescript
+interface RunOptions {
+  model?: string;      // Single model (e.g., "gpt-4o-mini")
+  provider?: string;   // Provider (e.g., "openai", "anthropic")
+  models?: string;     // Limit model cycling (e.g., "sonnet:high,haiku:low")
+  thinking?: "low" | "medium" | "high";  // Starting thinking level
+  tools?: string;      // Restrict tools (e.g., "read,grep,find,ls")
+  timeout?: number | string;  // Per-run timeout
+}
+```
+
+Examples:
+
+```typescript
+// Use a specific provider + model
+work(`...`, { provider: "openai", model: "gpt-4o" })
+
+// Limit model cycling with thinking levels
+work(`...`, { models: "sonnet:high,haiku:low" })
+
+// Read-only mode (no file modifications)
+generate(`Review the code...`, { tools: "read,grep,find,ls" })
+
+// High thinking for complex tasks
+work(`...`, { thinking: "high", timeout: "10m" })
+```
+
+### State
+
+```typescript
+interface State {
+  iteration: number;
+  commits: number;
+  hasTodos: boolean;
+  nextTodo: string | null;
+  todos: string[];
+  context: string | null;
+  hasUncommittedChanges: boolean;
+}
+```
+
+### Supervisor
+
+Two ways to define a supervisor:
+
+```typescript
+// Full control
+supervisor: {
+  every: 12,
+  async run(state) {
+    await runPi(`...`, { model: "claude-opus-4-5", thinking: "high" });
+    // or
+    await runCommand(["bun", "scripts/review.ts"]);
+  },
+}
+
+// Simple (just a prompt + RunOptions)
+supervisor: supervisor(`Review work...`, { 
+  every: 12, 
+  model: "claude-opus-4-5",
+  thinking: "high"
+})
+
+// Read-only supervisor (can't modify files)
+supervisor: supervisor(`Audit the codebase...`, { 
+  every: 6, 
+  tools: "read,grep,find,ls"
+})
+```
+
+### Helpers
+
+```typescript
+// Run pi with RunOptions
+await runPi(prompt, { 
+  model?: string,
+  provider?: string,
+  models?: string,
+  thinking?: "low" | "medium" | "high",
+  tools?: string,
+  timeout?: string 
+})
+
+// Run any command
+await runCommand(["bun", "script.ts"], { timeout?: string })
+```
+
+## Built-in Behaviors
+
+1. **Resume** — Uncommitted changes? Framework appends resume instructions.
+2. **Auto-commit** — Agent forgot to commit? We do it.
+3. **Push every N** — Default 4 commits.
+4. **Max iterations** — Default 400, prevents runaway loops.
+5. **Timeout** — Kills stuck agents.
+6. **Task file** — Auto-created if missing.
+
+## Timeout Format
+
+```typescript
+timeout: 300      // seconds
+timeout: "30s"
+timeout: "5m"
+timeout: "1h"
+```
+
+## CLI Flags
+
+All loops support:
+
+| Flag | Description |
+|------|-------------|
+| `--once` | Single iteration |
+| `--dry-run` | Print prompt, don't run |
+| `-c, --context` | Context for task generation |

@@ -1,0 +1,251 @@
+summary: Ralph import PCMS data
+description: ''
+value:
+  modules:
+    - id: a
+      summary: Lineage Management (S3 & state tracking)
+      value:
+        type: rawscript
+        content: '!inline lineage_management_(s3_&_state_tracking).inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          s3_key:
+            type: javascript
+            expr: flow_input.s3_key
+        lock: '!inline lineage_management_(s3_&_state_tracking).inline_script.lock'
+        language: bun
+    - id: b
+      summary: Players & People
+      value:
+        type: rawscript
+        content: '!inline players_&_people.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          lineage_id:
+            type: javascript
+            expr: results.a.lineage_id
+          s3_key:
+            type: javascript
+            expr: results.a.s3_key ?? flow_input.s3_key
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
+        lock: '!inline players_&_people.inline_script.lock'
+        language: bun
+    - id: c
+      summary: 'Contracts, Versions, Bonuses & Salaries'
+      value:
+        type: rawscript
+        content: '!inline contracts,_versions,_bonuses_&_salaries.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          lineage_id:
+            type: javascript
+            expr: results.a.lineage_id
+          s3_key:
+            type: javascript
+            expr: results.a.s3_key ?? flow_input.s3_key
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
+        lock: '!inline contracts,_versions,_bonuses_&_salaries.inline_script.lock'
+        language: bun
+    - id: d
+      summary: Team Exceptions & Usage
+      value:
+        type: rawscript
+        content: '!inline team_exceptions_&_usage.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          lineage_id:
+            type: javascript
+            expr: results.a.lineage_id
+          s3_key:
+            type: javascript
+            expr: results.a.s3_key ?? flow_input.s3_key
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
+        lock: '!inline team_exceptions_&_usage.inline_script.lock'
+        language: bun
+    - id: e
+      summary: 'Trades, Transactions & Ledger'
+      value:
+        type: rawscript
+        content: '!inline trades,_transactions_&_ledger.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          lineage_id:
+            type: javascript
+            expr: results.a.lineage_id
+          s3_key:
+            type: javascript
+            expr: results.a.s3_key ?? flow_input.s3_key
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
+        lock: '!inline trades,_transactions_&_ledger.inline_script.lock'
+        language: bun
+    - id: f
+      summary: 'System Values, Rookie Scale & NCA'
+      value:
+        type: rawscript
+        content: '!inline system_values,_rookie_scale_&_nca.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          lineage_id:
+            type: javascript
+            expr: results.a.lineage_id
+          s3_key:
+            type: javascript
+            expr: results.a.s3_key ?? flow_input.s3_key
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
+        lock: '!inline system_values,_rookie_scale_&_nca.inline_script.lock'
+        language: bun
+    - id: g
+      summary: Two-Way Daily Statuses
+      value:
+        type: rawscript
+        content: '!inline two-way_daily_statuses.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          lineage_id:
+            type: javascript
+            expr: results.a.lineage_id
+          s3_key:
+            type: javascript
+            expr: results.a.s3_key ?? flow_input.s3_key
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
+        lock: '!inline two-way_daily_statuses.inline_script.lock'
+        language: bun
+    - id: h
+      summary: Draft Picks
+      value:
+        type: rawscript
+        content: '!inline draft_picks.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          lineage_id:
+            type: javascript
+            expr: results.a.lineage_id
+          s3_key:
+            type: javascript
+            expr: results.a.s3_key ?? flow_input.s3_key
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
+        lock: '!inline draft_picks.inline_script.lock'
+        language: bun
+    - id: i
+      summary: Team Budgets
+      value:
+        type: rawscript
+        content: '!inline team_budgets.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          lineage_id:
+            type: javascript
+            expr: results.a.lineage_id
+          s3_key:
+            type: javascript
+            expr: results.a.s3_key ?? flow_input.s3_key
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
+        lock: '!inline team_budgets.inline_script.lock'
+        language: bun
+    - id: j
+      summary: Waiver Priority & Ranks
+      value:
+        type: rawscript
+        content: '!inline waiver_priority_&_ranks.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          lineage_id:
+            type: javascript
+            expr: results.a.lineage_id
+          s3_key:
+            type: javascript
+            expr: results.a.s3_key ?? flow_input.s3_key
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
+        lock: '!inline waiver_priority_&_ranks.inline_script.lock'
+        language: bun
+    - id: k
+      summary: Lookups
+      value:
+        type: rawscript
+        content: '!inline lookups.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          lineage_id:
+            type: javascript
+            expr: results.a.lineage_id
+          s3_key:
+            type: javascript
+            expr: results.a.s3_key ?? flow_input.s3_key
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
+        lock: '!inline lookups.inline_script.lock'
+        language: bun
+    - id: l
+      summary: Finalize Lineage
+      value:
+        type: rawscript
+        content: '!inline finalize_lineage.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          lineage_id:
+            type: javascript
+            expr: results.a.lineage_id
+          summaries:
+            type: javascript
+            expr: '[results.b, results.c, results.d, results.e, results.f, results.g, results.h, results.i, results.j, results.k]'
+        lock: '!inline finalize_lineage.inline_script.lock'
+        language: bun
+  same_worker: true
+schema:
+  $schema: 'https://json-schema.org/draft/2020-12/schema'
+  type: object
+  order:
+    - dry_run
+    - s3_key
+  properties:
+    dry_run:
+      type: boolean
+      description: Preview changes without writing to DB
+      default: false
+    s3_key:
+      type: string
+      description: S3 key for PCMS extract ZIP
+      default: pcms/nba_pcms_full_extract.zip

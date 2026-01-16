@@ -1,0 +1,59 @@
+summary: New PCMS schema
+description: ''
+value:
+  modules:
+    - id: a
+      value:
+        type: rawscript
+        content: '!inline inline_script_0.inline_script.pg.sql'
+        input_transforms: {}
+        lock: ''
+        language: postgresql
+    - id: b
+      value:
+        type: rawscript
+        content: '!inline inline_script_1.inline_script.pg.sql'
+        input_transforms: {}
+        lock: ''
+        language: postgresql
+    - id: c
+      value:
+        type: rawscript
+        content: '!inline inline_script_2.inline_script.pg.sql'
+        input_transforms: {}
+        lock: ''
+        language: postgresql
+    - id: d
+      value:
+        type: rawscript
+        content: '!inline inline_script_3.inline_script.pg.sql'
+        input_transforms: {}
+        lock: ''
+        language: postgresql
+    - id: e
+      value:
+        type: rawscript
+        content: '!inline inline_script_4.inline_script.pg.sql'
+        input_transforms: {}
+        lock: ''
+        language: postgresql
+    - id: f
+      value:
+        type: rawscript
+        content: '!inline inline_script_5.inline_script.pg.sql'
+        input_transforms: {}
+        lock: ''
+        language: postgresql
+    - id: g
+      value:
+        type: rawscript
+        content: '!inline inline_script_6.inline_script.pg.sql'
+        input_transforms: {}
+        lock: ''
+        language: postgresql
+  same_worker: true
+schema:
+  $schema: 'https://json-schema.org/draft/2020-12/schema'
+  type: object
+  properties: {}
+  required: []

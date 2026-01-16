@@ -24,6 +24,10 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Local extracts / scratch data
+.shared/
+shared/
+
 # Lock files (optional - uncomment if needed)
 # package-lock.json
 # bun.lockb

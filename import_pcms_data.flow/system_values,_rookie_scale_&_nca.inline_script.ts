@@ -1,309 +1,33 @@
 /**
  * System Values, Rookie Scale & Non-Contract Amounts Import
  *
- * Reads pre-parsed JSON from shared extract dir (created by lineage step), then
- * upserts into:
- * - pcms.league_system_values
- * - pcms.rookie_scale_amounts
- * - pcms.non_contract_amounts
+ * Reads clean JSON from lineage step and upserts into:
+ * - pcms.league_system_values      (yearly_system_values.json)
+ * - pcms.rookie_scale_amounts      (rookie_scale_amounts.json)
+ * - pcms.non_contract_amounts      (non_contract_amounts.json)
  *
- * Source JSON files:
- * - *_yearly-system-values.json
- *   Path: data["xml-extract"]["yearly-system-values-extract"]["yearlySystemValue"]
- * - *_rookie-scale-amounts.json
- *   Path: data["xml-extract"]["rookie-scale-amounts-extract"]["rookieScaleAmount"]
- * - *_nca-extract.json
- *   Path: data["xml-extract"]["nca-extract"]["nonContractAmount"]
+ * Clean JSON notes:
+ * - snake_case keys
+ * - null values already handled
+ * - no XML wrapper nesting
  */
 
 import { SQL } from "bun";
 import { readdir } from "node:fs/promises";
 
 const sql = new SQL({ url: Bun.env.POSTGRES_URL!, prepare: false });
-const PARSER_VERSION = "2.1.0";
-const SHARED_DIR = "./shared/pcms";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
+// Keep in sync with lineage_management_(s3_&_state_tracking).inline_script.ts
+const PARSER_VERSION = "3.0.0";
 
-interface LineageContext {
-  lineage_id: number;
-  s3_key: string;
-  source_hash: string;
-}
-
-interface UpsertResult {
-  table: string;
-  attempted: number;
-  success: boolean;
-  error?: string;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-function hash(data: string): string {
+function sha256(data: string): string {
   return new Bun.CryptoHasher("sha256").update(data).digest("hex");
 }
 
-function nilSafe(val: unknown): unknown {
-  if (val && typeof val === "object" && "@_xsi:nil" in val) return null;
+function firstScalar(val: any): any {
+  if (val === null || val === undefined) return null;
+  if (Array.isArray(val)) return val.length > 0 ? val[0] : null;
   return val;
-}
-
-function safeNum(val: unknown): number | null {
-  const v = nilSafe(val);
-  if (v === null || v === undefined || v === "") return null;
-  if (typeof v === "object") return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
-function safeStr(val: unknown): string | null {
-  const v = nilSafe(val);
-  if (v === null || v === undefined || v === "") return null;
-  if (typeof v === "object") return null;
-  return String(v);
-}
-
-function safeBool(val: unknown): boolean | null {
-  const v = nilSafe(val);
-  if (v === null || v === undefined) return null;
-  if (typeof v === "boolean") return v;
-  if (v === 1 || v === "1" || v === "Y" || v === "true" || v === true) return true;
-  if (v === 0 || v === "0" || v === "N" || v === "false" || v === false) return false;
-  return null;
-}
-
-function safeBigInt(val: unknown): string | null {
-  const v = nilSafe(val);
-  if (v === null || v === undefined || v === "") return null;
-  if (typeof v === "object") return null;
-  try {
-    return BigInt(Math.round(Number(v))).toString();
-  } catch {
-    return null;
-  }
-}
-
-function parsePCMSDate(val: unknown): string | null {
-  const v = safeStr(val);
-  if (!v || v === "0001-01-01") return null;
-  return !isNaN(Date.parse(v)) ? v : null;
-}
-
-function asArray<T = any>(val: unknown): T[] {
-  const v = nilSafe(val);
-  if (v === null || v === undefined) return [];
-  return Array.isArray(v) ? (v as T[]) : ([v] as T[]);
-}
-
-async function getLineageContext(extractDir: string): Promise<LineageContext> {
-  const lineageFile = `${extractDir}/lineage.json`;
-  const file = Bun.file(lineageFile);
-  if (await file.exists()) {
-    return await file.json();
-  }
-  throw new Error(`Lineage file not found: ${lineageFile}`);
-}
-
-async function upsertBatch<T extends Record<string, unknown>>(
-  schema: string,
-  table: string,
-  rows: T[],
-  conflictColumns: string[]
-): Promise<UpsertResult> {
-  const fullTable = `${schema}.${table}`;
-  if (rows.length === 0) {
-    return { table: fullTable, attempted: 0, success: true };
-  }
-
-  try {
-    const allColumns = Object.keys(rows[0]);
-    const updateColumns = allColumns.filter((col) => !conflictColumns.includes(col));
-    const setClauses = updateColumns.map((col) => `${col} = EXCLUDED.${col}`).join(", ");
-    const conflictTarget = conflictColumns.join(", ");
-
-    const query = `
-      INSERT INTO ${fullTable} (${allColumns.join(", ")})
-      SELECT * FROM jsonb_populate_recordset(null::${fullTable}, $1::jsonb)
-      ON CONFLICT (${conflictTarget}) DO UPDATE SET ${setClauses}
-      WHERE ${fullTable}.source_hash IS DISTINCT FROM EXCLUDED.source_hash
-    `;
-
-    await sql.unsafe(query, [JSON.stringify(rows)]);
-    return { table: fullTable, attempted: rows.length, success: true };
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    return { table: fullTable, attempted: rows.length, success: false, error: msg };
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Transformers
-// ─────────────────────────────────────────────────────────────────────────────
-
-function transformLeagueSystemValue(sv: any, provenance: any) {
-  return {
-    league_lk: safeStr(sv?.leagueLk),
-    salary_year: safeNum(sv?.systemYear),
-
-    // Amounts
-    salary_cap_amount: safeBigInt(sv?.capAmount),
-    tax_level_amount: safeBigInt(sv?.taxLevel),
-    tax_apron_amount: safeBigInt(sv?.taxApron),
-    tax_apron2_amount: safeBigInt(sv?.taxApron2),
-    tax_bracket_amount: safeBigInt(sv?.taxBracketAmount),
-    minimum_team_salary_amount: safeBigInt(sv?.minTeamSalary),
-
-    maximum_salary_25_pct: safeBigInt(sv?.maximumSalary25),
-    maximum_salary_30_pct: safeBigInt(sv?.maximumSalary30),
-    maximum_salary_35_pct: safeBigInt(sv?.maximumSalary35),
-
-    average_salary_amount: safeBigInt(sv?.averageSalary),
-    estimated_average_salary_amount: safeBigInt(sv?.estimatedAverageSalary),
-
-    non_taxpayer_mid_level_amount: safeBigInt(sv?.nonTaxpayerMidLevelAmount),
-    taxpayer_mid_level_amount: safeBigInt(sv?.taxpayerMidLevelAmount),
-    room_mid_level_amount: safeBigInt(sv?.roomMidLevelAmount),
-    bi_annual_amount: safeBigInt(sv?.biAnnualAmount),
-
-    two_way_salary_amount: safeBigInt(sv?.twoWaySalaryAmount),
-    two_way_dlg_salary_amount: safeBigInt(sv?.twoWayDlgSalaryAmount),
-
-    tpe_dollar_allowance: safeBigInt(sv?.tpeDollarAllowance),
-    max_trade_cash_amount: safeBigInt(sv?.maxTradeCashAmount),
-    international_player_payment_limit: safeBigInt(sv?.internationalPlayerPayment),
-
-    scale_raise_rate: safeNum(sv?.scaleRaiseRate),
-
-    // Dates
-    days_in_season: safeNum(sv?.daysInSeason),
-    season_start_at: parsePCMSDate(sv?.firstDayOfSeason),
-    season_end_at: parsePCMSDate(sv?.lastDayOfSeason),
-    playing_start_at: parsePCMSDate(sv?.playingStartDate),
-    playing_end_at: parsePCMSDate(sv?.playingEndDate),
-    finals_end_at: parsePCMSDate(sv?.lastDayOfFinals),
-
-    training_camp_start_at: parsePCMSDate(sv?.trainingCampStartDate),
-    training_camp_end_at: parsePCMSDate(sv?.trainingCampEndDate),
-    rookie_camp_start_at: parsePCMSDate(sv?.rookieCampStartDate),
-    rookie_camp_end_at: parsePCMSDate(sv?.rookieCampEndDate),
-    draft_at: parsePCMSDate(sv?.draftDate),
-    moratorium_end_at: parsePCMSDate(sv?.moratoriumEndDate),
-    trade_deadline_at: parsePCMSDate(sv?.tradeDeadlineDate),
-
-    cut_down_at: parsePCMSDate(sv?.cutDownDate),
-    two_way_cut_down_at: parsePCMSDate(sv?.twoWayCutDownDate),
-
-    notification_start_at: parsePCMSDate(sv?.notificationStartDate),
-    notification_end_at: parsePCMSDate(sv?.notificationEndDate),
-
-    exception_start_at: parsePCMSDate(sv?.exceptionStartDate),
-    exception_prorate_at: parsePCMSDate(sv?.exceptionProrateStartDate),
-    exceptions_added_at: parsePCMSDate(sv?.exceptionsAddedDate),
-    rnd2_pick_exc_zero_cap_end_at: parsePCMSDate(sv?.rnd2PickExcZeroCapEndDate),
-
-    // Flags
-    bonuses_finalized_at: parsePCMSDate(sv?.bonusesFinalizedDate),
-    is_bonuses_finalized: safeBool(sv?.bonusesFinalizedFlg),
-    is_cap_projection_generated: safeBool(sv?.capProjectionGeneratedFlg),
-    is_exceptions_added: safeBool(sv?.exceptionsAddedFlg),
-
-    free_agent_status_finalized_at: parsePCMSDate(sv?.freeAgentAmountsFinalizedDate),
-    is_free_agent_amounts_finalized: safeBool(sv?.freeAgentAmountsFinalizedFlg),
-
-    wnba_offseason_end_at: parsePCMSDate(sv?.wnbaOffseasonEnd),
-    wnba_season_finalized_at: parsePCMSDate(sv?.wnbaSeasonFinalizedDate),
-    is_wnba_season_finalized: safeBool(sv?.wnbaSeasonFinalizedFlg),
-
-    // D-League fields
-    dlg_countable_roster_moves: safeNum(sv?.dlgCountableRosterMoves),
-    dlg_max_level_a_salary_players: safeNum(sv?.dlgMaxLevelASalaryPlayers),
-    dlg_salary_level_a: safeNum(sv?.dlgSalaryLevelA),
-    dlg_salary_level_b: safeNum(sv?.dlgSalaryLevelB),
-    dlg_salary_level_c: safeNum(sv?.dlgSalaryLevelC),
-    dlg_team_salary_budget: safeBigInt(sv?.dlgTeamSalaryBudget),
-
-    created_at: parsePCMSDate(sv?.createDate),
-    updated_at: parsePCMSDate(sv?.lastChangeDate),
-    record_changed_at: parsePCMSDate(sv?.recordChangeDate),
-
-    ...provenance,
-  };
-}
-
-function transformRookieScaleAmount(rs: any, provenance: any) {
-  return {
-    salary_year: safeNum(rs?.season),
-    pick_number: safeNum(rs?.pick),
-    league_lk: safeStr(rs?.leagueLk) ?? "NBA",
-
-    salary_year_1: safeBigInt(rs?.salaryYear1),
-    salary_year_2: safeBigInt(rs?.salaryYear2),
-    salary_year_3: safeBigInt(rs?.salaryYear3),
-    salary_year_4: safeBigInt(rs?.salaryYear4),
-
-    option_amount_year_3: safeBigInt(rs?.optionYear3),
-    option_amount_year_4: safeBigInt(rs?.optionYear4),
-    option_pct_year_3: safeNum(rs?.percentYear3),
-    option_pct_year_4: safeNum(rs?.percentYear4),
-
-    is_baseline_scale: safeBool(rs?.baselineScaleFlg),
-    is_active: safeBool(rs?.activeFlg),
-
-    created_at: parsePCMSDate(rs?.createDate),
-    updated_at: parsePCMSDate(rs?.lastChangeDate),
-    record_changed_at: parsePCMSDate(rs?.recordChangeDate),
-
-    ...provenance,
-  };
-}
-
-function transformNonContractAmount(nca: any, provenance: any) {
-  const rookieScaleAmount = asArray<any>(nca?.rookieScaleAmount);
-
-  return {
-    non_contract_amount_id: safeBigInt(nca?.nonContractAmountId),
-
-    player_id: safeNum(nca?.playerId),
-    team_id: safeNum(nca?.teamId),
-    salary_year: safeNum(nca?.nonContractYear),
-    amount_type_lk: safeStr(nca?.nonContractAmountTypeLk ?? nca?.amountTypeLk),
-
-    cap_amount: safeBigInt(nca?.capAmount) ?? "0",
-    tax_amount: safeBigInt(nca?.taxAmount) ?? "0",
-    apron_amount: safeBigInt(nca?.apronAmount) ?? "0",
-    fa_amount: safeBigInt(nca?.faAmount) ?? "0",
-    fa_amount_calc: safeBigInt(nca?.faAmountCalc) ?? "0",
-    salary_fa_amount: safeBigInt(nca?.salaryFaAmount) ?? "0",
-
-    qo_amount: safeBigInt(nca?.qoAmount),
-    rofr_amount: safeBigInt(nca?.rofrAmount),
-    rookie_scale_amount: safeBigInt(rookieScaleAmount[0]),
-
-    carry_over_fa_flg: safeBool(nca?.carryOverFaFlg),
-    fa_amount_type_lk: safeStr(nca?.freeAgentAmountTypeLk),
-    fa_amount_type_lk_calc: safeStr(nca?.freeAgentAmountTypeLkCalc),
-    free_agent_designation_lk: safeStr(nca?.freeAgentDesignationLk),
-    free_agent_status_lk: safeStr(nca?.freeAgentStatusLk),
-    min_contract_lk: safeStr(nca?.minContractLk),
-
-    contract_id: safeNum(nca?.contractId),
-    contract_type_lk: safeStr(nca?.contractTypeLk),
-    transaction_id: safeNum(nca?.transactionId),
-
-    version_number: safeStr(nca?.versionNumber),
-    years_of_service: safeNum(nca?.yearsOfService),
-
-    created_at: parsePCMSDate(nca?.createDate),
-    updated_at: parsePCMSDate(nca?.lastChangeDate),
-    record_changed_at: parsePCMSDate(nca?.recordChangeDate),
-
-    ...provenance,
-  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -314,143 +38,407 @@ export async function main(
   dry_run = false,
   lineage_id?: number,
   s3_key?: string,
-  extract_dir: string = SHARED_DIR
+  extract_dir = "./shared/pcms"
 ) {
   const startedAt = new Date().toISOString();
-  const tables: UpsertResult[] = [];
-  const errors: string[] = [];
+  void lineage_id;
 
   try {
-    // Find the actual extract directory
+    // Find extract directory
     const entries = await readdir(extract_dir, { withFileTypes: true });
     const subDir = entries.find((e) => e.isDirectory());
     const baseDir = subDir ? `${extract_dir}/${subDir.name}` : extract_dir;
 
-    // Get lineage context
-    const ctx = await getLineageContext(baseDir);
-    const effectiveLineageId = lineage_id ?? ctx.lineage_id;
-    const effectiveS3Key = s3_key ?? ctx.s3_key;
-    void effectiveLineageId; // lineage_id is currently only used for consistency across scripts
+    const ysvFile = Bun.file(`${baseDir}/yearly_system_values.json`);
+    const rookieFile = Bun.file(`${baseDir}/rookie_scale_amounts.json`);
+    const ncaFile = Bun.file(`${baseDir}/non_contract_amounts.json`);
 
-    // Find JSON files
-    const allFiles = await readdir(baseDir);
-    const sysJsonFile = allFiles.find((f) => f.includes("yearly-system-values") && f.endsWith(".json"));
-    const rookieJsonFile = allFiles.find((f) => f.includes("rookie-scale-amounts") && f.endsWith(".json"));
-    const ncaJsonFile = allFiles.find((f) => (f.includes("nca-extract") || f.includes("_nca")) && f.endsWith(".json"));
+    const ysv: any[] = (await ysvFile.exists()) ? await ysvFile.json() : [];
+    const rookieScale: any[] = (await rookieFile.exists()) ? await rookieFile.json() : [];
+    const ncas: any[] = (await ncaFile.exists()) ? await ncaFile.json() : [];
 
-    if (!sysJsonFile && !rookieJsonFile && !ncaJsonFile) {
-      throw new Error(`No system-values/rookie-scale/nca JSON files found in ${baseDir}`);
+    console.log(
+      `Found yearly_system_values=${ysv.length}, rookie_scale_amounts=${rookieScale.length}, non_contract_amounts=${ncas.length}`
+    );
+
+    if (ncas.length > 0 && !s3_key && !dry_run) {
+      // non_contract_amounts.source_drop_file is NOT NULL in schema
+      throw new Error("s3_key is required for non_contract_amounts import");
     }
 
+    const ingestedAt = new Date();
     const provenanceBase = {
-      source_drop_file: effectiveS3Key,
+      source_drop_file: s3_key,
       parser_version: PARSER_VERSION,
-      ingested_at: new Date(),
+      ingested_at: ingestedAt,
     };
 
-    const BATCH_SIZE = 500;
+    // ─────────────────────────────────────────────────────────────────────────
+    // Map JSON → DB rows
+    // ─────────────────────────────────────────────────────────────────────────
+
+    const leagueSystemValueRows = ysv
+      .map((sv) => {
+        if (!sv?.league_lk) return null;
+        const salaryYear = sv?.system_year ?? null;
+        if (salaryYear === null || salaryYear === undefined) return null;
+
+        return {
+          league_lk: sv.league_lk,
+          salary_year: salaryYear,
+
+          // Financial constants
+          salary_cap_amount: sv?.cap_amount ?? null,
+          tax_level_amount: sv?.tax_level ?? null,
+          tax_apron_amount: sv?.tax_apron ?? null,
+          tax_apron2_amount: sv?.tax_apron2 ?? null,
+          tax_bracket_amount: sv?.tax_bracket_amount ?? null,
+          minimum_team_salary_amount: sv?.minimum_team_salary ?? null,
+
+          maximum_salary_25_pct: sv?.maximum_salary25 ?? null,
+          maximum_salary_30_pct: sv?.maximum_salary30 ?? null,
+          maximum_salary_35_pct: sv?.maximum_salary35 ?? null,
+
+          average_salary_amount: sv?.average_salary ?? null,
+          estimated_average_salary_amount: sv?.estimated_average_salary ?? null,
+
+          non_taxpayer_mid_level_amount: sv?.non_taxpayer_mid_level_amount ?? null,
+          taxpayer_mid_level_amount: sv?.taxpayer_mid_level_amount ?? null,
+          room_mid_level_amount: sv?.room_mid_level_amount ?? null,
+          bi_annual_amount: sv?.bi_annual_amount ?? null,
+
+          two_way_salary_amount: sv?.two_way_salary_amount ?? null,
+          two_way_dlg_salary_amount: sv?.two_way_dlg_salary_amount ?? null,
+
+          tpe_dollar_allowance: sv?.tpe_dollar_allowance ?? null,
+          max_trade_cash_amount: sv?.max_trade_cash_amount ?? null,
+          international_player_payment_limit: sv?.international_player_payment ?? null,
+
+          scale_raise_rate: sv?.scale_raise_rate ?? null,
+
+          // Dates
+          days_in_season: sv?.days_in_season ?? null,
+          season_start_at: sv?.first_day_of_season ?? null,
+          season_end_at: sv?.last_day_of_season ?? null,
+          playing_start_at: sv?.playing_start_date ?? null,
+          playing_end_at: sv?.playing_end_date ?? null,
+          finals_end_at: sv?.last_day_of_finals ?? null,
+
+          training_camp_start_at: sv?.training_camp_start_date ?? null,
+          training_camp_end_at: sv?.training_camp_end_date ?? null,
+          rookie_camp_start_at: sv?.rookie_camp_start_date ?? null,
+          rookie_camp_end_at: sv?.rookie_camp_end_date ?? null,
+          draft_at: sv?.draft_date ?? null,
+          moratorium_end_at: sv?.moratorium_end_date ?? null,
+          trade_deadline_at: sv?.trade_deadline_date ?? null,
+          cut_down_at: sv?.cut_down_date ?? null,
+          two_way_cut_down_at: sv?.two_way_cut_down_date ?? null,
+          notification_start_at: sv?.notification_start_date ?? null,
+          notification_end_at: sv?.notification_end_date ?? null,
+          exception_start_at: sv?.exception_start_date ?? null,
+          exception_prorate_at: sv?.exception_prorate_start_date ?? null,
+          exceptions_added_at: sv?.exceptions_added_date ?? null,
+          rnd2_pick_exc_zero_cap_end_at: sv?.rnd2_pick_exc_zero_cap_end_date ?? null,
+
+          // Flags
+          bonuses_finalized_at: sv?.bonuses_finalized_date ?? null,
+          is_bonuses_finalized: sv?.bonuses_finalized_flg ?? null,
+          is_cap_projection_generated: sv?.cap_projection_generated_flg ?? null,
+          is_exceptions_added: sv?.exceptions_added_flg ?? null,
+          free_agent_status_finalized_at: sv?.free_agent_amounts_finalized_date ?? null,
+          is_free_agent_amounts_finalized: sv?.free_agent_amounts_finalized_flg ?? null,
+
+          wnba_offseason_end_at: sv?.wnba_offseason_end ?? null,
+          wnba_season_finalized_at: sv?.wnba_season_finalized_date ?? null,
+          is_wnba_season_finalized: sv?.wnba_season_finalized_flg ?? null,
+
+          // D-League
+          dlg_countable_roster_moves: sv?.dlg_countable_roster_moves ?? null,
+          dlg_max_level_a_salary_players: sv?.dlg_max_level_a_salary_players ?? null,
+          dlg_salary_level_a: sv?.dlg_salary_level_a ?? null,
+          dlg_salary_level_b: sv?.dlg_salary_level_b ?? null,
+          dlg_salary_level_c: sv?.dlg_salary_level_c ?? null,
+          dlg_team_salary_budget: sv?.dlg_team_salary_budget ?? null,
+
+          created_at: sv?.create_date ?? null,
+          updated_at: sv?.last_change_date ?? null,
+          record_changed_at: sv?.record_change_date ?? null,
+
+          ...provenanceBase,
+          source_hash: sha256(JSON.stringify(sv)),
+        };
+      })
+      .filter(Boolean) as Record<string, any>[];
+
+    const rookieScaleRows = rookieScale
+      .map((rs) => {
+        const salaryYear = rs?.season ?? null;
+        const pickNumber = rs?.pick ?? null;
+        if (salaryYear === null || pickNumber === null) return null;
+
+        return {
+          salary_year: salaryYear,
+          pick_number: pickNumber,
+          league_lk: rs?.league_lk ?? "NBA",
+
+          salary_year_1: rs?.salary_year1 ?? null,
+          salary_year_2: rs?.salary_year2 ?? null,
+          salary_year_3: rs?.salary_year3 ?? null,
+          salary_year_4: rs?.salary_year4 ?? null,
+
+          option_amount_year_3: rs?.option_year3 ?? null,
+          option_amount_year_4: rs?.option_year4 ?? null,
+          option_pct_year_3: rs?.percent_year3 ?? null,
+          option_pct_year_4: rs?.percent_year4 ?? null,
+
+          is_baseline_scale: rs?.baseline_scale_flg ?? null,
+          is_active: rs?.active_flg ?? null,
+
+          created_at: rs?.create_date ?? null,
+          updated_at: rs?.last_change_date ?? null,
+          record_changed_at: rs?.record_change_date ?? null,
+
+          ...provenanceBase,
+          source_hash: sha256(JSON.stringify(rs)),
+        };
+      })
+      .filter(Boolean) as Record<string, any>[];
+
+    const nonContractAmountRows = ncas
+      .map((nca) => {
+        if (!nca?.non_contract_amount_id) return null;
+
+        return {
+          non_contract_amount_id: nca.non_contract_amount_id,
+          player_id: nca?.player_id ?? null,
+          team_id: nca?.team_id ?? null,
+          salary_year: nca?.non_contract_year ?? null,
+          amount_type_lk: nca?.non_contract_amount_type_lk ?? nca?.amount_type_lk ?? null,
+
+          cap_amount: nca?.cap_amount ?? null,
+          tax_amount: nca?.tax_amount ?? null,
+          apron_amount: nca?.apron_amount ?? null,
+          fa_amount: nca?.fa_amount ?? null,
+          fa_amount_calc: nca?.fa_amount_calc ?? null,
+          salary_fa_amount: nca?.salary_fa_amount ?? null,
+
+          qo_amount: nca?.qo_amount ?? null,
+          rofr_amount: nca?.rofr_amount ?? null,
+          rookie_scale_amount: firstScalar(nca?.rookie_scale_amount),
+
+          carry_over_fa_flg: nca?.carry_over_fa_flg ?? null,
+          fa_amount_type_lk: nca?.free_agent_amount_type_lk ?? null,
+          fa_amount_type_lk_calc: nca?.free_agent_amount_type_lk_calc ?? null,
+          free_agent_designation_lk: nca?.free_agent_designation_lk ?? null,
+          free_agent_status_lk: nca?.free_agent_status_lk ?? null,
+          min_contract_lk: nca?.min_contract_lk ?? null,
+
+          contract_id: nca?.contract_id ?? null,
+          contract_type_lk: nca?.contract_type_lk ?? null,
+          transaction_id: nca?.transaction_id ?? null,
+
+          version_number: nca?.version_number ?? null,
+          years_of_service: nca?.years_of_service ?? null,
+
+          created_at: nca?.create_date ?? null,
+          updated_at: nca?.last_change_date ?? null,
+          record_changed_at: nca?.record_change_date ?? null,
+
+          ...provenanceBase,
+          source_hash: sha256(JSON.stringify(nca)),
+        };
+      })
+      .filter(Boolean) as Record<string, any>[];
+
+    if (dry_run) {
+      return {
+        dry_run: true,
+        started_at: startedAt,
+        finished_at: new Date().toISOString(),
+        tables: [
+          { table: "pcms.league_system_values", attempted: leagueSystemValueRows.length, success: true },
+          { table: "pcms.rookie_scale_amounts", attempted: rookieScaleRows.length, success: true },
+          { table: "pcms.non_contract_amounts", attempted: nonContractAmountRows.length, success: true },
+        ],
+        errors: [],
+      };
+    }
+
+    const tables: any[] = [];
+
+    const BATCH_SIZE = 1000;
 
     // ── league_system_values ────────────────────────────────────────────────
 
-    if (sysJsonFile) {
-      console.log(`Reading ${sysJsonFile}...`);
-      const sysData = await Bun.file(`${baseDir}/${sysJsonFile}`).json();
-      const systemValues = asArray<any>(sysData?.["xml-extract"]?.["yearly-system-values-extract"]?.yearlySystemValue);
+    if (leagueSystemValueRows.length > 0) {
+      for (let i = 0; i < leagueSystemValueRows.length; i += BATCH_SIZE) {
+        const batch = leagueSystemValueRows.slice(i, i + BATCH_SIZE);
 
-      console.log(`Found ${systemValues.length} yearly system values`);
-
-      for (let i = 0; i < systemValues.length; i += BATCH_SIZE) {
-        const batch = systemValues.slice(i, i + BATCH_SIZE);
-        const rows = batch.map((sv) =>
-          transformLeagueSystemValue(sv, {
-            ...provenanceBase,
-            source_hash: hash(JSON.stringify(sv)),
-          })
-        );
-
-        if (!dry_run) {
-          const result = await upsertBatch("pcms", "league_system_values", rows, ["league_lk", "salary_year"]);
-          tables.push(result);
-          if (!result.success) errors.push(result.error!);
-        } else {
-          tables.push({ table: "pcms.league_system_values", attempted: rows.length, success: true });
-        }
+        await sql`
+          INSERT INTO pcms.league_system_values ${sql(batch)}
+          ON CONFLICT (league_lk, salary_year) DO UPDATE SET
+            salary_cap_amount = EXCLUDED.salary_cap_amount,
+            tax_level_amount = EXCLUDED.tax_level_amount,
+            tax_apron_amount = EXCLUDED.tax_apron_amount,
+            tax_apron2_amount = EXCLUDED.tax_apron2_amount,
+            tax_bracket_amount = EXCLUDED.tax_bracket_amount,
+            minimum_team_salary_amount = EXCLUDED.minimum_team_salary_amount,
+            maximum_salary_25_pct = EXCLUDED.maximum_salary_25_pct,
+            maximum_salary_30_pct = EXCLUDED.maximum_salary_30_pct,
+            maximum_salary_35_pct = EXCLUDED.maximum_salary_35_pct,
+            average_salary_amount = EXCLUDED.average_salary_amount,
+            estimated_average_salary_amount = EXCLUDED.estimated_average_salary_amount,
+            non_taxpayer_mid_level_amount = EXCLUDED.non_taxpayer_mid_level_amount,
+            taxpayer_mid_level_amount = EXCLUDED.taxpayer_mid_level_amount,
+            room_mid_level_amount = EXCLUDED.room_mid_level_amount,
+            bi_annual_amount = EXCLUDED.bi_annual_amount,
+            two_way_salary_amount = EXCLUDED.two_way_salary_amount,
+            two_way_dlg_salary_amount = EXCLUDED.two_way_dlg_salary_amount,
+            wnba_offseason_end_at = EXCLUDED.wnba_offseason_end_at,
+            tpe_dollar_allowance = EXCLUDED.tpe_dollar_allowance,
+            max_trade_cash_amount = EXCLUDED.max_trade_cash_amount,
+            international_player_payment_limit = EXCLUDED.international_player_payment_limit,
+            scale_raise_rate = EXCLUDED.scale_raise_rate,
+            days_in_season = EXCLUDED.days_in_season,
+            season_start_at = EXCLUDED.season_start_at,
+            season_end_at = EXCLUDED.season_end_at,
+            playing_start_at = EXCLUDED.playing_start_at,
+            playing_end_at = EXCLUDED.playing_end_at,
+            finals_end_at = EXCLUDED.finals_end_at,
+            training_camp_start_at = EXCLUDED.training_camp_start_at,
+            training_camp_end_at = EXCLUDED.training_camp_end_at,
+            rookie_camp_start_at = EXCLUDED.rookie_camp_start_at,
+            rookie_camp_end_at = EXCLUDED.rookie_camp_end_at,
+            draft_at = EXCLUDED.draft_at,
+            moratorium_end_at = EXCLUDED.moratorium_end_at,
+            trade_deadline_at = EXCLUDED.trade_deadline_at,
+            cut_down_at = EXCLUDED.cut_down_at,
+            two_way_cut_down_at = EXCLUDED.two_way_cut_down_at,
+            notification_start_at = EXCLUDED.notification_start_at,
+            notification_end_at = EXCLUDED.notification_end_at,
+            exception_start_at = EXCLUDED.exception_start_at,
+            exception_prorate_at = EXCLUDED.exception_prorate_at,
+            exceptions_added_at = EXCLUDED.exceptions_added_at,
+            rnd2_pick_exc_zero_cap_end_at = EXCLUDED.rnd2_pick_exc_zero_cap_end_at,
+            bonuses_finalized_at = EXCLUDED.bonuses_finalized_at,
+            is_bonuses_finalized = EXCLUDED.is_bonuses_finalized,
+            is_cap_projection_generated = EXCLUDED.is_cap_projection_generated,
+            is_exceptions_added = EXCLUDED.is_exceptions_added,
+            free_agent_status_finalized_at = EXCLUDED.free_agent_status_finalized_at,
+            is_free_agent_amounts_finalized = EXCLUDED.is_free_agent_amounts_finalized,
+            wnba_season_finalized_at = EXCLUDED.wnba_season_finalized_at,
+            is_wnba_season_finalized = EXCLUDED.is_wnba_season_finalized,
+            dlg_countable_roster_moves = EXCLUDED.dlg_countable_roster_moves,
+            dlg_max_level_a_salary_players = EXCLUDED.dlg_max_level_a_salary_players,
+            dlg_salary_level_a = EXCLUDED.dlg_salary_level_a,
+            dlg_salary_level_b = EXCLUDED.dlg_salary_level_b,
+            dlg_salary_level_c = EXCLUDED.dlg_salary_level_c,
+            dlg_team_salary_budget = EXCLUDED.dlg_team_salary_budget,
+            created_at = EXCLUDED.created_at,
+            updated_at = EXCLUDED.updated_at,
+            record_changed_at = EXCLUDED.record_changed_at,
+            source_drop_file = EXCLUDED.source_drop_file,
+            source_hash = EXCLUDED.source_hash,
+            parser_version = EXCLUDED.parser_version,
+            ingested_at = EXCLUDED.ingested_at
+        `;
       }
+
+      tables.push({ table: "pcms.league_system_values", attempted: leagueSystemValueRows.length, success: true });
     }
 
     // ── rookie_scale_amounts ────────────────────────────────────────────────
 
-    if (rookieJsonFile) {
-      console.log(`Reading ${rookieJsonFile}...`);
-      const rookieData = await Bun.file(`${baseDir}/${rookieJsonFile}`).json();
-      const rookieScale = asArray<any>(
-        rookieData?.["xml-extract"]?.["rookie-scale-amounts-extract"]?.rookieScaleAmount
-      );
+    if (rookieScaleRows.length > 0) {
+      for (let i = 0; i < rookieScaleRows.length; i += BATCH_SIZE) {
+        const batch = rookieScaleRows.slice(i, i + BATCH_SIZE);
 
-      console.log(`Found ${rookieScale.length} rookie scale amounts`);
-
-      for (let i = 0; i < rookieScale.length; i += BATCH_SIZE) {
-        const batch = rookieScale.slice(i, i + BATCH_SIZE);
-        const rows = batch.map((rs) =>
-          transformRookieScaleAmount(rs, {
-            ...provenanceBase,
-            source_hash: hash(JSON.stringify(rs)),
-          })
-        );
-
-        if (!dry_run) {
-          const result = await upsertBatch("pcms", "rookie_scale_amounts", rows, ["salary_year", "pick_number", "league_lk"]);
-          tables.push(result);
-          if (!result.success) errors.push(result.error!);
-        } else {
-          tables.push({ table: "pcms.rookie_scale_amounts", attempted: rows.length, success: true });
-        }
+        await sql`
+          INSERT INTO pcms.rookie_scale_amounts ${sql(batch)}
+          ON CONFLICT (salary_year, pick_number, league_lk) DO UPDATE SET
+            salary_year_1 = EXCLUDED.salary_year_1,
+            salary_year_2 = EXCLUDED.salary_year_2,
+            salary_year_3 = EXCLUDED.salary_year_3,
+            salary_year_4 = EXCLUDED.salary_year_4,
+            option_amount_year_3 = EXCLUDED.option_amount_year_3,
+            option_amount_year_4 = EXCLUDED.option_amount_year_4,
+            option_pct_year_3 = EXCLUDED.option_pct_year_3,
+            option_pct_year_4 = EXCLUDED.option_pct_year_4,
+            is_baseline_scale = EXCLUDED.is_baseline_scale,
+            is_active = EXCLUDED.is_active,
+            created_at = EXCLUDED.created_at,
+            updated_at = EXCLUDED.updated_at,
+            record_changed_at = EXCLUDED.record_changed_at,
+            source_drop_file = EXCLUDED.source_drop_file,
+            source_hash = EXCLUDED.source_hash,
+            parser_version = EXCLUDED.parser_version,
+            ingested_at = EXCLUDED.ingested_at
+        `;
       }
+
+      tables.push({ table: "pcms.rookie_scale_amounts", attempted: rookieScaleRows.length, success: true });
     }
 
     // ── non_contract_amounts ────────────────────────────────────────────────
 
-    if (ncaJsonFile) {
-      console.log(`Reading ${ncaJsonFile}...`);
-      const ncaData = await Bun.file(`${baseDir}/${ncaJsonFile}`).json();
-      const ncas = asArray<any>(ncaData?.["xml-extract"]?.["nca-extract"]?.nonContractAmount);
+    if (nonContractAmountRows.length > 0) {
+      for (let i = 0; i < nonContractAmountRows.length; i += BATCH_SIZE) {
+        const batch = nonContractAmountRows.slice(i, i + BATCH_SIZE);
 
-      console.log(`Found ${ncas.length} non-contract amounts`);
-
-      for (let i = 0; i < ncas.length; i += BATCH_SIZE) {
-        const batch = ncas.slice(i, i + BATCH_SIZE);
-        const rows = batch.map((nca) =>
-          transformNonContractAmount(nca, {
-            ...provenanceBase,
-            source_hash: hash(JSON.stringify(nca)),
-          })
-        );
-
-        if (!dry_run) {
-          const result = await upsertBatch("pcms", "non_contract_amounts", rows, ["non_contract_amount_id"]);
-          tables.push(result);
-          if (!result.success) errors.push(result.error!);
-        } else {
-          tables.push({ table: "pcms.non_contract_amounts", attempted: rows.length, success: true });
-        }
+        await sql`
+          INSERT INTO pcms.non_contract_amounts ${sql(batch)}
+          ON CONFLICT (non_contract_amount_id) DO UPDATE SET
+            player_id = EXCLUDED.player_id,
+            team_id = EXCLUDED.team_id,
+            salary_year = EXCLUDED.salary_year,
+            amount_type_lk = EXCLUDED.amount_type_lk,
+            cap_amount = EXCLUDED.cap_amount,
+            tax_amount = EXCLUDED.tax_amount,
+            apron_amount = EXCLUDED.apron_amount,
+            fa_amount = EXCLUDED.fa_amount,
+            fa_amount_calc = EXCLUDED.fa_amount_calc,
+            salary_fa_amount = EXCLUDED.salary_fa_amount,
+            qo_amount = EXCLUDED.qo_amount,
+            rofr_amount = EXCLUDED.rofr_amount,
+            rookie_scale_amount = EXCLUDED.rookie_scale_amount,
+            carry_over_fa_flg = EXCLUDED.carry_over_fa_flg,
+            fa_amount_type_lk = EXCLUDED.fa_amount_type_lk,
+            fa_amount_type_lk_calc = EXCLUDED.fa_amount_type_lk_calc,
+            free_agent_designation_lk = EXCLUDED.free_agent_designation_lk,
+            free_agent_status_lk = EXCLUDED.free_agent_status_lk,
+            min_contract_lk = EXCLUDED.min_contract_lk,
+            contract_id = EXCLUDED.contract_id,
+            contract_type_lk = EXCLUDED.contract_type_lk,
+            transaction_id = EXCLUDED.transaction_id,
+            version_number = EXCLUDED.version_number,
+            years_of_service = EXCLUDED.years_of_service,
+            created_at = EXCLUDED.created_at,
+            updated_at = EXCLUDED.updated_at,
+            record_changed_at = EXCLUDED.record_changed_at,
+            source_drop_file = EXCLUDED.source_drop_file,
+            source_hash = EXCLUDED.source_hash,
+            parser_version = EXCLUDED.parser_version,
+            ingested_at = EXCLUDED.ingested_at
+        `;
       }
+
+      tables.push({ table: "pcms.non_contract_amounts", attempted: nonContractAmountRows.length, success: true });
     }
 
     return {
-      dry_run,
+      dry_run: false,
       started_at: startedAt,
       finished_at: new Date().toISOString(),
       tables,
-      errors,
+      errors: [],
     };
   } catch (e: any) {
-    errors.push(e.message);
     return {
       dry_run,
       started_at: startedAt,
       finished_at: new Date().toISOString(),
-      tables,
-      errors,
+      tables: [],
+      errors: [e?.message ?? String(e)],
     };
   }
 }

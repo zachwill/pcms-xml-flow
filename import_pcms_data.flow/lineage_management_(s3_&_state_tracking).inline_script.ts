@@ -195,8 +195,8 @@ async function downloadExtractAndParse(s3Key: string): Promise<{
   // Download from S3
   console.log(`Downloading ${s3Key} from S3...`);
   const s3obj: S3Object = { s3: s3Key };
-  const response = await wmill.loadS3File(s3obj);
-  const buffer = new Uint8Array(await response.arrayBuffer());
+  const buffer = await wmill.loadS3File(s3obj);
+  if (!buffer) throw new Error(`Failed to download ${s3Key} from S3`);
 
   // Write to temp file
   const tmpZip = `${SHARED_DIR}/extract.zip`;

@@ -1,8 +1,7 @@
 /**
  * Trades / Transactions / Ledger Import
  *
- * Reads pre-parsed JSON from the shared extract dir (created by lineage step),
- * then upserts into:
+ * Reads clean JSON from lineage step and upserts into:
  * - pcms.trades
  * - pcms.trade_teams
  * - pcms.trade_team_details
@@ -11,347 +10,39 @@
  * - pcms.ledger_entries
  * - pcms.transaction_waiver_amounts
  *
- * Sources:
- * - *_trade.json           → data["xml-extract"]["trade-extract"]["trade"]
- * - *_transaction.json     → data["xml-extract"]["transaction-extract"]["transaction"]
- * - *_ledger.json          → data["xml-extract"]["ledger-extract"]["transactionLedgerEntry"]
- * - *_transactions-waiver-amounts.json → data["xml-extract"]["twa-extract"]["transactionWaiverAmount"]
+ * Clean JSON notes:
+ * - snake_case keys
+ * - proper nulls (no xsi:nil objects)
+ * - no XML wrapper nesting
  */
 import { SQL } from "bun";
 import { readdir } from "node:fs/promises";
 
 const sql = new SQL({ url: Bun.env.POSTGRES_URL!, prepare: false });
-const PARSER_VERSION = "2.1.0";
-const SHARED_DIR = "./shared/pcms";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Types
+// Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface LineageContext {
-  lineage_id: number;
-  s3_key: string;
-  source_hash: string;
+function asArray<T = any>(val: any): T[] {
+  if (val === null || val === undefined) return [];
+  return Array.isArray(val) ? val : [val];
 }
 
-interface UpsertResult {
-  table: string;
-  attempted: number;
-  success: boolean;
-  error?: string;
+function unwrapSingleArray<T = any>(val: any): T | null {
+  if (val === null || val === undefined) return null;
+  return Array.isArray(val) ? (val.length > 0 ? (val[0] as T) : null) : (val as T);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers (inline)
-// ─────────────────────────────────────────────────────────────────────────────
+function normalizeVersionNumber(val: unknown): number | null {
+  if (val === null || val === undefined || val === "") return null;
 
-function hash(data: string): string {
-  return new Bun.CryptoHasher("sha256").update(data).digest("hex");
-}
+  const n = typeof val === "number" ? val : Number(val);
+  if (!Number.isFinite(n)) return null;
 
-function nilSafe(val: unknown): unknown {
-  if (val && typeof val === "object" && "@_xsi:nil" in val) return null;
-  return val;
-}
-
-function unwrapSingleArray(val: unknown): unknown {
-  const v = nilSafe(val);
-  if (Array.isArray(v) && v.length === 1) return nilSafe(v[0]);
-  return v;
-}
-
-function safeNum(val: unknown): number | null {
-  const v = unwrapSingleArray(val);
-  if (v === null || v === undefined || v === "") return null;
-  if (typeof v === "object") return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
-function safeVersionNum(val: unknown): number | null {
-  const n = safeNum(val);
-  if (n === null) return null;
-  if (Number.isInteger(n)) return n;
-  return Math.round(n * 100);
-}
-
-function safeStr(val: unknown): string | null {
-  const v = unwrapSingleArray(val);
-  if (v === null || v === undefined || v === "") return null;
-  if (typeof v === "object") return null;
-  return String(v);
-}
-
-function safeBool(val: unknown): boolean | null {
-  const v = unwrapSingleArray(val);
-  if (v === null || v === undefined) return null;
-  if (typeof v === "boolean") return v;
-  if (v === 1 || v === "1" || v === "Y" || v === "true" || v === true) return true;
-  if (v === 0 || v === "0" || v === "N" || v === "false" || v === false) return false;
-  return null;
-}
-
-function safeBigInt(val: unknown): string | null {
-  const v = unwrapSingleArray(val);
-  if (v === null || v === undefined || v === "") return null;
-  if (typeof v === "object") return null;
-  try {
-    return BigInt(Math.round(Number(v))).toString();
-  } catch {
-    return null;
-  }
-}
-
-function asArray<T = any>(val: unknown): T[] {
-  const v = nilSafe(val);
-  if (v === null || v === undefined) return [];
-  return Array.isArray(v) ? (v as T[]) : ([v] as T[]);
-}
-
-async function getLineageContext(extractDir: string): Promise<LineageContext> {
-  const lineageFile = `${extractDir}/lineage.json`;
-  const file = Bun.file(lineageFile);
-  if (await file.exists()) return await file.json();
-  throw new Error(`Lineage file not found: ${lineageFile}`);
-}
-
-async function upsertBatch<T extends Record<string, unknown>>(
-  schema: string,
-  table: string,
-  rows: T[],
-  conflictColumns: string[]
-): Promise<UpsertResult> {
-  const fullTable = `${schema}.${table}`;
-  if (rows.length === 0) {
-    return { table: fullTable, attempted: 0, success: true };
-  }
-
-  try {
-    const allColumns = Object.keys(rows[0]);
-    const updateColumns = allColumns.filter((col) => !conflictColumns.includes(col));
-    const setClauses = updateColumns.map((col) => `${col} = EXCLUDED.${col}`).join(", ");
-    const conflictTarget = conflictColumns.join(", ");
-
-    const query = `
-      INSERT INTO ${fullTable} (${allColumns.join(", ")})
-      SELECT * FROM jsonb_populate_recordset(null::${fullTable}, $1::jsonb)
-      ON CONFLICT (${conflictTarget}) DO UPDATE SET ${setClauses}
-      WHERE ${fullTable}.source_hash IS DISTINCT FROM EXCLUDED.source_hash
-    `;
-
-    await sql.unsafe(query, [JSON.stringify(rows)]);
-    return { table: fullTable, attempted: rows.length, success: true };
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    return { table: fullTable, attempted: rows.length, success: false, error: msg };
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Transformers
-// ─────────────────────────────────────────────────────────────────────────────
-
-function transformTrade(t: any, prov: any) {
-  return {
-    trade_id: safeNum(t.tradeId),
-    trade_date: safeStr(t.tradeDate),
-    trade_finalized_date: safeStr(t.tradeFinalizedDate),
-    league_lk: safeStr(t.leagueLk),
-    record_status_lk: safeStr(t.recordStatusLk),
-    trade_comments: safeStr(t.tradeComments),
-    created_at: safeStr(t.createDate),
-    updated_at: safeStr(t.lastChangeDate),
-    record_changed_at: safeStr(t.recordChangeDate),
-    ...prov,
-  };
-}
-
-function transformTradeTeam(tt: any, tradeId: number, prov: any) {
-  const teamId = safeNum(tt.teamId);
-  return {
-    trade_team_id: teamId ? `${tradeId}_${teamId}` : null,
-    trade_id: tradeId,
-    team_id: teamId,
-    team_salary_change: safeBigInt(tt.teamSalaryChange),
-    total_cash_received: safeBigInt(tt.totalCashReceived),
-    total_cash_sent: safeBigInt(tt.totalCashSent),
-    seqno: safeNum(tt.seqno),
-    ...prov,
-  };
-}
-
-function transformTradeTeamDetail(ttd: any, tradeId: number, teamId: number, prov: any) {
-  const seqno = safeNum(ttd.seqno);
-  return {
-    trade_team_detail_id: seqno !== null ? `${tradeId}_${teamId}_${seqno}` : null,
-    trade_id: tradeId,
-    team_id: teamId,
-    seqno,
-    group_number: safeNum(ttd.groupNumber),
-    player_id: safeNum(ttd.playerId),
-    contract_id: safeNum(ttd.contractId),
-    version_number: safeVersionNum(ttd.versionNumber),
-    post_version_number: safeVersionNum(ttd.postVersionNumber),
-    is_sent: safeBool(ttd.sentFlg),
-    is_sign_and_trade: safeBool(ttd.signAndTradeFlg),
-    mts_value_override: safeBigInt(ttd.mtsValueOverride),
-    is_trade_bonus: safeBool(ttd.tradeBonusFlg),
-    is_no_trade: safeBool(ttd.noTradeFlg),
-    is_player_consent: safeBool(ttd.playerConsentFlg),
-    is_poison_pill: safeBool(ttd.poisonPillFlg),
-    is_incentive_bonus: safeBool(ttd.incentiveBonusFlg),
-    cash_amount: safeBigInt(ttd.cashAmount),
-    trade_entry_lk: safeStr(ttd.tradeEntryLk),
-    free_agent_designation_lk: safeStr(ttd.freeAgentDesignationLk),
-    base_year_amount: safeBigInt(ttd.baseYearAmount),
-    is_base_year: safeBool(ttd.baseYearFlg),
-    draft_pick_year: safeNum(ttd.draftPickYear),
-    draft_pick_round: safeNum(ttd.draftPickRound),
-    is_draft_pick_future: safeBool(ttd.draftPickFutureFlg),
-    is_draft_pick_swap: safeBool(ttd.draftPickSwapFlg),
-    draft_pick_conditional_lk: safeStr(ttd.draftPickConditionalLk),
-    is_draft_year_plus_two: safeBool(ttd.draftYearPlusTwoFlg),
-    ...prov,
-  };
-}
-
-function transformTradeGroup(tg: any, tradeId: number, teamIdFallback: number, prov: any) {
-  const teamId = safeNum(tg.teamId) ?? teamIdFallback;
-  const groupNumber = safeNum(tg.tradeGroupNumber);
-  return {
-    trade_group_id: groupNumber !== null ? `${tradeId}_${teamId}_${groupNumber}` : null,
-    trade_id: tradeId,
-    team_id: teamId,
-    trade_group_number: groupNumber,
-    trade_group_comments: safeStr(tg.tradeGroupComments),
-    acquired_team_exception_id: safeNum(tg.acquiredTeamExceptionId),
-    generated_team_exception_id: safeNum(tg.generatedTeamExceptionId),
-    signed_method_lk: safeStr(tg.signedMethodLk),
-    ...prov,
-  };
-}
-
-function transformTransaction(t: any, prov: any) {
-  return {
-    transaction_id: safeNum(t.transactionId),
-    player_id: safeNum(t.playerId),
-    from_team_id: safeNum(t.fromTeamId),
-    to_team_id: safeNum(t.toTeamId),
-    transaction_date: safeStr(t.transactionDate),
-    trade_finalized_date: safeStr(t.tradeFinalizedDate),
-    trade_id: safeNum(t.tradeId),
-    transaction_type_lk: safeStr(t.transactionTypeLk),
-    transaction_description_lk: safeStr(t.transactionDescriptionLk),
-    record_status_lk: safeStr(t.recordStatusLk),
-    league_lk: safeStr(t.leagueLk),
-    seqno: safeNum(t.seqno),
-    is_in_season: safeBool(t.inSeasonFlg),
-    contract_id: safeNum(t.contractId),
-    original_contract_id: safeNum(t.originalContractId),
-    version_number: safeVersionNum(t.versionNumber),
-    contract_type_lk: safeStr(t.contractTypeLk),
-    min_contract_lk: safeStr(t.minContractLk),
-    signed_method_lk: safeStr(t.signedMethodLk),
-    team_exception_id: safeNum(t.teamExceptionId),
-    rights_team_id: safeNum(t.rightsTeamId),
-    waiver_clear_date: safeStr(t.waiverClearDate),
-    is_clear_player_rights: safeBool(t.clearPlayerRightsFlg),
-    free_agent_status_lk: safeStr(t.freeAgentStatusLk),
-    free_agent_designation_lk: safeStr(t.freeAgentDesignationLk),
-    from_player_status_lk: safeStr(t.fromPlayerStatusLk),
-    to_player_status_lk: safeStr(t.toPlayerStatusLk),
-    option_year: safeNum(t.optionYear),
-    adjustment_amount: safeBigInt(t.adjustmentAmount),
-    bonus_true_up_amount: safeBigInt(t.bonusTrueUpAmount),
-    draft_amount: safeBigInt(t.draftAmount),
-    draft_pick: safeNum(t.draftPick),
-    draft_round: safeNum(t.draftRound),
-    draft_year: safeNum(t.draftYear),
-    free_agent_amount: safeBigInt(t.freeAgentAmount),
-    qoe_amount: safeBigInt(t.qoeAmount),
-    tender_amount: safeBigInt(t.tenderAmount),
-    is_divorce: safeBool(t.divorceFlg),
-    effective_salary_year: safeNum((t as any).effectiveSeason),
-    is_initially_convertible_exception: safeBool(t.initiallyConvertibleExceptionFlg),
-    is_sign_and_trade: safeBool(t.signAndTradeFlg),
-    sign_and_trade_team_id: safeNum(t.signAndTradeTeamId),
-    sign_and_trade_link_transaction_id: safeNum(t.signAndTradeLinkTransactionId),
-    dlg_contract_id: safeNum(t.dlgContractId),
-    dlg_experience_level_lk: safeStr(t.dlgExperienceLevelLk),
-    dlg_salary_level_lk: safeStr(t.dlgSalaryLevelLk),
-    comments: safeStr(t.comments),
-    created_at: safeStr(t.createDate),
-    updated_at: safeStr(t.lastChangeDate),
-    record_changed_at: safeStr(t.recordChangeDate),
-    ...prov,
-  };
-}
-
-function transformLedgerEntry(le: any, prov: any) {
-  return {
-    transaction_ledger_entry_id: safeNum(le.transactionLedgerEntryId),
-    transaction_id: safeNum(le.transactionId),
-    team_id: safeNum(le.teamId),
-    player_id: safeNum(le.playerId),
-    contract_id: safeNum(le.contractId),
-    dlg_contract_id: safeNum(le.dlgContractId),
-    salary_year: safeNum(le.salaryYear),
-    ledger_date: safeStr(le.ledgerDate),
-    league_lk: safeStr(le.leagueLk),
-    transaction_type_lk: safeStr(le.transactionTypeLk),
-    transaction_description_lk: safeStr(le.transactionDescriptionLk),
-    version_number: safeVersionNum(le.versionNumber),
-    seqno: safeNum(le.seqno),
-    sub_seqno: safeNum(le.subSeqno),
-    team_ledger_seqno: safeNum(le.teamLedgerSeqno),
-    is_leaving_team: safeBool(le.leavingTeamFlg),
-    has_no_budget_impact: safeBool(le.noBudgetImpactFlg),
-    mts_amount: safeBigInt(le.mtsAmount),
-    mts_change: safeBigInt(le.mtsChange),
-    mts_value: safeBigInt(le.mtsValue),
-    cap_amount: safeBigInt(le.capAmount),
-    cap_change: safeBigInt(le.capChange),
-    cap_value: safeBigInt(le.capValue),
-    tax_amount: safeBigInt(le.taxAmount),
-    tax_change: safeBigInt(le.taxChange),
-    tax_value: safeBigInt(le.taxValue),
-    apron_amount: safeBigInt(le.apronAmount),
-    apron_change: safeBigInt(le.apronChange),
-    apron_value: safeBigInt(le.apronValue),
-    trade_bonus_amount: safeBigInt(le.tradeBonusAmount),
-    ...prov,
-  };
-}
-
-function transformWaiverAmount(wa: any, prov: any) {
-  return {
-    transaction_waiver_amount_id: safeNum(wa.transactionWaiverAmountId),
-    transaction_id: safeNum(wa.transactionId),
-    player_id: safeNum(wa.playerId),
-    team_id: safeNum(wa.teamId),
-    contract_id: safeNum(wa.contractId),
-    salary_year: safeNum(wa.salaryYear),
-    version_number: safeVersionNum(wa.versionNumber),
-    waive_date: safeStr(wa.waiveDate),
-    cap_value: safeBigInt(wa.capValue),
-    cap_change_value: safeBigInt(wa.capChangeValue),
-    is_cap_calculated: safeBool(wa.capCalculated),
-    tax_value: safeBigInt(wa.taxValue),
-    tax_change_value: safeBigInt(wa.taxChangeValue),
-    is_tax_calculated: safeBool(wa.taxCalculated),
-    apron_value: safeBigInt(wa.apronValue),
-    apron_change_value: safeBigInt(wa.apronChangeValue),
-    is_apron_calculated: safeBool(wa.apronCalculated),
-    mts_value: safeBigInt(wa.mtsValue),
-    mts_change_value: safeBigInt(wa.mtsChangeValue),
-    two_way_salary: safeBigInt(wa.twoWaySalary),
-    two_way_nba_salary: safeBigInt(wa.twoWayNbaSalary),
-    two_way_dlg_salary: safeBigInt(wa.twoWayDlgSalary),
-    option_decision_lk: safeStr(wa.optionDecisionLk),
-    wnba_contract_id: safeNum(wa.wnbaContractId),
-    wnba_version_number: safeVersionNum(wa.wnbaVersionNumber),
-    ...prov,
-  };
+  // PCMS sometimes represents version_number as a decimal like 1.01
+  // Schema expects an integer (1.01 -> 101)
+  return Number.isInteger(n) ? n : Math.round(n * 100);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -362,55 +53,38 @@ export async function main(
   dry_run = false,
   lineage_id?: number,
   s3_key?: string,
-  extract_dir: string = SHARED_DIR
+  extract_dir = "./shared/pcms"
 ) {
   const startedAt = new Date().toISOString();
-  const tables: UpsertResult[] = [];
-  const errors: string[] = [];
+  void lineage_id;
 
   try {
-    // Find the actual extract directory
+    // Find extract directory
     const entries = await readdir(extract_dir, { withFileTypes: true });
     const subDir = entries.find((e) => e.isDirectory());
     const baseDir = subDir ? `${extract_dir}/${subDir.name}` : extract_dir;
 
-    // Get lineage context
-    const ctx = await getLineageContext(baseDir);
-    const effectiveLineageId = lineage_id ?? ctx.lineage_id;
-    const effectiveS3Key = s3_key ?? ctx.s3_key;
-    void effectiveLineageId; // lineage_id is not stored on these tables, but available for debugging
+    // Read clean JSON
+    const trades: any[] = await Bun.file(`${baseDir}/trades.json`).json();
+    const transactions: any[] = await Bun.file(`${baseDir}/transactions.json`).json();
+    const ledgerEntries: any[] = await Bun.file(`${baseDir}/ledger.json`).json();
 
-    // Locate JSON files
-    const allFiles = await readdir(baseDir);
+    const waiverFile = Bun.file(`${baseDir}/transaction_waiver_amounts.json`);
+    const waiverAmounts: any[] = (await waiverFile.exists()) ? await waiverFile.json() : [];
 
-    const tradeJsonFile = allFiles.find((f) => f.includes("trade") && f.endsWith(".json"));
-    const transactionJsonFile = allFiles.find(
-      (f) => f.includes("transaction") && f.endsWith(".json") && !f.includes("waiver")
-    );
-    const ledgerJsonFile = allFiles.find((f) => f.includes("ledger") && f.endsWith(".json"));
-    const twaJsonFile = allFiles.find(
-      (f) => f.includes("transactions-waiver-amounts") && f.endsWith(".json")
+    console.log(
+      `Found trades=${trades.length}, transactions=${transactions.length}, ledger_entries=${ledgerEntries.length}, waiver_amounts=${waiverAmounts.length}`
     );
 
-    if (!tradeJsonFile) throw new Error(`No trade JSON file found in ${baseDir}`);
-    if (!transactionJsonFile) throw new Error(`No transaction JSON file found in ${baseDir}`);
-    if (!ledgerJsonFile) throw new Error(`No ledger JSON file found in ${baseDir}`);
-    if (!twaJsonFile) throw new Error(`No transactions-waiver-amounts JSON file found in ${baseDir}`);
-
-    const provenanceBase = {
-      source_drop_file: effectiveS3Key,
-      parser_version: PARSER_VERSION,
-      ingested_at: new Date(),
+    const ingestedAt = new Date();
+    const provenance = {
+      source_drop_file: s3_key,
+      ingested_at: ingestedAt,
     };
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Trades
+    // Flatten trades → (trades, trade_teams, trade_team_details, trade_groups)
     // ─────────────────────────────────────────────────────────────────────────
-
-    console.log(`Reading ${tradeJsonFile}...`);
-    const tradeData = await Bun.file(`${baseDir}/${tradeJsonFile}`).json();
-    const trades: any[] = asArray(tradeData?.["xml-extract"]?.["trade-extract"]?.trade);
-    console.log(`Found ${trades.length} trades`);
 
     const tradeRows: any[] = [];
     const tradeTeamRows: any[] = [];
@@ -418,49 +92,95 @@ export async function main(
     const tradeGroupRows: any[] = [];
 
     for (const t of trades) {
-      const tradeId = safeNum(t?.tradeId);
-      if (!tradeId) continue;
+      if (!t?.trade_id) continue;
 
-      const tradeProv = { ...provenanceBase, source_hash: hash(JSON.stringify(t)) };
-      tradeRows.push(transformTrade(t, tradeProv));
+      tradeRows.push({
+        trade_id: t.trade_id,
+        trade_date: t.trade_date ?? null,
+        trade_finalized_date: t.trade_finalized_date ?? null,
+        league_lk: t.league_lk ?? null,
+        record_status_lk: t.record_status_lk ?? null,
+        trade_comments: t.trade_comments ?? null,
+        created_at: t.create_date ?? null,
+        updated_at: t.last_change_date ?? null,
+        record_changed_at: t.record_change_date ?? null,
+        ...provenance,
+      });
 
-      const tradeTeams = asArray(t?.tradeTeams?.tradeTeam);
-      for (const tt of tradeTeams) {
-        const teamId = safeNum(tt?.teamId);
-        if (!teamId) continue;
+      const teams = asArray<any>(t?.trade_teams?.trade_team);
+      for (const tt of teams) {
+        if (!tt?.team_id) continue;
 
-        const ttProv = { ...provenanceBase, source_hash: hash(JSON.stringify({ tradeId, ...tt })) };
-        const tradeTeamRow = transformTradeTeam(tt, tradeId, ttProv);
-        if (tradeTeamRow.trade_team_id) tradeTeamRows.push(tradeTeamRow);
+        const tradeTeamId = `${t.trade_id}_${tt.team_id}`;
 
-        const details = asArray(tt?.tradeTeamDetails?.tradeTeamDetail);
-        for (const ttd of details) {
-          const seqno = safeNum(ttd?.seqno);
-          if (seqno === null) continue;
+        tradeTeamRows.push({
+          trade_team_id: tradeTeamId,
+          trade_id: t.trade_id,
+          team_id: tt.team_id,
+          team_salary_change: tt.team_salary_change ?? null,
+          total_cash_received: tt.total_cash_received ?? null,
+          total_cash_sent: tt.total_cash_sent ?? null,
+          seqno: tt.seqno ?? null,
+          ...provenance,
+        });
 
-          const ttdProv = {
-            ...provenanceBase,
-            source_hash: hash(JSON.stringify({ tradeId, teamId, ...ttd })),
-          };
-          const detailRow = transformTradeTeamDetail(ttd, tradeId, teamId, ttdProv);
-          if (detailRow.trade_team_detail_id) tradeTeamDetailRows.push(detailRow);
+        const details = asArray<any>(tt?.trade_team_details?.trade_team_detail);
+        for (const d of details) {
+          if (d?.seqno === null || d?.seqno === undefined) continue;
+
+          tradeTeamDetailRows.push({
+            trade_team_detail_id: `${t.trade_id}_${tt.team_id}_${d.seqno}`,
+            trade_id: t.trade_id,
+            team_id: tt.team_id,
+            seqno: d.seqno,
+            group_number: d.group_number ?? null,
+            player_id: d.player_id ?? null,
+            contract_id: d.contract_id ?? null,
+            version_number: normalizeVersionNumber(d.version_number),
+            post_version_number: normalizeVersionNumber(d.post_version_number),
+            is_sent: d.sent_flg ?? null,
+            is_sign_and_trade: d.sign_and_trade_flg ?? null,
+            mts_value_override: d.mts_value_override ?? null,
+            is_trade_bonus: d.trade_bonus_flg ?? null,
+            is_no_trade: d.no_trade_flg ?? null,
+            is_player_consent: d.player_consent_flg ?? null,
+            is_poison_pill: d.poison_pill_flg ?? null,
+            is_incentive_bonus: d.incentive_bonus_flg ?? null,
+            cash_amount: d.cash_amount ?? null,
+            trade_entry_lk: d.trade_entry_lk ?? null,
+            free_agent_designation_lk: d.free_agent_designation_lk ?? null,
+            base_year_amount: d.base_year_amount ?? null,
+            is_base_year: d.base_year_flg ?? null,
+            draft_pick_year: d.draft_pick_year ?? null,
+            draft_pick_round: d.draft_pick_round ?? null,
+            is_draft_pick_future: d.draft_pick_future_flg ?? null,
+            is_draft_pick_swap: d.draft_pick_swap_flg ?? null,
+            draft_pick_conditional_lk: d.draft_pick_conditional_lk ?? null,
+            is_draft_year_plus_two: d.draft_year_plus_two_flg ?? null,
+            ...provenance,
+          });
         }
 
-        // In current extracts, trade groups are nested under tradeTeam.
-        const groupsFromTeam = asArray(tt?.tradeGroups?.tradeGroup);
-        const groupsFromTrade = asArray(t?.tradeGroups?.tradeGroup);
+        // Trade groups are usually nested under trade_team; fall back to the trade-level group
+        const groupsFromTeam = asArray<any>(tt?.trade_groups?.trade_group);
+        const groupsFromTrade = asArray<any>(t?.trade_groups?.trade_group);
         const groups = groupsFromTeam.length > 0 ? groupsFromTeam : groupsFromTrade;
 
-        for (const tg of groups) {
-          const groupNumber = safeNum(tg?.tradeGroupNumber);
-          if (groupNumber === null) continue;
+        for (const g of groups) {
+          const groupNumber = g?.trade_group_number;
+          if (groupNumber === null || groupNumber === undefined) continue;
 
-          const tgProv = {
-            ...provenanceBase,
-            source_hash: hash(JSON.stringify({ tradeId, teamId, ...tg })),
-          };
-          const groupRow = transformTradeGroup(tg, tradeId, teamId, tgProv);
-          if (groupRow.trade_group_id) tradeGroupRows.push(groupRow);
+          tradeGroupRows.push({
+            trade_group_id: `${t.trade_id}_${tt.team_id}_${groupNumber}`,
+            trade_id: t.trade_id,
+            team_id: g?.team_id ?? tt.team_id,
+            trade_group_number: groupNumber,
+            trade_group_comments: g?.trade_group_comments ?? null,
+            acquired_team_exception_id: g?.acquired_team_exception_id ?? null,
+            generated_team_exception_id: g?.generated_team_exception_id ?? null,
+            signed_method_lk: g?.signed_method_lk ?? null,
+            ...provenance,
+          });
         }
       }
     }
@@ -470,180 +190,424 @@ export async function main(
     );
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Transactions
+    // Dry run summary
     // ─────────────────────────────────────────────────────────────────────────
 
-    console.log(`Reading ${transactionJsonFile}...`);
-    const transactionData = await Bun.file(`${baseDir}/${transactionJsonFile}`).json();
-    const transactions: any[] = asArray(
-      transactionData?.["xml-extract"]?.["transaction-extract"]?.transaction
-    );
-    console.log(`Found ${transactions.length} transactions`);
+    if (dry_run) {
+      return {
+        dry_run: true,
+        started_at: startedAt,
+        finished_at: new Date().toISOString(),
+        tables: [
+          { table: "pcms.trades", attempted: tradeRows.length, success: true },
+          { table: "pcms.trade_teams", attempted: tradeTeamRows.length, success: true },
+          { table: "pcms.trade_team_details", attempted: tradeTeamDetailRows.length, success: true },
+          { table: "pcms.trade_groups", attempted: tradeGroupRows.length, success: true },
+          { table: "pcms.transactions", attempted: transactions.length, success: true },
+          { table: "pcms.ledger_entries", attempted: ledgerEntries.length, success: true },
+          { table: "pcms.transaction_waiver_amounts", attempted: waiverAmounts.length, success: true },
+        ],
+        errors: [],
+      };
+    }
+
+    const BATCH_SIZE = 1000;
+    const tables: { table: string; attempted: number; success: boolean }[] = [];
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Ledger
+    // Upsert: trades
     // ─────────────────────────────────────────────────────────────────────────
 
-    console.log(`Reading ${ledgerJsonFile}...`);
-    const ledgerData = await Bun.file(`${baseDir}/${ledgerJsonFile}`).json();
-    const ledgerEntries: any[] = asArray(
-      ledgerData?.["xml-extract"]?.["ledger-extract"]?.transactionLedgerEntry
-    );
-    console.log(`Found ${ledgerEntries.length} ledger entries`);
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Transaction waiver amounts
-    // ─────────────────────────────────────────────────────────────────────────
-
-    console.log(`Reading ${twaJsonFile}...`);
-    const twaData = await Bun.file(`${baseDir}/${twaJsonFile}`).json();
-    const waiverAmounts: any[] = asArray(twaData?.["xml-extract"]?.["twa-extract"]?.transactionWaiverAmount);
-    console.log(`Found ${waiverAmounts.length} transaction waiver amounts`);
-
-    const BATCH_SIZE = 500;
-
-    // Upsert trades
     for (let i = 0; i < tradeRows.length; i += BATCH_SIZE) {
-      const batch = tradeRows.slice(i, i + BATCH_SIZE);
-      if (!dry_run) {
-        const result = await upsertBatch("pcms", "trades", batch, ["trade_id"]);
-        tables.push(result);
-        if (!result.success) errors.push(result.error!);
-      } else {
-        tables.push({ table: "pcms.trades", attempted: batch.length, success: true });
-      }
+      const rows = tradeRows.slice(i, i + BATCH_SIZE);
+      await sql`
+        INSERT INTO pcms.trades ${sql(rows)}
+        ON CONFLICT (trade_id) DO UPDATE SET
+          trade_date = EXCLUDED.trade_date,
+          trade_finalized_date = EXCLUDED.trade_finalized_date,
+          league_lk = EXCLUDED.league_lk,
+          record_status_lk = EXCLUDED.record_status_lk,
+          trade_comments = EXCLUDED.trade_comments,
+          updated_at = EXCLUDED.updated_at,
+          record_changed_at = EXCLUDED.record_changed_at,
+          source_drop_file = EXCLUDED.source_drop_file,
+          ingested_at = EXCLUDED.ingested_at
+      `;
     }
+    tables.push({ table: "pcms.trades", attempted: tradeRows.length, success: true });
 
-    // Upsert trade teams
+    // Upsert: trade_teams
     for (let i = 0; i < tradeTeamRows.length; i += BATCH_SIZE) {
-      const batch = tradeTeamRows.slice(i, i + BATCH_SIZE);
-      if (!dry_run) {
-        const result = await upsertBatch("pcms", "trade_teams", batch, ["trade_team_id"]);
-        tables.push(result);
-        if (!result.success) errors.push(result.error!);
-      } else {
-        tables.push({ table: "pcms.trade_teams", attempted: batch.length, success: true });
-      }
+      const rows = tradeTeamRows.slice(i, i + BATCH_SIZE);
+      await sql`
+        INSERT INTO pcms.trade_teams ${sql(rows)}
+        ON CONFLICT (trade_team_id) DO UPDATE SET
+          trade_id = EXCLUDED.trade_id,
+          team_id = EXCLUDED.team_id,
+          team_salary_change = EXCLUDED.team_salary_change,
+          total_cash_received = EXCLUDED.total_cash_received,
+          total_cash_sent = EXCLUDED.total_cash_sent,
+          seqno = EXCLUDED.seqno,
+          source_drop_file = EXCLUDED.source_drop_file,
+          ingested_at = EXCLUDED.ingested_at
+      `;
     }
+    tables.push({ table: "pcms.trade_teams", attempted: tradeTeamRows.length, success: true });
 
-    // Upsert trade team details
+    // Upsert: trade_team_details
     for (let i = 0; i < tradeTeamDetailRows.length; i += BATCH_SIZE) {
-      const batch = tradeTeamDetailRows.slice(i, i + BATCH_SIZE);
-      if (!dry_run) {
-        const result = await upsertBatch("pcms", "trade_team_details", batch, [
-          "trade_team_detail_id",
-        ]);
-        tables.push(result);
-        if (!result.success) errors.push(result.error!);
-      } else {
-        tables.push({ table: "pcms.trade_team_details", attempted: batch.length, success: true });
-      }
+      const rows = tradeTeamDetailRows.slice(i, i + BATCH_SIZE);
+      await sql`
+        INSERT INTO pcms.trade_team_details ${sql(rows)}
+        ON CONFLICT (trade_team_detail_id) DO UPDATE SET
+          trade_id = EXCLUDED.trade_id,
+          team_id = EXCLUDED.team_id,
+          seqno = EXCLUDED.seqno,
+          group_number = EXCLUDED.group_number,
+          player_id = EXCLUDED.player_id,
+          contract_id = EXCLUDED.contract_id,
+          version_number = EXCLUDED.version_number,
+          post_version_number = EXCLUDED.post_version_number,
+          is_sent = EXCLUDED.is_sent,
+          is_sign_and_trade = EXCLUDED.is_sign_and_trade,
+          mts_value_override = EXCLUDED.mts_value_override,
+          is_trade_bonus = EXCLUDED.is_trade_bonus,
+          is_no_trade = EXCLUDED.is_no_trade,
+          is_player_consent = EXCLUDED.is_player_consent,
+          is_poison_pill = EXCLUDED.is_poison_pill,
+          is_incentive_bonus = EXCLUDED.is_incentive_bonus,
+          cash_amount = EXCLUDED.cash_amount,
+          trade_entry_lk = EXCLUDED.trade_entry_lk,
+          free_agent_designation_lk = EXCLUDED.free_agent_designation_lk,
+          base_year_amount = EXCLUDED.base_year_amount,
+          is_base_year = EXCLUDED.is_base_year,
+          draft_pick_year = EXCLUDED.draft_pick_year,
+          draft_pick_round = EXCLUDED.draft_pick_round,
+          is_draft_pick_future = EXCLUDED.is_draft_pick_future,
+          is_draft_pick_swap = EXCLUDED.is_draft_pick_swap,
+          draft_pick_conditional_lk = EXCLUDED.draft_pick_conditional_lk,
+          is_draft_year_plus_two = EXCLUDED.is_draft_year_plus_two,
+          source_drop_file = EXCLUDED.source_drop_file,
+          ingested_at = EXCLUDED.ingested_at
+      `;
     }
+    tables.push({ table: "pcms.trade_team_details", attempted: tradeTeamDetailRows.length, success: true });
 
-    // Upsert trade groups
+    // Upsert: trade_groups
     for (let i = 0; i < tradeGroupRows.length; i += BATCH_SIZE) {
-      const batch = tradeGroupRows.slice(i, i + BATCH_SIZE);
-      if (!dry_run) {
-        const result = await upsertBatch("pcms", "trade_groups", batch, ["trade_group_id"]);
-        tables.push(result);
-        if (!result.success) errors.push(result.error!);
-      } else {
-        tables.push({ table: "pcms.trade_groups", attempted: batch.length, success: true });
-      }
+      const rows = tradeGroupRows.slice(i, i + BATCH_SIZE);
+      await sql`
+        INSERT INTO pcms.trade_groups ${sql(rows)}
+        ON CONFLICT (trade_group_id) DO UPDATE SET
+          trade_id = EXCLUDED.trade_id,
+          team_id = EXCLUDED.team_id,
+          trade_group_number = EXCLUDED.trade_group_number,
+          trade_group_comments = EXCLUDED.trade_group_comments,
+          acquired_team_exception_id = EXCLUDED.acquired_team_exception_id,
+          generated_team_exception_id = EXCLUDED.generated_team_exception_id,
+          signed_method_lk = EXCLUDED.signed_method_lk,
+          source_drop_file = EXCLUDED.source_drop_file,
+          ingested_at = EXCLUDED.ingested_at
+      `;
     }
+    tables.push({ table: "pcms.trade_groups", attempted: tradeGroupRows.length, success: true });
 
-    // Upsert transactions (transform in batches to keep memory bounded)
+    // ─────────────────────────────────────────────────────────────────────────
+    // Upsert: transactions
+    // ─────────────────────────────────────────────────────────────────────────
+
     for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
       const batch = transactions.slice(i, i + BATCH_SIZE);
+
       const rows = batch
-        .map((t) => {
-          const txId = safeNum(t?.transactionId);
-          if (!txId) return null;
-          return transformTransaction(t, {
-            ...provenanceBase,
-            source_hash: hash(JSON.stringify(t)),
-          });
-        })
-        .filter(Boolean) as Record<string, unknown>[];
+        .filter((t) => t?.transaction_id)
+        .map((t) => ({
+          transaction_id: t.transaction_id,
+          player_id: t.player_id ?? null,
+          from_team_id: t.from_team_id ?? null,
+          to_team_id: t.to_team_id ?? null,
+          transaction_date: t.transaction_date ?? null,
+          trade_finalized_date: t.trade_finalized_date ?? null,
+          trade_id: t.trade_id ?? null,
+          transaction_type_lk: t.transaction_type_lk ?? null,
+          transaction_description_lk: t.transaction_description_lk ?? null,
+          record_status_lk: t.record_status_lk ?? null,
+          league_lk: t.league_lk ?? null,
+          seqno: t.seqno ?? null,
+          is_in_season: t.in_season_flg ?? null,
+          contract_id: t.contract_id ?? null,
+          original_contract_id: t.original_contract_id ?? null,
+          version_number: normalizeVersionNumber(t.version_number),
+          contract_type_lk: t.contract_type_lk ?? null,
+          min_contract_lk: t.min_contract_lk ?? null,
+          signed_method_lk: t.signed_method_lk ?? null,
+          team_exception_id: t.team_exception_id ?? null,
+          rights_team_id: t.rights_team_id ?? null,
+          waiver_clear_date: t.waiver_clear_date ?? null,
+          is_clear_player_rights: t.clear_player_rights_flg ?? null,
+          free_agent_status_lk: t.free_agent_status_lk ?? null,
+          free_agent_designation_lk: t.free_agent_designation_lk ?? null,
+          from_player_status_lk: t.from_player_status_lk ?? null,
+          to_player_status_lk: t.to_player_status_lk ?? null,
+          option_year: t.option_year ?? null,
+          adjustment_amount: t.adjustment_amount ?? null,
+          bonus_true_up_amount: t.bonus_true_up_amount ?? null,
+          draft_amount: t.draft_amount ?? null,
+          draft_pick: unwrapSingleArray<number>(t.draft_pick),
+          draft_round: t.draft_round ?? null,
+          draft_year: t.draft_year ?? null,
+          free_agent_amount: t.free_agent_amount ?? null,
+          qoe_amount: t.qoe_amount ?? null,
+          tender_amount: t.tender_amount ?? null,
+          is_divorce: t.divorce_flg ?? null,
+          effective_salary_year: t.effective_salary_year ?? null,
+          is_initially_convertible_exception: t.initially_convertible_exception_flg ?? null,
+          is_sign_and_trade: t.sign_and_trade_flg ?? null,
+          sign_and_trade_team_id: t.sign_and_trade_team_id ?? null,
+          sign_and_trade_link_transaction_id: t.sign_and_trade_link_transaction_id ?? null,
+          dlg_contract_id: t.dlg_contract_id ?? null,
+          dlg_experience_level_lk: t.dlg_experience_level_lk ?? null,
+          dlg_salary_level_lk: t.dlg_salary_level_lk ?? null,
+          comments: t.comments ?? null,
+          created_at: t.create_date ?? null,
+          updated_at: t.last_change_date ?? null,
+          record_changed_at: t.record_change_date ?? null,
+          ...provenance,
+        }));
 
       if (rows.length === 0) continue;
 
-      if (!dry_run) {
-        const result = await upsertBatch("pcms", "transactions", rows, ["transaction_id"]);
-        tables.push(result);
-        if (!result.success) errors.push(result.error!);
-      } else {
-        tables.push({ table: "pcms.transactions", attempted: rows.length, success: true });
-      }
+      await sql`
+        INSERT INTO pcms.transactions ${sql(rows)}
+        ON CONFLICT (transaction_id) DO UPDATE SET
+          player_id = EXCLUDED.player_id,
+          from_team_id = EXCLUDED.from_team_id,
+          to_team_id = EXCLUDED.to_team_id,
+          transaction_date = EXCLUDED.transaction_date,
+          trade_finalized_date = EXCLUDED.trade_finalized_date,
+          trade_id = EXCLUDED.trade_id,
+          transaction_type_lk = EXCLUDED.transaction_type_lk,
+          transaction_description_lk = EXCLUDED.transaction_description_lk,
+          record_status_lk = EXCLUDED.record_status_lk,
+          league_lk = EXCLUDED.league_lk,
+          seqno = EXCLUDED.seqno,
+          is_in_season = EXCLUDED.is_in_season,
+          contract_id = EXCLUDED.contract_id,
+          original_contract_id = EXCLUDED.original_contract_id,
+          version_number = EXCLUDED.version_number,
+          contract_type_lk = EXCLUDED.contract_type_lk,
+          min_contract_lk = EXCLUDED.min_contract_lk,
+          signed_method_lk = EXCLUDED.signed_method_lk,
+          team_exception_id = EXCLUDED.team_exception_id,
+          rights_team_id = EXCLUDED.rights_team_id,
+          waiver_clear_date = EXCLUDED.waiver_clear_date,
+          is_clear_player_rights = EXCLUDED.is_clear_player_rights,
+          free_agent_status_lk = EXCLUDED.free_agent_status_lk,
+          free_agent_designation_lk = EXCLUDED.free_agent_designation_lk,
+          from_player_status_lk = EXCLUDED.from_player_status_lk,
+          to_player_status_lk = EXCLUDED.to_player_status_lk,
+          option_year = EXCLUDED.option_year,
+          adjustment_amount = EXCLUDED.adjustment_amount,
+          bonus_true_up_amount = EXCLUDED.bonus_true_up_amount,
+          draft_amount = EXCLUDED.draft_amount,
+          draft_pick = EXCLUDED.draft_pick,
+          draft_round = EXCLUDED.draft_round,
+          draft_year = EXCLUDED.draft_year,
+          free_agent_amount = EXCLUDED.free_agent_amount,
+          qoe_amount = EXCLUDED.qoe_amount,
+          tender_amount = EXCLUDED.tender_amount,
+          is_divorce = EXCLUDED.is_divorce,
+          effective_salary_year = EXCLUDED.effective_salary_year,
+          is_initially_convertible_exception = EXCLUDED.is_initially_convertible_exception,
+          is_sign_and_trade = EXCLUDED.is_sign_and_trade,
+          sign_and_trade_team_id = EXCLUDED.sign_and_trade_team_id,
+          sign_and_trade_link_transaction_id = EXCLUDED.sign_and_trade_link_transaction_id,
+          dlg_contract_id = EXCLUDED.dlg_contract_id,
+          dlg_experience_level_lk = EXCLUDED.dlg_experience_level_lk,
+          dlg_salary_level_lk = EXCLUDED.dlg_salary_level_lk,
+          comments = EXCLUDED.comments,
+          updated_at = EXCLUDED.updated_at,
+          record_changed_at = EXCLUDED.record_changed_at,
+          source_drop_file = EXCLUDED.source_drop_file,
+          ingested_at = EXCLUDED.ingested_at
+      `;
     }
+    tables.push({ table: "pcms.transactions", attempted: transactions.length, success: true });
 
-    // Upsert ledger entries
+    // ─────────────────────────────────────────────────────────────────────────
+    // Upsert: ledger_entries
+    // ─────────────────────────────────────────────────────────────────────────
+
     for (let i = 0; i < ledgerEntries.length; i += BATCH_SIZE) {
       const batch = ledgerEntries.slice(i, i + BATCH_SIZE);
+
       const rows = batch
-        .map((le) => {
-          const leId = safeNum(le?.transactionLedgerEntryId);
-          if (leId === null) return null;
-          return transformLedgerEntry(le, {
-            ...provenanceBase,
-            source_hash: hash(JSON.stringify(le)),
-          });
-        })
-        .filter(Boolean) as Record<string, unknown>[];
+        .filter((le) => le?.transaction_ledger_entry_id !== null && le?.transaction_ledger_entry_id !== undefined)
+        .map((le) => ({
+          transaction_ledger_entry_id: le.transaction_ledger_entry_id,
+          transaction_id: le.transaction_id,
+          team_id: le.team_id,
+          player_id: le.player_id ?? null,
+          contract_id: le.contract_id ?? null,
+          dlg_contract_id: le.dlg_contract_id ?? null,
+          salary_year: le.salary_year,
+          ledger_date: le.ledger_date ?? null,
+          league_lk: le.league_lk ?? null,
+          transaction_type_lk: le.transaction_type_lk ?? null,
+          transaction_description_lk: le.transaction_description_lk ?? null,
+          version_number: normalizeVersionNumber(le.version_number),
+          seqno: le.seqno ?? null,
+          sub_seqno: le.sub_seqno ?? null,
+          team_ledger_seqno: le.team_ledger_seqno ?? null,
+          is_leaving_team: le.leaving_team_flg ?? null,
+          has_no_budget_impact: le.no_budget_impact_flg ?? null,
+          mts_amount: le.mts_amount ?? null,
+          mts_change: le.mts_change ?? null,
+          mts_value: le.mts_value ?? null,
+          cap_amount: le.cap_amount ?? null,
+          cap_change: le.cap_change ?? null,
+          cap_value: le.cap_value ?? null,
+          tax_amount: le.tax_amount ?? null,
+          tax_change: le.tax_change ?? null,
+          tax_value: le.tax_value ?? null,
+          apron_amount: le.apron_amount ?? null,
+          apron_change: le.apron_change ?? null,
+          apron_value: le.apron_value ?? null,
+          trade_bonus_amount: le.trade_bonus_amount ?? null,
+          ...provenance,
+        }));
 
       if (rows.length === 0) continue;
 
-      if (!dry_run) {
-        const result = await upsertBatch("pcms", "ledger_entries", rows, ["transaction_ledger_entry_id"]);
-        tables.push(result);
-        if (!result.success) errors.push(result.error!);
-      } else {
-        tables.push({ table: "pcms.ledger_entries", attempted: rows.length, success: true });
-      }
+      await sql`
+        INSERT INTO pcms.ledger_entries ${sql(rows)}
+        ON CONFLICT (transaction_ledger_entry_id) DO UPDATE SET
+          transaction_id = EXCLUDED.transaction_id,
+          team_id = EXCLUDED.team_id,
+          player_id = EXCLUDED.player_id,
+          contract_id = EXCLUDED.contract_id,
+          dlg_contract_id = EXCLUDED.dlg_contract_id,
+          salary_year = EXCLUDED.salary_year,
+          ledger_date = EXCLUDED.ledger_date,
+          league_lk = EXCLUDED.league_lk,
+          transaction_type_lk = EXCLUDED.transaction_type_lk,
+          transaction_description_lk = EXCLUDED.transaction_description_lk,
+          version_number = EXCLUDED.version_number,
+          seqno = EXCLUDED.seqno,
+          sub_seqno = EXCLUDED.sub_seqno,
+          team_ledger_seqno = EXCLUDED.team_ledger_seqno,
+          is_leaving_team = EXCLUDED.is_leaving_team,
+          has_no_budget_impact = EXCLUDED.has_no_budget_impact,
+          mts_amount = EXCLUDED.mts_amount,
+          mts_change = EXCLUDED.mts_change,
+          mts_value = EXCLUDED.mts_value,
+          cap_amount = EXCLUDED.cap_amount,
+          cap_change = EXCLUDED.cap_change,
+          cap_value = EXCLUDED.cap_value,
+          tax_amount = EXCLUDED.tax_amount,
+          tax_change = EXCLUDED.tax_change,
+          tax_value = EXCLUDED.tax_value,
+          apron_amount = EXCLUDED.apron_amount,
+          apron_change = EXCLUDED.apron_change,
+          apron_value = EXCLUDED.apron_value,
+          trade_bonus_amount = EXCLUDED.trade_bonus_amount,
+          source_drop_file = EXCLUDED.source_drop_file,
+          ingested_at = EXCLUDED.ingested_at
+      `;
     }
+    tables.push({ table: "pcms.ledger_entries", attempted: ledgerEntries.length, success: true });
 
-    // Upsert waiver amounts
+    // ─────────────────────────────────────────────────────────────────────────
+    // Upsert: transaction_waiver_amounts
+    // ─────────────────────────────────────────────────────────────────────────
+
     for (let i = 0; i < waiverAmounts.length; i += BATCH_SIZE) {
       const batch = waiverAmounts.slice(i, i + BATCH_SIZE);
+
       const rows = batch
-        .map((wa) => {
-          const waId = safeNum(wa?.transactionWaiverAmountId);
-          if (!waId) return null;
-          return transformWaiverAmount(wa, {
-            ...provenanceBase,
-            source_hash: hash(JSON.stringify(wa)),
-          });
-        })
-        .filter(Boolean) as Record<string, unknown>[];
+        .filter((wa) => wa?.transaction_waiver_amount_id)
+        .map((wa) => ({
+          transaction_waiver_amount_id: wa.transaction_waiver_amount_id,
+          transaction_id: wa.transaction_id,
+          player_id: wa.player_id,
+          team_id: wa.team_id ?? null,
+          contract_id: wa.contract_id ?? null,
+          salary_year: wa.salary_year,
+          version_number: normalizeVersionNumber(wa.version_number),
+          waive_date: wa.waive_date ?? null,
+          cap_value: wa.cap_value ?? null,
+          cap_change_value: wa.cap_change_value ?? null,
+          is_cap_calculated: wa.cap_calculated ?? null,
+          tax_value: wa.tax_value ?? null,
+          tax_change_value: wa.tax_change_value ?? null,
+          is_tax_calculated: wa.tax_calculated ?? null,
+          apron_value: wa.apron_value ?? null,
+          apron_change_value: wa.apron_change_value ?? null,
+          is_apron_calculated: wa.apron_calculated ?? null,
+          mts_value: wa.mts_value ?? null,
+          mts_change_value: wa.mts_change_value ?? null,
+          two_way_salary: wa.two_way_salary ?? null,
+          two_way_nba_salary: wa.two_way_nba_salary ?? null,
+          two_way_dlg_salary: wa.two_way_dlg_salary ?? null,
+          option_decision_lk: wa.option_decision_lk ?? null,
+          wnba_contract_id: wa.wnba_contract_id ?? null,
+          wnba_version_number: wa.wnba_version_number ?? null,
+          ...provenance,
+        }));
 
       if (rows.length === 0) continue;
 
-      if (!dry_run) {
-        const result = await upsertBatch("pcms", "transaction_waiver_amounts", rows, [
-          "transaction_waiver_amount_id",
-        ]);
-        tables.push(result);
-        if (!result.success) errors.push(result.error!);
-      } else {
-        tables.push({ table: "pcms.transaction_waiver_amounts", attempted: rows.length, success: true });
-      }
+      await sql`
+        INSERT INTO pcms.transaction_waiver_amounts ${sql(rows)}
+        ON CONFLICT (transaction_waiver_amount_id) DO UPDATE SET
+          transaction_id = EXCLUDED.transaction_id,
+          player_id = EXCLUDED.player_id,
+          team_id = EXCLUDED.team_id,
+          contract_id = EXCLUDED.contract_id,
+          salary_year = EXCLUDED.salary_year,
+          version_number = EXCLUDED.version_number,
+          waive_date = EXCLUDED.waive_date,
+          cap_value = EXCLUDED.cap_value,
+          cap_change_value = EXCLUDED.cap_change_value,
+          is_cap_calculated = EXCLUDED.is_cap_calculated,
+          tax_value = EXCLUDED.tax_value,
+          tax_change_value = EXCLUDED.tax_change_value,
+          is_tax_calculated = EXCLUDED.is_tax_calculated,
+          apron_value = EXCLUDED.apron_value,
+          apron_change_value = EXCLUDED.apron_change_value,
+          is_apron_calculated = EXCLUDED.is_apron_calculated,
+          mts_value = EXCLUDED.mts_value,
+          mts_change_value = EXCLUDED.mts_change_value,
+          two_way_salary = EXCLUDED.two_way_salary,
+          two_way_nba_salary = EXCLUDED.two_way_nba_salary,
+          two_way_dlg_salary = EXCLUDED.two_way_dlg_salary,
+          option_decision_lk = EXCLUDED.option_decision_lk,
+          wnba_contract_id = EXCLUDED.wnba_contract_id,
+          wnba_version_number = EXCLUDED.wnba_version_number,
+          source_drop_file = EXCLUDED.source_drop_file,
+          ingested_at = EXCLUDED.ingested_at
+      `;
     }
+    tables.push({
+      table: "pcms.transaction_waiver_amounts",
+      attempted: waiverAmounts.length,
+      success: true,
+    });
 
     return {
-      dry_run,
+      dry_run: false,
       started_at: startedAt,
       finished_at: new Date().toISOString(),
       tables,
-      errors,
+      errors: [],
     };
   } catch (e: any) {
-    errors.push(e?.message ?? String(e));
     return {
       dry_run,
       started_at: startedAt,
       finished_at: new Date().toISOString(),
-      tables,
-      errors,
+      tables: [],
+      errors: [e?.message ?? String(e)],
     };
   }
 }

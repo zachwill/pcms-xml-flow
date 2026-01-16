@@ -2,12 +2,19 @@
 
 Windmill flow for importing NBA PCMS (Player Contract Management System) XML data into PostgreSQL.
 
-## Overview
+## Architecture (v3.0)
 
-1. Downloads ZIP from S3 containing PCMS XML extracts
-2. Parses all XML → JSON once (lineage step)
-3. Downstream scripts read JSON, transform, upsert to `pcms` schema
-4. Tracks lineage and audit info for all records
+```
+S3 ZIP → Extract → XML → Clean JSON → PostgreSQL
+                          ↑
+                    snake_case keys
+                    null (not xsi:nil)
+                    flat structure
+```
+
+1. **Lineage step** downloads ZIP, extracts XML, parses to **clean JSON**
+2. **Import scripts** read clean JSON and insert directly to Postgres
+3. No transformation needed—JSON keys already match DB columns
 
 ## Quick Start
 
@@ -15,70 +22,76 @@ Windmill flow for importing NBA PCMS (Player Contract Management System) XML dat
 # Install dependencies
 bun install
 
-# Generate JSON files for local development
+# Generate clean JSON from XML (for local dev)
 bun run scripts/parse-xml-to-json.ts
-
-# Explore data structure
-bun run scripts/show-all-paths.ts
-bun run scripts/inspect-json-structure.ts player --sample
 
 # Run a step locally
 POSTGRES_URL="postgres://..." bun run import_pcms_data.flow/players_&_people.inline_script.ts
 ```
 
+## Clean JSON Files
+
+The lineage step produces these files in `.shared/nba_pcms_full_extract/`:
+
+| File | Records | Target Table |
+|------|---------|--------------|
+| `players.json` | 14,421 | `pcms.people` |
+| `contracts.json` | 8,071 | `pcms.contracts`, `contract_versions`, `salaries` |
+| `transactions.json` | 232,417 | `pcms.transactions` |
+| `ledger.json` | 50,713 | `pcms.transaction_ledger` |
+| `trades.json` | 1,731 | `pcms.trades` |
+| `draft_picks.json` | 1,169 | `pcms.draft_picks` |
+| `team_exceptions.json` | nested | `pcms.team_exceptions` |
+| `lookups.json` | 43 tables | `pcms.lookups` |
+
 ## Directory Structure
 
 ```
 .
-├── import_pcms_data.flow/       # Main import flow
-│   ├── flow.yaml                # Windmill flow definition
-│   ├── lineage_management_*.ts  # Step A: S3 → extract → XML→JSON
-│   ├── players_&_people.*.ts    # Step B: People/teams
+├── import_pcms_data.flow/       # Windmill flow
+│   ├── flow.yaml                # Flow definition (steps A-L)
+│   ├── lineage_management_*.ts  # Step A: S3 → XML → clean JSON
+│   ├── players_&_people.*.ts    # Step B: Insert players
 │   └── ...                      # Steps C-L
-├── new_pcms_schema.flow/        # PostgreSQL DDL
-├── scripts/                     # Dev tools
-│   ├── parse-xml-to-json.ts     # Generate JSON from XML
+├── scripts/
+│   ├── parse-xml-to-json.ts     # Dev tool: XML → clean JSON
 │   ├── inspect-json-structure.ts
 │   └── show-all-paths.ts
-├── .shared/                     # Extracted data
-│   └── nba_pcms_full_extract/   # XML + JSON files
-├── docs/                        # Bun best practices
-├── AGENTS.md                    # AI agent instructions
-└── TODO.md                      # Refactoring progress
+├── .shared/
+│   ├── nba_pcms_full_extract/   # Clean JSON output
+│   └── nba_pcms_full_extract_xml/ # Source XML (local dev)
+├── AGENTS.md                    # Architecture details
+└── TODO.md                      # Remaining work
 ```
 
-## Data Volumes
+## Import Script Pattern
 
-| Entity | Records |
-|--------|---------|
-| Players | 14,421 |
-| Contracts | 8,071 |
-| Transactions | 232,417 |
-| Ledger entries | 50,713 |
-| Trades | 1,731 |
-| Draft picks | 1,169 |
+Scripts are simple—just read and insert:
 
-## Key Tables (pcms schema)
+```typescript
+import { SQL } from "bun";
 
-- `pcms_lineage` - Import run tracking
-- `people` - Players, coaches, agents
-- `teams` - NBA/G-League/WNBA teams
-- `contracts` - Player contracts
-- `contract_versions` - Contract terms per version
-- `salaries` - Yearly salary breakdowns
-- `team_exceptions` - Cap exceptions (MLE, BAE, etc.)
-- `lookups` - Reference data
+const sql = new SQL({ url: Bun.env.POSTGRES_URL!, prepare: false });
+
+export async function main(dry_run = false, ..., extract_dir = "./shared/pcms") {
+  // Read clean JSON
+  const players = await Bun.file(`${baseDir}/players.json`).json();
+
+  // Insert (keys already match columns)
+  await sql`INSERT INTO pcms.people ${sql(rows)} ON CONFLICT ...`;
+}
+```
 
 ## Flow Inputs
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `dry_run` | boolean | false | Preview without DB writes |
+| `dry_run` | boolean | `false` | Preview without DB writes |
 | `s3_key` | string | `pcms/nba_pcms_full_extract.zip` | S3 key for ZIP |
 
-## Architecture
+## Key Design Decisions
 
-- **same_worker: true** - All steps share `.shared/` directory
-- **XML parsed once** - Lineage step creates JSON, downstream reads JSON
-- **Hash-based dedup** - Only changed records updated (`source_hash`)
-- **Bun runtime** - Native Postgres, fast I/O, shell integration
+- **Clean once, use everywhere** — XML quirks handled in lineage step, not every script
+- **snake_case keys** — JSON keys match Postgres columns directly
+- **same_worker: true** — All steps share `.shared/` directory
+- **Bun runtime** — Native Postgres, fast file I/O, shell integration

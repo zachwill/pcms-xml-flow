@@ -2,65 +2,61 @@
 import { loop, work, generate, halt } from "./core";
 
 /**
- * PCMS Refactor Agent
+ * PCMS Refactor Agent (v3.0)
  * 
- * Refactors all flow scripts to:
- * 1. Read pre-parsed JSON (not stream XML)
- * 2. Use Bun-native APIs (Bun.file(), $ shell, SQL)
- * 3. Inline helpers (no utils.ts imports)
- * 
- * Reference completed scripts for patterns:
- * - lineage_management_(s3_&_state_tracking).inline_script.ts
- * - players_&_people.inline_script.ts
+ * Simplifies import scripts to use clean JSON output from lineage step.
+ * No more nilSafe, safeNum, safeStr - data is already clean!
  */
 
 const WORK_PROMPT = `
-You are refactoring PCMS XML Flow scripts to use Bun-native APIs.
+You are simplifying PCMS import scripts to use clean JSON.
+
+## Context
+The lineage step now outputs CLEAN JSON files:
+- snake_case keys (match DB columns)
+- null values (not xsi:nil objects)
+- No XML wrapper nesting
+
+Scripts no longer need helper functions like nilSafe, safeNum, safeStr.
 
 ## Your Task
 1. Read .ralph/TODO.md for the current task list
-2. Pick the FIRST unchecked script and refactor it
-3. Follow the patterns in AGENTS.md and TODO.md (standard script pattern)
+2. Pick the FIRST unchecked script and simplify it
+3. Follow the pattern in players_&_people.inline_script.ts
 
-## Reference Files (READ THESE FIRST)
-- AGENTS.md - Project context, Bun best practices, JSON structure
-- TODO.md - Standard script pattern with all helpers
+## Reference Files
+- AGENTS.md - New architecture overview
+- TODO.md - New script pattern
 - import_pcms_data.flow/players_&_people.inline_script.ts - Working example
 
-## Key Patterns
-- Read JSON: \`const data = await Bun.file(\`\${baseDir}/filename.json\`).json();\`
-- Access data: \`data["xml-extract"]["<type>-extract"]["<entity>"]\`
-- Handle nil: \`nilSafe(val)\` for \`{ "@_xsi:nil": "true" }\`
-- Hash: \`new Bun.CryptoHasher("sha256").update(data).digest("hex")\`
-- Postgres: \`import { SQL } from "bun"; const sql = new SQL({ url: Bun.env.POSTGRES_URL!, prepare: false });\`
+## Key Points
+- Read clean JSON: \`await Bun.file(\`\${baseDir}/filename.json\`).json()\`
+- Data is already clean - no helper functions needed
+- Use Bun's tagged SQL: \`await sql\`INSERT INTO ... \${sql(rows)}\`\`
+- Map fields only if JSON key differs from DB column
 
-## Explore Data Structure
-Run these to understand the JSON structure:
-- \`bun run scripts/show-all-paths.ts\` - See all data paths
-- \`bun run scripts/inspect-json-structure.ts <type> --sample\` - See field samples
+## JSON Files
+- players.json → pcms.people
+- contracts.json → pcms.contracts, pcms.contract_versions, pcms.salaries
+- transactions.json → pcms.transactions
+- ledger.json → pcms.transaction_ledger
+- trades.json → pcms.trades
+- draft_picks.json → pcms.draft_picks
+- team_exceptions.json → pcms.team_exceptions
+- lookups.json → pcms.lookups
 
-## After Refactoring
+## After Simplifying
 1. Update .ralph/TODO.md (check off the completed script)
-2. Commit: \`git add -A && git commit -m "refactor: <script name> to Bun-native APIs"\`
+2. Commit: \`git add -A && git commit -m "simplify: <script name> to clean JSON pattern"\`
 3. Exit after committing
-
-## Important
-- Inline ALL helpers (nilSafe, safeNum, safeStr, safeBool, hash, etc.)
-- Do NOT import from utils.ts
-- Match the exact structure of players_&_people.inline_script.ts
 `;
 
 const GENERATE_PROMPT = `
-Generate a fresh task list for .ralph/TODO.md to refactor PCMS flow scripts.
+Generate a task list for .ralph/TODO.md to simplify PCMS import scripts.
 
-## Scripts to Refactor (ALL are equal priority)
-Check which scripts still need refactoring by comparing against the completed ones.
+Check which scripts still have the old pattern (nilSafe, safeNum helpers).
 
-Completed scripts (use as reference):
-- lineage_management_(s3_&_state_tracking).inline_script.ts ✅
-- players_&_people.inline_script.ts ✅
-
-Scripts that may need refactoring:
+## Scripts to Check
 - contracts,_versions,_bonuses_&_salaries.inline_script.ts
 - lookups.inline_script.ts
 - team_exceptions_&_usage.inline_script.ts
@@ -73,33 +69,19 @@ Scripts that may need refactoring:
 - finalize_lineage.inline_script.ts
 
 ## Task Format
-Use this format in .ralph/TODO.md:
-
 \`\`\`markdown
-# PCMS Script Refactor
+# PCMS Script Simplification
 
-Refactor all scripts to use Bun-native APIs (read JSON, not XML).
-
-## Scripts
-
+## TODO
 - [ ] contracts,_versions,_bonuses_&_salaries.inline_script.ts
-- [ ] lookups.inline_script.ts
-... (one line per script that needs work)
-
-## Reference
-- Pattern: TODO.md (standard script pattern)
-- Example: players_&_people.inline_script.ts
+- [ ] ...
 \`\`\`
 
-## Instructions
-1. Check each script to see if it's already refactored (uses Bun.file, SQL from bun, etc.)
-2. Add only scripts that still need work to the TODO list
-3. Commit: \`git add -A && git commit -m "chore: generate pcms refactor tasks"\`
-4. Exit after committing
+Commit after generating: \`git add -A && git commit -m "chore: generate simplification tasks"\`
 `;
 
 loop({
-  name: "pcms-refactor",
+  name: "pcms-simplify",
   taskFile: ".ralph/TODO.md",
   timeout: "8m",
   pushEvery: 4,
@@ -109,7 +91,6 @@ loop({
     if (state.hasTodos) {
       return work(WORK_PROMPT, { thinking: "medium" });
     }
-
     return generate(GENERATE_PROMPT, { tools: "read,bash,write" });
   },
 });

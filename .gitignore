@@ -27,6 +27,7 @@ npm-debug.log*
 # Local extracts / scratch data
 .shared/
 shared/
+*.xml
 
 # Lock files (optional - uncomment if needed)
 # package-lock.json

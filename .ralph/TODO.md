@@ -2,7 +2,7 @@
 
 ## TODO
 - [x] contracts,_versions,_bonuses_&_salaries.inline_script.ts
-- [ ] lookups.inline_script.ts
+- [x] lookups.inline_script.ts
 - [ ] team_exceptions_&_usage.inline_script.ts
 - [ ] trades,_transactions_&_ledger.inline_script.ts
 - [ ] team_budgets.inline_script.ts

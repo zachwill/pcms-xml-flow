@@ -72,7 +72,8 @@ export async function main(
         draft_round: p.draft_round,
         draft_pick: Array.isArray(p.draft_pick) ? p.draft_pick[0] : p.draft_pick,
         years_of_service: p.years_of_service,
-        service_years_json: p.player_service_years ? JSON.stringify(p.player_service_years) : null,
+        // json/jsonb column: store structured data, not a string
+        service_years_json: p.player_service_years ?? null,
         created_at: p.create_date,
         updated_at: p.last_change_date,
         record_changed_at: p.record_change_date,

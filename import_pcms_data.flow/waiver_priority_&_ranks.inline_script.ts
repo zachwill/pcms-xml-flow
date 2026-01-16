@@ -66,7 +66,6 @@ export async function main(
 
     const ingestedAt = new Date();
     const provenance = {
-      source_drop_file: s3_key,
       ingested_at: ingestedAt,
     };
 
@@ -214,7 +213,6 @@ export async function main(
           comments = EXCLUDED.comments,
           updated_at = EXCLUDED.updated_at,
           record_changed_at = EXCLUDED.record_changed_at,
-          source_drop_file = EXCLUDED.source_drop_file,
           ingested_at = EXCLUDED.ingested_at
       `;
     }
@@ -241,7 +239,6 @@ export async function main(
           comments = EXCLUDED.comments,
           updated_at = EXCLUDED.updated_at,
           record_changed_at = EXCLUDED.record_changed_at,
-          source_drop_file = EXCLUDED.source_drop_file,
           ingested_at = EXCLUDED.ingested_at
       `;
     }
@@ -264,7 +261,6 @@ export async function main(
           base_charge_repeater = EXCLUDED.base_charge_repeater,
           updated_at = EXCLUDED.updated_at,
           record_changed_at = EXCLUDED.record_changed_at,
-          source_drop_file = EXCLUDED.source_drop_file,
           ingested_at = EXCLUDED.ingested_at
       `;
     }
@@ -289,7 +285,6 @@ export async function main(
           apron2_transaction_id = EXCLUDED.apron2_transaction_id,
           updated_at = EXCLUDED.updated_at,
           record_changed_at = EXCLUDED.record_changed_at,
-          source_drop_file = EXCLUDED.source_drop_file,
           ingested_at = EXCLUDED.ingested_at
       `;
     }

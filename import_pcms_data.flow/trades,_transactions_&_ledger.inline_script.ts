@@ -78,7 +78,6 @@ export async function main(
 
     const ingestedAt = new Date();
     const provenance = {
-      source_drop_file: s3_key,
       ingested_at: ingestedAt,
     };
 
@@ -230,7 +229,6 @@ export async function main(
           trade_comments = EXCLUDED.trade_comments,
           updated_at = EXCLUDED.updated_at,
           record_changed_at = EXCLUDED.record_changed_at,
-          source_drop_file = EXCLUDED.source_drop_file,
           ingested_at = EXCLUDED.ingested_at
       `;
     }
@@ -248,7 +246,6 @@ export async function main(
           total_cash_received = EXCLUDED.total_cash_received,
           total_cash_sent = EXCLUDED.total_cash_sent,
           seqno = EXCLUDED.seqno,
-          source_drop_file = EXCLUDED.source_drop_file,
           ingested_at = EXCLUDED.ingested_at
       `;
     }
@@ -287,7 +284,6 @@ export async function main(
           is_draft_pick_swap = EXCLUDED.is_draft_pick_swap,
           draft_pick_conditional_lk = EXCLUDED.draft_pick_conditional_lk,
           is_draft_year_plus_two = EXCLUDED.is_draft_year_plus_two,
-          source_drop_file = EXCLUDED.source_drop_file,
           ingested_at = EXCLUDED.ingested_at
       `;
     }
@@ -306,7 +302,6 @@ export async function main(
           acquired_team_exception_id = EXCLUDED.acquired_team_exception_id,
           generated_team_exception_id = EXCLUDED.generated_team_exception_id,
           signed_method_lk = EXCLUDED.signed_method_lk,
-          source_drop_file = EXCLUDED.source_drop_file,
           ingested_at = EXCLUDED.ingested_at
       `;
     }
@@ -428,7 +423,6 @@ export async function main(
           comments = EXCLUDED.comments,
           updated_at = EXCLUDED.updated_at,
           record_changed_at = EXCLUDED.record_changed_at,
-          source_drop_file = EXCLUDED.source_drop_file,
           ingested_at = EXCLUDED.ingested_at
       `;
     }
@@ -511,7 +505,6 @@ export async function main(
           apron_change = EXCLUDED.apron_change,
           apron_value = EXCLUDED.apron_value,
           trade_bonus_amount = EXCLUDED.trade_bonus_amount,
-          source_drop_file = EXCLUDED.source_drop_file,
           ingested_at = EXCLUDED.ingested_at
       `;
     }
@@ -584,7 +577,6 @@ export async function main(
           option_decision_lk = EXCLUDED.option_decision_lk,
           wnba_contract_id = EXCLUDED.wnba_contract_id,
           wnba_version_number = EXCLUDED.wnba_version_number,
-          source_drop_file = EXCLUDED.source_drop_file,
           ingested_at = EXCLUDED.ingested_at
       `;
     }

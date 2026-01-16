@@ -1,25 +1,5 @@
 {
-  "dependencies": {
-    "fast-xml-parser": "latest",
-    "windmill-client": "latest"
-  }
+  "dependencies": {}
 }
 //bun.lock
-{
-  "lockfileVersion": 1,
-  "workspaces": {
-    "": {
-      "dependencies": {
-        "fast-xml-parser": "latest",
-        "windmill-client": "latest",
-      },
-    },
-  },
-  "packages": {
-    "fast-xml-parser": ["fast-xml-parser@5.3.3", "", { "dependencies": { "strnum": "^2.1.0" }, "bin": { "fxparser": "src/cli/cli.js" } }, "sha512-2O3dkPAAC6JavuMm8+4+pgTk+5hoAs+CjZ+sWcQLkX9+/tHRuTkQh/Oaifr8qDmZ8iEHb771Ea6G8CdwkrgvYA=="],
-
-    "strnum": ["strnum@2.1.2", "", {}, "sha512-l63NF9y/cLROq/yqKXSLtcMeeyOfnSQlfMSlzFt/K73oIaD8DGaQWd7Z34X9GPiKqP5rbSh84Hl4bOlLcjiSrQ=="],
-
-    "windmill-client": ["windmill-client@1.607.1", "", {}, "sha512-8jGAMb/jnfU4C4Dohg7nTDAkf4QyeAy/BIB6nnhLAX7P4VIkvb4IVEc4Si6UMC0T/+0jPGDbjs+AavT8sol0fw=="],
-  }
-}
+<empty>

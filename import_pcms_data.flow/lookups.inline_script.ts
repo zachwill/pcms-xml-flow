@@ -166,7 +166,7 @@ export async function main(
       ingested_at: ingestedAt,
     };
 
-    const BATCH_SIZE = 1000;
+    const BATCH_SIZE = 10;
     let attempted = 0;
 
     for (const [lookupType, container] of Object.entries(lookupGroups)) {

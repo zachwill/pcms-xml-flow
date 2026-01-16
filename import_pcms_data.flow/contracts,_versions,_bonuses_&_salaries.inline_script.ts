@@ -286,162 +286,182 @@ export async function main(
       };
     }
 
-    const BATCH_SIZE = 1000;
+    const BATCH_SIZE = 10;
 
     const tables: { table: string; attempted: number; success: boolean }[] = [];
 
     // Contracts
     for (let i = 0; i < contractRows.length; i += BATCH_SIZE) {
       const rows = contractRows.slice(i, i + BATCH_SIZE);
-      await sql`
-        INSERT INTO pcms.contracts ${sql(rows)}
-        ON CONFLICT (contract_id) DO UPDATE SET
-          player_id = EXCLUDED.player_id,
-          signing_team_id = EXCLUDED.signing_team_id,
-          signing_date = EXCLUDED.signing_date,
-          contract_end_date = EXCLUDED.contract_end_date,
-          record_status_lk = EXCLUDED.record_status_lk,
-          signed_method_lk = EXCLUDED.signed_method_lk,
-          team_exception_id = EXCLUDED.team_exception_id,
-          is_sign_and_trade = EXCLUDED.is_sign_and_trade,
-          sign_and_trade_date = EXCLUDED.sign_and_trade_date,
-          sign_and_trade_to_team_id = EXCLUDED.sign_and_trade_to_team_id,
-          sign_and_trade_id = EXCLUDED.sign_and_trade_id,
-          start_year = EXCLUDED.start_year,
-          contract_length_wnba = EXCLUDED.contract_length_wnba,
-          convert_date = EXCLUDED.convert_date,
-          two_way_service_limit = EXCLUDED.two_way_service_limit,
-          updated_at = EXCLUDED.updated_at,
-          record_changed_at = EXCLUDED.record_changed_at,
-          source_drop_file = EXCLUDED.source_drop_file,
-          ingested_at = EXCLUDED.ingested_at
-      `;
+      try {
+        await sql`
+          INSERT INTO pcms.contracts ${sql(rows)}
+          ON CONFLICT (contract_id) DO UPDATE SET
+            player_id = EXCLUDED.player_id,
+            signing_team_id = EXCLUDED.signing_team_id,
+            signing_date = EXCLUDED.signing_date,
+            contract_end_date = EXCLUDED.contract_end_date,
+            record_status_lk = EXCLUDED.record_status_lk,
+            signed_method_lk = EXCLUDED.signed_method_lk,
+            team_exception_id = EXCLUDED.team_exception_id,
+            is_sign_and_trade = EXCLUDED.is_sign_and_trade,
+            sign_and_trade_date = EXCLUDED.sign_and_trade_date,
+            sign_and_trade_to_team_id = EXCLUDED.sign_and_trade_to_team_id,
+            sign_and_trade_id = EXCLUDED.sign_and_trade_id,
+            start_year = EXCLUDED.start_year,
+            contract_length_wnba = EXCLUDED.contract_length_wnba,
+            convert_date = EXCLUDED.convert_date,
+            two_way_service_limit = EXCLUDED.two_way_service_limit,
+            updated_at = EXCLUDED.updated_at,
+            record_changed_at = EXCLUDED.record_changed_at,
+            source_drop_file = EXCLUDED.source_drop_file,
+            ingested_at = EXCLUDED.ingested_at
+        `;
+      } catch (e) {
+        console.error(e);
+      }
     }
     tables.push({ table: "pcms.contracts", attempted: contractRows.length, success: true });
 
     // Contract versions
     for (let i = 0; i < versionRows.length; i += BATCH_SIZE) {
       const rows = versionRows.slice(i, i + BATCH_SIZE);
-      await sql`
-        INSERT INTO pcms.contract_versions ${sql(rows)}
-        ON CONFLICT (contract_id, version_number) DO UPDATE SET
-          transaction_id = EXCLUDED.transaction_id,
-          version_date = EXCLUDED.version_date,
-          start_salary_year = EXCLUDED.start_salary_year,
-          contract_length = EXCLUDED.contract_length,
-          contract_type_lk = EXCLUDED.contract_type_lk,
-          record_status_lk = EXCLUDED.record_status_lk,
-          agency_id = EXCLUDED.agency_id,
-          agent_id = EXCLUDED.agent_id,
-          is_full_protection = EXCLUDED.is_full_protection,
-          is_exhibit_10 = EXCLUDED.is_exhibit_10,
-          exhibit_10_bonus_amount = EXCLUDED.exhibit_10_bonus_amount,
-          exhibit_10_protection_amount = EXCLUDED.exhibit_10_protection_amount,
-          exhibit_10_end_date = EXCLUDED.exhibit_10_end_date,
-          is_two_way = EXCLUDED.is_two_way,
-          is_rookie_scale_extension = EXCLUDED.is_rookie_scale_extension,
-          is_veteran_extension = EXCLUDED.is_veteran_extension,
-          is_poison_pill = EXCLUDED.is_poison_pill,
-          poison_pill_amount = EXCLUDED.poison_pill_amount,
-          trade_bonus_percent = EXCLUDED.trade_bonus_percent,
-          trade_bonus_amount = EXCLUDED.trade_bonus_amount,
-          is_trade_bonus = EXCLUDED.is_trade_bonus,
-          is_no_trade = EXCLUDED.is_no_trade,
-          is_minimum_contract = EXCLUDED.is_minimum_contract,
-          is_protected_contract = EXCLUDED.is_protected_contract,
-          version_json = EXCLUDED.version_json,
-          updated_at = EXCLUDED.updated_at,
-          record_changed_at = EXCLUDED.record_changed_at,
-          source_drop_file = EXCLUDED.source_drop_file,
-          ingested_at = EXCLUDED.ingested_at
-      `;
+      try {
+        await sql`
+          INSERT INTO pcms.contract_versions ${sql(rows)}
+          ON CONFLICT (contract_id, version_number) DO UPDATE SET
+            transaction_id = EXCLUDED.transaction_id,
+            version_date = EXCLUDED.version_date,
+            start_salary_year = EXCLUDED.start_salary_year,
+            contract_length = EXCLUDED.contract_length,
+            contract_type_lk = EXCLUDED.contract_type_lk,
+            record_status_lk = EXCLUDED.record_status_lk,
+            agency_id = EXCLUDED.agency_id,
+            agent_id = EXCLUDED.agent_id,
+            is_full_protection = EXCLUDED.is_full_protection,
+            is_exhibit_10 = EXCLUDED.is_exhibit_10,
+            exhibit_10_bonus_amount = EXCLUDED.exhibit_10_bonus_amount,
+            exhibit_10_protection_amount = EXCLUDED.exhibit_10_protection_amount,
+            exhibit_10_end_date = EXCLUDED.exhibit_10_end_date,
+            is_two_way = EXCLUDED.is_two_way,
+            is_rookie_scale_extension = EXCLUDED.is_rookie_scale_extension,
+            is_veteran_extension = EXCLUDED.is_veteran_extension,
+            is_poison_pill = EXCLUDED.is_poison_pill,
+            poison_pill_amount = EXCLUDED.poison_pill_amount,
+            trade_bonus_percent = EXCLUDED.trade_bonus_percent,
+            trade_bonus_amount = EXCLUDED.trade_bonus_amount,
+            is_trade_bonus = EXCLUDED.is_trade_bonus,
+            is_no_trade = EXCLUDED.is_no_trade,
+            is_minimum_contract = EXCLUDED.is_minimum_contract,
+            is_protected_contract = EXCLUDED.is_protected_contract,
+            version_json = EXCLUDED.version_json,
+            updated_at = EXCLUDED.updated_at,
+            record_changed_at = EXCLUDED.record_changed_at,
+            source_drop_file = EXCLUDED.source_drop_file,
+            ingested_at = EXCLUDED.ingested_at
+        `;
+      } catch (e) {
+        console.error(e);
+      }
     }
     tables.push({ table: "pcms.contract_versions", attempted: versionRows.length, success: true });
 
     // Contract bonuses
     for (let i = 0; i < bonusRows.length; i += BATCH_SIZE) {
       const rows = bonusRows.slice(i, i + BATCH_SIZE);
-      await sql`
-        INSERT INTO pcms.contract_bonuses ${sql(rows)}
-        ON CONFLICT (bonus_id) DO UPDATE SET
-          contract_id = EXCLUDED.contract_id,
-          version_number = EXCLUDED.version_number,
-          salary_year = EXCLUDED.salary_year,
-          bonus_amount = EXCLUDED.bonus_amount,
-          bonus_type_lk = EXCLUDED.bonus_type_lk,
-          is_likely = EXCLUDED.is_likely,
-          earned_lk = EXCLUDED.earned_lk,
-          paid_by_date = EXCLUDED.paid_by_date,
-          clause_name = EXCLUDED.clause_name,
-          criteria_description = EXCLUDED.criteria_description,
-          criteria_json = EXCLUDED.criteria_json,
-          source_drop_file = EXCLUDED.source_drop_file,
-          ingested_at = EXCLUDED.ingested_at
-      `;
+      try {
+        await sql`
+          INSERT INTO pcms.contract_bonuses ${sql(rows)}
+          ON CONFLICT (bonus_id) DO UPDATE SET
+            contract_id = EXCLUDED.contract_id,
+            version_number = EXCLUDED.version_number,
+            salary_year = EXCLUDED.salary_year,
+            bonus_amount = EXCLUDED.bonus_amount,
+            bonus_type_lk = EXCLUDED.bonus_type_lk,
+            is_likely = EXCLUDED.is_likely,
+            earned_lk = EXCLUDED.earned_lk,
+            paid_by_date = EXCLUDED.paid_by_date,
+            clause_name = EXCLUDED.clause_name,
+            criteria_description = EXCLUDED.criteria_description,
+            criteria_json = EXCLUDED.criteria_json,
+            source_drop_file = EXCLUDED.source_drop_file,
+            ingested_at = EXCLUDED.ingested_at
+        `;
+      } catch (e) {
+        console.error(e);
+      }
     }
     tables.push({ table: "pcms.contract_bonuses", attempted: bonusRows.length, success: true });
 
     // Salaries
     for (let i = 0; i < salaryRows.length; i += BATCH_SIZE) {
       const rows = salaryRows.slice(i, i + BATCH_SIZE);
-      await sql`
-        INSERT INTO pcms.salaries ${sql(rows)}
-        ON CONFLICT (contract_id, version_number, salary_year) DO UPDATE SET
-          total_salary = EXCLUDED.total_salary,
-          total_salary_adjustment = EXCLUDED.total_salary_adjustment,
-          total_base_comp = EXCLUDED.total_base_comp,
-          current_base_comp = EXCLUDED.current_base_comp,
-          deferred_base_comp = EXCLUDED.deferred_base_comp,
-          signing_bonus = EXCLUDED.signing_bonus,
-          likely_bonus = EXCLUDED.likely_bonus,
-          unlikely_bonus = EXCLUDED.unlikely_bonus,
-          contract_cap_salary = EXCLUDED.contract_cap_salary,
-          contract_cap_salary_adjustment = EXCLUDED.contract_cap_salary_adjustment,
-          contract_tax_salary = EXCLUDED.contract_tax_salary,
-          contract_tax_salary_adjustment = EXCLUDED.contract_tax_salary_adjustment,
-          contract_tax_apron_salary = EXCLUDED.contract_tax_apron_salary,
-          contract_tax_apron_salary_adjustment = EXCLUDED.contract_tax_apron_salary_adjustment,
-          contract_mts_salary = EXCLUDED.contract_mts_salary,
-          skill_protection_amount = EXCLUDED.skill_protection_amount,
-          trade_bonus_amount = EXCLUDED.trade_bonus_amount,
-          trade_bonus_amount_calc = EXCLUDED.trade_bonus_amount_calc,
-          cap_raise_percent = EXCLUDED.cap_raise_percent,
-          two_way_nba_salary = EXCLUDED.two_way_nba_salary,
-          two_way_dlg_salary = EXCLUDED.two_way_dlg_salary,
-          wnba_salary = EXCLUDED.wnba_salary,
-          wnba_time_off_bonus_amount = EXCLUDED.wnba_time_off_bonus_amount,
-          wnba_merit_bonus_amount = EXCLUDED.wnba_merit_bonus_amount,
-          wnba_time_off_bonus_days = EXCLUDED.wnba_time_off_bonus_days,
-          option_lk = EXCLUDED.option_lk,
-          option_decision_lk = EXCLUDED.option_decision_lk,
-          is_applicable_min_salary = EXCLUDED.is_applicable_min_salary,
-          updated_at = EXCLUDED.updated_at,
-          record_changed_at = EXCLUDED.record_changed_at,
-          source_drop_file = EXCLUDED.source_drop_file,
-          ingested_at = EXCLUDED.ingested_at
-      `;
+      try {
+        await sql`
+          INSERT INTO pcms.salaries ${sql(rows)}
+          ON CONFLICT (contract_id, version_number, salary_year) DO UPDATE SET
+            total_salary = EXCLUDED.total_salary,
+            total_salary_adjustment = EXCLUDED.total_salary_adjustment,
+            total_base_comp = EXCLUDED.total_base_comp,
+            current_base_comp = EXCLUDED.current_base_comp,
+            deferred_base_comp = EXCLUDED.deferred_base_comp,
+            signing_bonus = EXCLUDED.signing_bonus,
+            likely_bonus = EXCLUDED.likely_bonus,
+            unlikely_bonus = EXCLUDED.unlikely_bonus,
+            contract_cap_salary = EXCLUDED.contract_cap_salary,
+            contract_cap_salary_adjustment = EXCLUDED.contract_cap_salary_adjustment,
+            contract_tax_salary = EXCLUDED.contract_tax_salary,
+            contract_tax_salary_adjustment = EXCLUDED.contract_tax_salary_adjustment,
+            contract_tax_apron_salary = EXCLUDED.contract_tax_apron_salary,
+            contract_tax_apron_salary_adjustment = EXCLUDED.contract_tax_apron_salary_adjustment,
+            contract_mts_salary = EXCLUDED.contract_mts_salary,
+            skill_protection_amount = EXCLUDED.skill_protection_amount,
+            trade_bonus_amount = EXCLUDED.trade_bonus_amount,
+            trade_bonus_amount_calc = EXCLUDED.trade_bonus_amount_calc,
+            cap_raise_percent = EXCLUDED.cap_raise_percent,
+            two_way_nba_salary = EXCLUDED.two_way_nba_salary,
+            two_way_dlg_salary = EXCLUDED.two_way_dlg_salary,
+            wnba_salary = EXCLUDED.wnba_salary,
+            wnba_time_off_bonus_amount = EXCLUDED.wnba_time_off_bonus_amount,
+            wnba_merit_bonus_amount = EXCLUDED.wnba_merit_bonus_amount,
+            wnba_time_off_bonus_days = EXCLUDED.wnba_time_off_bonus_days,
+            option_lk = EXCLUDED.option_lk,
+            option_decision_lk = EXCLUDED.option_decision_lk,
+            is_applicable_min_salary = EXCLUDED.is_applicable_min_salary,
+            updated_at = EXCLUDED.updated_at,
+            record_changed_at = EXCLUDED.record_changed_at,
+            source_drop_file = EXCLUDED.source_drop_file,
+            ingested_at = EXCLUDED.ingested_at
+        `;
+      } catch (e) {
+        console.error(e);
+      }
     }
     tables.push({ table: "pcms.salaries", attempted: salaryRows.length, success: true });
 
     // Payment schedules
     for (let i = 0; i < paymentScheduleRows.length; i += BATCH_SIZE) {
       const rows = paymentScheduleRows.slice(i, i + BATCH_SIZE);
-      await sql`
-        INSERT INTO pcms.payment_schedules ${sql(rows)}
-        ON CONFLICT (payment_schedule_id) DO UPDATE SET
-          contract_id = EXCLUDED.contract_id,
-          version_number = EXCLUDED.version_number,
-          salary_year = EXCLUDED.salary_year,
-          payment_amount = EXCLUDED.payment_amount,
-          payment_start_date = EXCLUDED.payment_start_date,
-          schedule_type_lk = EXCLUDED.schedule_type_lk,
-          payment_type_lk = EXCLUDED.payment_type_lk,
-          is_default_schedule = EXCLUDED.is_default_schedule,
-          updated_at = EXCLUDED.updated_at,
-          record_changed_at = EXCLUDED.record_changed_at,
-          source_drop_file = EXCLUDED.source_drop_file,
-          ingested_at = EXCLUDED.ingested_at
-      `;
+      try {
+        await sql`
+          INSERT INTO pcms.payment_schedules ${sql(rows)}
+          ON CONFLICT (payment_schedule_id) DO UPDATE SET
+            contract_id = EXCLUDED.contract_id,
+            version_number = EXCLUDED.version_number,
+            salary_year = EXCLUDED.salary_year,
+            payment_amount = EXCLUDED.payment_amount,
+            payment_start_date = EXCLUDED.payment_start_date,
+            schedule_type_lk = EXCLUDED.schedule_type_lk,
+            payment_type_lk = EXCLUDED.payment_type_lk,
+            is_default_schedule = EXCLUDED.is_default_schedule,
+            updated_at = EXCLUDED.updated_at,
+            record_changed_at = EXCLUDED.record_changed_at,
+            source_drop_file = EXCLUDED.source_drop_file,
+            ingested_at = EXCLUDED.ingested_at
+        `;
+      } catch (e) {
+        console.error(e);
+      }
     }
     tables.push({ table: "pcms.payment_schedules", attempted: paymentScheduleRows.length, success: true });
 

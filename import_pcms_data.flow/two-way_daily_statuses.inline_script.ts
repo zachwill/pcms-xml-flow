@@ -120,7 +120,7 @@ export async function main(
       };
     }
 
-    const BATCH_SIZE = 1000;
+    const BATCH_SIZE = 10;
 
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
       const batch = rows.slice(i, i + BATCH_SIZE);

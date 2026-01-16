@@ -41,86 +41,97 @@ export async function main(
     }
 
     // Upsert in batches
-    const BATCH_SIZE = 1000;
+    const BATCH_SIZE = 100;
     let total = 0;
 
     for (let i = 0; i < players.length; i += BATCH_SIZE) {
       const batch = players.slice(i, i + BATCH_SIZE);
-      
-      // Map JSON fields to DB columns
-      const rows = batch.map(p => ({
-        person_id: p.player_id,
-        first_name: p.first_name,
-        last_name: p.last_name,
-        middle_name: p.middle_name,
-        display_first_name: p.display_first_name,
-        display_last_name: p.display_last_name,
-        roster_first_name: p.roster_first_name,
-        roster_last_name: p.roster_last_name,
-        birth_date: p.birth_date,
-        birth_country_lk: p.birth_country_lk,
-        gender: p.gender,
-        height: p.height,
-        weight: p.weight,
-        person_type_lk: p.person_type_lk,
-        player_status_lk: p.player_status_lk,
-        record_status_lk: p.record_status_lk,
-        league_lk: p.league_lk,
-        team_id: p.team_id,
-        school_id: p.school_id,
-        draft_year: p.draft_year,
-        draft_round: p.draft_round,
-        draft_pick: Array.isArray(p.draft_pick) ? p.draft_pick[0] : p.draft_pick,
-        years_of_service: p.years_of_service,
-        // json/jsonb column: store structured data, not a string
-        service_years_json: p.player_service_years ?? null,
-        created_at: p.create_date,
-        updated_at: p.last_change_date,
-        record_changed_at: p.record_change_date,
-        poison_pill_amt: p.poison_pill_amt,
-        is_two_way: p.two_way_flg,
-        is_flex: p.flex_flg,
-        source_drop_file: s3_key,
-        ingested_at: new Date(),
-      }));
 
-      await sql`
-        INSERT INTO pcms.people ${sql(rows)}
-        ON CONFLICT (person_id) DO UPDATE SET
-          first_name = EXCLUDED.first_name,
-          last_name = EXCLUDED.last_name,
-          middle_name = EXCLUDED.middle_name,
-          display_first_name = EXCLUDED.display_first_name,
-          display_last_name = EXCLUDED.display_last_name,
-          roster_first_name = EXCLUDED.roster_first_name,
-          roster_last_name = EXCLUDED.roster_last_name,
-          birth_date = EXCLUDED.birth_date,
-          birth_country_lk = EXCLUDED.birth_country_lk,
-          gender = EXCLUDED.gender,
-          height = EXCLUDED.height,
-          weight = EXCLUDED.weight,
-          person_type_lk = EXCLUDED.person_type_lk,
-          player_status_lk = EXCLUDED.player_status_lk,
-          record_status_lk = EXCLUDED.record_status_lk,
-          league_lk = EXCLUDED.league_lk,
-          team_id = EXCLUDED.team_id,
-          school_id = EXCLUDED.school_id,
-          draft_year = EXCLUDED.draft_year,
-          draft_round = EXCLUDED.draft_round,
-          draft_pick = EXCLUDED.draft_pick,
-          years_of_service = EXCLUDED.years_of_service,
-          service_years_json = EXCLUDED.service_years_json,
-          poison_pill_amt = EXCLUDED.poison_pill_amt,
-          is_two_way = EXCLUDED.is_two_way,
-          is_flex = EXCLUDED.is_flex,
-          updated_at = EXCLUDED.updated_at,
-          record_changed_at = EXCLUDED.record_changed_at,
-          source_drop_file = EXCLUDED.source_drop_file,
-          ingested_at = EXCLUDED.ingested_at
-      `;
+    /** Convert empty strings/invalid values to null for integer columns */
+    const toIntOrNull = (val: unknown): number | null => {
+      if (val === "" || val === null || val === undefined) return null;
+      const num = Number(val);
+      return Number.isNaN(num) ? null : num;
+    };
+    
+    // Then in your row mapping:
+    const rows = batch.map(p => ({
+      person_id: p.player_id,
+      first_name: p.first_name,
+      last_name: p.last_name,
+      middle_name: p.middle_name || null,
+      display_first_name: p.display_first_name,
+      display_last_name: p.display_last_name,
+      roster_first_name: p.roster_first_name,
+      roster_last_name: p.roster_last_name,
+      birth_date: p.birth_date || null,
+      birth_country_lk: p.birth_country_lk,
+      gender: p.gender,
+      height: toIntOrNull(p.height),
+      weight: toIntOrNull(p.weight),
+      person_type_lk: p.person_type_lk,
+      player_status_lk: p.player_status_lk,
+      record_status_lk: p.record_status_lk,
+      league_lk: p.league_lk,
+      team_id: toIntOrNull(p.team_id),
+      school_id: toIntOrNull(p.school_id),
+      draft_year: toIntOrNull(p.draft_year),
+      draft_round: toIntOrNull(p.draft_round),                              // ← Fixed
+      draft_pick: toIntOrNull(Array.isArray(p.draft_pick) ? p.draft_pick[0] : p.draft_pick),
+      years_of_service: toIntOrNull(p.years_of_service),
+      service_years_json: p.player_service_years ?? null,
+      created_at: p.create_date || null,
+      updated_at: p.last_change_date || null,
+      record_changed_at: p.record_change_date || null,
+      poison_pill_amt: toIntOrNull(p.poison_pill_amt),
+      is_two_way: p.two_way_flg ?? false,
+      is_flex: p.flex_flg ?? false,
+      source_drop_file: s3_key ?? null,
+      ingested_at: new Date(),
+    }));
+
+      try {
+        await sql`
+          INSERT INTO pcms.people ${sql(rows)}
+          ON CONFLICT (person_id) DO UPDATE SET
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
+            middle_name = EXCLUDED.middle_name,
+            display_first_name = EXCLUDED.display_first_name,
+            display_last_name = EXCLUDED.display_last_name,
+            roster_first_name = EXCLUDED.roster_first_name,
+            roster_last_name = EXCLUDED.roster_last_name,
+            birth_date = EXCLUDED.birth_date,
+            birth_country_lk = EXCLUDED.birth_country_lk,
+            gender = EXCLUDED.gender,
+            height = EXCLUDED.height,
+            weight = EXCLUDED.weight,
+            person_type_lk = EXCLUDED.person_type_lk,
+            player_status_lk = EXCLUDED.player_status_lk,
+            record_status_lk = EXCLUDED.record_status_lk,
+            league_lk = EXCLUDED.league_lk,
+            team_id = EXCLUDED.team_id,
+            school_id = EXCLUDED.school_id,
+            draft_year = EXCLUDED.draft_year,
+            draft_round = EXCLUDED.draft_round,
+            draft_pick = EXCLUDED.draft_pick,
+            years_of_service = EXCLUDED.years_of_service,
+            service_years_json = EXCLUDED.service_years_json,
+            poison_pill_amt = EXCLUDED.poison_pill_amt,
+            is_two_way = EXCLUDED.is_two_way,
+            is_flex = EXCLUDED.is_flex,
+            updated_at = EXCLUDED.updated_at,
+            record_changed_at = EXCLUDED.record_changed_at,
+            source_drop_file = EXCLUDED.source_drop_file,
+            ingested_at = EXCLUDED.ingested_at
+        `;
+      } catch (e) {
+        console.error(e);
+        console.log(batch);
+      }
 
       total += batch.length;
-      console.log(`  Upserted ${total}/${players.length}`);
+      // console.log(`  Upserted ${total}/${players.length}`);
     }
 
     return {

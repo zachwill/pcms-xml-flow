@@ -20,6 +20,6 @@
 
     "strnum": ["strnum@2.1.2", "", {}, "sha512-l63NF9y/cLROq/yqKXSLtcMeeyOfnSQlfMSlzFt/K73oIaD8DGaQWd7Z34X9GPiKqP5rbSh84Hl4bOlLcjiSrQ=="],
 
-    "windmill-client": ["windmill-client@1.607.1", "", {}, "sha512-8jGAMb/jnfU4C4Dohg7nTDAkf4QyeAy/BIB6nnhLAX7P4VIkvb4IVEc4Si6UMC0T/+0jPGDbjs+AavT8sol0fw=="],
+    "windmill-client": ["windmill-client@1.608.0", "", {}, "sha512-NUjI7rmcrO4m7hr/dUT+06i87RflT51Oq/A2R7iIegMKqGwcPs1b6wxTxlRMWRWUvLrh0F1mdIN7NK0axc8sDg=="],
   }
 }

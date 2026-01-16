@@ -1,65 +1,84 @@
 # PCMS XML Flow
 
-Windmill flow for importing NBA PCMS (Player Contract Management System) XML data extracts into PostgreSQL.
+Windmill flow for importing NBA PCMS (Player Contract Management System) XML data into PostgreSQL.
 
 ## Overview
 
-This flow:
-1. Downloads a ZIP file from S3 containing PCMS XML extracts
-2. Parses all XML files to JSON (saved in `.shared/` for downstream scripts)
-3. Transforms and upserts data into the `pcms` schema tables
-4. Tracks lineage and audit information for all ingested records
+1. Downloads ZIP from S3 containing PCMS XML extracts
+2. Parses all XML → JSON once (lineage step)
+3. Downstream scripts read JSON, transform, upsert to `pcms` schema
+4. Tracks lineage and audit info for all records
 
-## Directory Structure
-
-```
-.
-├── import_pcms_data.flow/    # Main import flow
-│   ├── flow.yaml             # Flow definition
-│   ├── lineage_management_*  # Step A: S3 download, extraction, XML→JSON parsing
-│   ├── players_&_people.*    # Step B: People/teams import
-│   ├── contracts_*           # Step C: Contracts, versions, bonuses, salaries
-│   └── ...                   # Additional import steps (D-L)
-├── new_pcms_schema.flow/     # Schema creation flow (PostgreSQL DDL)
-├── .shared/                  # Shared data between flow steps
-│   └── nba_pcms_full_extract/  # Extracted XML files (and JSON equivalents)
-├── utils.ts                  # Shared utilities (Windmill: f/ralph/utils.ts)
-├── docs/                     # Bun best practices documentation
-└── agents/                   # AI agent configurations
-```
-
-## Key Tables (pcms schema)
-
-- `pcms_lineage` - Tracks each import run (file hash, status, timestamps)
-- `pcms_lineage_audit` - Per-record audit trail
-- `people` - Players, coaches, agents
-- `teams` - NBA/G-League/WNBA teams
-- `contracts` - Player contracts
-- `contract_versions` - Contract terms per version
-- `salaries` - Yearly salary breakdowns
-- `team_exceptions` - Cap exceptions (MLE, BAE, trade exceptions)
-- `lookups` - Reference data (contract types, statuses, etc.)
-
-## Local Development
+## Quick Start
 
 ```bash
 # Install dependencies
 bun install
 
-# Run a script locally (requires POSTGRES_URL env var)
-POSTGRES_URL="postgres://..." bun run import_pcms_data.flow/lineage_management_*.ts
+# Generate JSON files for local development
+bun run scripts/parse-xml-to-json.ts
+
+# Explore data structure
+bun run scripts/show-all-paths.ts
+bun run scripts/inspect-json-structure.ts player --sample
+
+# Run a step locally
+POSTGRES_URL="postgres://..." bun run import_pcms_data.flow/players_&_people.inline_script.ts
 ```
+
+## Directory Structure
+
+```
+.
+├── import_pcms_data.flow/       # Main import flow
+│   ├── flow.yaml                # Windmill flow definition
+│   ├── lineage_management_*.ts  # Step A: S3 → extract → XML→JSON
+│   ├── players_&_people.*.ts    # Step B: People/teams
+│   └── ...                      # Steps C-L
+├── new_pcms_schema.flow/        # PostgreSQL DDL
+├── scripts/                     # Dev tools
+│   ├── parse-xml-to-json.ts     # Generate JSON from XML
+│   ├── inspect-json-structure.ts
+│   └── show-all-paths.ts
+├── .shared/                     # Extracted data
+│   └── nba_pcms_full_extract/   # XML + JSON files
+├── docs/                        # Bun best practices
+├── AGENTS.md                    # AI agent instructions
+└── TODO.md                      # Refactoring progress
+```
+
+## Data Volumes
+
+| Entity | Records |
+|--------|---------|
+| Players | 14,421 |
+| Contracts | 8,071 |
+| Transactions | 232,417 |
+| Ledger entries | 50,713 |
+| Trades | 1,731 |
+| Draft picks | 1,169 |
+
+## Key Tables (pcms schema)
+
+- `pcms_lineage` - Import run tracking
+- `people` - Players, coaches, agents
+- `teams` - NBA/G-League/WNBA teams
+- `contracts` - Player contracts
+- `contract_versions` - Contract terms per version
+- `salaries` - Yearly salary breakdowns
+- `team_exceptions` - Cap exceptions (MLE, BAE, etc.)
+- `lookups` - Reference data
 
 ## Flow Inputs
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `dry_run` | boolean | false | Preview changes without writing to DB |
-| `s3_key` | string | `pcms/nba_pcms_full_extract.zip` | S3 key for the PCMS ZIP file |
+| `dry_run` | boolean | false | Preview without DB writes |
+| `s3_key` | string | `pcms/nba_pcms_full_extract.zip` | S3 key for ZIP |
 
-## Architecture Notes
+## Architecture
 
-- **same_worker: true** - All steps run on the same worker, sharing `.shared/` directory
-- **Lineage step parses XML→JSON** - Downstream scripts work with JSON, not XML
-- **Hash-based change detection** - Only changed records are updated
-- **Bun runtime** - Uses Bun for fast I/O and native APIs
+- **same_worker: true** - All steps share `.shared/` directory
+- **XML parsed once** - Lineage step creates JSON, downstream reads JSON
+- **Hash-based dedup** - Only changed records updated (`source_hash`)
+- **Bun runtime** - Native Postgres, fast I/O, shell integration

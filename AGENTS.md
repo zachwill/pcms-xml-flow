@@ -2,114 +2,107 @@
 
 ## Project Context
 
-This is a Windmill flow that imports NBA PCMS XML data into PostgreSQL. The flow runs on Bun runtime.
+Windmill flow that imports NBA PCMS XML data into PostgreSQL. Runs on Bun runtime.
 
 ## Key Files
 
-- `import_pcms_data.flow/flow.yaml` - Flow definition (steps A-L run sequentially)
-- `import_pcms_data.flow/*.inline_script.ts` - Individual step implementations
-- `new_pcms_schema.flow/*.pg.sql` - PostgreSQL schema definitions
-- `utils.ts` - Shared utilities (imported as `f/ralph/utils.ts` on Windmill)
-- `.shared/` - Shared directory for passing files between flow steps
-- `docs/bun-*.md` - Bun best practices (READ THESE)
+```
+import_pcms_data.flow/
+├── flow.yaml                    # Flow definition (steps A-L sequential)
+├── lineage_management_*.ts      # Step A: S3 download, extract, XML→JSON ✅
+├── players_&_people.*.ts        # Step B: People/teams import ✅
+├── contracts_*.ts               # Step C: Contracts, versions, salaries (needs update)
+├── ...                          # Steps D-K (need update)
+└── finalize_lineage.*.ts        # Step L: Mark complete
+
+scripts/
+├── parse-xml-to-json.ts         # Dev tool: generate JSON from XML
+├── inspect-json-structure.ts    # Dev tool: explore JSON structure
+└── show-all-paths.ts            # Dev tool: quick path reference
+
+.shared/nba_pcms_full_extract/   # Extracted data (XML + JSON)
+docs/bun-*.md                    # Bun best practices
+```
 
 ## Architecture
 
-1. **Step A (lineage)**: Downloads ZIP from S3, extracts XML, parses ALL XML to JSON, saves to `.shared/`
-2. **Steps B-K**: Read JSON from `.shared/`, transform, upsert to Postgres
+1. **Step A (lineage)**: Downloads ZIP from S3, extracts, parses ALL XML → JSON, writes `lineage.json`
+2. **Steps B-K**: Read pre-parsed JSON from `.shared/`, transform, upsert to Postgres
 3. **Step L (finalize)**: Updates lineage status to SUCCESS/FAILED
 
 ## Bun Best Practices (MUST FOLLOW)
 
-### File I/O (see docs/bun-io.md)
 ```typescript
-// ✅ DO: Use Bun.file() and Bun.write()
-const data = await Bun.file("./path/file.json").json();
-await Bun.write("./out/data.json", JSON.stringify(obj));
+// ✅ File I/O
+const data = await Bun.file("./data.json").json();
+await Bun.write("./out.json", JSON.stringify(obj));
 
-// ❌ DON'T: Use fs.readFileSync/writeFileSync
-```
-
-### Shell Commands (see docs/bun-shell.md)
-```typescript
-// ✅ DO: Use Bun shell $``
+// ✅ Shell commands
 import { $ } from "bun";
-await $`unzip -o ${zipPath} -d ${outDir}`;
+await $`unzip -o ${zipPath} -d ${outDir}`.quiet();
 
-// ❌ DON'T: Use execSync from child_process
-```
-
-### Directory Operations
-```typescript
-// Use node:fs/promises for directories (Bun-compatible)
+// ✅ Directories
 import { mkdir, readdir, rm } from "node:fs/promises";
-await mkdir("./out", { recursive: true });
-const files = await readdir("./out");
-```
 
-## XML Parsing Strategy
-
-The lineage script should:
-1. Parse each XML file with `fast-xml-parser`
-2. Save the JSON equivalent to `.shared/` (e.g., `player.xml` → `player.json`)
-3. Downstream scripts read JSON directly - NO XML re-parsing
-
-```typescript
-import { XMLParser } from "fast-xml-parser";
-
-const parser = new XMLParser({
-  ignoreAttributes: false,
-  attributeNamePrefix: "@_",
-  // Handle xsi:nil="true" as null
-  tagValueProcessor: (name, val) => val === "" ? null : val,
-});
-
-const xml = await Bun.file("./data.xml").text();
-const json = parser.parse(xml);
-await Bun.write("./data.json", JSON.stringify(json));
-```
-
-## Database Patterns
-
-```typescript
+// ✅ Postgres
 import { SQL } from "bun";
-
 const sql = new SQL({ url: Bun.env.POSTGRES_URL!, prepare: false });
 
-// Upsert with conflict handling
-await sql`
-  INSERT INTO pcms.people ${sql(rows)}
-  ON CONFLICT (person_id) DO UPDATE SET
-    first_name = EXCLUDED.first_name,
-    updated_at = EXCLUDED.updated_at
-`;
+// ✅ Hashing
+const hash = new Bun.CryptoHasher("sha256").update(data).digest("hex");
+
+// ❌ DON'T use: execSync, fs.readFileSync, require("child_process")
+```
+
+## JSON Structure
+
+All parsed JSON follows this pattern:
+```typescript
+data["xml-extract"]["<type>-extract"]["<entity>"]  // Array of records
+```
+
+**Important:** `xsi:nil="true"` becomes `{ "@_xsi:nil": "true" }` - use `nilSafe()` helper:
+```typescript
+function nilSafe(val: unknown): unknown {
+  if (val && typeof val === "object" && "@_xsi:nil" in val) return null;
+  return val;
+}
+```
+
+## Data Paths (Quick Reference)
+
+```typescript
+// Players (14,421 records)
+data["xml-extract"]["player-extract"]["player"]
+
+// Contracts (8,071 records, nested versions/salaries)
+data["xml-extract"]["contract-extract"]["contract"]
+
+// Transactions (232,417 records)
+data["xml-extract"]["transaction-extract"]["transaction"]
+
+// Lookups (many sub-tables)
+data["xml-extract"]["lookups-extract"]["lkContractTypes"]["lkContractType"]
+```
+
+Run `bun run scripts/show-all-paths.ts` for complete reference.
+
+## Local Development
+
+```bash
+# Generate JSON from XML (one-time, for local dev)
+bun run scripts/parse-xml-to-json.ts
+
+# Explore JSON structure
+bun run scripts/inspect-json-structure.ts contract --sample
+
+# Run a step locally
+POSTGRES_URL="postgres://..." bun run import_pcms_data.flow/players_&_people.inline_script.ts
 ```
 
 ## Common Pitfalls
 
-1. **Don't use execSync** - Use `$` from Bun shell
-2. **Don't use fs.readFileSync** - Use `Bun.file().text()` or `.json()`
-3. **Don't re-parse XML in each step** - Parse once in lineage, read JSON after
-4. **Don't forget hash-based dedup** - Use `source_hash` column for change detection
-5. **Windmill paths** - Utils imported as `f/ralph/utils.ts` on Windmill, local path differs
-
-## Schema Reference
-
-See `new_pcms_schema.flow/*.pg.sql` for table definitions. Key tables:
-- `pcms.pcms_lineage` - Import run tracking
-- `pcms.people` - Players/coaches (PK: person_id)
-- `pcms.contracts` - Contracts (PK: contract_id)
-- `pcms.salaries` - Salary details (PK: contract_id + version_number + salary_year)
-
-## Testing Locally
-
-```bash
-# Set required env vars
-export POSTGRES_URL="postgres://user:pass@host:5432/db"
-
-# Run a specific step
-bun run import_pcms_data.flow/lineage_management_*.ts
-
-# Or with dry_run
-bun -e "import { main } from './import_pcms_data.flow/lineage_management_(s3_&_state_tracking).inline_script.ts'; main(true)"
-```
+1. **Don't stream XML** - Read pre-parsed JSON instead
+2. **Don't import from utils.ts** - Inline helpers in each script
+3. **Handle nil objects** - Check for `{ "@_xsi:nil": "true" }` 
+4. **Use hash-based dedup** - `source_hash` column for change detection

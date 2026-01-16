@@ -8,6 +8,6 @@
 - [x] team_budgets.inline_script.ts
 - [x] draft_picks.inline_script.ts
 - [x] system_values,_rookie_scale_&_nca.inline_script.ts
-- [ ] two-way_daily_statuses.inline_script.ts
+- [x] two-way_daily_statuses.inline_script.ts
 - [ ] waiver_priority_&_ranks.inline_script.ts
 - [x] finalize_lineage.inline_script.ts

@@ -197,10 +197,7 @@ export async function main(
 
     // Get lineage context
     const ctx = await getLineageContext(baseDir);
-    const effectiveLineageId = lineage_id ?? ctx.lineage_id;
     const effectiveS3Key = s3_key ?? ctx.s3_key;
-
-    void effectiveLineageId; // lineage_id currently only used for debug/provenance expansion
 
     // Find JSON file
     const files = await readdir(baseDir);
@@ -213,8 +210,8 @@ export async function main(
     const data = await Bun.file(`${baseDir}/${jsonFile}`).json();
 
     // Extract exceptionTeams
-    const exceptionTeams: any[] =
-      data?.["xml-extract"]?.["team-exception-extract"]?.exceptionTeams?.exceptionTeam ?? [];
+    const extract = data?.["xml-extract"]?.["team-exception-extract"];
+    const exceptionTeams = asArray(extract?.exceptionTeams?.exceptionTeam);
 
     const exceptions: any[] = [];
     const usages: any[] = [];

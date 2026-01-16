@@ -7,7 +7,7 @@ Refactor all scripts to use Bun-native APIs (read JSON, not XML).
 - [x] contracts,_versions,_bonuses_&_salaries.inline_script.ts
 - [x] lookups.inline_script.ts
 - [x] team_exceptions_&_usage.inline_script.ts
-- [ ] trades,_transactions_&_ledger.inline_script.ts
+- [x] trades,_transactions_&_ledger.inline_script.ts
 - [ ] team_budgets.inline_script.ts
 - [ ] draft_picks.inline_script.ts
 - [ ] system_values,_rookie_scale_&_nca.inline_script.ts

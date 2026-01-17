@@ -73,7 +73,7 @@ pcms.team_transactions (
 
 - [x] Create migration `migrations/006_team_transactions.sql`
 
-- [ ] Create import script `import_pcms_data.flow/team_transactions.inline_script.ts`
+- [x] Create import script `import_pcms_data.flow/team_transactions.inline_script.ts`
   
   **Follow the pattern in `transaction_waiver_amounts.inline_script.ts`:**
   

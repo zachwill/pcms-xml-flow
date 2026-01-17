@@ -349,7 +349,7 @@ Scripts organized by dependency order. Each should be 200-600 LOC (max 800 for c
 
 ### Phase 9: Two-Way
 
-- [ ] **9. two_way.duckdb.sql** — Daily statuses and utility
+- [x] **9. two_way.duckdb.sql** — Daily statuses and utility
   
   **Tables:**
   - `pcms.two_way_daily_statuses`

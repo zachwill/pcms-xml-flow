@@ -42,6 +42,16 @@ export async function main(
     const subDir = entries.find((e) => e.isDirectory());
     const baseDir = subDir ? `${extract_dir}/${subDir.name}` : extract_dir;
 
+    // Build team_id → team_code lookup map
+    const lookups: any = await Bun.file(`${baseDir}/lookups.json`).json();
+    const teamsData: any[] = lookups?.lk_teams?.lk_team || [];
+    const teamCodeMap = new Map<number, string>();
+    for (const t of teamsData) {
+      if (t.team_id && t.team_code) {
+        teamCodeMap.set(t.team_id, t.team_code);
+      }
+    }
+
     // Read clean JSON
     const waiverFile = Bun.file(`${baseDir}/waiver_priority.json`);
     const taxRatesFile = Bun.file(`${baseDir}/tax_rates.json`);
@@ -156,6 +166,7 @@ export async function main(
 
         return {
           team_id,
+          team_code: teamCodeMap.get(team_id) ?? null,
           salary_year,
           is_taxpayer: tt?.taxpayer_flg ?? false,
           is_repeater_taxpayer: tt?.taxpayer_repeater_rate_flg ?? false,
@@ -273,6 +284,7 @@ export async function main(
       await sql`
         INSERT INTO pcms.tax_team_status ${sql(batch)}
         ON CONFLICT (team_id, salary_year) DO UPDATE SET
+          team_code = EXCLUDED.team_code,
           is_taxpayer = EXCLUDED.is_taxpayer,
           is_repeater_taxpayer = EXCLUDED.is_repeater_taxpayer,
           is_subject_to_apron = EXCLUDED.is_subject_to_apron,

@@ -53,6 +53,16 @@ export async function main(
     const subDir = entries.find((e) => e.isDirectory());
     const baseDir = subDir ? `${extract_dir}/${subDir.name}` : extract_dir;
 
+    // Build team_id → team_code lookup map
+    const lookups: any = await Bun.file(`${baseDir}/lookups.json`).json();
+    const teamsData: any[] = lookups?.lk_teams?.lk_team || [];
+    const teamCodeMap = new Map<number, string>();
+    for (const t of teamsData) {
+      if (t.team_id && t.team_code) {
+        teamCodeMap.set(t.team_id, t.team_code);
+      }
+    }
+
     const teamBudgetsFile = Bun.file(`${baseDir}/team_budgets.json`);
     if (!(await teamBudgetsFile.exists())) {
       throw new Error(`team_budgets.json not found in ${baseDir}`);
@@ -84,6 +94,7 @@ export async function main(
         for (const amount of amounts) {
           budgetRows.push({
             team_id: teamId,
+            team_code: teamCodeMap.get(teamId) ?? null,
             salary_year: amount?.year ?? null,
 
             player_id: entry?.player_id ?? null,
@@ -127,6 +138,7 @@ export async function main(
       .filter((t) => t?.team_id && t?.salary_year)
       .map((t) => ({
         team_id: t.team_id,
+        team_code: teamCodeMap.get(t.team_id) ?? null,
         salary_year: t.salary_year,
         is_taxpayer: t.taxpayer_flg ?? null,
         is_repeater_taxpayer: t.taxpayer_repeater_rate_flg ?? null,
@@ -175,6 +187,7 @@ export async function main(
         INSERT INTO pcms.team_budget_snapshots ${sql(rows)}
         ON CONFLICT (team_id, salary_year, transaction_id, budget_group_lk, player_id, contract_id, version_number)
         DO UPDATE SET
+          team_code = EXCLUDED.team_code,
           transaction_type_lk = EXCLUDED.transaction_type_lk,
           transaction_description_lk = EXCLUDED.transaction_description_lk,
           contract_type_lk = EXCLUDED.contract_type_lk,
@@ -209,6 +222,7 @@ export async function main(
         INSERT INTO pcms.team_tax_summary_snapshots ${sql(rows)}
         ON CONFLICT (team_id, salary_year)
         DO UPDATE SET
+          team_code = EXCLUDED.team_code,
           is_taxpayer = EXCLUDED.is_taxpayer,
           is_repeater_taxpayer = EXCLUDED.is_repeater_taxpayer,
           is_subject_to_apron = EXCLUDED.is_subject_to_apron,

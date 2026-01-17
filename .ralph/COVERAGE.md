@@ -151,7 +151,7 @@ pcms.team_transactions (
     results.m, results.n, results.o, results.p, results.s]
   ```
 
-- [ ] Update `SCHEMA.md` — Add team_transactions table definition (copy from migration 006)
+- [x] Update `SCHEMA.md` — Add team_transactions table definition (copy from migration 006)
 
 ### Validation
 

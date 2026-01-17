@@ -25,15 +25,15 @@ value:
           dry_run:
             type: javascript
             expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
           lineage_id:
             type: javascript
             expr: results.a.lineage_id
           s3_key:
             type: javascript
             expr: results.a.s3_key ?? flow_input.s3_key
-          extract_dir:
-            type: javascript
-            expr: results.a.extract_dir ?? './shared/pcms'
         lock: '!inline players_&_people.inline_script.lock'
         language: bun
     - id: c
@@ -45,15 +45,15 @@ value:
           dry_run:
             type: javascript
             expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
           lineage_id:
             type: javascript
             expr: results.a.lineage_id
           s3_key:
             type: javascript
             expr: results.a.s3_key ?? flow_input.s3_key
-          extract_dir:
-            type: javascript
-            expr: results.a.extract_dir ?? './shared/pcms'
         lock: '!inline contracts,_versions,_bonuses_&_salaries.inline_script.lock'
         language: bun
     - id: d
@@ -65,15 +65,15 @@ value:
           dry_run:
             type: javascript
             expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
           lineage_id:
             type: javascript
             expr: results.a.lineage_id
           s3_key:
             type: javascript
             expr: results.a.s3_key ?? flow_input.s3_key
-          extract_dir:
-            type: javascript
-            expr: results.a.extract_dir ?? './shared/pcms'
         lock: '!inline team_exceptions_&_usage.inline_script.lock'
         language: bun
     - id: e
@@ -85,15 +85,15 @@ value:
           dry_run:
             type: javascript
             expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
           lineage_id:
             type: javascript
             expr: results.a.lineage_id
           s3_key:
             type: javascript
             expr: results.a.s3_key ?? flow_input.s3_key
-          extract_dir:
-            type: javascript
-            expr: results.a.extract_dir ?? './shared/pcms'
         lock: '!inline trades,_transactions_&_ledger.inline_script.lock'
         language: bun
     - id: f
@@ -105,15 +105,15 @@ value:
           dry_run:
             type: javascript
             expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
           lineage_id:
             type: javascript
             expr: results.a.lineage_id
           s3_key:
             type: javascript
             expr: results.a.s3_key ?? flow_input.s3_key
-          extract_dir:
-            type: javascript
-            expr: results.a.extract_dir ?? './shared/pcms'
         lock: '!inline system_values,_rookie_scale_&_nca.inline_script.lock'
         language: bun
     - id: g
@@ -125,15 +125,15 @@ value:
           dry_run:
             type: javascript
             expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
           lineage_id:
             type: javascript
             expr: results.a.lineage_id
           s3_key:
             type: javascript
             expr: results.a.s3_key ?? flow_input.s3_key
-          extract_dir:
-            type: javascript
-            expr: results.a.extract_dir ?? './shared/pcms'
         lock: '!inline two-way_daily_statuses.inline_script.lock'
         language: bun
     - id: h
@@ -145,15 +145,15 @@ value:
           dry_run:
             type: javascript
             expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
           lineage_id:
             type: javascript
             expr: results.a.lineage_id
           s3_key:
             type: javascript
             expr: results.a.s3_key ?? flow_input.s3_key
-          extract_dir:
-            type: javascript
-            expr: results.a.extract_dir ?? './shared/pcms'
         lock: '!inline draft_picks.inline_script.lock'
         language: bun
     - id: i
@@ -165,15 +165,15 @@ value:
           dry_run:
             type: javascript
             expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
           lineage_id:
             type: javascript
             expr: results.a.lineage_id
           s3_key:
             type: javascript
             expr: results.a.s3_key ?? flow_input.s3_key
-          extract_dir:
-            type: javascript
-            expr: results.a.extract_dir ?? './shared/pcms'
         lock: '!inline team_budgets.inline_script.lock'
         language: bun
     - id: j
@@ -185,15 +185,15 @@ value:
           dry_run:
             type: javascript
             expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
           lineage_id:
             type: javascript
             expr: results.a.lineage_id
           s3_key:
             type: javascript
             expr: results.a.s3_key ?? flow_input.s3_key
-          extract_dir:
-            type: javascript
-            expr: results.a.extract_dir ?? './shared/pcms'
         lock: '!inline waiver_priority_&_ranks.inline_script.lock'
         language: bun
     - id: k
@@ -205,15 +205,15 @@ value:
           dry_run:
             type: javascript
             expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
           lineage_id:
             type: javascript
             expr: results.a.lineage_id
           s3_key:
             type: javascript
             expr: results.a.s3_key ?? flow_input.s3_key
-          extract_dir:
-            type: javascript
-            expr: results.a.extract_dir ?? './shared/pcms'
         lock: '!inline lookups.inline_script.lock'
         language: bun
     - id: m
@@ -225,18 +225,18 @@ value:
           dry_run:
             type: javascript
             expr: flow_input.dry_run
+          extract_dir:
+            type: static
+            value: ./shared/pcms
           lineage_id:
             type: javascript
             expr: results.a.lineage_id
           s3_key:
             type: javascript
             expr: results.a.s3_key ?? flow_input.s3_key
-          extract_dir:
-            type: javascript
-            expr: results.a.extract_dir ?? './shared/pcms'
         lock: '!inline agents_&_agencies.inline_script.lock'
         language: bun
-    - id: n
+    - id: 'n'
       summary: Transaction Waiver Amounts
       value:
         type: rawscript
@@ -245,56 +245,56 @@ value:
           dry_run:
             type: javascript
             expr: flow_input.dry_run
+          extract_dir:
+            type: static
+            value: ./shared/pcms
           lineage_id:
             type: javascript
             expr: results.a.lineage_id
           s3_key:
-            type: javascript
-            expr: results.a.s3_key ?? flow_input.s3_key
-          extract_dir:
-            type: javascript
-            expr: results.a.extract_dir ?? './shared/pcms'
+            type: static
+            value: results.a.s3_key ?? flow_input.s3_key
         lock: '!inline transaction_waiver_amounts.inline_script.lock'
         language: bun
     - id: o
-      summary: League Salary Scales & Projections
+      summary: League Salary Scales & Protections
       value:
         type: rawscript
-        content: '!inline league_salary_scales_&_projections.inline_script.ts'
+        content: '!inline league_salary_scales_&_protections.inline_script.ts'
         input_transforms:
           dry_run:
             type: javascript
             expr: flow_input.dry_run
+          extract_dir:
+            type: static
+            value: ./shared/pcms
           lineage_id:
             type: javascript
             expr: results.a.lineage_id
           s3_key:
-            type: javascript
-            expr: results.a.s3_key ?? flow_input.s3_key
-          extract_dir:
-            type: javascript
-            expr: results.a.extract_dir ?? './shared/pcms'
-        lock: '!inline league_salary_scales_&_projections.inline_script.lock'
+            type: static
+            value: results.a.s3_key ?? flow_input.s3_key
+        lock: '!inline league_salary_scales_&_protections.inline_script.lock'
         language: bun
     - id: p
       summary: Two-Way Utility
       value:
         type: rawscript
-        content: '!inline two_way_utility.inline_script.ts'
+        content: '!inline two-way_utility.inline_script.ts'
         input_transforms:
           dry_run:
             type: javascript
             expr: flow_input.dry_run
+          extract_dir:
+            type: static
+            value: ./shared/pcms
           lineage_id:
             type: javascript
             expr: results.a.lineage_id
           s3_key:
             type: javascript
             expr: results.a.s3_key ?? flow_input.s3_key
-          extract_dir:
-            type: javascript
-            expr: results.a.extract_dir ?? './shared/pcms'
-        lock: '!inline two_way_utility.inline_script.lock'
+        lock: '!inline two-way_utility.inline_script.lock'
         language: bun
     - id: l
       summary: Finalize Lineage
@@ -310,7 +310,9 @@ value:
             expr: results.a.lineage_id
           summaries:
             type: javascript
-            expr: '[results.b, results.c, results.d, results.e, results.f, results.g, results.h, results.i, results.j, results.k, results.m, results.n, results.o, results.p]'
+            expr: >-
+              [results.b, results.c, results.d, results.e, results.f, results.g,
+              results.h, results.i, results.j, results.k]
         lock: '!inline finalize_lineage.inline_script.lock'
         language: bun
   same_worker: true

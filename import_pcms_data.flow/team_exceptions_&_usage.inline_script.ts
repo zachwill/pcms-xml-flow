@@ -37,6 +37,16 @@ export async function main(
     const subDir = entries.find((e) => e.isDirectory());
     const baseDir = subDir ? `${extract_dir}/${subDir.name}` : extract_dir;
 
+    // Build team_id → team_code lookup map
+    const lookups: any = await Bun.file(`${baseDir}/lookups.json`).json();
+    const teamsData: any[] = lookups?.lk_teams?.lk_team || [];
+    const teamCodeMap = new Map<number, string>();
+    for (const t of teamsData) {
+      if (t.team_id && t.team_code) {
+        teamCodeMap.set(t.team_id, t.team_code);
+      }
+    }
+
     // Read clean JSON
     const data: any = await Bun.file(`${baseDir}/team_exceptions.json`).json();
 
@@ -60,6 +70,7 @@ export async function main(
         exceptionRows.push({
           team_exception_id: teamExceptionId,
           team_id: teamId,
+          team_code: teamCodeMap.get(teamId) ?? null,
           salary_year: te?.team_exception_year ?? null,
           exception_type_lk: te?.exception_type_lk ?? null,
           effective_date: te?.effective_date ?? null,
@@ -133,6 +144,7 @@ export async function main(
         INSERT INTO pcms.team_exceptions ${sql(batch)}
         ON CONFLICT (team_exception_id) DO UPDATE SET
           team_id = EXCLUDED.team_id,
+          team_code = EXCLUDED.team_code,
           salary_year = EXCLUDED.salary_year,
           exception_type_lk = EXCLUDED.exception_type_lk,
           effective_date = EXCLUDED.effective_date,

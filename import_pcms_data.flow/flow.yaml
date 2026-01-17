@@ -16,118 +16,7 @@ value:
             expr: flow_input.s3_key
         lock: '!inline pcms_xml_to_json.inline_script.lock'
         language: python3
-    - id: b
-      summary: People & Identity
-      value:
-        type: rawscript
-        content: '!inline people_identity.inline_script.ts'
-        input_transforms:
-          dry_run:
-            type: javascript
-            expr: flow_input.dry_run
-          extract_dir:
-            type: javascript
-            expr: '''./shared/pcms'''
-        lock: '!inline people_identity.inline_script.lock'
-        language: bun
-    - id: r
-      summary: Draft
-      value:
-        type: rawscript
-        content: '!inline draft.inline_script.ts'
-        input_transforms:
-          dry_run:
-            type: javascript
-            expr: flow_input.dry_run
-          extract_dir:
-            type: javascript
-            expr: '''./shared/pcms'''
-        lock: '!inline draft.inline_script.lock'
-        language: bun
-    - id: c
-      summary: 'Contracts, Versions, Bonuses & Salaries'
-      value:
-        type: rawscript
-        content: '!inline contracts,_versions,_bonuses_&_salaries.inline_script.ts'
-        input_transforms:
-          dry_run:
-            type: javascript
-            expr: flow_input.dry_run
-          extract_dir:
-            type: javascript
-            expr: '''./shared/pcms'''
-        lock: '!inline contracts,_versions,_bonuses_&_salaries.inline_script.lock'
-        language: bun
-    - id: d
-      summary: Team Exceptions & Usage
-      value:
-        type: rawscript
-        content: '!inline team_exceptions_&_usage.inline_script.ts'
-        input_transforms:
-          dry_run:
-            type: javascript
-            expr: flow_input.dry_run
-          extract_dir:
-            type: javascript
-            expr: '''./shared/pcms'''
-        lock: '!inline team_exceptions_&_usage.inline_script.lock'
-        language: bun
-    - id: e
-      summary: 'Trades, Transactions & Ledger'
-      value:
-        type: rawscript
-        content: '!inline trades,_transactions_&_ledger.inline_script.ts'
-        input_transforms:
-          dry_run:
-            type: javascript
-            expr: flow_input.dry_run
-          extract_dir:
-            type: javascript
-            expr: '''./shared/pcms'''
-        lock: '!inline trades,_transactions_&_ledger.inline_script.lock'
-        language: bun
-    - id: f
-      summary: League Config
-      value:
-        type: rawscript
-        content: '!inline league_config.inline_script.ts'
-        input_transforms:
-          dry_run:
-            type: javascript
-            expr: flow_input.dry_run
-          extract_dir:
-            type: javascript
-            expr: '''./shared/pcms'''
-        lock: '!inline league_config.inline_script.lock'
-        language: bun
-    - id: h
-      summary: Team Financials
-      value:
-        type: rawscript
-        content: '!inline team_financials.inline_script.ts'
-        input_transforms:
-          dry_run:
-            type: javascript
-            expr: flow_input.dry_run
-          extract_dir:
-            type: javascript
-            expr: '''./shared/pcms'''
-        lock: '!inline team_financials.inline_script.lock'
-        language: bun
-    - id: g
-      summary: Two-Way
-      value:
-        type: rawscript
-        content: '!inline two_way.inline_script.ts'
-        input_transforms:
-          dry_run:
-            type: javascript
-            expr: flow_input.dry_run
-          extract_dir:
-            type: javascript
-            expr: '''./shared/pcms'''
-        lock: '!inline two_way.inline_script.lock'
-        language: bun
+
     - id: k
       summary: Lookups
       value:
@@ -142,6 +31,127 @@ value:
             expr: '''./shared/pcms'''
         lock: '!inline lookups.inline_script.lock'
         language: bun
+
+    - id: b
+      summary: People & Identity
+      value:
+        type: rawscript
+        content: '!inline people_identity.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: '''./shared/pcms'''
+        lock: '!inline people_identity.inline_script.lock'
+        language: bun
+
+    - id: r
+      summary: Draft
+      value:
+        type: rawscript
+        content: '!inline draft.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: '''./shared/pcms'''
+        lock: '!inline draft.inline_script.lock'
+        language: bun
+
+    - id: c
+      summary: Contracts
+      value:
+        type: rawscript
+        content: '!inline contracts.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: '''./shared/pcms'''
+        lock: '!inline contracts.inline_script.lock'
+        language: bun
+
+    - id: d
+      summary: Team Exceptions
+      value:
+        type: rawscript
+        content: '!inline team_exceptions.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: '''./shared/pcms'''
+        lock: '!inline team_exceptions.inline_script.lock'
+        language: bun
+
+    - id: e
+      summary: Transactions (Trades, Ledger, Waiver Amounts)
+      value:
+        type: rawscript
+        content: '!inline transactions.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: '''./shared/pcms'''
+        lock: '!inline transactions.inline_script.lock'
+        language: bun
+
+    - id: f
+      summary: League Config
+      value:
+        type: rawscript
+        content: '!inline league_config.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: '''./shared/pcms'''
+        lock: '!inline league_config.inline_script.lock'
+        language: bun
+
+    - id: h
+      summary: Team Financials
+      value:
+        type: rawscript
+        content: '!inline team_financials.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: '''./shared/pcms'''
+        lock: '!inline team_financials.inline_script.lock'
+        language: bun
+
+    - id: g
+      summary: Two-Way
+      value:
+        type: rawscript
+        content: '!inline two_way.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: '''./shared/pcms'''
+        lock: '!inline two_way.inline_script.lock'
+        language: bun
+
     - id: l
       summary: Finalize Lineage
       value:

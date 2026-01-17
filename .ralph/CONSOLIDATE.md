@@ -92,7 +92,7 @@ Each merged script should:
 ### Phase 3: Cleanup
 
 - [x] Delete old scripts after each merge is tested
-- [ ] Update `flow.yaml` with new script names and order
+- [x] Update `flow.yaml` with new script names and order
 - [ ] Update `finalize_lineage` summaries array to match new steps
 
 ---

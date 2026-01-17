@@ -115,10 +115,10 @@ value:
         lock: '!inline team_financials.inline_script.lock'
         language: bun
     - id: g
-      summary: Two-Way Daily Statuses
+      summary: Two-Way
       value:
         type: rawscript
-        content: '!inline two-way_daily_statuses.inline_script.ts'
+        content: '!inline two_way.inline_script.ts'
         input_transforms:
           dry_run:
             type: javascript
@@ -126,7 +126,7 @@ value:
           extract_dir:
             type: javascript
             expr: '''./shared/pcms'''
-        lock: '!inline two-way_daily_statuses.inline_script.lock'
+        lock: '!inline two_way.inline_script.lock'
         language: bun
     - id: k
       summary: Lookups
@@ -142,20 +142,6 @@ value:
             expr: '''./shared/pcms'''
         lock: '!inline lookups.inline_script.lock'
         language: bun
-    - id: p
-      summary: Two-Way Utility
-      value:
-        type: rawscript
-        content: '!inline two-way_utility.inline_script.ts'
-        input_transforms:
-          dry_run:
-            type: javascript
-            expr: flow_input.dry_run
-          extract_dir:
-            type: static
-            value: ./shared/pcms
-        lock: '!inline two-way_utility.inline_script.lock'
-        language: bun
     - id: l
       summary: Finalize Lineage
       value:
@@ -169,7 +155,7 @@ value:
             type: javascript
             expr: >-
               [results.b, results.r, results.c, results.d, results.e, results.f,
-              results.h, results.g, results.k, results.p]
+              results.h, results.g, results.k]
         lock: '!inline finalize_lineage.inline_script.lock'
         language: bun
   same_worker: true

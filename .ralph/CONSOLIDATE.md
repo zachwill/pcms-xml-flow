@@ -85,7 +85,7 @@ Each merged script should:
   - Merge: `team_budgets` + `waiver_priority_&_ranks` + `team_transactions`
   - Tables: team_budget_snapshots, team_tax_summary_snapshots, tax_team_status, waiver_priority, waiver_priority_ranks, team_transactions
 
-- [ ] **2.5 `two_way.inline_script.ts`**
+- [x] **2.5 `two_way.inline_script.ts`**
   - Merge: `two-way_daily_statuses` + `two-way_utility`
   - Tables: two_way_daily_statuses, two_way_contract_utility, two_way_game_utility, team_two_way_capacity
 

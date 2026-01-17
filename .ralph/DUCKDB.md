@@ -181,7 +181,7 @@ Scripts organized by dependency order. Each should be 200-600 LOC (max 800 for c
 
 ### Phase 2: People & Identity
 
-- [ ] **2. people_identity.duckdb.sql** — People, agencies, agents
+- [x] **2. people_identity.duckdb.sql** — People, agencies, agents
   
   **Tables:** `pcms.people`, `pcms.agencies`, `pcms.agents`
   

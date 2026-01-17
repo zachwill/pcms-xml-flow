@@ -49,37 +49,64 @@ export async function main(
     const contracts: any[] = await Bun.file(`${baseDir}/contracts.json`).json();
     console.log(`Found ${contracts.length} contracts`);
 
+    // Build team_id → team_code lookup map
+    const lookups: any = await Bun.file(`${baseDir}/lookups.json`).json();
+    const teamsData: any[] = lookups?.lk_teams?.lk_team || [];
+    const teamCodeMap = new Map<number, string>();
+    for (const t of teamsData) {
+      const teamId = t?.team_id;
+      const teamCode = t?.team_code ?? t?.team_name_short;
+      if (teamId && teamCode) {
+        teamCodeMap.set(Number(teamId), String(teamCode));
+      }
+    }
+
     const ingestedAt = new Date();
 
     // Flatten nested structures
-    const contractRows = contracts.map((c) => ({
-      contract_id: c.contract_id,
-      player_id: c.player_id,
-      signing_team_id: c.signing_team_id,
-      signing_date: c.signing_date,
-      contract_end_date: c.contract_end_date,
-      record_status_lk: c.record_status_lk,
-      signed_method_lk: c.signed_method_lk,
-      team_exception_id: c.team_exception_id,
+    const contractRows = contracts.map((c) => {
+      const signingTeamId = c?.signing_team_id ?? null;
+      const signAndTradeToTeamId = c?.sign_and_trade_to_team_id ?? null;
 
-      is_sign_and_trade: c.sign_and_trade_flg,
-      sign_and_trade_date: c.sign_and_trade_date,
-      sign_and_trade_to_team_id: c.sign_and_trade_to_team_id,
-      sign_and_trade_id: c.sign_and_trade_id,
+      return {
+        contract_id: c.contract_id,
+        player_id: c.player_id,
 
-      // v2+ WNBA only; NBA loads as NULL
-      start_year: c.start_year ?? null,
-      contract_length_wnba: c.contract_length_wnba ?? c.contract_length ?? null,
+        signing_team_id: signingTeamId,
+        team_code: signingTeamId
+          ? (teamCodeMap.get(Number(signingTeamId)) ?? null)
+          : null,
 
-      convert_date: c.convert_date,
-      two_way_service_limit: c.two_way_service_limit,
+        signing_date: c.signing_date,
+        contract_end_date: c.contract_end_date,
+        record_status_lk: c.record_status_lk,
+        signed_method_lk: c.signed_method_lk,
+        team_exception_id: c.team_exception_id,
 
-      created_at: c.create_date,
-      updated_at: c.last_change_date,
-      record_changed_at: c.record_change_date,
+        is_sign_and_trade: c.sign_and_trade_flg,
+        sign_and_trade_date: c.sign_and_trade_date,
 
-      ingested_at: ingestedAt,
-    }));
+        sign_and_trade_to_team_id: signAndTradeToTeamId,
+        sign_and_trade_to_team_code: signAndTradeToTeamId
+          ? (teamCodeMap.get(Number(signAndTradeToTeamId)) ?? null)
+          : null,
+
+        sign_and_trade_id: c.sign_and_trade_id,
+
+        // v2+ WNBA only; NBA loads as NULL
+        start_year: c.start_year ?? null,
+        contract_length_wnba: c.contract_length_wnba ?? c.contract_length ?? null,
+
+        convert_date: c.convert_date,
+        two_way_service_limit: c.two_way_service_limit,
+
+        created_at: c.create_date,
+        updated_at: c.last_change_date,
+        record_changed_at: c.record_change_date,
+
+        ingested_at: ingestedAt,
+      };
+    });
 
     const versionRows: any[] = [];
     const bonusRows: any[] = [];
@@ -291,6 +318,7 @@ export async function main(
           ON CONFLICT (contract_id) DO UPDATE SET
             player_id = EXCLUDED.player_id,
             signing_team_id = EXCLUDED.signing_team_id,
+            team_code = EXCLUDED.team_code,
             signing_date = EXCLUDED.signing_date,
             contract_end_date = EXCLUDED.contract_end_date,
             record_status_lk = EXCLUDED.record_status_lk,
@@ -299,6 +327,7 @@ export async function main(
             is_sign_and_trade = EXCLUDED.is_sign_and_trade,
             sign_and_trade_date = EXCLUDED.sign_and_trade_date,
             sign_and_trade_to_team_id = EXCLUDED.sign_and_trade_to_team_id,
+            sign_and_trade_to_team_code = EXCLUDED.sign_and_trade_to_team_code,
             sign_and_trade_id = EXCLUDED.sign_and_trade_id,
             start_year = EXCLUDED.start_year,
             contract_length_wnba = EXCLUDED.contract_length_wnba,

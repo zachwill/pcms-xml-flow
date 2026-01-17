@@ -30,6 +30,20 @@ value:
             expr: results.a.extract_dir ?? './shared/pcms'
         lock: '!inline players_&_people.inline_script.lock'
         language: bun
+    - id: r
+      summary: Generate NBA Draft Picks
+      value:
+        type: rawscript
+        content: '!inline generate_nba_draft_picks.inline_script.ts'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          extract_dir:
+            type: javascript
+            expr: results.a.extract_dir ?? './shared/pcms'
+        lock: '!inline generate_nba_draft_picks.inline_script.lock'
+        language: bun
     - id: c
       summary: 'Contracts, Versions, Bonuses & Salaries'
       value:
@@ -238,8 +252,8 @@ value:
           summaries:
             type: javascript
             expr: >-
-              [results.b, results.c, results.d, results.e, results.f, results.g,
-              results.h, results.q, results.i, results.j, results.k]
+              [results.b, results.r, results.c, results.d, results.e, results.f,
+              results.g, results.h, results.q, results.i, results.j, results.k]
         lock: '!inline finalize_lineage.inline_script.lock'
         language: bun
   same_worker: true

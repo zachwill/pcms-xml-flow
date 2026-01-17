@@ -45,4 +45,4 @@ team_code: teamCodeMap.get(record.team_id) ?? null,
 ## Phase 2: New Scripts
 
 - [x] Create `draft_pick_summaries.inline_script.ts` + update `flow.yaml` — import from `draft_pick_summaries.json`, see DRAFT_PICKS.md for schema
-- [ ] Create `generate_nba_draft_picks.inline_script.ts` + update `flow.yaml` — generate NBA draft picks from `players.json` (see TODO.md for pattern)
+- [x] Create `generate_nba_draft_picks.inline_script.ts` + update `flow.yaml` — generate NBA draft picks from `players.json` (see TODO.md for pattern)

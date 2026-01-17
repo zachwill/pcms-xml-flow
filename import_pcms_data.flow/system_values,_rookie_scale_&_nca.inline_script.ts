@@ -51,6 +51,18 @@ export async function main(
       `Found yearly_system_values=${ysv.length}, rookie_scale_amounts=${rookieScale.length}, non_contract_amounts=${ncas.length}`
     );
 
+    // Build team_id → team_code lookup map
+    const lookups: any = await Bun.file(`${baseDir}/lookups.json`).json();
+    const teamsData: any[] = lookups?.lk_teams?.lk_team || [];
+    const teamCodeMap = new Map<number, string>();
+    for (const t of teamsData) {
+      const teamId = t?.team_id;
+      const teamCode = t?.team_code ?? t?.team_name_short;
+      if (teamId && teamCode) {
+        teamCodeMap.set(Number(teamId), String(teamCode));
+      }
+    }
+
     const ingestedAt = new Date();
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -184,10 +196,15 @@ export async function main(
       .map((nca) => {
         if (!nca?.non_contract_amount_id) return null;
 
+        const teamIdRaw = nca?.team_id;
+        const teamId = teamIdRaw === null || teamIdRaw === undefined ? null : Number(teamIdRaw);
+        const teamIdSafe = teamId === null || Number.isNaN(teamId) ? null : teamId;
+
         return {
           non_contract_amount_id: nca.non_contract_amount_id,
           player_id: nca?.player_id ?? null,
-          team_id: nca?.team_id ?? null,
+          team_id: teamIdSafe,
+          team_code: teamIdSafe !== null ? (teamCodeMap.get(teamIdSafe) ?? null) : null,
           salary_year: nca?.non_contract_year ?? null,
           amount_type_lk: nca?.non_contract_amount_type_lk ?? nca?.amount_type_lk ?? null,
 
@@ -358,6 +375,7 @@ export async function main(
           ON CONFLICT (non_contract_amount_id) DO UPDATE SET
             player_id = EXCLUDED.player_id,
             team_id = EXCLUDED.team_id,
+            team_code = EXCLUDED.team_code,
             salary_year = EXCLUDED.salary_year,
             amount_type_lk = EXCLUDED.amount_type_lk,
             cap_amount = EXCLUDED.cap_amount,

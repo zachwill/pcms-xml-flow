@@ -1,0 +1,1072 @@
+"1":
+  F: POR
+  G: "=IFERROR(INDEX($AQ$11:$AQ$41, MATCH(F1, $AP$11:$AP$41, 0)),\"\")"
+  J: "=IF($AQ$2=2024,\n   IF(OR($F$1={\"BRK\",\"LAL\",\"MIL\",\"LAC\",\"GSW\"}),\"Yes\",\"No\"),\n   IF($AQ$2=2025,\n      IF($F$1=\"POR\",\"No\",\n         IF(OR($F$1={\"BOS\",\"PHX\",\"DEN\",\"LAL\",\"MIL\",\"LAC\"}),\"Yes\",\"No\")\n      ),\n      \"\"\n   )\n)"
+  K: Expanded
+  O: BOS
+  P: "=IFERROR(INDEX($AQ$11:$AQ$41, MATCH(O1, $AP$11:$AP$41, 0)),\"\")"
+  S: "=IF($AQ$2=2024,\n   IF(OR($O$1={\"BRK\",\"LAL\",\"MIL\",\"LAC\",\"GSW\"}),\"Yes\",\"No\"),\n   IF($AQ$2=2025,\n      IF($O$1=\"POR\",\"No\",\n         IF(OR($O$1={\"BOS\",\"PHX\",\"DEN\",\"LAL\",\"MIL\",\"LAC\"}),\"Yes\",\"No\")\n      ),\n      \"\"\n   )\n)"
+  T: Expanded
+  X: UTA
+  Y: "=IFERROR(INDEX($AQ$11:$AQ$41, MATCH(X1, $AP$11:$AP$41, 0)),\"\")"
+  AB: "=IF($AQ$2=2024,\n   IF(OR($X$1={\"BRK\",\"LAL\",\"MIL\",\"LAC\",\"GSW\"}),\"Yes\",\"No\"),\n   IF($AQ$2=2025,\n      IF($X$1=\"POR\",\"No\",\n         IF(OR($X$1={\"BOS\",\"PHX\",\"DEN\",\"LAL\",\"MIL\",\"LAC\"}),\"Yes\",\"No\")\n      ),\n      \"\"\n   )\n)"
+  AC: Expanded
+  AG: BOS
+  AH: "=IFERROR(INDEX($AQ$11:$AQ$41, MATCH(AG1, $AP$11:$AP$41, 0)),\"\")"
+  AK: "=IF($AQ$2=2024,\n   IF(OR($AG$1={\"BRK\",\"LAL\",\"MIL\",\"LAC\",\"GSW\"}),\"Yes\",\"No\"),\n   IF($AQ$2=2025,\n      IF($AG$1=\"POR\",\"No\",\n         IF(OR($AG$1={\"BOS\",\"PHX\",\"DEN\",\"LAL\",\"MIL\",\"LAC\"}),\"Yes\",\"No\")\n      ),\n      \"\"\n   )\n)"
+  AL: Standard
+"2":
+  F: "Give:"
+  G: "Cap:"
+  H: "Tax:"
+  I: "Apron:"
+  J: "Get:"
+  K: "Cap:"
+  L: "Tax:"
+  M: "Apron:"
+  O: "Give:"
+  P: "Cap:"
+  Q: "Tax:"
+  R: "Apron:"
+  S: "Get:"
+  T: "Cap:"
+  U: "Tax:"
+  V: "Apron:"
+  X: "Give:"
+  Y: "Cap:"
+  Z: "Tax:"
+  AA: "Apron:"
+  AB: "Get:"
+  AC: "Cap:"
+  AD: "Tax:"
+  AE: "Apron:"
+  AG: "Give:"
+  AH: "Cap:"
+  AI: "Tax:"
+  AJ: "Apron:"
+  AK: "Get:"
+  AL: "Cap:"
+  AM: "Tax:"
+  AN: "Apron:"
+  AP: "Year:"
+  AQ: "2025"
+"3":
+  F: "Grant, Jerami"
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F3,X!$A:$AI,3,FALSE),VLOOKUP(F3,X!$A:$AI,5,FALSE)),\"\")"
+  H: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F3,X!$A:$AI,26,FALSE),VLOOKUP(F3,X!$A:$AI,34,FALSE)),\"\")"
+  I: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F3,X!$A:$AI,27,FALSE),VLOOKUP(F3,X!$A:$AI,35,FALSE)),\"\")"
+  J: "Holiday, Jrue"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J3,X!$A:$AI,3,FALSE),VLOOKUP(J3,X!$A:$AI,5,FALSE)),\"\")"
+  L: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J3,X!$A:$AI,26,FALSE),VLOOKUP(J3,X!$A:$AI,34,FALSE)),\"\")"
+  M: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J3,X!$A:$AI,27,FALSE),VLOOKUP(J3,X!$A:$AI,35,FALSE)),\"\")"
+  O: =J3
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O3,X!$A:$AI,3,FALSE),VLOOKUP(O3,X!$A:$AI,5,FALSE)),\"\")"
+  Q: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O3,X!$A:$AI,26,FALSE),VLOOKUP(O3,X!$A:$AI,34,FALSE)),\"\")"
+  R: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O3,X!$A:$AI,27,FALSE),VLOOKUP(O3,X!$A:$AI,35,FALSE)),\"\")"
+  S: "Williams, Robert"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S3,X!$A:$AI,3,FALSE),VLOOKUP(S3,X!$A:$AI,5,FALSE)),\"\")"
+  U: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S3,X!$A:$AI,26,FALSE),VLOOKUP(S3,X!$A:$AI,34,FALSE)),\"\")"
+  V: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S3,X!$A:$AI,27,FALSE),VLOOKUP(S3,X!$A:$AI,35,FALSE)),\"\")"
+  X: "Markkanen, Lauri"
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X3,X!$A:$AI,3,FALSE),VLOOKUP(X3,X!$A:$AI,5,FALSE)),\"\")"
+  Z: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X3,X!$A:$AI,26,FALSE),VLOOKUP(X3,X!$A:$AI,34,FALSE)),\"\")"
+  AA: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X3,X!$A:$AI,27,FALSE),VLOOKUP(X3,X!$A:$AI,35,FALSE)),\"\")"
+  AB: "Grant, Jerami"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB3,X!$A:$AI,3,FALSE),VLOOKUP(AB3,X!$A:$AI,5,FALSE)),\"\")"
+  AD: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB3,X!$A:$AI,26,FALSE),VLOOKUP(AB3,X!$A:$AI,34,FALSE)),\"\")"
+  AE: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB3,X!$A:$AI,27,FALSE),VLOOKUP(AB3,X!$A:$AI,35,FALSE)),\"\")"
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG3,X!$A:$AI,3,FALSE),VLOOKUP(AG3,X!$A:$AI,5,FALSE)),\"\")"
+  AI: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG3,X!$A:$AI,26,FALSE),VLOOKUP(AG3,X!$A:$AI,34,FALSE)),\"\")"
+  AJ: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG3,X!$A:$AI,27,FALSE),VLOOKUP(AG3,X!$A:$AI,35,FALSE)),\"\")"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK3,X!$A:$AI,3,FALSE),VLOOKUP(AK3,X!$A:$AI,5,FALSE)),\"\")"
+  AM: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK3,X!$A:$AI,26,FALSE),VLOOKUP(AK3,X!$A:$AI,34,FALSE)),\"\")"
+  AN: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK3,X!$A:$AI,27,FALSE),VLOOKUP(AK3,X!$A:$AI,35,FALSE)),\"\")"
+  AP: "Cap:"
+  AQ: "=IF(AQ2=2024,X!AN9,X!AN10)"
+"4":
+  F: "Simons, Anfernee"
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F4,X!$A:$AI,3,FALSE),VLOOKUP(F4,X!$A:$AI,5,FALSE)),\"\")"
+  H: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F4,X!$A:$AI,26,FALSE),VLOOKUP(F4,X!$A:$AI,34,FALSE)),\"\")"
+  I: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F4,X!$A:$AI,27,FALSE),VLOOKUP(F4,X!$A:$AI,35,FALSE)),\"\")"
+  J: "Markkanen, Lauri"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J4,X!$A:$AI,3,FALSE),VLOOKUP(J4,X!$A:$AI,5,FALSE)),\"\")"
+  L: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J4,X!$A:$AI,26,FALSE),VLOOKUP(J4,X!$A:$AI,34,FALSE)),\"\")"
+  M: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J4,X!$A:$AI,27,FALSE),VLOOKUP(J4,X!$A:$AI,35,FALSE)),\"\")"
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O4,X!$A:$AI,3,FALSE),VLOOKUP(O4,X!$A:$AI,5,FALSE)),\"\")"
+  Q: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O4,X!$A:$AI,26,FALSE),VLOOKUP(O4,X!$A:$AI,34,FALSE)),\"\")"
+  R: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O4,X!$A:$AI,27,FALSE),VLOOKUP(O4,X!$A:$AI,35,FALSE)),\"\")"
+  S: =X4
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S4,X!$A:$AI,3,FALSE),VLOOKUP(S4,X!$A:$AI,5,FALSE)),\"\")"
+  U: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S4,X!$A:$AI,26,FALSE),VLOOKUP(S4,X!$A:$AI,34,FALSE)),\"\")"
+  V: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S4,X!$A:$AI,27,FALSE),VLOOKUP(S4,X!$A:$AI,35,FALSE)),\"\")"
+  X: "Mykhailiuk, Svi"
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X4,X!$A:$AI,3,FALSE),VLOOKUP(X4,X!$A:$AI,5,FALSE)),\"\")"
+  Z: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X4,X!$A:$AI,26,FALSE),VLOOKUP(X4,X!$A:$AI,34,FALSE)),\"\")"
+  AA: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X4,X!$A:$AI,27,FALSE),VLOOKUP(X4,X!$A:$AI,35,FALSE)),\"\")"
+  AB: "Simons, Anfernee"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB4,X!$A:$AI,3,FALSE),VLOOKUP(AB4,X!$A:$AI,5,FALSE)),\"\")"
+  AD: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB4,X!$A:$AI,26,FALSE),VLOOKUP(AB4,X!$A:$AI,34,FALSE)),\"\")"
+  AE: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB4,X!$A:$AI,27,FALSE),VLOOKUP(AB4,X!$A:$AI,35,FALSE)),\"\")"
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG4,X!$A:$AI,3,FALSE),VLOOKUP(AG4,X!$A:$AI,5,FALSE)),\"\")"
+  AI: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG4,X!$A:$AI,26,FALSE),VLOOKUP(AG4,X!$A:$AI,34,FALSE)),\"\")"
+  AJ: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG4,X!$A:$AI,27,FALSE),VLOOKUP(AG4,X!$A:$AI,35,FALSE)),\"\")"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK4,X!$A:$AI,3,FALSE),VLOOKUP(AK4,X!$A:$AI,5,FALSE)),\"\")"
+  AM: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK4,X!$A:$AI,26,FALSE),VLOOKUP(AK4,X!$A:$AI,34,FALSE)),\"\")"
+  AN: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK4,X!$A:$AI,27,FALSE),VLOOKUP(AK4,X!$A:$AI,35,FALSE)),\"\")"
+  AP: "Tax:"
+  AQ: "=IF(AQ2=2024,X!AP9,X!AP10)"
+"5":
+  F: "Williams, Robert"
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F5,X!$A:$AI,3,FALSE),VLOOKUP(F5,X!$A:$AI,5,FALSE)),\"\")"
+  H: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F5,X!$A:$AI,26,FALSE),VLOOKUP(F5,X!$A:$AI,34,FALSE)),\"\")"
+  I: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F5,X!$A:$AI,27,FALSE),VLOOKUP(F5,X!$A:$AI,35,FALSE)),\"\")"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J5,X!$A:$AI,3,FALSE),VLOOKUP(J5,X!$A:$AI,5,FALSE)),\"\")"
+  L: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J5,X!$A:$AI,26,FALSE),VLOOKUP(J5,X!$A:$AI,34,FALSE)),\"\")"
+  M: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J5,X!$A:$AI,27,FALSE),VLOOKUP(J5,X!$A:$AI,35,FALSE)),\"\")"
+  O: =J5
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O5,X!$A:$AI,3,FALSE),VLOOKUP(O5,X!$A:$AI,5,FALSE)),\"\")"
+  Q: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O5,X!$A:$AI,26,FALSE),VLOOKUP(O5,X!$A:$AI,34,FALSE)),\"\")"
+  R: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O5,X!$A:$AI,27,FALSE),VLOOKUP(O5,X!$A:$AI,35,FALSE)),\"\")"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S5,X!$A:$AI,3,FALSE),VLOOKUP(S5,X!$A:$AI,5,FALSE)),\"\")"
+  U: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S5,X!$A:$AI,26,FALSE),VLOOKUP(S5,X!$A:$AI,34,FALSE)),\"\")"
+  V: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S5,X!$A:$AI,27,FALSE),VLOOKUP(S5,X!$A:$AI,35,FALSE)),\"\")"
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X5,X!$A:$AI,3,FALSE),VLOOKUP(X5,X!$A:$AI,5,FALSE)),\"\")"
+  Z: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X5,X!$A:$AI,26,FALSE),VLOOKUP(X5,X!$A:$AI,34,FALSE)),\"\")"
+  AA: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X5,X!$A:$AI,27,FALSE),VLOOKUP(X5,X!$A:$AI,35,FALSE)),\"\")"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB5,X!$A:$AI,3,FALSE),VLOOKUP(AB5,X!$A:$AI,5,FALSE)),\"\")"
+  AD: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB5,X!$A:$AI,26,FALSE),VLOOKUP(AB5,X!$A:$AI,34,FALSE)),\"\")"
+  AE: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB5,X!$A:$AI,27,FALSE),VLOOKUP(AB5,X!$A:$AI,35,FALSE)),\"\")"
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG5,X!$A:$AI,3,FALSE),VLOOKUP(AG5,X!$A:$AI,5,FALSE)),\"\")"
+  AI: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG5,X!$A:$AI,26,FALSE),VLOOKUP(AG5,X!$A:$AI,34,FALSE)),\"\")"
+  AJ: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG5,X!$A:$AI,27,FALSE),VLOOKUP(AG5,X!$A:$AI,35,FALSE)),\"\")"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK5,X!$A:$AI,3,FALSE),VLOOKUP(AK5,X!$A:$AI,5,FALSE)),\"\")"
+  AM: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK5,X!$A:$AI,26,FALSE),VLOOKUP(AK5,X!$A:$AI,34,FALSE)),\"\")"
+  AN: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK5,X!$A:$AI,27,FALSE),VLOOKUP(AK5,X!$A:$AI,35,FALSE)),\"\")"
+  AP: "Apron 1:"
+  AQ: "=IF(AQ2=2024,X!AR9,X!AR10)"
+"6":
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F6,X!$A:$AI,3,FALSE),VLOOKUP(F6,X!$A:$AI,5,FALSE)),\"\")"
+  H: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F6,X!$A:$AI,26,FALSE),VLOOKUP(F6,X!$A:$AI,34,FALSE)),\"\")"
+  I: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F6,X!$A:$AI,27,FALSE),VLOOKUP(F6,X!$A:$AI,35,FALSE)),\"\")"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J6,X!$A:$AI,3,FALSE),VLOOKUP(J6,X!$A:$AI,5,FALSE)),\"\")"
+  L: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J6,X!$A:$AI,26,FALSE),VLOOKUP(J6,X!$A:$AI,34,FALSE)),\"\")"
+  M: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J6,X!$A:$AI,27,FALSE),VLOOKUP(J6,X!$A:$AI,35,FALSE)),\"\")"
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O6,X!$A:$AI,3,FALSE),VLOOKUP(O6,X!$A:$AI,5,FALSE)),\"\")"
+  Q: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O6,X!$A:$AI,26,FALSE),VLOOKUP(O6,X!$A:$AI,34,FALSE)),\"\")"
+  R: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O6,X!$A:$AI,27,FALSE),VLOOKUP(O6,X!$A:$AI,35,FALSE)),\"\")"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S6,X!$A:$AI,3,FALSE),VLOOKUP(S6,X!$A:$AI,5,FALSE)),\"\")"
+  U: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S6,X!$A:$AI,26,FALSE),VLOOKUP(S6,X!$A:$AI,34,FALSE)),\"\")"
+  V: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S6,X!$A:$AI,27,FALSE),VLOOKUP(S6,X!$A:$AI,35,FALSE)),\"\")"
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X6,X!$A:$AI,3,FALSE),VLOOKUP(X6,X!$A:$AI,5,FALSE)),\"\")"
+  Z: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X6,X!$A:$AI,26,FALSE),VLOOKUP(X6,X!$A:$AI,34,FALSE)),\"\")"
+  AA: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X6,X!$A:$AI,27,FALSE),VLOOKUP(X6,X!$A:$AI,35,FALSE)),\"\")"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB6,X!$A:$AI,3,FALSE),VLOOKUP(AB6,X!$A:$AI,5,FALSE)),\"\")"
+  AD: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB6,X!$A:$AI,26,FALSE),VLOOKUP(AB6,X!$A:$AI,34,FALSE)),\"\")"
+  AE: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB6,X!$A:$AI,27,FALSE),VLOOKUP(AB6,X!$A:$AI,35,FALSE)),\"\")"
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG6,X!$A:$AI,3,FALSE),VLOOKUP(AG6,X!$A:$AI,5,FALSE)),\"\")"
+  AI: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG6,X!$A:$AI,26,FALSE),VLOOKUP(AG6,X!$A:$AI,34,FALSE)),\"\")"
+  AJ: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG6,X!$A:$AI,27,FALSE),VLOOKUP(AG6,X!$A:$AI,35,FALSE)),\"\")"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK6,X!$A:$AI,3,FALSE),VLOOKUP(AK6,X!$A:$AI,5,FALSE)),\"\")"
+  AM: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK6,X!$A:$AI,26,FALSE),VLOOKUP(AK6,X!$A:$AI,34,FALSE)),\"\")"
+  AN: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK6,X!$A:$AI,27,FALSE),VLOOKUP(AK6,X!$A:$AI,35,FALSE)),\"\")"
+  AP: "Apron 2:"
+  AQ: "=IF(AQ2=2024,X!BP9,X!BP10)"
+"7":
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F7,X!$A:$AI,3,FALSE),VLOOKUP(F7,X!$A:$AI,5,FALSE)),\"\")"
+  H: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F7,X!$A:$AI,26,FALSE),VLOOKUP(F7,X!$A:$AI,34,FALSE)),\"\")"
+  I: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F7,X!$A:$AI,27,FALSE),VLOOKUP(F7,X!$A:$AI,35,FALSE)),\"\")"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J7,X!$A:$AI,3,FALSE),VLOOKUP(J7,X!$A:$AI,5,FALSE)),\"\")"
+  L: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J7,X!$A:$AI,26,FALSE),VLOOKUP(J7,X!$A:$AI,34,FALSE)),\"\")"
+  M: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J7,X!$A:$AI,27,FALSE),VLOOKUP(J7,X!$A:$AI,35,FALSE)),\"\")"
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O7,X!$A:$AI,3,FALSE),VLOOKUP(O7,X!$A:$AI,5,FALSE)),\"\")"
+  Q: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O7,X!$A:$AI,26,FALSE),VLOOKUP(O7,X!$A:$AI,34,FALSE)),\"\")"
+  R: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O7,X!$A:$AI,27,FALSE),VLOOKUP(O7,X!$A:$AI,35,FALSE)),\"\")"
+  U: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S7,X!$A:$AI,26,FALSE),VLOOKUP(S7,X!$A:$AI,34,FALSE)),\"\")"
+  V: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S7,X!$A:$AI,27,FALSE),VLOOKUP(S7,X!$A:$AI,35,FALSE)),\"\")"
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X7,X!$A:$AI,3,FALSE),VLOOKUP(X7,X!$A:$AI,5,FALSE)),\"\")"
+  Z: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X7,X!$A:$AI,26,FALSE),VLOOKUP(X7,X!$A:$AI,34,FALSE)),\"\")"
+  AA: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X7,X!$A:$AI,27,FALSE),VLOOKUP(X7,X!$A:$AI,35,FALSE)),\"\")"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB7,X!$A:$AI,3,FALSE),VLOOKUP(AB7,X!$A:$AI,5,FALSE)),\"\")"
+  AD: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB7,X!$A:$AI,26,FALSE),VLOOKUP(AB7,X!$A:$AI,34,FALSE)),\"\")"
+  AE: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB7,X!$A:$AI,27,FALSE),VLOOKUP(AB7,X!$A:$AI,35,FALSE)),\"\")"
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG7,X!$A:$AI,3,FALSE),VLOOKUP(AG7,X!$A:$AI,5,FALSE)),\"\")"
+  AI: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG7,X!$A:$AI,26,FALSE),VLOOKUP(AG7,X!$A:$AI,34,FALSE)),\"\")"
+  AJ: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG7,X!$A:$AI,27,FALSE),VLOOKUP(AG7,X!$A:$AI,35,FALSE)),\"\")"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK7,X!$A:$AI,3,FALSE),VLOOKUP(AK7,X!$A:$AI,5,FALSE)),\"\")"
+  AM: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK7,X!$A:$AI,26,FALSE),VLOOKUP(AK7,X!$A:$AI,34,FALSE)),\"\")"
+  AN: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK7,X!$A:$AI,27,FALSE),VLOOKUP(AK7,X!$A:$AI,35,FALSE)),\"\")"
+  AP: "Date:"
+  AQ: =TODAY()
+"8":
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F8,X!$A:$AI,3,FALSE),VLOOKUP(F8,X!$A:$AI,5,FALSE)),\"\")"
+  H: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F8,X!$A:$AI,26,FALSE),VLOOKUP(F8,X!$A:$AI,34,FALSE)),\"\")"
+  I: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F8,X!$A:$AI,27,FALSE),VLOOKUP(F8,X!$A:$AI,35,FALSE)),\"\")"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J8,X!$A:$AI,3,FALSE),VLOOKUP(J8,X!$A:$AI,5,FALSE)),\"\")"
+  L: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J8,X!$A:$AI,26,FALSE),VLOOKUP(J8,X!$A:$AI,34,FALSE)),\"\")"
+  M: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J8,X!$A:$AI,27,FALSE),VLOOKUP(J8,X!$A:$AI,35,FALSE)),\"\")"
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O8,X!$A:$AI,3,FALSE),VLOOKUP(O8,X!$A:$AI,5,FALSE)),\"\")"
+  Q: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O8,X!$A:$AI,26,FALSE),VLOOKUP(O8,X!$A:$AI,34,FALSE)),\"\")"
+  R: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O8,X!$A:$AI,27,FALSE),VLOOKUP(O8,X!$A:$AI,35,FALSE)),\"\")"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S8,X!$A:$AI,3,FALSE),VLOOKUP(S8,X!$A:$AI,5,FALSE)),\"\")"
+  U: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S8,X!$A:$AI,26,FALSE),VLOOKUP(S8,X!$A:$AI,34,FALSE)),\"\")"
+  V: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S8,X!$A:$AI,27,FALSE),VLOOKUP(S8,X!$A:$AI,35,FALSE)),\"\")"
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X8,X!$A:$AI,3,FALSE),VLOOKUP(X8,X!$A:$AI,5,FALSE)),\"\")"
+  Z: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X8,X!$A:$AI,26,FALSE),VLOOKUP(X8,X!$A:$AI,34,FALSE)),\"\")"
+  AA: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X8,X!$A:$AI,27,FALSE),VLOOKUP(X8,X!$A:$AI,35,FALSE)),\"\")"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB8,X!$A:$AI,3,FALSE),VLOOKUP(AB8,X!$A:$AI,5,FALSE)),\"\")"
+  AD: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB8,X!$A:$AI,26,FALSE),VLOOKUP(AB8,X!$A:$AI,34,FALSE)),\"\")"
+  AE: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB8,X!$A:$AI,27,FALSE),VLOOKUP(AB8,X!$A:$AI,35,FALSE)),\"\")"
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG8,X!$A:$AI,3,FALSE),VLOOKUP(AG8,X!$A:$AI,5,FALSE)),\"\")"
+  AI: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG8,X!$A:$AI,26,FALSE),VLOOKUP(AG8,X!$A:$AI,34,FALSE)),\"\")"
+  AJ: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG8,X!$A:$AI,27,FALSE),VLOOKUP(AG8,X!$A:$AI,35,FALSE)),\"\")"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK8,X!$A:$AI,3,FALSE),VLOOKUP(AK8,X!$A:$AI,5,FALSE)),\"\")"
+  AM: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK8,X!$A:$AI,26,FALSE),VLOOKUP(AK8,X!$A:$AI,34,FALSE)),\"\")"
+  AN: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK8,X!$A:$AI,27,FALSE),VLOOKUP(AK8,X!$A:$AI,35,FALSE)),\"\")"
+  AP: "Days Left:"
+"9":
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F9,X!$A:$AI,3,FALSE),VLOOKUP(F9,X!$A:$AI,5,FALSE)),\"\")"
+  H: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F9,X!$A:$AI,26,FALSE),VLOOKUP(F9,X!$A:$AI,34,FALSE)),\"\")"
+  I: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F9,X!$A:$AI,27,FALSE),VLOOKUP(F9,X!$A:$AI,35,FALSE)),\"\")"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J9,X!$A:$AI,3,FALSE),VLOOKUP(J9,X!$A:$AI,5,FALSE)),\"\")"
+  L: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J9,X!$A:$AI,26,FALSE),VLOOKUP(J9,X!$A:$AI,34,FALSE)),\"\")"
+  M: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J9,X!$A:$AI,27,FALSE),VLOOKUP(J9,X!$A:$AI,35,FALSE)),\"\")"
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O9,X!$A:$AI,3,FALSE),VLOOKUP(O9,X!$A:$AI,5,FALSE)),\"\")"
+  Q: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O9,X!$A:$AI,26,FALSE),VLOOKUP(O9,X!$A:$AI,34,FALSE)),\"\")"
+  R: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O9,X!$A:$AI,27,FALSE),VLOOKUP(O9,X!$A:$AI,35,FALSE)),\"\")"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S9,X!$A:$AI,3,FALSE),VLOOKUP(S9,X!$A:$AI,5,FALSE)),\"\")"
+  U: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S9,X!$A:$AI,26,FALSE),VLOOKUP(S9,X!$A:$AI,34,FALSE)),\"\")"
+  V: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S9,X!$A:$AI,27,FALSE),VLOOKUP(S9,X!$A:$AI,35,FALSE)),\"\")"
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X9,X!$A:$AI,3,FALSE),VLOOKUP(X9,X!$A:$AI,5,FALSE)),\"\")"
+  Z: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X9,X!$A:$AI,26,FALSE),VLOOKUP(X9,X!$A:$AI,34,FALSE)),\"\")"
+  AA: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X9,X!$A:$AI,27,FALSE),VLOOKUP(X9,X!$A:$AI,35,FALSE)),\"\")"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB9,X!$A:$AI,3,FALSE),VLOOKUP(AB9,X!$A:$AI,5,FALSE)),\"\")"
+  AD: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB9,X!$A:$AI,26,FALSE),VLOOKUP(AB9,X!$A:$AI,34,FALSE)),\"\")"
+  AE: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB9,X!$A:$AI,27,FALSE),VLOOKUP(AB9,X!$A:$AI,35,FALSE)),\"\")"
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG9,X!$A:$AI,3,FALSE),VLOOKUP(AG9,X!$A:$AI,5,FALSE)),\"\")"
+  AI: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG9,X!$A:$AI,26,FALSE),VLOOKUP(AG9,X!$A:$AI,34,FALSE)),\"\")"
+  AJ: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG9,X!$A:$AI,27,FALSE),VLOOKUP(AG9,X!$A:$AI,35,FALSE)),\"\")"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK9,X!$A:$AI,3,FALSE),VLOOKUP(AK9,X!$A:$AI,5,FALSE)),\"\")"
+  AM: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK9,X!$A:$AI,26,FALSE),VLOOKUP(AK9,X!$A:$AI,34,FALSE)),\"\")"
+  AN: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK9,X!$A:$AI,27,FALSE),VLOOKUP(AK9,X!$A:$AI,35,FALSE)),\"\")"
+  AP: "Vet Min:"
+  AQ: "=IF(AQ2=2025,X!$CJ$6,0)"
+"10":
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F10,X!$A:$AI,3,FALSE),VLOOKUP(F10,X!$A:$AI,5,FALSE)),\"\")"
+  H: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F10,X!$A:$AI,26,FALSE),VLOOKUP(F10,X!$A:$AI,34,FALSE)),\"\")"
+  I: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F10,X!$A:$AI,27,FALSE),VLOOKUP(F10,X!$A:$AI,35,FALSE)),\"\")"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J10,X!$A:$AI,3,FALSE),VLOOKUP(J10,X!$A:$AI,5,FALSE)),\"\")"
+  L: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J10,X!$A:$AI,26,FALSE),VLOOKUP(J10,X!$A:$AI,34,FALSE)),\"\")"
+  M: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J10,X!$A:$AI,27,FALSE),VLOOKUP(J10,X!$A:$AI,35,FALSE)),\"\")"
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O10,X!$A:$AI,3,FALSE),VLOOKUP(O10,X!$A:$AI,5,FALSE)),\"\")"
+  Q: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O10,X!$A:$AI,26,FALSE),VLOOKUP(O10,X!$A:$AI,34,FALSE)),\"\")"
+  R: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O10,X!$A:$AI,27,FALSE),VLOOKUP(O10,X!$A:$AI,35,FALSE)),\"\")"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S10,X!$A:$AI,3,FALSE),VLOOKUP(S10,X!$A:$AI,5,FALSE)),\"\")"
+  U: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S10,X!$A:$AI,26,FALSE),VLOOKUP(S10,X!$A:$AI,34,FALSE)),\"\")"
+  V: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S10,X!$A:$AI,27,FALSE),VLOOKUP(S10,X!$A:$AI,35,FALSE)),\"\")"
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X10,X!$A:$AI,3,FALSE),VLOOKUP(X10,X!$A:$AI,5,FALSE)),\"\")"
+  Z: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X10,X!$A:$AI,26,FALSE),VLOOKUP(X10,X!$A:$AI,34,FALSE)),\"\")"
+  AA: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X10,X!$A:$AI,27,FALSE),VLOOKUP(X10,X!$A:$AI,35,FALSE)),\"\")"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB10,X!$A:$AI,3,FALSE),VLOOKUP(AB10,X!$A:$AI,5,FALSE)),\"\")"
+  AD: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB10,X!$A:$AI,26,FALSE),VLOOKUP(AB10,X!$A:$AI,34,FALSE)),\"\")"
+  AE: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB10,X!$A:$AI,27,FALSE),VLOOKUP(AB10,X!$A:$AI,35,FALSE)),\"\")"
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG10,X!$A:$AI,3,FALSE),VLOOKUP(AG10,X!$A:$AI,5,FALSE)),\"\")"
+  AI: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG10,X!$A:$AI,26,FALSE),VLOOKUP(AG10,X!$A:$AI,34,FALSE)),\"\")"
+  AJ: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG10,X!$A:$AI,27,FALSE),VLOOKUP(AG10,X!$A:$AI,35,FALSE)),\"\")"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK10,X!$A:$AI,3,FALSE),VLOOKUP(AK10,X!$A:$AI,5,FALSE)),\"\")"
+  AM: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK10,X!$A:$AI,26,FALSE),VLOOKUP(AK10,X!$A:$AI,34,FALSE)),\"\")"
+  AN: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK10,X!$A:$AI,27,FALSE),VLOOKUP(AK10,X!$A:$AI,35,FALSE)),\"\")"
+"11":
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F11,X!$A:$AI,3,FALSE),VLOOKUP(F11,X!$A:$AI,5,FALSE)),\"\")"
+  H: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F11,X!$A:$AI,26,FALSE),VLOOKUP(F11,X!$A:$AI,34,FALSE)),\"\")"
+  I: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F11,X!$A:$AI,27,FALSE),VLOOKUP(F11,X!$A:$AI,35,FALSE)),\"\")"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J11,X!$A:$AI,3,FALSE),VLOOKUP(J11,X!$A:$AI,5,FALSE)),\"\")"
+  L: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J11,X!$A:$AI,26,FALSE),VLOOKUP(J11,X!$A:$AI,34,FALSE)),\"\")"
+  M: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J11,X!$A:$AI,27,FALSE),VLOOKUP(J11,X!$A:$AI,35,FALSE)),\"\")"
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O11,X!$A:$AI,3,FALSE),VLOOKUP(O11,X!$A:$AI,5,FALSE)),\"\")"
+  Q: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O11,X!$A:$AI,26,FALSE),VLOOKUP(O11,X!$A:$AI,34,FALSE)),\"\")"
+  R: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O11,X!$A:$AI,27,FALSE),VLOOKUP(O11,X!$A:$AI,35,FALSE)),\"\")"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S11,X!$A:$AI,3,FALSE),VLOOKUP(S11,X!$A:$AI,5,FALSE)),\"\")"
+  U: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S11,X!$A:$AI,26,FALSE),VLOOKUP(S11,X!$A:$AI,34,FALSE)),\"\")"
+  V: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S11,X!$A:$AI,27,FALSE),VLOOKUP(S11,X!$A:$AI,35,FALSE)),\"\")"
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X11,X!$A:$AI,3,FALSE),VLOOKUP(X11,X!$A:$AI,5,FALSE)),\"\")"
+  Z: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X11,X!$A:$AI,26,FALSE),VLOOKUP(X11,X!$A:$AI,34,FALSE)),\"\")"
+  AA: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X11,X!$A:$AI,27,FALSE),VLOOKUP(X11,X!$A:$AI,35,FALSE)),\"\")"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB11,X!$A:$AI,3,FALSE),VLOOKUP(AB11,X!$A:$AI,5,FALSE)),\"\")"
+  AD: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB11,X!$A:$AI,26,FALSE),VLOOKUP(AB11,X!$A:$AI,34,FALSE)),\"\")"
+  AE: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB11,X!$A:$AI,27,FALSE),VLOOKUP(AB11,X!$A:$AI,35,FALSE)),\"\")"
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG11,X!$A:$AI,3,FALSE),VLOOKUP(AG11,X!$A:$AI,5,FALSE)),\"\")"
+  AI: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG11,X!$A:$AI,26,FALSE),VLOOKUP(AG11,X!$A:$AI,34,FALSE)),\"\")"
+  AJ: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG11,X!$A:$AI,27,FALSE),VLOOKUP(AG11,X!$A:$AI,35,FALSE)),\"\")"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK11,X!$A:$AI,3,FALSE),VLOOKUP(AK11,X!$A:$AI,5,FALSE)),\"\")"
+  AM: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK11,X!$A:$AI,26,FALSE),VLOOKUP(AK11,X!$A:$AI,34,FALSE)),\"\")"
+  AN: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK11,X!$A:$AI,27,FALSE),VLOOKUP(AK11,X!$A:$AI,35,FALSE)),\"\")"
+  AP: Team
+  AQ: Trigger
+"12":
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F12,X!$A:$AI,3,FALSE),VLOOKUP(F12,X!$A:$AI,5,FALSE)),\"\")"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(J12,X!$A:$AI,3,FALSE),VLOOKUP(J12,X!$A:$AI,5,FALSE)),\"\")"
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O12,X!$A:$AI,3,FALSE),VLOOKUP(O12,X!$A:$AI,5,FALSE)),\"\")"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(S12,X!$A:$AI,3,FALSE),VLOOKUP(S12,X!$A:$AI,5,FALSE)),\"\")"
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X12,X!$A:$AI,3,FALSE),VLOOKUP(X12,X!$A:$AI,5,FALSE)),\"\")"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AB12,X!$A:$AI,3,FALSE),VLOOKUP(AB12,X!$A:$AI,5,FALSE)),\"\")"
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG12,X!$A:$AI,3,FALSE),VLOOKUP(AG12,X!$A:$AI,5,FALSE)),\"\")"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AK12,X!$A:$AI,3,FALSE),VLOOKUP(AK12,X!$A:$AI,5,FALSE)),\"\")"
+  AP: ATL
+  AQ: "-"
+"13":
+  F: "Team Salary:"
+  G: "Before:"
+  J: "After:"
+  K: +/-
+  O: "Team Salary:"
+  P: "Before:"
+  S: "After:"
+  T: +/-
+  X: "Team Salary:"
+  Y: "Before:"
+  AB: "After:"
+  AC: +/-
+  AG: "Team Salary:"
+  AH: "Before:"
+  AK: "After:"
+  AL: +/-
+  AP: BOS
+  AQ: Apron 2
+"14":
+  F: "+/- Cap:"
+  G: "=SUM(G30:G55)"
+  J: "=G14-SUM(G3:G12)+SUM(K3:K12)"
+  K: =(J14-G14)/1000000
+  O: "+/- Cap:"
+  P: "=SUM(P30:P55)"
+  S: "=P14-SUM(P3:P12)+SUM(T3:T12)"
+  T: =(S14-P14)/1000000
+  X: "+/- Cap:"
+  Y: "=SUM(Y30:Y55)"
+  AB: "=Y14-SUM(Y3:Y12)+SUM(AC3:AC12)"
+  AC: =(AB14-Y14)/1000000
+  AG: "+/- Cap:"
+  AH: "=SUM(AH30:AH55)"
+  AK: "=AH14-SUM(AH3:AH12)+SUM(AL3:AL12)"
+  AL: =(AK14-AH14)/1000000
+  AP: BRK
+  AQ: "-"
+"15":
+  F: "+/- Tax:"
+  G: "=SUM(J30:J55)-$AQ$4"
+  J: "=G15-SUM(H3:H12)+SUM(L3:L12)"
+  K: =(J15-G15)/1000000
+  O: "+/- Tax:"
+  P: "=SUM(S30:S55)-$AQ$4"
+  S: "=P15-SUM(Q3:Q12)+SUM(U3:U12)"
+  T: =(S15-P15)/1000000
+  X: "+/- Tax:"
+  Y: "=SUM(AB30:AB55)-$AQ$4"
+  AB: "=Y15-SUM(Z3:Z12)+SUM(AD3:AD12)"
+  AC: =(AB15-Y15)/1000000
+  AG: "+/- Tax:"
+  AH: "=SUM(AK30:AK55)-$AQ$4"
+  AK: "=AH15-SUM(AI3:AI12)+SUM(AM3:AM12)"
+  AL: =(AK15-AH15)/1000000
+  AP: CHA
+  AQ: "-"
+"16":
+  F: "Tax Payment:"
+  G: "=IF($AQ$2=2024,\n    IF($J$1=\"Yes\",\n        SUMPRODUCT(--(G15>'Repeat Tax Array'!$A$1:$A$21), (G15-'Repeat Tax Array'!$A$1:$A$21), 'Repeat Tax Array'!$C$1:$C$21),\n        SUMPRODUCT(--(G15>'TEAM Copy 250616_155042'!$A$1:$A$21), (G15-'TEAM Copy 250616_155042'!$A$1:$A$21), 'TEAM Copy 250616_155042'!$C$1:$C$21)\n    ),\n    IF(C3=2025,\n        IF($J$1=\"Yes\",\n            SUMPRODUCT(--(G15>'Repeat Tax Array'!$J$1:$J$21), (G15-'Repeat Tax Array'!$J$1:$J$21), 'Repeat Tax Array'!$L$1:$L$21),\n            SUMPRODUCT(--(G15>'TEAM Copy 250616_155042'!$J$1:$J$21), (G15-'TEAM Copy 250616_155042'!$J$1:$J$21), 'TEAM Copy 250616_155042'!$L$1:$L$21)\n        ),\n        0\n    )\n)"
+  J: "=IF($AQ$2=2024,\n    IF($J$1=\"Yes\",\n        SUMPRODUCT(--(J15>'Repeat Tax Array'!$A$1:$A$21), (J15-'Repeat Tax Array'!$A$1:$A$21), 'Repeat Tax Array'!$C$1:$C$21),\n        SUMPRODUCT(--(J15>'TEAM Copy 250616_155042'!$A$1:$A$21), (J15-'TEAM Copy 250616_155042'!$A$1:$A$21), 'TEAM Copy 250616_155042'!$C$1:$C$21)\n    ),\n    IF(C3=2025,\n        IF($J$1=\"Yes\",\n            SUMPRODUCT(--(J15>'Repeat Tax Array'!$J$1:$J$21), (J15-'Repeat Tax Array'!$J$1:$J$21), 'Repeat Tax Array'!$L$1:$L$21),\n            SUMPRODUCT(--(J15>'TEAM Copy 250616_155042'!$J$1:$J$21), (J15-'TEAM Copy 250616_155042'!$J$1:$J$21), 'TEAM Copy 250616_155042'!$L$1:$L$21)\n        ),\n        0\n    )\n)"
+  K: =(J16-G16)/1000000
+  O: "Tax Payment:"
+  P: "=IF($AQ$2=2024,\n    IF($S$1=\"Yes\",\n        SUMPRODUCT(--(P15>'Repeat Tax Array'!$A$1:$A$21), (P15-'Repeat Tax Array'!$A$1:$A$21), 'Repeat Tax Array'!$C$1:$C$21),\n        SUMPRODUCT(--(P15>'TEAM Copy 250616_155042'!$A$1:$A$21), (P15-'TEAM Copy 250616_155042'!$A$1:$A$21), 'TEAM Copy 250616_155042'!$C$1:$C$21)\n    ),\n    IF(AQ2=2025,\n        IF($S$1=\"Yes\",\n            SUMPRODUCT(--(P15>'Repeat Tax Array'!$J$1:$J$21), (P15-'Repeat Tax Array'!$J$1:$J$21), 'Repeat Tax Array'!$L$1:$L$21),\n            SUMPRODUCT(--(P15>'TEAM Copy 250616_155042'!$J$1:$J$21), (P15-'TEAM Copy 250616_155042'!$J$1:$J$21), 'TEAM Copy 250616_155042'!$L$1:$L$21)\n        ),\n        0\n    )\n)"
+  S: "=IF($AQ$2=2024,\n    IF($S$1=\"Yes\",\n        SUMPRODUCT(--(S15>'Repeat Tax Array'!$A$1:$A$21), (S15-'Repeat Tax Array'!$A$1:$A$21), 'Repeat Tax Array'!$C$1:$C$21),\n        SUMPRODUCT(--(S15>'TEAM Copy 250616_155042'!$A$1:$A$21), (S15-'TEAM Copy 250616_155042'!$A$1:$A$21), 'TEAM Copy 250616_155042'!$C$1:$C$21)\n    ),\n    IF($AQ$2=2025,\n        IF($S$1=\"Yes\",\n            SUMPRODUCT(--(S15>'Repeat Tax Array'!$J$1:$J$21), (S15-'Repeat Tax Array'!$J$1:$J$21), 'Repeat Tax Array'!$L$1:$L$21),\n            SUMPRODUCT(--(S15>'TEAM Copy 250616_155042'!$J$1:$J$21), (S15-'TEAM Copy 250616_155042'!$J$1:$J$21), 'TEAM Copy 250616_155042'!$L$1:$L$21)\n        ),\n        0\n    )\n)"
+  T: =(S16-P16)/1000000
+  X: "Tax Payment:"
+  Y: "=IF($AQ$2=2024,\n    IF($AB$1=\"Yes\",\n        SUMPRODUCT(--(Y15>'Repeat Tax Array'!$A$1:$A$21), (Y15-'Repeat Tax Array'!$A$1:$A$21), 'Repeat Tax Array'!$C$1:$C$21),\n        SUMPRODUCT(--(Y15>'TEAM Copy 250616_155042'!$A$1:$A$21), (Y15-'TEAM Copy 250616_155042'!$A$1:$A$21), 'TEAM Copy 250616_155042'!$C$1:$C$21)\n    ),\n    IF($AQ$2=2025,\n        IF($AB$1=\"Yes\",\n            SUMPRODUCT(--(Y15>'Repeat Tax Array'!$J$1:$J$21), (Y15-'Repeat Tax Array'!$J$1:$J$21), 'Repeat Tax Array'!$L$1:$L$21),\n            SUMPRODUCT(--(Y15>'TEAM Copy 250616_155042'!$J$1:$J$21), (Y15-'TEAM Copy 250616_155042'!$J$1:$J$21), 'TEAM Copy 250616_155042'!$L$1:$L$21)\n        ),\n        0\n    )\n)"
+  AB: "=IF($AQ$2=2024,\n    IF($AB$1=\"Yes\",\n        SUMPRODUCT(--(AB15>'Repeat Tax Array'!$A$1:$A$21), (AB15-'Repeat Tax Array'!$A$1:$A$21), 'Repeat Tax Array'!$C$1:$C$21),\n        SUMPRODUCT(--(AB15>'TEAM Copy 250616_155042'!$A$1:$A$21), (AB15-'TEAM Copy 250616_155042'!$A$1:$A$21), 'TEAM Copy 250616_155042'!$C$1:$C$21)\n    ),\n    IF($AQ$2=2025,\n        IF($AB$1=\"Yes\",\n            SUMPRODUCT(--(AB15>'Repeat Tax Array'!$J$1:$J$21), (AB15-'Repeat Tax Array'!$J$1:$J$21), 'Repeat Tax Array'!$L$1:$L$21),\n            SUMPRODUCT(--(AB15>'TEAM Copy 250616_155042'!$J$1:$J$21), (AB15-'TEAM Copy 250616_155042'!$J$1:$J$21), 'TEAM Copy 250616_155042'!$L$1:$L$21)\n        ),\n        0\n    )\n)"
+  AC: =(AB16-Y16)/1000000
+  AG: "Tax Payment:"
+  AH: "=IF($AQ$2=2024,\n    IF($AK$1=\"Yes\",\n        SUMPRODUCT(--(AH15>'Repeat Tax Array'!$A$1:$A$21), (AH15-'Repeat Tax Array'!$A$1:$A$21), 'Repeat Tax Array'!$C$1:$C$21),\n        SUMPRODUCT(--(AH15>'TEAM Copy 250616_155042'!$A$1:$A$21), (AH15-'TEAM Copy 250616_155042'!$A$1:$A$21), 'TEAM Copy 250616_155042'!$C$1:$C$21)\n    ),\n    IF($AQ$2=2025,\n        IF($AK$1=\"Yes\",\n            SUMPRODUCT(--(AH15>'Repeat Tax Array'!$J$1:$J$21), (AH15-'Repeat Tax Array'!$J$1:$J$21), 'Repeat Tax Array'!$L$1:$L$21),\n            SUMPRODUCT(--(AH15>'TEAM Copy 250616_155042'!$J$1:$J$21), (AH15-'TEAM Copy 250616_155042'!$J$1:$J$21), 'TEAM Copy 250616_155042'!$L$1:$L$21)\n        ),\n        0\n    )\n)"
+  AK: "=IF($AQ$2=2024,\n    IF($AK$1=\"Yes\",\n        SUMPRODUCT(--(AK15>'Repeat Tax Array'!$A$1:$A$21), (AK15-'Repeat Tax Array'!$A$1:$A$21), 'Repeat Tax Array'!$C$1:$C$21),\n        SUMPRODUCT(--(AK15>'TEAM Copy 250616_155042'!$A$1:$A$21), (AK15-'TEAM Copy 250616_155042'!$A$1:$A$21), 'TEAM Copy 250616_155042'!$C$1:$C$21)\n    ),\n    IF($AQ$2=2025,\n        IF($AK$1=\"Yes\",\n            SUMPRODUCT(--(AK15>'Repeat Tax Array'!$J$1:$J$21), (AK15-'Repeat Tax Array'!$J$1:$J$21), 'Repeat Tax Array'!$L$1:$L$21),\n            SUMPRODUCT(--(AK15>'TEAM Copy 250616_155042'!$J$1:$J$21), (AK15-'TEAM Copy 250616_155042'!$J$1:$J$21), 'TEAM Copy 250616_155042'!$L$1:$L$21)\n        ),\n        0\n    )\n)"
+  AL: =(AK16-AH16)/1000000
+  AP: CHI
+  AQ: "-"
+"17":
+  F: "+/- Apron 1:"
+  G: "=SUM(K30:K55)-$AQ$5"
+  J: "=G17-SUM(I3:I12)+SUM(M3:M12)"
+  K: =(J17-G17)/1000000
+  O: "+/- Apron 1:"
+  P: "=SUM(T30:T55)-$AQ$5"
+  S: "=P17-SUM(R3:R12)+SUM(V3:V12)"
+  T: =(S17-P17)/1000000
+  X: "+/- Apron 1:"
+  Y: "=SUM(AC30:AC55)-$AQ$5"
+  AB: "=Y17-SUM(AA3:AA12)+SUM(AE3:AE12)"
+  AC: =(AB17-Y17)/1000000
+  AG: "+/- Apron 1:"
+  AH: "=SUM(AL30:AL55)-$AQ$5"
+  AK: "=AH17-SUM(AJ3:AJ12)+SUM(AN3:AN12)"
+  AL: =(AK17-AH17)/1000000
+  AP: CLE
+  AQ: "-"
+"18":
+  F: "+/- Apron 2:"
+  G: "=SUM(K30:K55)-$AQ$6"
+  J: "=G18-SUM(I3:I12)+SUM(M3:M12)"
+  K: =(J18-G18)/1000000
+  O: "+/- Apron 2:"
+  P: "=SUM(T30:T55)-$AQ$6"
+  S: "=P18-SUM(R3:R12)+SUM(V3:V12)"
+  T: =(S18-P18)/1000000
+  X: "+/- Apron 2:"
+  Y: "=SUM(AC30:AC55)-$AQ$6"
+  AB: "=Y18-SUM(AA3:AA12)+SUM(AE3:AE12)"
+  AC: =(AB18-Y18)/1000000
+  AG: "+/- Apron 2:"
+  AH: "=SUM(AL30:AL55)-$AQ$6"
+  AK: "=AH18-SUM(AJ3:AJ12)+SUM(AN3:AN12)"
+  AL: =(AK18-AH18)/1000000
+  AP: DAL
+  AQ: Apron 1
+"19":
+  F: "+ / - Cash:"
+  G: "=SUM(G3:G12)*($AQ$8/174)"
+  J: "=SUM(K3:K12)*($AQ$8/174)"
+  K: =(((J19-G19)-(G16-J16))/1000000)+K14
+  O: "+ / - Cash:"
+  P: "=SUM(P3:P12)*($AQ$8/174)"
+  S: "=SUM(T3:T12)*($AQ$8/174)"
+  T: =(((S19-P19)-(P16-S16))/1000000)+T14
+  X: "+ / - Cash:"
+  Y: "=SUM(Y3:Y12)*($AQ$8/174)"
+  AB: "=SUM(AC3:AC12)*($AQ$8/174)"
+  AC: =(((AB19-Y19)-(Y16-AB16))/1000000)+AC14
+  AG: "+ / - Cash:"
+  AH: "=SUM(AH3:AH12)*($AQ$8/174)"
+  AK: "=SUM(AL3:AL12)*($AQ$8/174)"
+  AL: =(((AK19-AH19)-(AH16-AK16))/1000000)+AL14
+  AP: DEN
+  AQ: Apron 2
+"20":
+  F: "Trade Validator:"
+  J: "=IF(OR(ISNUMBER(SEARCH(\"No\", G21)), ISNUMBER(SEARCH(\"No\", G22)), ISNUMBER(SEARCH(\"No\", G23))), \"Does Not Work\", \"Trade Works\")"
+  O: "Trade Validator:"
+  S: "=IF(OR(ISNUMBER(SEARCH(\"No\", P21)), ISNUMBER(SEARCH(\"No\", P22)), ISNUMBER(SEARCH(\"No\", P23))), \"Does Not Work\", \"Trade Works\")"
+  X: "Trade Validator:"
+  AB: "=IF(OR(ISNUMBER(SEARCH(\"No\", Y21)), ISNUMBER(SEARCH(\"No\", Y22)), ISNUMBER(SEARCH(\"No\", Y23))), \"Does Not Work\", \"Trade Works\")"
+  AG: "Trade Validator:"
+  AK: "=IF(OR(ISNUMBER(SEARCH(\"No\", AH21)), ISNUMBER(SEARCH(\"No\", AH22)), ISNUMBER(SEARCH(\"No\", AH23))), \"Does Not Work\", \"Trade Works\")"
+  AP: DET
+  AQ: "-"
+"21":
+  F: "Multiplier:"
+  G: "=IF(IF(K1=\"Expanded\",IF(SUM(G3:G12)<7493424,SUM(G3:G12)*2+250000,IF(AND(SUM(G3:G12)>7493424,SUM(G3:G12)<29973695),SUM(G3:G12)+7752000,IF(SUM(G3:G12)>29973695,SUM(G3:G12)*1.25+250000,SUM(G3:G12)))),IF(K1=\"Standard\",SUM(G3:G12),SUM(G3:G12)))>SUM(K3:K12),\"Yes\",\"No\")"
+  O: "Multiplier:"
+  P: "=IF(IF(T1=\"Expanded\",IF(SUM(P3:P12)<7493424,SUM(P3:P12)*2+250000,IF(AND(SUM(P3:P12)>7493424,SUM(P3:P12)<29973695),SUM(P3:P12)+7752000,IF(SUM(P3:P12)>29973695,SUM(P3:P12)*1.25+250000,SUM(P3:P12)))),IF(T1=\"Standard\",SUM(P3:P12),SUM(P3:P12)))>SUM(T3:T12),\"Yes\",\"No\")"
+  X: "Multiplier:"
+  Y: "=IF(IF(AC1=\"Expanded\",IF(SUM(Y3:Y12)<7493424,SUM(Y3:Y12)*2+250000,IF(AND(SUM(Y3:Y12)>7493424,SUM(Y3:Y12)<29973695),SUM(Y3:Y12)+7752000,IF(SUM(Y3:Y12)>29973695,SUM(Y3:Y12)*1.25+250000,SUM(Y3:Y12)))),IF(AC1=\"Standard\",SUM(Y3:Y12),SUM(Y3:Y12)))>SUM(AC3:AC12),\"Yes\",\"No\")"
+  AG: "Multiplier:"
+  AH: "=IF(IF(AL1=\"Expanded\",IF(SUM(AH3:AH12)<7493424,SUM(AH3:AH12)*2+250000,IF(AND(SUM(AH3:AH12)>7493424,SUM(AH3:AH12)<29973695),SUM(AH3:AH12)+7752000,IF(SUM(AH3:AH12)>29973695,SUM(AH3:AH12)*1.25+250000,SUM(AH3:AH12)))),IF(AL1=\"Standard\",SUM(AH3:AH12),SUM(AH3:AH12)))>SUM(AL3:AL12),\"Yes\",\"No\")"
+  AP: GSW
+  AQ: Apron 1
+"22":
+  F: "Apron 1:"
+  G: "=IF(AND(G17>1, J17<1), \"Yes\",\n   IF(AND(G17<1, J17>1), \"No\",\n   IF(AND(G17>1, J17<=G17, J17>1), \"Yes\",\n   IF(AND(G17>1, J17>G17, J17>1), \"No\",\n   IF(AND(G17<1, J17<=G17), \"Yes\",\n   IF(AND(G17<1, J17>G17, J17<=0), \"Yes\", \"\"))))))"
+  O: "Apron 1:"
+  P: "=IF(AND(P17>1, S17<1), \"Yes\",\n   IF(AND(P17<1, S17>1), \"No\",\n   IF(AND(P17>1, S17<=P17, S17>1), \"Yes\",\n   IF(AND(P17>1, S17>P17, S17>1), \"Yes\",\n   IF(AND(P17<1, S17<=P17), \"Yes\",\n   IF(AND(P17<1, S17>P17, S17<=0), \"Yes\", \"\"))))))"
+  X: "Apron 1:"
+  Y: "=IF(AND(Y17>1, AB17<1), \"Yes\",\n   IF(AND(Y17<1, AB17>1), \"No\",\n   IF(AND(Y17>1, AB17<=Y17, AB17>1), \"Yes\",\n   IF(AND(Y17>1, AB17>Y17, AB17>1), \"No\",\n   IF(AND(Y17<1, AB17<=Y17), \"Yes\",\n   IF(AND(Y17<1, AB17>Y17, AB17<=0), \"Yes\", \"\"))))))"
+  AG: "Apron 1:"
+  AH: "=IF(AND(AH17>1, AK17<1), \"Yes\",\n   IF(AND(AH17<1, AK17>1), \"No\",\n   IF(AND(AH17>1, AK17<=AH17, AK17>1), \"Yes\",\n   IF(AND(AH17>1, AK17>AH17, AK17>1), \"No\",\n   IF(AND(AH17<1, AK17<=AH17), \"Yes\",\n   IF(AND(AH17<1, AK17>AH17, AK17<=0), \"Yes\", \"\"))))))"
+  AP: HOU
+  AQ: "-"
+"23":
+  F: "Apron 2:"
+  G: "=IF(AND(G18>1, J18<1), \"Yes\",\n   IF(AND(G18<1, J18>1), \"No\",\n   IF(AND(G18>1, J18<=G18, J18>1), \"Yes\",\n   IF(AND(G18>1, J18>G18, J18>1), \"No\",\n   IF(AND(G18<1, J18<=G18), \"Yes\",\n   IF(AND(G18<1, J18>G18, J18<=0), \"Yes\", \"\"))))))"
+  O: "Apron 2:"
+  P: "=IF(AND(P18>1, S18<1), \"Yes\",\n   IF(AND(P18<1, S18>1), \"No\",\n   IF(AND(P18>1, S18<=P18, S18>1), \"Yes\",\n   IF(AND(P18>1, S18>P18, S18>1), \"No\",\n   IF(AND(P18<1, S18<=P18), \"Yes\",\n   IF(AND(P18<1, S18>P18, S18<=0), \"Yes\", \"\"))))))"
+  X: "Apron 2:"
+  Y: "=IF(AND(Y18>1, AB18<1), \"Yes\",\n   IF(AND(Y18<1, AB18>1), \"No\",\n   IF(AND(Y18>1, AB18<=Y18, AB18>1), \"Yes\",\n   IF(AND(Y18>1, AB18>Y18, AB18>1), \"No\",\n   IF(AND(Y18<1, AB18<=Y18), \"Yes\",\n   IF(AND(Y18<1, AB18>Y18, AB18<=0), \"Yes\", \"\"))))))"
+  AG: "Apron 2:"
+  AH: "=IF(AND(AH18>1, AK18<1), \"Yes\",\n   IF(AND(AH18<1, AK18>1), \"No\",\n   IF(AND(AH18>1, AK18<=AH18, AK18>1), \"Yes\",\n   IF(AND(AH18>1, AK18>AH18, AK18>1), \"No\",\n   IF(AND(AH18<1, AK18<=AH18), \"Yes\",\n   IF(AND(AH18<1, AK18>AH18, AK18<=0), \"Yes\", \"\"))))))"
+  AP: IND
+  AQ: "-"
+"24":
+  F: "Use TPE:"
+  G: No
+  O: "Use TPE:"
+  P: No
+  X: "Use TPE:"
+  Y: No
+  AG: "Use TPE:"
+  AH: No
+  AP: LAC
+  AQ: "-"
+"25":
+  F: "Use Cash:"
+  G: No
+  O: "Use Cash:"
+  P: No
+  X: "Use Cash:"
+  Y: No
+  AG: "Use Cash:"
+  AH: No
+  AP: LAL
+  AQ: Apron 2
+"26":
+  AP: MEM
+  AQ: "-"
+"27":
+  G: "Post Trade Roster Count:"
+  J: "=COUNTIFS(G30:G54, \"<>0\", G30:G54, \"<>-\", G30:G54, \"<>\") - COUNTIF(F3:F12, \"*,*\") + COUNTIF(J3:J12, \"*,*\")"
+  P: "Post Trade Roster Count:"
+  S: "=COUNTIFS(P30:P54, \"<>0\", P30:P54, \"<>-\", P30:P54, \"<>\") - COUNTIF(O3:O12, \"*,*\") + COUNTIF(S3:S12, \"*,*\")"
+  Y: "Post Trade Roster Count:"
+  AB: "=COUNTIFS(Y30:Y54, \"<>0\", Y30:Y54, \"<>-\", Y30:Y54, \"<>\") - COUNTIF(X3:X12, \"*,*\") + COUNTIF(AB3:AB12, \"*,*\")"
+  AH: "Post Trade Roster Count:"
+  AK: "=COUNTIFS(AH30:AH54, \"<>0\", AH30:AH54, \"<>-\", AH30:AH54, \"<>\") - COUNTIF(AG3:AG12, \"*,*\") + COUNTIF(AK3:AK12, \"*,*\")"
+  AP: MIA
+  AQ: Apron 2
+"28":
+  G: (+) Vet Mins
+  J: "=IF(J27<=13,$AQ$9*(14-J27),0)"
+  P: (+) Vet Mins
+  S: "=IF(S27<=13,$AQ$9*(14-S27),0)"
+  Y: (+) Vet Mins
+  AB: "=IF(AB27<=13,$AQ$9*(14-AB27),0)"
+  AH: (+) Vet Mins
+  AK: "=IF(AK27<=13,$AQ$9*(14-AK27),0)"
+  AP: MIL
+  AQ: Apron 2
+"29":
+  A: Team 1
+  B: Team 2
+  C: Team 3
+  D: Team 4
+  F: Roster
+  G: "Cap:"
+  J: "Tax:"
+  K: "Apron:"
+  O: Roster
+  P: "Cap:"
+  S: "Tax:"
+  T: "Apron:"
+  X: Roster
+  Y: "Cap:"
+  AB: "Tax:"
+  AC: "Apron:"
+  AG: Roster
+  AH: "Cap:"
+  AK: "Tax:"
+  AL: "Apron:"
+  AP: MIN
+  AQ: Apron 2
+"30":
+  A: "=IF(F1=\"\",\"\",_xlfn.SORTBY(_xlfn._xlws.FILTER(X!$A$3:$A$791, X!$B$3:$B$791 = $F$1), _xlfn._xlws.FILTER(X!$C$3:$C$791, X!$B$3:$B$791 = $F$1), -1))"
+  B: "=IF(O1=\"\",\"\",_xlfn.SORTBY(_xlfn._xlws.FILTER(X!$A$3:$A$791, X!$B$3:$B$791 = $O$1), _xlfn._xlws.FILTER(X!$C$3:$C$791, X!$B$3:$B$791 = $O$1), -1))"
+  C: "=IF(X1=\"\",\"\",_xlfn.SORTBY(_xlfn._xlws.FILTER(X!$A$3:$A$791, X!$B$3:$B$791 = $X$1), _xlfn._xlws.FILTER(X!$C$3:$C$791, X!$B$3:$B$791 = $X$1), -1))"
+  D: "=IF(AG1=\"\",\"\",_xlfn.SORTBY(_xlfn._xlws.FILTER(X!$A$3:$A$791, X!$B$3:$B$791 = $AG$1), _xlfn._xlws.FILTER(X!$C$3:$C$791, X!$B$3:$B$791 = $AG$1), -1))"
+  F: =A30
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F30,X!$A:$AI,3,FALSE),VLOOKUP(F30,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F30,X!$A:$AI,26,FALSE),VLOOKUP(F30,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F30,X!$A:$AI,27,FALSE),VLOOKUP(F30,X!$A:$AI,35,FALSE)),0)"
+  O: =B30
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O30,X!$A:$AI,3,FALSE),VLOOKUP(O30,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O30,X!$A:$AI,26,FALSE),VLOOKUP(O30,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O30,X!$A:$AI,27,FALSE),VLOOKUP(O30,X!$A:$AI,35,FALSE)),0)"
+  X: =C30
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X30,X!$A:$AI,3,FALSE),VLOOKUP(X30,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X30,X!$A:$AI,26,FALSE),VLOOKUP(X30,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X30,X!$A:$AI,27,FALSE),VLOOKUP(X30,X!$A:$AI,35,FALSE)),0)"
+  AG: =D30
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG30,X!$A:$AI,3,FALSE),VLOOKUP(AG30,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG30,X!$A:$AI,26,FALSE),VLOOKUP(AG30,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG30,X!$A:$AI,27,FALSE),VLOOKUP(AG30,X!$A:$AI,35,FALSE)),0)"
+  AP: NOP
+  AQ: "-"
+"31":
+  A: "Grant, Jerami"
+  B: "Tatum, Jayson"
+  C: "Collins, John"
+  D: "Tatum, Jayson"
+  F: =A31
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F31,X!$A:$AI,3,FALSE),VLOOKUP(F31,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F31,X!$A:$AI,26,FALSE),VLOOKUP(F31,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F31,X!$A:$AI,27,FALSE),VLOOKUP(F31,X!$A:$AI,35,FALSE)),0)"
+  O: =B31
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O31,X!$A:$AI,3,FALSE),VLOOKUP(O31,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O31,X!$A:$AI,26,FALSE),VLOOKUP(O31,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O31,X!$A:$AI,27,FALSE),VLOOKUP(O31,X!$A:$AI,35,FALSE)),0)"
+  X: =C31
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X31,X!$A:$AI,3,FALSE),VLOOKUP(X31,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X31,X!$A:$AI,26,FALSE),VLOOKUP(X31,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X31,X!$A:$AI,27,FALSE),VLOOKUP(X31,X!$A:$AI,35,FALSE)),0)"
+  AG: =D31
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG31,X!$A:$AI,3,FALSE),VLOOKUP(AG31,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG31,X!$A:$AI,26,FALSE),VLOOKUP(AG31,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG31,X!$A:$AI,27,FALSE),VLOOKUP(AG31,X!$A:$AI,35,FALSE)),0)"
+  AP: NYK
+  AQ: Apron 2
+"32":
+  A: "Simons, Anfernee"
+  B: "Holiday, Jrue"
+  C: "Sexton, Collin"
+  D: "Holiday, Jrue"
+  F: =A32
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F32,X!$A:$AI,3,FALSE),VLOOKUP(F32,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F32,X!$A:$AI,26,FALSE),VLOOKUP(F32,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F32,X!$A:$AI,27,FALSE),VLOOKUP(F32,X!$A:$AI,35,FALSE)),0)"
+  O: =B32
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O32,X!$A:$AI,3,FALSE),VLOOKUP(O32,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O32,X!$A:$AI,26,FALSE),VLOOKUP(O32,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O32,X!$A:$AI,27,FALSE),VLOOKUP(O32,X!$A:$AI,35,FALSE)),0)"
+  X: =C32
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X32,X!$A:$AI,3,FALSE),VLOOKUP(X32,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X32,X!$A:$AI,26,FALSE),VLOOKUP(X32,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X32,X!$A:$AI,27,FALSE),VLOOKUP(X32,X!$A:$AI,35,FALSE)),0)"
+  AG: =D32
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG32,X!$A:$AI,3,FALSE),VLOOKUP(AG32,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG32,X!$A:$AI,26,FALSE),VLOOKUP(AG32,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG32,X!$A:$AI,27,FALSE),VLOOKUP(AG32,X!$A:$AI,35,FALSE)),0)"
+  AP: OKC
+  AQ: "-"
+"33":
+  A: "Avdija, Deni"
+  B: "Porzingis, Kristaps"
+  C: "Clarkson, Jordan"
+  D: "Porzingis, Kristaps"
+  F: =A33
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F33,X!$A:$AI,3,FALSE),VLOOKUP(F33,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F33,X!$A:$AI,26,FALSE),VLOOKUP(F33,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F33,X!$A:$AI,27,FALSE),VLOOKUP(F33,X!$A:$AI,35,FALSE)),0)"
+  O: =B33
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O33,X!$A:$AI,3,FALSE),VLOOKUP(O33,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O33,X!$A:$AI,26,FALSE),VLOOKUP(O33,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O33,X!$A:$AI,27,FALSE),VLOOKUP(O33,X!$A:$AI,35,FALSE)),0)"
+  X: =C33
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X33,X!$A:$AI,3,FALSE),VLOOKUP(X33,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X33,X!$A:$AI,26,FALSE),VLOOKUP(X33,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X33,X!$A:$AI,27,FALSE),VLOOKUP(X33,X!$A:$AI,35,FALSE)),0)"
+  AG: =D33
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG33,X!$A:$AI,3,FALSE),VLOOKUP(AG33,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG33,X!$A:$AI,26,FALSE),VLOOKUP(AG33,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG33,X!$A:$AI,27,FALSE),VLOOKUP(AG33,X!$A:$AI,35,FALSE)),0)"
+  AP: ORL
+  AQ: "-"
+"34":
+  A: "Williams, Robert"
+  B: "White, Derrick"
+  C: "Martin, KJ"
+  D: "White, Derrick"
+  F: =A34
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F34,X!$A:$AI,3,FALSE),VLOOKUP(F34,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F34,X!$A:$AI,26,FALSE),VLOOKUP(F34,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F34,X!$A:$AI,27,FALSE),VLOOKUP(F34,X!$A:$AI,35,FALSE)),0)"
+  O: =B34
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O34,X!$A:$AI,3,FALSE),VLOOKUP(O34,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O34,X!$A:$AI,26,FALSE),VLOOKUP(O34,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O34,X!$A:$AI,27,FALSE),VLOOKUP(O34,X!$A:$AI,35,FALSE)),0)"
+  X: =C34
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X34,X!$A:$AI,3,FALSE),VLOOKUP(X34,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X34,X!$A:$AI,26,FALSE),VLOOKUP(X34,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X34,X!$A:$AI,27,FALSE),VLOOKUP(X34,X!$A:$AI,35,FALSE)),0)"
+  AG: =D34
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG34,X!$A:$AI,3,FALSE),VLOOKUP(AG34,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG34,X!$A:$AI,26,FALSE),VLOOKUP(AG34,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG34,X!$A:$AI,27,FALSE),VLOOKUP(AG34,X!$A:$AI,35,FALSE)),0)"
+  AP: PHI
+  AQ: Apron 1
+"35":
+  A: "Thybulle, Matisse"
+  B: "Horford, Al"
+  C: "Hendricks, Taylor"
+  D: "Horford, Al"
+  F: =A35
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F35,X!$A:$AI,3,FALSE),VLOOKUP(F35,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F35,X!$A:$AI,26,FALSE),VLOOKUP(F35,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F35,X!$A:$AI,27,FALSE),VLOOKUP(F35,X!$A:$AI,35,FALSE)),0)"
+  O: =B35
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O35,X!$A:$AI,3,FALSE),VLOOKUP(O35,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O35,X!$A:$AI,26,FALSE),VLOOKUP(O35,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O35,X!$A:$AI,27,FALSE),VLOOKUP(O35,X!$A:$AI,35,FALSE)),0)"
+  X: =C35
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X35,X!$A:$AI,3,FALSE),VLOOKUP(X35,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X35,X!$A:$AI,26,FALSE),VLOOKUP(X35,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X35,X!$A:$AI,27,FALSE),VLOOKUP(X35,X!$A:$AI,35,FALSE)),0)"
+  AG: =D35
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG35,X!$A:$AI,3,FALSE),VLOOKUP(AG35,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG35,X!$A:$AI,26,FALSE),VLOOKUP(AG35,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG35,X!$A:$AI,27,FALSE),VLOOKUP(AG35,X!$A:$AI,35,FALSE)),0)"
+  AP: PHX
+  AQ: Apron 2
+"36":
+  A: "Henderson, Scoot"
+  B: "Pritchard, Payton"
+  C: "Williams, Cody"
+  D: "Pritchard, Payton"
+  F: =A36
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F36,X!$A:$AI,3,FALSE),VLOOKUP(F36,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F36,X!$A:$AI,26,FALSE),VLOOKUP(F36,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F36,X!$A:$AI,27,FALSE),VLOOKUP(F36,X!$A:$AI,35,FALSE)),0)"
+  O: =B36
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O36,X!$A:$AI,3,FALSE),VLOOKUP(O36,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O36,X!$A:$AI,26,FALSE),VLOOKUP(O36,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O36,X!$A:$AI,27,FALSE),VLOOKUP(O36,X!$A:$AI,35,FALSE)),0)"
+  X: =C36
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X36,X!$A:$AI,3,FALSE),VLOOKUP(X36,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X36,X!$A:$AI,26,FALSE),VLOOKUP(X36,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X36,X!$A:$AI,27,FALSE),VLOOKUP(X36,X!$A:$AI,35,FALSE)),0)"
+  AG: =D36
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG36,X!$A:$AI,3,FALSE),VLOOKUP(AG36,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG36,X!$A:$AI,26,FALSE),VLOOKUP(AG36,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG36,X!$A:$AI,27,FALSE),VLOOKUP(AG36,X!$A:$AI,35,FALSE)),0)"
+  AP: POR
+  AQ: "-"
+"37":
+  A: "Clingan, Donovan"
+  B: "Scheierman, Baylor"
+  C: "George, Keyonte"
+  D: "Scheierman, Baylor"
+  F: =A37
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F37,X!$A:$AI,3,FALSE),VLOOKUP(F37,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F37,X!$A:$AI,26,FALSE),VLOOKUP(F37,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F37,X!$A:$AI,27,FALSE),VLOOKUP(F37,X!$A:$AI,35,FALSE)),0)"
+  O: =B37
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O37,X!$A:$AI,3,FALSE),VLOOKUP(O37,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O37,X!$A:$AI,26,FALSE),VLOOKUP(O37,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O37,X!$A:$AI,27,FALSE),VLOOKUP(O37,X!$A:$AI,35,FALSE)),0)"
+  X: =C37
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X37,X!$A:$AI,3,FALSE),VLOOKUP(X37,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X37,X!$A:$AI,26,FALSE),VLOOKUP(X37,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X37,X!$A:$AI,27,FALSE),VLOOKUP(X37,X!$A:$AI,35,FALSE)),0)"
+  AG: =D37
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG37,X!$A:$AI,3,FALSE),VLOOKUP(AG37,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG37,X!$A:$AI,26,FALSE),VLOOKUP(AG37,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG37,X!$A:$AI,27,FALSE),VLOOKUP(AG37,X!$A:$AI,35,FALSE)),0)"
+  AP: SAC
+  AQ: "-"
+"38":
+  A: "Sharpe, Shaedon"
+  B: "Tillman, Xavier"
+  C: "Mykhailiuk, Svi"
+  D: "Tillman, Xavier"
+  F: =A38
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F38,X!$A:$AI,3,FALSE),VLOOKUP(F38,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F38,X!$A:$AI,26,FALSE),VLOOKUP(F38,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F38,X!$A:$AI,27,FALSE),VLOOKUP(F38,X!$A:$AI,35,FALSE)),0)"
+  O: =B38
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O38,X!$A:$AI,3,FALSE),VLOOKUP(O38,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O38,X!$A:$AI,26,FALSE),VLOOKUP(O38,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O38,X!$A:$AI,27,FALSE),VLOOKUP(O38,X!$A:$AI,35,FALSE)),0)"
+  X: =C38
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X38,X!$A:$AI,3,FALSE),VLOOKUP(X38,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X38,X!$A:$AI,26,FALSE),VLOOKUP(X38,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X38,X!$A:$AI,27,FALSE),VLOOKUP(X38,X!$A:$AI,35,FALSE)),0)"
+  AG: =D38
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG38,X!$A:$AI,3,FALSE),VLOOKUP(AG38,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG38,X!$A:$AI,26,FALSE),VLOOKUP(AG38,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG38,X!$A:$AI,27,FALSE),VLOOKUP(AG38,X!$A:$AI,35,FALSE)),0)"
+  AP: SAN
+  AQ: "-"
+"39":
+  A: "Murray, Kris"
+  B: "Queta, Neemias"
+  C: "Juzang, Johnny"
+  D: "Queta, Neemias"
+  F: =A39
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F39,X!$A:$AI,3,FALSE),VLOOKUP(F39,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F39,X!$A:$AI,26,FALSE),VLOOKUP(F39,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F39,X!$A:$AI,27,FALSE),VLOOKUP(F39,X!$A:$AI,35,FALSE)),0)"
+  O: =B39
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O39,X!$A:$AI,3,FALSE),VLOOKUP(O39,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O39,X!$A:$AI,26,FALSE),VLOOKUP(O39,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O39,X!$A:$AI,27,FALSE),VLOOKUP(O39,X!$A:$AI,35,FALSE)),0)"
+  X: =C39
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X39,X!$A:$AI,3,FALSE),VLOOKUP(X39,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X39,X!$A:$AI,26,FALSE),VLOOKUP(X39,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X39,X!$A:$AI,27,FALSE),VLOOKUP(X39,X!$A:$AI,35,FALSE)),0)"
+  AG: =D39
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG39,X!$A:$AI,3,FALSE),VLOOKUP(AG39,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG39,X!$A:$AI,26,FALSE),VLOOKUP(AG39,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG39,X!$A:$AI,27,FALSE),VLOOKUP(AG39,X!$A:$AI,35,FALSE)),0)"
+  AP: TOR
+  AQ: "-"
+"40":
+  A: "Banton, Dalano"
+  B: "Hauser, Sam"
+  C: "Filipowski, Kyle"
+  D: "Hauser, Sam"
+  F: =A40
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F40,X!$A:$AI,3,FALSE),VLOOKUP(F40,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F40,X!$A:$AI,26,FALSE),VLOOKUP(F40,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F40,X!$A:$AI,27,FALSE),VLOOKUP(F40,X!$A:$AI,35,FALSE)),0)"
+  O: =B40
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O40,X!$A:$AI,3,FALSE),VLOOKUP(O40,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O40,X!$A:$AI,26,FALSE),VLOOKUP(O40,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O40,X!$A:$AI,27,FALSE),VLOOKUP(O40,X!$A:$AI,35,FALSE)),0)"
+  X: =C40
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X40,X!$A:$AI,3,FALSE),VLOOKUP(X40,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X40,X!$A:$AI,26,FALSE),VLOOKUP(X40,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X40,X!$A:$AI,27,FALSE),VLOOKUP(X40,X!$A:$AI,35,FALSE)),0)"
+  AG: =D40
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG40,X!$A:$AI,3,FALSE),VLOOKUP(AG40,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG40,X!$A:$AI,26,FALSE),VLOOKUP(AG40,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG40,X!$A:$AI,27,FALSE),VLOOKUP(AG40,X!$A:$AI,35,FALSE)),0)"
+  AP: UTA
+  AQ: "-"
+"41":
+  A: "Reath, Duop"
+  B: "Kornet, Luke"
+  C: "Kessler, Walker"
+  D: "Kornet, Luke"
+  F: =A41
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F41,X!$A:$AI,3,FALSE),VLOOKUP(F41,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F41,X!$A:$AI,26,FALSE),VLOOKUP(F41,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F41,X!$A:$AI,27,FALSE),VLOOKUP(F41,X!$A:$AI,35,FALSE)),0)"
+  O: =B41
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O41,X!$A:$AI,3,FALSE),VLOOKUP(O41,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O41,X!$A:$AI,26,FALSE),VLOOKUP(O41,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O41,X!$A:$AI,27,FALSE),VLOOKUP(O41,X!$A:$AI,35,FALSE)),0)"
+  X: =C41
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X41,X!$A:$AI,3,FALSE),VLOOKUP(X41,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X41,X!$A:$AI,26,FALSE),VLOOKUP(X41,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X41,X!$A:$AI,27,FALSE),VLOOKUP(X41,X!$A:$AI,35,FALSE)),0)"
+  AG: =D41
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG41,X!$A:$AI,3,FALSE),VLOOKUP(AG41,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG41,X!$A:$AI,26,FALSE),VLOOKUP(AG41,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG41,X!$A:$AI,27,FALSE),VLOOKUP(AG41,X!$A:$AI,35,FALSE)),0)"
+  AP: WAS
+  AQ: "-"
+"42":
+  A: "Walker, Jabari"
+  B: "Walsh, Jordan"
+  C: "Sensabaugh, Brice"
+  D: "Walsh, Jordan"
+  F: =A42
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F42,X!$A:$AI,3,FALSE),VLOOKUP(F42,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F42,X!$A:$AI,26,FALSE),VLOOKUP(F42,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F42,X!$A:$AI,27,FALSE),VLOOKUP(F42,X!$A:$AI,35,FALSE)),0)"
+  O: =B42
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O42,X!$A:$AI,3,FALSE),VLOOKUP(O42,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O42,X!$A:$AI,26,FALSE),VLOOKUP(O42,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O42,X!$A:$AI,27,FALSE),VLOOKUP(O42,X!$A:$AI,35,FALSE)),0)"
+  X: =C42
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X42,X!$A:$AI,3,FALSE),VLOOKUP(X42,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X42,X!$A:$AI,26,FALSE),VLOOKUP(X42,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X42,X!$A:$AI,27,FALSE),VLOOKUP(X42,X!$A:$AI,35,FALSE)),0)"
+  AG: =D42
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG42,X!$A:$AI,3,FALSE),VLOOKUP(AG42,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG42,X!$A:$AI,26,FALSE),VLOOKUP(AG42,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG42,X!$A:$AI,27,FALSE),VLOOKUP(AG42,X!$A:$AI,35,FALSE)),0)"
+"43":
+  A: "Camara, Toumani"
+  B: "Craig, Torrey"
+  C: "Collier, Isaiah"
+  D: "Craig, Torrey"
+  F: =A43
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F43,X!$A:$AI,3,FALSE),VLOOKUP(F43,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F43,X!$A:$AI,26,FALSE),VLOOKUP(F43,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F43,X!$A:$AI,27,FALSE),VLOOKUP(F43,X!$A:$AI,35,FALSE)),0)"
+  O: =B43
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O43,X!$A:$AI,3,FALSE),VLOOKUP(O43,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O43,X!$A:$AI,26,FALSE),VLOOKUP(O43,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O43,X!$A:$AI,27,FALSE),VLOOKUP(O43,X!$A:$AI,35,FALSE)),0)"
+  X: =C43
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X43,X!$A:$AI,3,FALSE),VLOOKUP(X43,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X43,X!$A:$AI,26,FALSE),VLOOKUP(X43,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X43,X!$A:$AI,27,FALSE),VLOOKUP(X43,X!$A:$AI,35,FALSE)),0)"
+  AG: =D43
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG43,X!$A:$AI,3,FALSE),VLOOKUP(AG43,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG43,X!$A:$AI,26,FALSE),VLOOKUP(AG43,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG43,X!$A:$AI,27,FALSE),VLOOKUP(AG43,X!$A:$AI,35,FALSE)),0)"
+"44":
+  A: "Rupert, Rayan"
+  B: "Davison, JD"
+  C: "Springer, Jaden"
+  D: "Davison, JD"
+  F: =A44
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F44,X!$A:$AI,3,FALSE),VLOOKUP(F44,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F44,X!$A:$AI,26,FALSE),VLOOKUP(F44,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F44,X!$A:$AI,27,FALSE),VLOOKUP(F44,X!$A:$AI,35,FALSE)),0)"
+  O: =B44
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O44,X!$A:$AI,3,FALSE),VLOOKUP(O44,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O44,X!$A:$AI,26,FALSE),VLOOKUP(O44,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O44,X!$A:$AI,27,FALSE),VLOOKUP(O44,X!$A:$AI,35,FALSE)),0)"
+  X: =C44
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X44,X!$A:$AI,3,FALSE),VLOOKUP(X44,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X44,X!$A:$AI,26,FALSE),VLOOKUP(X44,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X44,X!$A:$AI,27,FALSE),VLOOKUP(X44,X!$A:$AI,35,FALSE)),0)"
+  AG: =D44
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG44,X!$A:$AI,3,FALSE),VLOOKUP(AG44,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG44,X!$A:$AI,26,FALSE),VLOOKUP(AG44,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG44,X!$A:$AI,27,FALSE),VLOOKUP(AG44,X!$A:$AI,35,FALSE)),0)"
+"45":
+  F: =A45
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F45,X!$A:$AI,3,FALSE),VLOOKUP(F45,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F45,X!$A:$AI,26,FALSE),VLOOKUP(F45,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F45,X!$A:$AI,27,FALSE),VLOOKUP(F45,X!$A:$AI,35,FALSE)),0)"
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O45,X!$A:$AI,3,FALSE),VLOOKUP(O45,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O45,X!$A:$AI,26,FALSE),VLOOKUP(O45,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O45,X!$A:$AI,27,FALSE),VLOOKUP(O45,X!$A:$AI,35,FALSE)),0)"
+"46":
+  F: =A46
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F46,X!$A:$AI,3,FALSE),VLOOKUP(F46,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F46,X!$A:$AI,26,FALSE),VLOOKUP(F46,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F46,X!$A:$AI,27,FALSE),VLOOKUP(F46,X!$A:$AI,35,FALSE)),0)"
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O46,X!$A:$AI,3,FALSE),VLOOKUP(O46,X!$A:$AI,5,FALSE)),0)"
+"47":
+  F: =A47
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O47,X!$A:$AI,3,FALSE),VLOOKUP(O47,X!$A:$AI,5,FALSE)),0)"
+"48":
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O48,X!$A:$AI,3,FALSE),VLOOKUP(O48,X!$A:$AI,5,FALSE)),0)"
+"49":
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O49,X!$A:$AI,3,FALSE),VLOOKUP(O49,X!$A:$AI,5,FALSE)),0)"
+"51":
+  F: Draft Picks
+  O: Draft Picks
+  X: Draft Picks
+  AG: Draft Picks
+"52":
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F52,X!$A:$AI,3,FALSE),VLOOKUP(F52,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F52,X!$A:$AI,26,FALSE),VLOOKUP(F52,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F52,X!$A:$AI,27,FALSE),VLOOKUP(F52,X!$A:$AI,35,FALSE)),0)"
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O52,X!$A:$AI,3,FALSE),VLOOKUP(O52,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O52,X!$A:$AI,26,FALSE),VLOOKUP(O52,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O52,X!$A:$AI,27,FALSE),VLOOKUP(O52,X!$A:$AI,35,FALSE)),0)"
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X52,X!$A:$AI,3,FALSE),VLOOKUP(X52,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X52,X!$A:$AI,26,FALSE),VLOOKUP(X52,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X52,X!$A:$AI,27,FALSE),VLOOKUP(X52,X!$A:$AI,35,FALSE)),0)"
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG52,X!$A:$AI,3,FALSE),VLOOKUP(AG52,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG52,X!$A:$AI,26,FALSE),VLOOKUP(AG52,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG52,X!$A:$AI,27,FALSE),VLOOKUP(AG52,X!$A:$AI,35,FALSE)),0)"
+"55":
+  F: "=F1&\" \"&\"Dead Money\""
+  G: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F55,X!$A:$AI,3,FALSE),VLOOKUP(F55,X!$A:$AI,5,FALSE)),0)"
+  J: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F55,X!$A:$AI,26,FALSE),VLOOKUP(F55,X!$A:$AI,34,FALSE)),0)"
+  K: "=IFERROR(IF($AQ$2=2024,VLOOKUP(F55,X!$A:$AI,27,FALSE),VLOOKUP(F55,X!$A:$AI,35,FALSE)),0)"
+  O: "=O1&\" \"&\"Dead Money\""
+  P: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O55,X!$A:$AI,3,FALSE),VLOOKUP(O55,X!$A:$AI,5,FALSE)),0)"
+  S: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O55,X!$A:$AI,26,FALSE),VLOOKUP(O55,X!$A:$AI,34,FALSE)),0)"
+  T: "=IFERROR(IF($AQ$2=2024,VLOOKUP(O55,X!$A:$AI,27,FALSE),VLOOKUP(O55,X!$A:$AI,35,FALSE)),0)"
+  X: "=X1&\" \"&\"Dead Money\""
+  Y: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X55,X!$A:$AI,3,FALSE),VLOOKUP(X55,X!$A:$AI,5,FALSE)),0)"
+  AB: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X55,X!$A:$AI,26,FALSE),VLOOKUP(X55,X!$A:$AI,34,FALSE)),0)"
+  AC: "=IFERROR(IF($AQ$2=2024,VLOOKUP(X55,X!$A:$AI,27,FALSE),VLOOKUP(X55,X!$A:$AI,35,FALSE)),0)"
+  AG: "=AG1&\" \"&\"Dead Money\""
+  AH: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG55,X!$A:$AI,3,FALSE),VLOOKUP(AG55,X!$A:$AI,5,FALSE)),0)"
+  AK: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG55,X!$A:$AI,26,FALSE),VLOOKUP(AG55,X!$A:$AI,34,FALSE)),0)"
+  AL: "=IFERROR(IF($AQ$2=2024,VLOOKUP(AG55,X!$A:$AI,27,FALSE),VLOOKUP(AG55,X!$A:$AI,35,FALSE)),0)"
+"57":
+  F: Trade Exceptions
+  O: Trade Exceptions
+  X: Trade Exceptions
+  AG: Trade Exceptions
+"58":
+  F: "=IFERROR(INDEX(_xlfn._xlws.FILTER('Exceptions Warehouse - 2024'!$C$4:$C$70, 'Exceptions Warehouse - 2024'!$B$4:$B$70=F1), _xlfn.SEQUENCE(3)),\"\")"
+  J: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$D$5:$D$86, MATCH(F58, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  K: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$G$5:$G$86, MATCH(F58, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  O: "=IFERROR(INDEX(_xlfn._xlws.FILTER('Exceptions Warehouse - 2024'!$C$4:$C$70, 'Exceptions Warehouse - 2024'!$B$4:$B$70=O1), _xlfn.SEQUENCE(3)),\"\")"
+  S: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$D$5:$D$86, MATCH(O58, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  T: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$G$5:$G$86, MATCH(O58, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  X: "=IFERROR(INDEX(_xlfn._xlws.FILTER('Exceptions Warehouse - 2024'!$C$4:$C$70, 'Exceptions Warehouse - 2024'!$B$4:$B$70=X1), _xlfn.SEQUENCE(3)),\"\")"
+  AB: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$D$5:$D$86, MATCH(X58, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  AC: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$G$5:$G$86, MATCH(X58, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  AG: "=IFERROR(INDEX(_xlfn._xlws.FILTER('Exceptions Warehouse - 2024'!$C$4:$C$70, 'Exceptions Warehouse - 2024'!$B$4:$B$70=AG1), _xlfn.SEQUENCE(3)),\"\")"
+  AK: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$D$5:$D$86, MATCH(AG58, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  AL: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$G$5:$G$86, MATCH(AG58, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+"59":
+  J: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$D$5:$D$86, MATCH(F59, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  K: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$G$5:$G$86, MATCH(F59, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  S: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$D$5:$D$86, MATCH(O59, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  T: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$G$5:$G$86, MATCH(O59, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  AB: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$D$5:$D$86, MATCH(X59, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  AC: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$G$5:$G$86, MATCH(X59, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  AK: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$D$5:$D$86, MATCH(AG59, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  AL: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$G$5:$G$86, MATCH(AG59, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+"60":
+  J: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$D$5:$D$86, MATCH(F60, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  K: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$G$5:$G$86, MATCH(F60, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  S: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$D$5:$D$86, MATCH(O60, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  T: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$G$5:$G$86, MATCH(O60, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  AB: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$D$5:$D$86, MATCH(X60, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  AC: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$G$5:$G$86, MATCH(X60, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  AK: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$D$5:$D$86, MATCH(AG60, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+  AL: "=IFERROR(INDEX('Exceptions Warehouse - 2024'!$G$5:$G$86, MATCH(AG60, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), \"\")"
+"61":
+  F: 1st Round
+  J: 2nd Round
+  O: 1st Round
+  S: 2nd Round
+  X: 1st Round
+  AB: 2nd Round
+  AG: 1st Round
+  AK: 2nd Round
+"62":
+  E: '25
+  F: "=INDEX('FRP Database'!$C$5:$C$34, MATCH($F$1, 'FRP Database'!$B$5:$B$34, 0))"
+  J: "=INDEX('SRP Database'!$C$5:$C$34, MATCH($F$1, 'SRP Database'!$B$5:$B$34, 0))"
+  O: "=INDEX('FRP Database'!$C$5:$C$34, MATCH($O$1, 'FRP Database'!$B$5:$B$34, 0))"
+  S: "=INDEX('SRP Database'!$C$5:$C$34, MATCH($O$1, 'SRP Database'!$B$5:$B$34, 0))"
+  X: "=INDEX('FRP Database'!$C$5:$C$34, MATCH($X$1, 'FRP Database'!$B$5:$B$34, 0))"
+  AB: "=INDEX('SRP Database'!$C$5:$C$34, MATCH($X$1, 'SRP Database'!$B$5:$B$34, 0))"
+  AG: "=INDEX('FRP Database'!$C$5:$C$34, MATCH($AG$1, 'FRP Database'!$B$5:$B$34, 0))"
+  AK: "=INDEX('SRP Database'!$C$5:$C$34, MATCH($AG$1, 'SRP Database'!$B$5:$B$34, 0))"
+"63":
+  E: '26
+  F: "=INDEX('FRP Database'!$D$5:$D$34, MATCH($F$1, 'FRP Database'!$B$5:$B$34, 0))"
+  J: "=INDEX('SRP Database'!$D$5:$D$34, MATCH($F$1, 'SRP Database'!$B$5:$B$34, 0))"
+  O: "=INDEX('FRP Database'!$D$5:$D$34, MATCH($O$1, 'FRP Database'!$B$5:$B$34, 0))"
+  S: "=INDEX('SRP Database'!$D$5:$D$34, MATCH($O$1, 'SRP Database'!$B$5:$B$34, 0))"
+  X: "=INDEX('FRP Database'!$D$5:$D$34, MATCH($X$1, 'FRP Database'!$B$5:$B$34, 0))"
+  AB: "=INDEX('SRP Database'!$D$5:$D$34, MATCH($X$1, 'SRP Database'!$B$5:$B$34, 0))"
+  AG: "=INDEX('FRP Database'!$D$5:$D$34, MATCH($AG$1, 'FRP Database'!$B$5:$B$34, 0))"
+  AK: "=INDEX('SRP Database'!$D$5:$D$34, MATCH($AG$1, 'SRP Database'!$B$5:$B$34, 0))"
+"64":
+  E: '27
+  F: "=INDEX('FRP Database'!$E$5:$E$34, MATCH($F$1, 'FRP Database'!$B$5:$B$34, 0))"
+  J: "=INDEX('SRP Database'!$E$5:$E$34, MATCH($F$1, 'SRP Database'!$B$5:$B$34, 0))"
+  O: "=INDEX('FRP Database'!$E$5:$E$34, MATCH($O$1, 'FRP Database'!$B$5:$B$34, 0))"
+  S: "=INDEX('SRP Database'!$E$5:$E$34, MATCH($O$1, 'SRP Database'!$B$5:$B$34, 0))"
+  X: "=INDEX('FRP Database'!$E$5:$E$34, MATCH($X$1, 'FRP Database'!$B$5:$B$34, 0))"
+  AB: "=INDEX('SRP Database'!$E$5:$E$34, MATCH($X$1, 'SRP Database'!$B$5:$B$34, 0))"
+  AG: "=INDEX('FRP Database'!$E$5:$E$34, MATCH($AG$1, 'FRP Database'!$B$5:$B$34, 0))"
+  AK: "=INDEX('SRP Database'!$E$5:$E$34, MATCH($AG$1, 'SRP Database'!$B$5:$B$34, 0))"
+"65":
+  E: '28
+  F: "=INDEX('FRP Database'!$F$5:$F$34, MATCH($F$1, 'FRP Database'!$B$5:$B$34, 0))"
+  J: "=INDEX('SRP Database'!$F$5:$F$34, MATCH($F$1, 'SRP Database'!$B$5:$B$34, 0))"
+  O: "=INDEX('FRP Database'!$F$5:$F$34, MATCH($O$1, 'FRP Database'!$B$5:$B$34, 0))"
+  S: "=INDEX('SRP Database'!$F$5:$F$34, MATCH($O$1, 'SRP Database'!$B$5:$B$34, 0))"
+  X: "=INDEX('FRP Database'!$F$5:$F$34, MATCH($X$1, 'FRP Database'!$B$5:$B$34, 0))"
+  AB: "=INDEX('SRP Database'!$F$5:$F$34, MATCH($X$1, 'SRP Database'!$B$5:$B$34, 0))"
+  AG: "=INDEX('FRP Database'!$F$5:$F$34, MATCH($AG$1, 'FRP Database'!$B$5:$B$34, 0))"
+  AK: "=INDEX('SRP Database'!$F$5:$F$34, MATCH($AG$1, 'SRP Database'!$B$5:$B$34, 0))"
+"66":
+  E: '29
+  F: "=INDEX('FRP Database'!$G$5:$G$34, MATCH($F$1, 'FRP Database'!$B$5:$B$34, 0))"
+  J: "=INDEX('SRP Database'!$G$5:$G$34, MATCH($F$1, 'SRP Database'!$B$5:$B$34, 0))"
+  O: "=INDEX('FRP Database'!$G$5:$G$34, MATCH($O$1, 'FRP Database'!$B$5:$B$34, 0))"
+  S: "=INDEX('SRP Database'!$G$5:$G$34, MATCH($O$1, 'SRP Database'!$B$5:$B$34, 0))"
+  X: "=INDEX('FRP Database'!$G$5:$G$34, MATCH($X$1, 'FRP Database'!$B$5:$B$34, 0))"
+  AB: "=INDEX('SRP Database'!$G$5:$G$34, MATCH($X$1, 'SRP Database'!$B$5:$B$34, 0))"
+  AG: "=INDEX('FRP Database'!$G$5:$G$34, MATCH($AG$1, 'FRP Database'!$B$5:$B$34, 0))"
+  AK: "=INDEX('SRP Database'!$G$5:$G$34, MATCH($AG$1, 'SRP Database'!$B$5:$B$34, 0))"
+"67":
+  E: '30
+  F: "=INDEX('FRP Database'!$H$5:$H$34, MATCH($F$1, 'FRP Database'!$B$5:$B$34, 0))"
+  J: "=INDEX('SRP Database'!$H$5:$H$34, MATCH($F$1, 'SRP Database'!$B$5:$B$34, 0))"
+  O: "=INDEX('FRP Database'!$H$5:$H$34, MATCH($O$1, 'FRP Database'!$B$5:$B$34, 0))"
+  S: "=INDEX('SRP Database'!$H$5:$H$34, MATCH($O$1, 'SRP Database'!$B$5:$B$34, 0))"
+  X: "=INDEX('FRP Database'!$H$5:$H$34, MATCH($X$1, 'FRP Database'!$B$5:$B$34, 0))"
+  AB: "=INDEX('SRP Database'!$H$5:$H$34, MATCH($X$1, 'SRP Database'!$B$5:$B$34, 0))"
+  AG: "=INDEX('FRP Database'!$H$5:$H$34, MATCH($AG$1, 'FRP Database'!$B$5:$B$34, 0))"
+  AK: "=INDEX('SRP Database'!$H$5:$H$34, MATCH($AG$1, 'SRP Database'!$B$5:$B$34, 0))"
+"68":
+  E: '31
+  F: "=INDEX('FRP Database'!$I$5:$I$34, MATCH($F$1, 'FRP Database'!$B$5:$B$34, 0))"
+  J: "=INDEX('SRP Database'!$I$5:$I$34, MATCH($F$1, 'SRP Database'!$B$5:$B$34, 0))"
+  O: "=INDEX('FRP Database'!$I$5:$I$34, MATCH($O$1, 'FRP Database'!$B$5:$B$34, 0))"
+  S: "=INDEX('SRP Database'!$I$5:$I$34, MATCH($O$1, 'SRP Database'!$B$5:$B$34, 0))"
+  X: "=INDEX('FRP Database'!$I$5:$I$34, MATCH($X$1, 'FRP Database'!$B$5:$B$34, 0))"
+  AB: "=INDEX('SRP Database'!$I$5:$I$34, MATCH($X$1, 'SRP Database'!$B$5:$B$34, 0))"
+  AG: "=INDEX('FRP Database'!$I$5:$I$34, MATCH($AG$1, 'FRP Database'!$B$5:$B$34, 0))"
+  AK: "=INDEX('SRP Database'!$I$5:$I$34, MATCH($AG$1, 'SRP Database'!$B$5:$B$34, 0))"

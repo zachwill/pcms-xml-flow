@@ -1,0 +1,1100 @@
+"1":
+  A: POR
+  C: "Date:"
+  D: =TODAY()
+  G: "Repeater in '25:"
+  H: "=IF($A$1=\"POR\",\"No\",\n IF($A$1=\"BOS\",\"Yes\",\n IF($A$1=\"PHX\",\"Yes\",\n IF($A$1=\"DEN\",\"Yes\",\n IF($A$1=\"LAL\",\"Yes\",\n IF($A$1=\"MIL\",\"Yes\",\n IF($A$1=\"LAC\",\"Yes\",\"No\")))))))"
+  J: "Repeater in '26:"
+  L: "=IF($A$1=\"POR\",\"No\",\n IF($A$1=\"BOS\",\"Yes\",\n IF($A$1=\"PHX\",\"Yes\",\n IF($A$1=\"DEN\",\"Yes\",\n IF($A$1=\"LAL\",\"Yes\",\n IF($A$1=\"MIL\",\"Yes\",\n IF($A$1=\"LAC\",\"Yes\",\"No\")))))))"
+"2":
+  A: Tax Salary
+  F: Player Contracts
+  V: Depth Chart
+"3":
+  A: #
+  B: Player
+  C: "2025"
+  F: #
+  G: Player
+  H: "2025"
+  J: "2026"
+  L: "2027"
+  N: "2028"
+  P: "2029"
+  R: "2030"
+  S: TK
+  V: "2025"
+"4":
+  A: "=IF(AND(ISNUMBER(C4), C4>100000), MAX(A$3:A3)+1, \"\")"
+  B: "=_xlfn.LET(\n    _xlpm.salary_column, IF(C3=2026, Y!$E$4:$E$788, Y!$Z$4:$Z$788),\n    _xlpm.filtered_names, _xlfn._xlws.FILTER(Y!$A$4:$A$788, (Y!$B$4:$B$788=A$1) * (_xlpm.salary_column>=1)),\n    _xlpm.filtered_salaries, _xlfn._xlws.FILTER(_xlpm.salary_column, (Y!$B$4:$B$788=A$1) * (_xlpm.salary_column>=1)),\n    _xlpm.combined_data, _xlfn.HSTACK(_xlpm.filtered_names, _xlpm.filtered_salaries),\n    _xlpm.sort_helper, IF(_xlpm.filtered_salaries=\"-\", -1, _xlpm.filtered_salaries),\n    _xlpm.sorted_data, _xlfn.SORTBY(_xlpm.combined_data, _xlpm.sort_helper, -1),\n    _xlpm.sorted_data\n)"
+  C: "35550814"
+  F: "=IF(AND(ISNUMBER(H4), H4>1000), COUNTIF(H$4:H4, \">1000\"), \"\")"
+  G: "=IF(B4=\"\",\"\",B4)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G4, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G4, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H4=0, $H$51=0), \"\", IFERROR(H4/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G4, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G4, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J4=0, $J$51=0), \"\", IFERROR(J4/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G4, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G4, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L4=0, $L$51=0), \"\", IFERROR(L4/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G4, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G4, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N4=0, $N$51=0), \"\", IFERROR(N4/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G4, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G4, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P4=0, $P$51=0), \"\", IFERROR(P4/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G4, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G4, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R4=0, $R$51=0), \"\", IFERROR(R4/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G4, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G4, Y!$A:$A, 0))),\n\"\")"
+  V: Simons
+  W: Sharpe
+  X: Avdija
+  Y: Camara
+  Z: Ayton
+"5":
+  A: "=IF(AND(ISNUMBER(C5), C5>100000), MAX(A$3:A4)+1, \"\")"
+  B: "Grant, Jerami"
+  C: "32000001"
+  F: "=IF(AND(ISNUMBER(H5), H5>1000), COUNTIF(H$4:H5, \">1000\"), \"\")"
+  G: "=IF(B5=\"\",\"\",B5)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G5, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G5, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H5=0, $H$51=0), \"\", IFERROR(H5/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G5, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G5, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J5=0, $J$51=0), \"\", IFERROR(J5/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G5, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G5, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L5=0, $L$51=0), \"\", IFERROR(L5/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G5, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G5, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N5=0, $N$51=0), \"\", IFERROR(N5/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G5, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G5, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P5=0, $P$51=0), \"\", IFERROR(P5/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G5, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G5, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R5=0, $R$51=0), \"\", IFERROR(R5/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G5, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G5, Y!$A:$A, 0))),\n\"\")"
+  V: Henderson
+  W: Thybulle
+  X: Grant
+  Z: Clingan
+"6":
+  A: "=IF(AND(ISNUMBER(C6), C6>100000), MAX(A$3:A5)+1, \"\")"
+  B: "Simons, Anfernee"
+  C: "27678571"
+  F: "=IF(AND(ISNUMBER(H6), H6>1000), COUNTIF(H$4:H6, \">1000\"), \"\")"
+  G: "=IF(B6=\"\",\"\",B6)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G6, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G6, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H6=0, $H$51=0), \"\", IFERROR(H6/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G6, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G6, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J6=0, $J$51=0), \"\", IFERROR(J6/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G6, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G6, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L6=0, $L$51=0), \"\", IFERROR(L6/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G6, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G6, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N6=0, $N$51=0), \"\", IFERROR(N6/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G6, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G6, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P6=0, $P$51=0), \"\", IFERROR(P6/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G6, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G6, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R6=0, $R$51=0), \"\", IFERROR(R6/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G6, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G6, Y!$A:$A, 0))),\n\"\")"
+  W: #11
+  X: Rupert
+  Y: Murray
+  Z: Williams
+"7":
+  A: "=IF(AND(ISNUMBER(C7), C7>100000), MAX(A$3:A6)+1, \"\")"
+  B: "Avdija, Deni"
+  C: "14375000"
+  F: "=IF(AND(ISNUMBER(H7), H7>1000), COUNTIF(H$4:H7, \">1000\"), \"\")"
+  G: "=IF(B7=\"\",\"\",B7)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G7, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G7, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H7=0, $H$51=0), \"\", IFERROR(H7/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G7, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G7, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J7=0, $J$51=0), \"\", IFERROR(J7/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G7, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G7, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L7=0, $L$51=0), \"\", IFERROR(L7/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G7, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G7, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N7=0, $N$51=0), \"\", IFERROR(N7/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G7, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G7, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P7=0, $P$51=0), \"\", IFERROR(P7/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G7, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G7, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R7=0, $R$51=0), \"\", IFERROR(R7/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G7, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G7, Y!$A:$A, 0))),\n\"\")"
+  Z: Reath
+"8":
+  A: "=IF(AND(ISNUMBER(C8), C8>100000), MAX(A$3:A7)+1, \"\")"
+  B: "Williams, Robert"
+  C: "13285713"
+  F: "=IF(AND(ISNUMBER(H8), H8>1000), COUNTIF(H$4:H8, \">1000\"), \"\")"
+  G: "=IF(B8=\"\",\"\",B8)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G8, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G8, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H8=0, $H$51=0), \"\", IFERROR(H8/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G8, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G8, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J8=0, $J$51=0), \"\", IFERROR(J8/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G8, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G8, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L8=0, $L$51=0), \"\", IFERROR(L8/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G8, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G8, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N8=0, $N$51=0), \"\", IFERROR(N8/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G8, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G8, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P8=0, $P$51=0), \"\", IFERROR(P8/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G8, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G8, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R8=0, $R$51=0), \"\", IFERROR(R8/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G8, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G8, Y!$A:$A, 0))),\n\"\")"
+"9":
+  A: "=IF(AND(ISNUMBER(C9), C9>100000), MAX(A$3:A8)+1, \"\")"
+  B: "Thybulle, Matisse"
+  C: "11550000"
+  F: "=IF(AND(ISNUMBER(H9), H9>1000), COUNTIF(H$4:H9, \">1000\"), \"\")"
+  G: "=IF(B9=\"\",\"\",B9)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G9, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G9, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H9=0, $H$51=0), \"\", IFERROR(H9/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G9, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G9, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J9=0, $J$51=0), \"\", IFERROR(J9/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G9, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G9, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L9=0, $L$51=0), \"\", IFERROR(L9/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G9, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G9, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N9=0, $N$51=0), \"\", IFERROR(N9/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G9, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G9, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P9=0, $P$51=0), \"\", IFERROR(P9/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G9, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G9, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R9=0, $R$51=0), \"\", IFERROR(R9/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G9, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G9, Y!$A:$A, 0))),\n\"\")"
+  Z: "=SUMPRODUCT(--(V4:Z7<>\"\"))"
+"10":
+  A: "=IF(AND(ISNUMBER(C10), C10>100000), MAX(A$3:A9)+1, \"\")"
+  B: "Henderson, Scoot"
+  C: "10748040"
+  F: "=IF(AND(ISNUMBER(H10), H10>1000), COUNTIF(H$4:H10, \">1000\"), \"\")"
+  G: "=IF(B10=\"\",\"\",B10)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G10, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G10, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H10=0, $H$51=0), \"\", IFERROR(H10/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G10, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G10, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J10=0, $J$51=0), \"\", IFERROR(J10/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G10, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G10, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L10=0, $L$51=0), \"\", IFERROR(L10/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G10, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G10, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N10=0, $N$51=0), \"\", IFERROR(N10/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G10, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G10, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P10=0, $P$51=0), \"\", IFERROR(P10/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G10, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G10, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R10=0, $R$51=0), \"\", IFERROR(R10/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G10, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G10, Y!$A:$A, 0))),\n\"\")"
+"11":
+  A: "=IF(AND(ISNUMBER(C11), C11>100000), MAX(A$3:A10)+1, \"\")"
+  B: "Sharpe, Shaedon"
+  C: "8399983"
+  F: "=IF(AND(ISNUMBER(H11), H11>1000), COUNTIF(H$4:H11, \">1000\"), \"\")"
+  G: Sharpe CH
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G11, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G11, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H11=0, $H$51=0), \"\", IFERROR(H11/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G11, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G11, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J11=0, $J$51=0), \"\", IFERROR(J11/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G11, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G11, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L11=0, $L$51=0), \"\", IFERROR(L11/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G11, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G11, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N11=0, $N$51=0), \"\", IFERROR(N11/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G11, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G11, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P11=0, $P$51=0), \"\", IFERROR(P11/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G11, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G11, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R11=0, $R$51=0), \"\", IFERROR(R11/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G11, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G11, Y!$A:$A, 0))),\n\"\")"
+  V: "2026"
+"12":
+  A: "=IF(AND(ISNUMBER(C12), C12>100000), MAX(A$3:A11)+1, \"\")"
+  B: "Clingan, Donovan"
+  C: "7178400"
+  F: "=IF(AND(ISNUMBER(H12), H12>1000), COUNTIF(H$4:H12, \">1000\"), \"\")"
+  G: "=IF(B12=\"\",\"\",B12)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G12, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G12, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H12=0, $H$51=0), \"\", IFERROR(H12/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G12, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G12, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J12=0, $J$51=0), \"\", IFERROR(J12/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G12, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G12, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L12=0, $L$51=0), \"\", IFERROR(L12/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G12, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G12, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N12=0, $N$51=0), \"\", IFERROR(N12/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G12, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G12, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P12=0, $P$51=0), \"\", IFERROR(P12/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G12, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G12, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R12=0, $R$51=0), \"\", IFERROR(R12/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G12, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G12, Y!$A:$A, 0))),\n\"\")"
+  V: Henderson
+  W: Sharpe
+  X: Avdija
+  Y: Camara
+  Z: Clingan
+"13":
+  A: "=IF(AND(ISNUMBER(C13), C13>100000), MAX(A$3:A12)+1, \"\")"
+  B: "Murray, Kris"
+  C: "3132000"
+  F: "=IF(AND(ISNUMBER(H13), H13>1000), COUNTIF(H$4:H13, \">1000\"), \"\")"
+  G: "=IF(B13=\"\",\"\",B13)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G13, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G13, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H13=0, $H$51=0), \"\", IFERROR(H13/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G13, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G13, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J13=0, $J$51=0), \"\", IFERROR(J13/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G13, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G13, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L13=0, $L$51=0), \"\", IFERROR(L13/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G13, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G13, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N13=0, $N$51=0), \"\", IFERROR(N13/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G13, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G13, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P13=0, $P$51=0), \"\", IFERROR(P13/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G13, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G13, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R13=0, $R$51=0), \"\", IFERROR(R13/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G13, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G13, Y!$A:$A, 0))),\n\"\")"
+  W: #11
+  X: Grant
+  Z: #13
+"14":
+  A: "=IF(AND(ISNUMBER(C14), C14>100000), MAX(A$3:A13)+1, \"\")"
+  B: "Camara, Toumani"
+  C: "2221677"
+  F: "=IF(AND(ISNUMBER(H14), H14>1000), COUNTIF(H$4:H14, \">1000\"), \"\")"
+  G: Camara CH
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G14, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G14, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H14=0, $H$51=0), \"\", IFERROR(H14/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G14, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G14, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J14=0, $J$51=0), \"\", IFERROR(J14/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G14, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G14, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L14=0, $L$51=0), \"\", IFERROR(L14/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G14, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G14, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N14=0, $N$51=0), \"\", IFERROR(N14/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G14, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G14, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P14=0, $P$51=0), \"\", IFERROR(P14/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G14, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G14, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R14=0, $R$51=0), \"\", IFERROR(R14/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G14, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G14, Y!$A:$A, 0))),\n\"\")"
+  Y: Murray
+"15":
+  A: "=IF(AND(ISNUMBER(C15), C15>100000), MAX(A$3:A14)+1, \"\")"
+  B: "Rupert, Rayan"
+  C: "2221677"
+  F: "=IF(AND(ISNUMBER(H15), H15>1000), COUNTIF(H$4:H15, \">1000\"), \"\")"
+  G: "=IF(B15=\"\",\"\",B15)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G15, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G15, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H15=0, $H$51=0), \"\", IFERROR(H15/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G15, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G15, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J15=0, $J$51=0), \"\", IFERROR(J15/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G15, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G15, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L15=0, $L$51=0), \"\", IFERROR(L15/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G15, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G15, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N15=0, $N$51=0), \"\", IFERROR(N15/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G15, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G15, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P15=0, $P$51=0), \"\", IFERROR(P15/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G15, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G15, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R15=0, $R$51=0), \"\", IFERROR(R15/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G15, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G15, Y!$A:$A, 0))),\n\"\")"
+"16":
+  A: "=IF(AND(ISNUMBER(C16), C16>100000), MAX(A$3:A15)+1, \"\")"
+  B: "Reath, Duop"
+  C: "2221677"
+  F: "=IF(AND(ISNUMBER(H16), H16>1000), COUNTIF(H$4:H16, \">1000\"), \"\")"
+  G: "=IF(B16=\"\",\"\",B16)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G16, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G16, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H16=0, $H$51=0), \"\", IFERROR(H16/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G16, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G16, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J16=0, $J$51=0), \"\", IFERROR(J16/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G16, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G16, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L16=0, $L$51=0), \"\", IFERROR(L16/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G16, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G16, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N16=0, $N$51=0), \"\", IFERROR(N16/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G16, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G16, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P16=0, $P$51=0), \"\", IFERROR(P16/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G16, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G16, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R16=0, $R$51=0), \"\", IFERROR(R16/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G16, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G16, Y!$A:$A, 0))),\n\"\")"
+"17":
+  A: "=IF(AND(ISNUMBER(C17), C17>100000), MAX(A$3:A16)+1, \"\")"
+  F: "=IF(AND(ISNUMBER(H17), H17>1000), COUNTIF(H$4:H17, \">1000\"), \"\")"
+  G: "=IF(B17=\"\",\"\",B17)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G17, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G17, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H17=0, $H$51=0), \"\", IFERROR(H17/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G17, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G17, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J17=0, $J$51=0), \"\", IFERROR(J17/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G17, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G17, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L17=0, $L$51=0), \"\", IFERROR(L17/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G17, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G17, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N17=0, $N$51=0), \"\", IFERROR(N17/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G17, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G17, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P17=0, $P$51=0), \"\", IFERROR(P17/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G17, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G17, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R17=0, $R$51=0), \"\", IFERROR(R17/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G17, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G17, Y!$A:$A, 0))),\n\"\")"
+  Z: "=SUMPRODUCT(--(V12:Z15<>\"\"))"
+"18":
+  A: "=IF(AND(ISNUMBER(C18), C18>100000), MAX(A$3:A17)+1, \"\")"
+  F: "=IF(AND(ISNUMBER(H18), H18>1000), COUNTIF(H$4:H18, \">1000\"), \"\")"
+  G: "=IF(B18=\"\",\"\",B18)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G18, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G18, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H18=0, $H$51=0), \"\", IFERROR(H18/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G18, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G18, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J18=0, $J$51=0), \"\", IFERROR(J18/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G18, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G18, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L18=0, $L$51=0), \"\", IFERROR(L18/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G18, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G18, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N18=0, $N$51=0), \"\", IFERROR(N18/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G18, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G18, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P18=0, $P$51=0), \"\", IFERROR(P18/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G18, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G18, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R18=0, $R$51=0), \"\", IFERROR(R18/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G18, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G18, Y!$A:$A, 0))),\n\"\")"
+"19":
+  A: "=IF(AND(ISNUMBER(C19), C19>100000), MAX(A$3:A18)+1, \"\")"
+  F: "=IF(AND(ISNUMBER(H19), H19>1000), COUNTIF(H$4:H19, \">1000\"), \"\")"
+  G: "=IF(B19=\"\",\"\",B19)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G19, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G19, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H19=0, $H$51=0), \"\", IFERROR(H19/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G19, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G19, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J19=0, $J$51=0), \"\", IFERROR(J19/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G19, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G19, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L19=0, $L$51=0), \"\", IFERROR(L19/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G19, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G19, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N19=0, $N$51=0), \"\", IFERROR(N19/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G19, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G19, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P19=0, $P$51=0), \"\", IFERROR(P19/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G19, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G19, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R19=0, $R$51=0), \"\", IFERROR(R19/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G19, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G19, Y!$A:$A, 0))),\n\"\")"
+"20":
+  A: "=IF(AND(ISNUMBER(C20), C20>100000), MAX(A$3:A19)+1, \"\")"
+  F: "=IF(AND(ISNUMBER(H20), H20>1000), COUNTIF(H$4:H20, \">1000\"), \"\")"
+  G: "=IF(B20=\"\",\"\",B20)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G20, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G20, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H20=0, $H$51=0), \"\", IFERROR(H20/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G20, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G20, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J20=0, $J$51=0), \"\", IFERROR(J20/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G20, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G20, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L20=0, $L$51=0), \"\", IFERROR(L20/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G20, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G20, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N20=0, $N$51=0), \"\", IFERROR(N20/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G20, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G20, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P20=0, $P$51=0), \"\", IFERROR(P20/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G20, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G20, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R20=0, $R$51=0), \"\", IFERROR(R20/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G20, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G20, Y!$A:$A, 0))),\n\"\")"
+"21":
+  A: "=IF(AND(ISNUMBER(C21), C21>100000), MAX(A$3:A20)+1, \"\")"
+  F: "=IF(AND(ISNUMBER(H21), H21>1000), COUNTIF(H$4:H21, \">1000\"), \"\")"
+  G: "=IF(B21=\"\",\"\",B21)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G21, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G21, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H21=0, $H$51=0), \"\", IFERROR(H21/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G21, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G21, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J21=0, $J$51=0), \"\", IFERROR(J21/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G21, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G21, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L21=0, $L$51=0), \"\", IFERROR(L21/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G21, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G21, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N21=0, $N$51=0), \"\", IFERROR(N21/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G21, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G21, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P21=0, $P$51=0), \"\", IFERROR(P21/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G21, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G21, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R21=0, $R$51=0), \"\", IFERROR(R21/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G21, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G21, Y!$A:$A, 0))),\n\"\")"
+"22":
+  A: "=IF(AND(ISNUMBER(C22), C22>100000), MAX(A$3:A21)+1, \"\")"
+  C: "=IFERROR(IF(INDEX(Contracts!$X:$X, MATCH(B22, Contracts!$V:$V, 0)) = \"-\", 0, INDEX(Contracts!$X:$X, MATCH(B22, Contracts!$V:$V, 0))), 0)"
+  F: "=IF(AND(ISNUMBER(H22), H22>1000), COUNTIF(H$4:H22, \">1000\"), \"\")"
+  G: "=IF(B22=\"\",\"\",B22)"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G22, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G22, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H22=0, $H$51=0), \"\", IFERROR(H22/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G22, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G22, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J22=0, $J$51=0), \"\", IFERROR(J22/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G22, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G22, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L22=0, $L$51=0), \"\", IFERROR(L22/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G22, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G22, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N22=0, $N$51=0), \"\", IFERROR(N22/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G22, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G22, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P22=0, $P$51=0), \"\", IFERROR(P22/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G22, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G22, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R22=0, $R$51=0), \"\", IFERROR(R22/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G22, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G22, Y!$A:$A, 0))),\n\"\")"
+"23":
+  A: "=IF(14-MAX(A4:A22)<0,0,14-MAX(A4:A22))"
+  B: "=IF($C$3=2024,\"Vet Min 2024\",\"Vet Min 2025\")"
+  C: "=VLOOKUP(B23,Y!$A:$O,3,FALSE)*A23"
+  F: "=IF(AND(ISNUMBER(H23), H23>1000), COUNTIF(H$4:H23, \">1000\"), \"\")"
+  G: "Trade:"
+"24":
+  B: "=A1&\" \"&\"Dead Money\""
+  C: "=IFERROR(IF(INDEX(Y!$Z:$Z, MATCH(B24, Y!$A:$A, 0)) = \"-\", 0, VALUE(INDEX(Y!$Z:$Z, MATCH(B24, Y!$A:$A, 0)))), 0)"
+  F: "=IF(AND(ISNUMBER(H24), H24>1000), COUNTIF(H$4:H24, \">1000\"), \"\")"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G24, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G24, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H24=0, $H$51=0), \"\", IFERROR(H24/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G24, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G24, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J24=0, $J$51=0), \"\", IFERROR(J24/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G24, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G24, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L24=0, $L$51=0), \"\", IFERROR(L24/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G24, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G24, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N24=0, $N$51=0), \"\", IFERROR(N24/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G24, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G24, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P24=0, $P$51=0), \"\", IFERROR(P24/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G24, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G24, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R24=0, $R$51=0), \"\", IFERROR(R24/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G24, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G24, Y!$A:$A, 0))),\n\"\")"
+  V: "2027"
+"25":
+  F: "=IF(AND(ISNUMBER(H25), H25>1000), COUNTIF(H$4:H25, \">1000\"), \"\")"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G25, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G25, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H25=0, $H$51=0), \"\", IFERROR(H25/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G25, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G25, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J25=0, $J$51=0), \"\", IFERROR(J25/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G25, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G25, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L25=0, $L$51=0), \"\", IFERROR(L25/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G25, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G25, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N25=0, $N$51=0), \"\", IFERROR(N25/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G25, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G25, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P25=0, $P$51=0), \"\", IFERROR(P25/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G25, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G25, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R25=0, $R$51=0), \"\", IFERROR(R25/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G25, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G25, Y!$A:$A, 0))),\n\"\")"
+  V: Henderson
+  W: Sharpe
+  X: Avdija
+  Y: Camara
+  Z: Clingan
+"26":
+  B: Total
+  C: "=SUM(C4:C25)"
+  F: "=IF(AND(ISNUMBER(H26), H26>1000), COUNTIF(H$4:H26, \">1000\"), \"\")"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G26, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G26, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H26=0, $H$51=0), \"\", IFERROR(H26/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G26, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G26, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J26=0, $J$51=0), \"\", IFERROR(J26/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G26, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G26, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L26=0, $L$51=0), \"\", IFERROR(L26/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G26, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G26, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N26=0, $N$51=0), \"\", IFERROR(N26/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G26, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G26, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P26=0, $P$51=0), \"\", IFERROR(P26/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G26, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G26, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R26=0, $R$51=0), \"\", IFERROR(R26/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G26, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G26, Y!$A:$A, 0))),\n\"\")"
+  W: #11
+  X: Grant
+  Z: #13
+"27":
+  B: Minimum Level
+  C: "=_xlfn.XLOOKUP(C3,Y!$AJ$2:$AJ$12,Y!$AT$2:$AT$12)"
+  F: "=IF(AND(ISNUMBER(H27), H27>1000), COUNTIF(H$4:H27, \">1000\"), \"\")"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G27, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G27, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H27=0, $H$51=0), \"\", IFERROR(H27/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G27, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G27, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J27=0, $J$51=0), \"\", IFERROR(J27/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G27, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G27, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L27=0, $L$51=0), \"\", IFERROR(L27/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G27, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G27, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N27=0, $N$51=0), \"\", IFERROR(N27/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G27, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G27, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P27=0, $P$51=0), \"\", IFERROR(P27/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G27, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G27, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R27=0, $R$51=0), \"\", IFERROR(R27/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G27, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G27, Y!$A:$A, 0))),\n\"\")"
+"28":
+  B: +/- Minimum
+  C: =C26-C27
+  F: "=IF(AND(ISNUMBER(H28), H28>1000), COUNTIF(H$4:H28, \">1000\"), \"\")"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G28, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G28, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H28=0, $H$51=0), \"\", IFERROR(H28/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G28, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G28, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J28=0, $J$51=0), \"\", IFERROR(J28/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G28, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G28, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L28=0, $L$51=0), \"\", IFERROR(L28/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G28, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G28, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N28=0, $N$51=0), \"\", IFERROR(N28/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G28, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G28, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P28=0, $P$51=0), \"\", IFERROR(P28/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G28, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G28, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R28=0, $R$51=0), \"\", IFERROR(R28/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G28, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G28, Y!$A:$A, 0))),\n\"\")"
+"29":
+  B: Cap Level
+  C: "=_xlfn.XLOOKUP(C3,Y!$AJ$2:$AJ$12,Y!$AN$2:$AN$12)"
+  F: "=IF(AND(ISNUMBER(H29), H29>1000), COUNTIF(H$4:H29, \">1000\"), \"\")"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G29, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G29, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H29=0, $H$51=0), \"\", IFERROR(H29/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G29, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G29, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J29=0, $J$51=0), \"\", IFERROR(J29/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G29, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G29, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L29=0, $L$51=0), \"\", IFERROR(L29/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G29, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G29, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N29=0, $N$51=0), \"\", IFERROR(N29/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G29, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G29, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P29=0, $P$51=0), \"\", IFERROR(P29/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G29, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G29, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R29=0, $R$51=0), \"\", IFERROR(R29/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G29, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G29, Y!$A:$A, 0))),\n\"\")"
+"30":
+  B: +/- Cap
+  C: =C26-C29
+  F: "=IF(AND(ISNUMBER(H30), H30>1000), COUNTIF(H$4:H30, \">1000\"), \"\")"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G30, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G30, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H30=0, $H$51=0), \"\", IFERROR(H30/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G30, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G30, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J30=0, $J$51=0), \"\", IFERROR(J30/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G30, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G30, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L30=0, $L$51=0), \"\", IFERROR(L30/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G30, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G30, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N30=0, $N$51=0), \"\", IFERROR(N30/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G30, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G30, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P30=0, $P$51=0), \"\", IFERROR(P30/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G30, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G30, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R30=0, $R$51=0), \"\", IFERROR(R30/$R$51, \"\"))"
+  T: "=IFERROR(\n    IF(INDEX(Y!$P:$P, MATCH(G30, Y!$A:$A, 0)) = \"-\", \"\", INDEX(Y!$P:$P, MATCH(G30, Y!$A:$A, 0))),\n\"\")"
+  Z: "=SUMPRODUCT(--(V25:Z28<>\"\"))"
+"31":
+  B: Tax Level
+  C: "=_xlfn.XLOOKUP(C3,Y!$AJ$2:$AJ$12,Y!$AP$2:$AP$12)"
+  F: "=IF(AND(ISNUMBER(H31), H31>1000), COUNTIF(H$4:H31, \">1000\"), \"\")"
+  G: "Signing / Picks:"
+"32":
+  B: +/- Tax
+  C: =C26-C31
+  F: "=IF(AND(ISNUMBER(H32), H32>1000), COUNTIF(H$4:H32, \">1000\"), \"\")"
+  G: #11 2025
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G32, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G32, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H32=0, $H$51=0), \"\", IFERROR(H32/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G32, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G32, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J32=0, $J$51=0), \"\", IFERROR(J32/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G32, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G32, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L32=0, $L$51=0), \"\", IFERROR(L32/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G32, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G32, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N32=0, $N$51=0), \"\", IFERROR(N32/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G32, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G32, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P32=0, $P$51=0), \"\", IFERROR(P32/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G32, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G32, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R32=0, $R$51=0), \"\", IFERROR(R32/$R$51, \"\"))"
+"33":
+  B: Tax Payment
+  C: "=IF($C$3=2024,\n    IF($H$1=\"Yes\",\n       SUMPRODUCT(\n         --(C32>'Repeat Tax Array'!$A$1:$A$21),\n         (C32-'Repeat Tax Array'!$A$1:$A$21),\n         'Repeat Tax Array'!$C$1:$C$21\n       ),\n       SUMPRODUCT(\n         --(C32>'TEAM Copy 250616_155042'!$A$1:$A$21),\n         (C32-'TEAM Copy 250616_155042'!$A$1:$A$21),\n         'TEAM Copy 250616_155042'!$C$1:$C$21\n       )\n    ),\n    IF($C$3=2025,\n       IF($H$1=\"Yes\",\n          SUMPRODUCT(\n            --(C32>'Repeat Tax Array'!$J$1:$J$21),\n            (C32-'Repeat Tax Array'!$J$1:$J$21),\n            'Repeat Tax Array'!$L$1:$L$21\n          ),\n          SUMPRODUCT(\n            --(C32>'TEAM Copy 250616_155042'!$J$1:$J$21),\n            (C32-'TEAM Copy 250616_155042'!$J$1:$J$21),\n            'TEAM Copy 250616_155042'!$L$1:$L$21\n          )\n       ),\n       \"\"\n    )\n)"
+  F: "=IF(AND(ISNUMBER(H33), H33>1000), COUNTIF(H$4:H33, \">1000\"), \"\")"
+  G: #13 2026
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G33, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G33, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H33=0, $H$51=0), \"\", IFERROR(H33/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G33, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G33, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J33=0, $J$51=0), \"\", IFERROR(J33/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G33, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G33, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L33=0, $L$51=0), \"\", IFERROR(L33/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G33, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G33, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N33=0, $N$51=0), \"\", IFERROR(N33/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G33, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G33, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P33=0, $P$51=0), \"\", IFERROR(P33/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G33, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G33, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R33=0, $R$51=0), \"\", IFERROR(R33/$R$51, \"\"))"
+"34":
+  B: Tax Refund
+  C: "=IF(AND(C3=2023, C32<0), Y!DO3*-1, IF(AND(C3<>2023, C32<0), -11000000, 0))"
+  F: "=IF(AND(ISNUMBER(H34), H34>1000), COUNTIF(H$4:H34, \">1000\"), \"\")"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G34, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G34, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H34=0, $H$51=0), \"\", IFERROR(H34/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G34, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G34, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J34=0, $J$51=0), \"\", IFERROR(J34/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G34, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G34, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L34=0, $L$51=0), \"\", IFERROR(L34/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G34, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G34, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N34=0, $N$51=0), \"\", IFERROR(N34/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G34, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G34, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P34=0, $P$51=0), \"\", IFERROR(P34/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G34, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G34, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R34=0, $R$51=0), \"\", IFERROR(R34/$R$51, \"\"))"
+"35":
+  B: Net Cost
+  C: =C26+C33+C34
+  F: "=IF(AND(ISNUMBER(H35), H35>1000), COUNTIF(H$4:H35, \">1000\"), \"\")"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G35, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G35, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H35=0, $H$51=0), \"\", IFERROR(H35/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G35, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G35, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J35=0, $J$51=0), \"\", IFERROR(J35/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G35, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G35, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L35=0, $L$51=0), \"\", IFERROR(L35/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G35, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G35, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N35=0, $N$51=0), \"\", IFERROR(N35/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G35, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G35, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P35=0, $P$51=0), \"\", IFERROR(P35/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G35, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G35, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R35=0, $R$51=0), \"\", IFERROR(R35/$R$51, \"\"))"
+"36":
+  B: Apron 1 Level
+  C: "=_xlfn.XLOOKUP(C3,Y!$AJ$2:$AJ$12,Y!$AR$2:$AR$12)"
+  F: "=IF(AND(ISNUMBER(H36), H36>1000), COUNTIF(H$4:H36, \">1000\"), \"\")"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G36, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G36, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H36=0, $H$51=0), \"\", IFERROR(H36/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G36, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G36, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J36=0, $J$51=0), \"\", IFERROR(J36/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G36, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G36, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L36=0, $L$51=0), \"\", IFERROR(L36/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G36, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G36, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N36=0, $N$51=0), \"\", IFERROR(N36/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G36, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G36, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P36=0, $P$51=0), \"\", IFERROR(P36/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G36, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G36, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R36=0, $R$51=0), \"\", IFERROR(R36/$R$51, \"\"))"
+"37":
+  B: +/- Apron 1
+  C: =C26-C36
+  F: "=IF(AND(ISNUMBER(H37), H37>1000), COUNTIF(H$4:H37, \">1000\"), \"\")"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G37, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G37, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H37=0, $H$51=0), \"\", IFERROR(H37/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G37, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G37, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J37=0, $J$51=0), \"\", IFERROR(J37/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G37, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G37, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L37=0, $L$51=0), \"\", IFERROR(L37/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G37, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G37, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N37=0, $N$51=0), \"\", IFERROR(N37/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G37, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G37, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P37=0, $P$51=0), \"\", IFERROR(P37/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G37, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G37, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R37=0, $R$51=0), \"\", IFERROR(R37/$R$51, \"\"))"
+"38":
+  B: Apron 2 Level
+  C: "=_xlfn.XLOOKUP(C3,Y!$AJ$2:$AJ$12,Y!$BP$2:$BP$12)"
+  F: "=IF(AND(ISNUMBER(H38), H38>1000), COUNTIF(H$4:H38, \">1000\"), \"\")"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G38, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G38, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H38=0, $H$51=0), \"\", IFERROR(H38/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G38, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G38, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J38=0, $J$51=0), \"\", IFERROR(J38/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G38, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G38, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L38=0, $L$51=0), \"\", IFERROR(L38/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G38, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G38, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N38=0, $N$51=0), \"\", IFERROR(N38/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G38, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G38, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P38=0, $P$51=0), \"\", IFERROR(P38/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G38, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G38, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R38=0, $R$51=0), \"\", IFERROR(R38/$R$51, \"\"))"
+"39":
+  B: +/- Apron 2
+  C: =C26-C38
+  F: "=IF(AND(ISNUMBER(H39), H39>1000), COUNTIF(H$4:H39, \">1000\"), \"\")"
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G39, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$C:$C, MATCH(G39, Y!$A:$A, 0))), 0)"
+  I: "=IF(OR(H39=0, $H$51=0), \"\", IFERROR(H39/$H$51, \"\"))"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G39, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$E:$E, MATCH(G39, Y!$A:$A, 0))), 0)"
+  K: "=IF(OR(J39=0, $J$51=0), \"\", IFERROR(J39/$J$51, \"\"))"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G39, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$G:$G, MATCH(G39, Y!$A:$A, 0))), 0)"
+  M: "=IF(OR(L39=0, $L$51=0), \"\", IFERROR(L39/$L$51, \"\"))"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G39, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$I:$I, MATCH(G39, Y!$A:$A, 0))), 0)"
+  O: "=IF(OR(N39=0, $N$51=0), \"\", IFERROR(N39/$N$51, \"\"))"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G39, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$K:$K, MATCH(G39, Y!$A:$A, 0))), 0)"
+  Q: "=IF(OR(P39=0, $P$51=0), \"\", IFERROR(P39/$P$51, \"\"))"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G39, Y!$A:$A, 0)) = \"-\", 0, INDEX(Y!$M:$M, MATCH(G39, Y!$A:$A, 0))), 0)"
+  S: "=IF(OR(R39=0, $R$51=0), \"\", IFERROR(R39/$R$51, \"\"))"
+"40":
+  G: "Waive / Stretch:"
+"41":
+  I: "=IF(OR(H41=0, $H$51=0), \"\", IFERROR(H41/$H$51, \"\"))"
+  K: "=IF(OR(J41=0, $J$51=0), \"\", IFERROR(J41/$J$51, \"\"))"
+  M: "=IF(OR(L41=0, $L$51=0), \"\", IFERROR(L41/$L$51, \"\"))"
+  O: "=IF(OR(N41=0, $N$51=0), \"\", IFERROR(N41/$N$51, \"\"))"
+  Q: "=IF(OR(P41=0, $P$51=0), \"\", IFERROR(P41/$P$51, \"\"))"
+  S: "=IF(OR(R41=0, $R$51=0), \"\", IFERROR(R41/$R$51, \"\"))"
+"42":
+  A: Contract Calculator
+  I: "=IF(OR(H42=0, $H$51=0), \"\", IFERROR(H42/$H$51, \"\"))"
+  K: "=IF(OR(J42=0, $J$51=0), \"\", IFERROR(J42/$J$51, \"\"))"
+  M: "=IF(OR(L42=0, $L$51=0), \"\", IFERROR(L42/$L$51, \"\"))"
+  O: "=IF(OR(N42=0, $N$51=0), \"\", IFERROR(N42/$N$51, \"\"))"
+  Q: "=IF(OR(P42=0, $P$51=0), \"\", IFERROR(P42/$P$51, \"\"))"
+  S: "=IF(OR(R42=0, $R$51=0), \"\", IFERROR(R42/$R$51, \"\"))"
+"43":
+  B: "Total:"
+  C: "145000000"
+  G: Roster Count
+  H: "=COUNTIF(H4:H39,\">1\")"
+  J: "=COUNTIF(J4:J39,\">1000000\")"
+  L: "=COUNTIF(L4:L39,\">1000000\")"
+  N: "=COUNTIF(N4:N39,\">1000000\")"
+  P: "=COUNTIF(P4:P39,\">1000000\")"
+  R: "=COUNTIF(R4:R39,\">1000000\")"
+"44":
+  B: "Average:"
+  C: "=IFERROR(C43/(COUNTIF(B47:B51,\">0\")),0)"
+  G: (+) Rookie Mins
+  H: "=IF(H43>=12,0,VLOOKUP(\"2025 Rookie Min\",Y!$A:$N,3,FALSE))*(12-H43)"
+  J: "=IF(J43>=12,0,VLOOKUP(\"2026 Rookie Min\",Y!$A:$N,5,FALSE))*(12-J43)"
+  L: "=IF(L43>=12,0,VLOOKUP(\"2027 Rookie Min\",Y!$A:$N,7,FALSE))*(12-L43)"
+  N: "=IF(N43>=12,0,VLOOKUP(\"2028 Rookie Min\",Y!$A:$N,9,FALSE))*(12-N43)"
+  P: "=IF(P43>=12,0,VLOOKUP(\"2029 Rookie Min\",Y!$A:$N,11,FALSE))*(12-P43)"
+  R: "=IF(R43>=12,0,VLOOKUP(\"2030 Rookie Min\",Y!$A:$N,13,FALSE))*(12-R43)"
+  T: "=IFERROR(INDEX(Y!$P:$P, MATCH(G44, Y!$A:$A, 0)), \"-\")"
+"45":
+  A: Yrs
+  B: "% Raise:"
+  C: "0.05"
+  G: (+) Vet Mins
+  H: "=IF(H43>=14,0,VLOOKUP(\"Vet Min 2025\",Y!$A:$N,3,FALSE))*(14-H43)"
+  J: "=IF(J43>=14,0,VLOOKUP(\"Vet Min 2026\",Y!$A:$N,5,FALSE))*(14-J43)"
+  L: "=IF(L43>=14,0,VLOOKUP(\"Vet Min 2027\",Y!$A:$N,7,FALSE))*(14-L43)"
+  N: "=IF(N43>=14,0,VLOOKUP(\"Vet Min 2028\",Y!$A:$N,9,FALSE))*(14-N43)"
+  P: "=IF(P43>=14,0,VLOOKUP(\"Vet Min 2029\",Y!$A:$N,11,FALSE))*(14-P43)"
+  R: "=IF(R43>=14,0,VLOOKUP(\"Vet Min 2030\",Y!$A:$N,13,FALSE))*(14-R43)"
+  T: "=IFERROR(INDEX(Y!$P:$P, MATCH(G45, Y!$A:$A, 0)), \"-\")"
+"46":
+  G: =B24
+  H: "=IFERROR(IF(INDEX(Y!$C:$C, MATCH(G46, Y!$A:$A, 0)) = \"-\", 0, VALUE(INDEX(Y!$C:$C, MATCH(G46, Y!$A:$A, 0)))), 0)"
+  J: "=IFERROR(IF(INDEX(Y!$E:$E, MATCH(G46, Y!$A:$A, 0)) = \"-\", 0, VALUE(INDEX(Y!$E:$E, MATCH(G46, Y!$A:$A, 0)))), 0)"
+  L: "=IFERROR(IF(INDEX(Y!$G:$G, MATCH(G46, Y!$A:$A, 0)) = \"-\", 0, VALUE(INDEX(Y!$G:$G, MATCH(G46, Y!$A:$A, 0)))), 0)"
+  N: "=IFERROR(IF(INDEX(Y!$I:$I, MATCH(G46, Y!$A:$A, 0)) = \"-\", 0, VALUE(INDEX(Y!$I:$I, MATCH(G46, Y!$A:$A, 0)))), 0)"
+  P: "=IFERROR(IF(INDEX(Y!$K:$K, MATCH(G46, Y!$A:$A, 0)) = \"-\", 0, VALUE(INDEX(Y!$K:$K, MATCH(G46, Y!$A:$A, 0)))), 0)"
+  R: "=IFERROR(IF(INDEX(Y!$M:$M, MATCH(G46, Y!$A:$A, 0)) = \"-\", 0, VALUE(INDEX(Y!$M:$M, MATCH(G46, Y!$A:$A, 0)))), 0)"
+"47":
+  A: "1"
+  B: "=ROUNDDOWN($C$43/$C$55,3)"
+  C: "1"
+"48":
+  A: "2"
+  B: "=ROUNDDOWN($B$47*$C48,3)"
+  C: =C47+$C$45
+  G: Total Committed
+  H: "=SUM(H4:H42)+H46"
+  J: "=SUM(J4:J42)+J46"
+  L: "=SUM(L4:L42)+SUM(L46)"
+  N: "=SUM(N4:N42)+SUM(N46)"
+  P: "=SUM(P4:P42)+SUM(P46)"
+  R: "=SUM(R4:R42)+SUM(R46)"
+"49":
+  A: "3"
+  B: =B48+$C$56
+  C: =C48+$C$45
+  G: Minimum Level
+  H: "=_xlfn.XLOOKUP(H3,Y!$AJ$2:$AJ$14,Y!$AT$2:$AT$14)"
+  J: "=_xlfn.XLOOKUP(J3,Y!$AJ$2:$AJ$14,Y!$AT$2:$AT$14)"
+  L: "=_xlfn.XLOOKUP(L3,Y!$AJ$2:$AJ$14,Y!$AT$2:$AT$14)"
+  N: "=_xlfn.XLOOKUP(N3,Y!$AJ$2:$AJ$14,Y!$AT$2:$AT$14)"
+  P: "=_xlfn.XLOOKUP(P3,Y!$AJ$2:$AJ$14,Y!$AT$2:$AT$14)"
+  R: "=_xlfn.XLOOKUP(R3,Y!$AJ$2:$AJ$15,Y!$AT$2:$AT$15)"
+"50":
+  A: "4"
+  B: =B49+$C$56
+  C: =C49+$C$45
+  G: +/- Minimum
+  H: =H48-H49
+  J: =J48-J49
+  L: =L48-L49
+  N: =N48-N49
+  P: =P48-P49
+  R: =R48-R49
+"51":
+  A: "5"
+  B: =B50+$C$56
+  G: Cap Level
+  H: "=_xlfn.XLOOKUP(H3,Y!$AJ$2:$AJ$14,Y!$AN$2:$AN$14)"
+  J: "=_xlfn.XLOOKUP(J3,Y!$AJ$2:$AJ$14,Y!$AN$2:$AN$14)"
+  L: "=_xlfn.XLOOKUP(L3,Y!$AJ$2:$AJ$14,Y!$AN$2:$AN$14)"
+  N: "=_xlfn.XLOOKUP(N3,Y!$AJ$2:$AJ$14,Y!$AN$2:$AN$14)"
+  P: "=_xlfn.XLOOKUP(P3,Y!$AJ$2:$AJ$14,Y!$AN$2:$AN$14)"
+  R: "=_xlfn.XLOOKUP(R3,Y!$AJ$2:$AJ$15,Y!$AN$2:$AN$15)"
+"52":
+  G: Cap Space
+  H: "=(SUM(H4:H42)+H44+H46)-H51"
+  J: "=(SUM(J4:J42)+J44+J46)-J51"
+  L: "=(SUM(L4:L42)+L44+L46)-L51"
+  N: "=(SUM(N4:N42)+N44+N46)-N51"
+  P: "=(SUM(P4:P42)+P44+P46)-P51"
+  R: "=(SUM(R4:R42)+R44+R46)-R51"
+"53":
+  B: "=SUM(B47:B51)"
+  G: Tax Level
+  H: "=_xlfn.XLOOKUP(H3,Y!$AJ$2:$AJ$14,Y!$AP$2:$AP$14)"
+  J: "=_xlfn.XLOOKUP(J3,Y!$AJ$2:$AJ$14,Y!$AP$2:$AP$14)"
+  L: "=_xlfn.XLOOKUP(L3,Y!$AJ$2:$AJ$14,Y!$AP$2:$AP$14)"
+  N: "=_xlfn.XLOOKUP(N3,Y!$AJ$2:$AJ$14,Y!$AP$2:$AP$14)"
+  P: "=_xlfn.XLOOKUP(P3,Y!$AJ$2:$AJ$14,Y!$AP$2:$AP$14)"
+  R: "=_xlfn.XLOOKUP(R3,Y!$AJ$2:$AJ$15,Y!$AP$2:$AP$15)"
+"54":
+  G: +/- Tax
+  H: "=SUM(H4:H42)+H45+H46-H53"
+  J: "=SUM(J4:J42)+J45+J46-J53"
+  L: "=SUM(L4:L42)+L45+L46-L53"
+  N: "=SUM(N4:N42)+N45+N46-N53"
+  P: "=SUM(P4:P42)+P45+P46-P53"
+  R: "=SUM(R4:R42)+R45+R46-R53"
+"55":
+  B: Coefficient =
+  C: "=SUM(C47:C51)"
+  G: Tax Payment
+  H: "=IF($H$1=\"Yes\",SUMPRODUCT(--(H54>'Repeat Tax Array'!$J$1:$J$21), (H54-'Repeat Tax Array'!$J$1:$J$21), 'Repeat Tax Array'!$L$1:$L$21),SUMPRODUCT(--(H54>'TEAM Copy 250616_155042'!$J$1:$J$21), (H54-'TEAM Copy 250616_155042'!$J$1:$J$21), 'TEAM Copy 250616_155042'!$L$1:$L$21))"
+  J: "=IF($L$1=\"Yes\",SUMPRODUCT(--(J54>'Repeat Tax Array'!$S$1:$S$21), (J54-'Repeat Tax Array'!$S$1:$S$21), 'Repeat Tax Array'!$U$1:$U$21),SUMPRODUCT(--(J54>'TEAM Copy 250616_155042'!$S$1:$S$21), (J54-'TEAM Copy 250616_155042'!$S$1:$S$21), 'TEAM Copy 250616_155042'!$U$1:$U$21))"
+  L: "=IF($L$1=\"Yes\",SUMPRODUCT(--(L54>'Repeat Tax Array'!$AB$1:$AB$21), (L54-'Repeat Tax Array'!$AB$1:$AB$21), 'Repeat Tax Array'!$AD$1:$AD$21),SUMPRODUCT(--(L54>'TEAM Copy 250616_155042'!$AB$1:$AB$21), (L54-'TEAM Copy 250616_155042'!$AB$1:$AB$21), 'TEAM Copy 250616_155042'!$AD$1:$AD$21))"
+  N: "=IF($L$1=\"Yes\",SUMPRODUCT(--(N54>'Repeat Tax Array'!$AK$1:$AK$21), (N54-'Repeat Tax Array'!$AK$1:$AK$21), 'Repeat Tax Array'!$AM$1:$AM$21),SUMPRODUCT(--(N54>'TEAM Copy 250616_155042'!$AK$1:$AK$21), (N54-'TEAM Copy 250616_155042'!$AK$1:$AK$21), 'TEAM Copy 250616_155042'!$AM$1:$AM$21))"
+  P: "=IF($L$1=\"Yes\",SUMPRODUCT(--(P54>'Repeat Tax Array'!$AK$1:$AK$21), (P54-'Repeat Tax Array'!$AK$1:$AK$21), 'Repeat Tax Array'!$AM$1:$AM$21),SUMPRODUCT(--(P54>'TEAM Copy 250616_155042'!$AK$1:$AK$21), (P54-'TEAM Copy 250616_155042'!$AK$1:$AK$21), 'TEAM Copy 250616_155042'!$AM$1:$AM$21))"
+  R: "=IF($L$1=\"Yes\",SUMPRODUCT(--(R54>'Repeat Tax Array'!$BB$1:$BB$21), (R54-'Repeat Tax Array'!$BB$1:$BB$21), 'Repeat Tax Array'!$BD$1:$BD$21),SUMPRODUCT(--(R54>'TEAM Copy 250616_155042'!$BB$1:$BB$21), (R54-'TEAM Copy 250616_155042'!$BB$1:$BB$21), 'TEAM Copy 250616_155042'!$BD$1:$BD$21))"
+"56":
+  B: Raise =
+  C: =B48-B47
+  G: Tax Refund
+  H: "=IF(H54<0,-11000000,0)"
+  J: "=IF(J54<0,-10000000,0)"
+  L: "=IF(L54<0,-7000000,0)"
+  N: "=IF(N54<0,-5000000,0)"
+  P: "=IF(P54<0,-5000000,0)"
+  R: "=IF(R54<0,-5000000,0)"
+"57":
+  G: Apron 1 Level
+  H: "=_xlfn.XLOOKUP(H3,Y!$AJ$2:$AJ$14,Y!$AR$2:$AR$14)"
+  J: "=_xlfn.XLOOKUP(J3,Y!$AJ$2:$AJ$14,Y!$AR$2:$AR$14)"
+  L: "=_xlfn.XLOOKUP(L3,Y!$AJ$2:$AJ$14,Y!$AR$2:$AR$14)"
+  N: "=_xlfn.XLOOKUP(N3,Y!$AJ$2:$AJ$14,Y!$AR$2:$AR$14)"
+  P: "=_xlfn.XLOOKUP(P3,Y!$AJ$2:$AJ$14,Y!$AR$2:$AR$14)"
+  R: "=_xlfn.XLOOKUP(R3,Y!$AJ$2:$AJ$15,Y!$AR$2:$AR$15)"
+"58":
+  B: "Start Number:"
+  C: =13900000*1.4
+  G: +/- Apron 1
+  H: "=SUM(H4:H42)+H45+H46-H57"
+  J: "=SUM(J4:J42)+J45+J46-J57"
+  L: "=SUM(L4:L42)+L45+L46-L57"
+  N: "=SUM(N4:N42)+N45+N46-N57"
+  P: "=SUM(P4:P42)+P45+P46-P57"
+  R: "=SUM(R4:R42)+R45+R46-R57"
+"59":
+  B: "Total:"
+  C: =B68
+  G: Apron 2 Level
+  H: "=_xlfn.XLOOKUP(H3,Y!$AJ$2:$AJ$14,Y!$BP$2:$BP$14)"
+  J: "=_xlfn.XLOOKUP(J3,Y!$AJ$2:$AJ$14,Y!$BP$2:$BP$14)"
+  L: "=_xlfn.XLOOKUP(L3,Y!$AJ$2:$AJ$14,Y!$BP$2:$BP$14)"
+  N: "=_xlfn.XLOOKUP(N3,Y!$AJ$2:$AJ$14,Y!$BP$2:$BP$14)"
+  P: "=_xlfn.XLOOKUP(P3,Y!$AJ$2:$AJ$14,Y!$BP$2:$BP$14)"
+  R: "=_xlfn.XLOOKUP(R3,Y!$AJ$2:$AJ$15,Y!$BP$2:$BP$15)"
+"60":
+  A: Yrs
+  B: "% Raise:"
+  C: "0.08"
+  G: +/- Apron 2
+  H: "=SUM(H4:H42)+H45+H46-H59"
+  J: "=SUM(J4:J42)+J45+J46-J59"
+  L: "=SUM(L4:L42)+L45+L46-L59"
+  N: "=SUM(N4:N42)+N45+N46-N59"
+  P: "=SUM(P4:P42)+P45+P46-P59"
+  R: "=SUM(R4:R42)+R45+R46-R59"
+"61":
+  G: Net Cost
+  H: =H48+H55+H56+H45
+  J: =J48+J55+J56+J45
+  L: =L48+L55+L56+L45
+  N: =N48+N55+N56+N45
+  P: =P48+P55+P56+P45
+  R: =R48+R55+R56+R45
+"62":
+  A: "1"
+  B: =C58
+  C: "1"
+  G: Cost Savings
+  H: "=IF(ISBLANK(H63), \"\", H61 - H63)"
+  J: "=IF(ISBLANK(J63), \"\", J61 - J63)"
+  L: "=IF(ISBLANK(L63), \"\", L61 - L63)"
+  N: "=IF(ISBLANK(N63), \"\", N61 - N63)"
+  P: "=IF(ISBLANK(P63), \"\", P61 - P63)"
+  R: "=IF(ISBLANK(R63), \"\", R61 - R63)"
+"63":
+  A: "2"
+  B: =B62*C63
+  C: =C62+$C$60
+  G: Baseline Cost
+"64":
+  A: "3"
+  B: =B62*C64
+  C: =C63+$C$60
+"65":
+  A: "4"
+  B: =B62*C65
+  C: =C64+$C$60
+  G: 1st Round
+  N: 2nd Round
+"66":
+  A: "5"
+  B: "=ROUNDDOWN($B$62*$C66,3)"
+  G: "2025"
+  H: "=INDEX('FRP Database'!$C$5:$C$34, MATCH(A1, 'FRP Database'!$B$5:$B$34, 0))"
+  N: "=INDEX('SRP Database'!$C$5:$C$34, MATCH(A1, 'FRP Database'!$B$5:$B$34, 0))"
+"67":
+  G: "2026"
+  H: "=INDEX('FRP Database'!$D$5:$D$34, MATCH(A1, 'FRP Database'!$B$5:$B$34, 0))"
+  N: "=INDEX('SRP Database'!$D$5:$D$34, MATCH(A1, 'FRP Database'!$B$5:$B$34, 0))"
+"68":
+  B: "=SUM(B62:B66)"
+  G: "2027"
+  H: "=INDEX('FRP Database'!$E$5:$E$34, MATCH(A1, 'FRP Database'!$B$5:$B$34, 0))"
+  N: "=INDEX('SRP Database'!$E$5:$E$34, MATCH(A1, 'FRP Database'!$B$5:$B$34, 0))"
+"69":
+  G: "2028"
+  H: "=INDEX('FRP Database'!$F$5:$F$34, MATCH(A1, 'FRP Database'!$B$5:$B$34, 0))"
+  N: "=INDEX('SRP Database'!$F$5:$F$34, MATCH(A1, 'FRP Database'!$B$5:$B$34, 0))"
+"70":
+  B: Coefficient =
+  C: "=SUM(C62:C66)"
+  G: "2029"
+  H: "=INDEX('FRP Database'!$G$5:$G$34, MATCH(A1, 'FRP Database'!$B$5:$B$34, 0))"
+  N: "=INDEX('SRP Database'!$G$5:$G$34, MATCH(A1, 'FRP Database'!$B$5:$B$34, 0))"
+"71":
+  G: "2030"
+  H: "=INDEX('FRP Database'!$H$5:$H$34, MATCH(A1, 'FRP Database'!$B$5:$B$34, 0))"
+  N: "=INDEX('SRP Database'!$H$5:$H$34, MATCH(A1, 'FRP Database'!$B$5:$B$34, 0))"
+"72":
+  G: "2031"
+  H: "=INDEX('FRP Database'!$I$5:$I$34, MATCH(A1, 'FRP Database'!$B$5:$B$34, 0))"
+  N: "=INDEX('SRP Database'!$I$5:$I$34, MATCH(A1, 'FRP Database'!$B$5:$B$34, 0))"
+"73":
+  A: Max Renegotiate Calculator
+"74":
+  B: "Start:"
+  C: "24100000"
+"75":
+  B: "Average:"
+  C: "=IFERROR((SUM(B78:B82))/(COUNTIF(B78:B82,\">0\")),0)"
+"76":
+  A: Yrs
+  B: "% Raise:"
+  C: "-0.08"
+"78":
+  A: "1"
+  B: =C74
+"79":
+  A: "2"
+  B: =$B$78*C79
+  C: "0.6"
+  D: "1"
+"80":
+  A: "3"
+  B: =$B$79*D80
+  D: =D79+$C$76
+"81":
+  A: "4"
+  B: =$B$79*D81
+  D: =D80+$C$76
+"82":
+  A: "5"
+  B: =$B$79*D82
+  D: =D81+$C$76
+"84":
+  B: "=SUM(B78:B82)"
+"86":
+  A: Deni Renegotiate Calculator
+"87":
+  B: "Start:"
+  C: "35000000"
+"88":
+  B: "Average:"
+  C: "=IFERROR((SUM(C91:C95))/(COUNTIF(C91:C95,\">0\")),0)"
+"89":
+  A: Yrs
+  B: "% Raise:"
+  C: "-0.08"
+"90":
+  D: Dip1
+  E: Dip2
+"91":
+  A: "1"
+  B: "13125000"
+  C: =C87
+"92":
+  A: "2"
+  B: "11875000"
+  C: =B92+(C91-B91)*D92
+  D: "1"
+  G: =G94*1.08
+  H: Max to add in '27
+  J: "1.08"
+"93":
+  A: "3"
+  B: "-"
+  C: =$C$92*D93
+  D: "0.6"
+  E: "1"
+  G: =G94*0.92
+  H: Min to add in '27
+  J: "0.92"
+"94":
+  A: "4"
+  B: "-"
+  C: =$C$93*E94
+  E: "1.08"
+  G: =C91-B91
+  H: Raise in '26
+"95":
+  A: "5"
+  B: "-"
+  C: =$C$93*E95
+  E: "1.16"
+"97":
+  C: "=SUM(C91:C95)"
+"100":
+  A: Key
+"101":
+  A: "*For nuanced Lookups, see the following:"
+"102":
+  A: Avdija JH Max
+"103":
+  A: Avdija JH Min
+"104":
+  A: Avdija RN 150
+"105":
+  A: Avdija RN 145
+"106":
+  A: Avdija RN 140
+"107":
+  A: Avdija RN 135
+"108":
+  A: Avdija RN 130
+"109":
+  A: Avdija RN 125
+"110":
+  A: Avdija RN 120
+"111":
+  A: Avdija RN 115
+"112":
+  A: Avdija RN 110
+"113":
+  A: Avdija RN 105
+"114":
+  A: Avdija RN 100
+"115":
+  A: Camara 4
+"116":
+  A: Camara 4 2027
+"117":
+  A: Camara 5A
+"118":
+  A: Camara 5D
+"119":
+  A: Camara RN 100
+"120":
+  A: Camara RN 95
+"121":
+  A: Camara RN 90
+"122":
+  A: Camara RN 85
+"123":
+  A: Camara RN 80
+"124":
+  A: Camara RN 75
+"125":
+  A: Camara CH
+"126":
+  A: Camara QO
+"127":
+  A: Camara 3
+"128":
+  A: Henderson 5A
+"129":
+  A: Henderson 5D
+"130":
+  A: Henderson QO
+"131":
+  A: Sharpe CH
+"132":
+  A: Sharpe 5A
+"133":
+  A: Sharpe 5D
+"134":
+  A: Clingan CH
+"135":
+  A: Clingan 5A
+"136":
+  A: Clingan 5D
+"137":
+  A: Rupert CH
+"138":
+  A: Reaves RN
+"139":
+  A: Reaves 5
+"140":
+  A: Reaves TK 24
+"141":
+  A: Reaves TK 25
+"142":
+  A: Reaves No TK
+"143":
+  A: Thybulle TK 24
+"144":
+  A: Thybulle TK 25

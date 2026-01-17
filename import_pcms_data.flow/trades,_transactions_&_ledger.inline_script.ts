@@ -45,6 +45,14 @@ function normalizeVersionNumber(val: unknown): number | null {
   return Number.isInteger(n) ? n : Math.round(n * 100);
 }
 
+function toBoolOrNull(val: unknown): boolean | null {
+  if (val === null || val === undefined || val === "") return null;
+  if (typeof val === "boolean") return val;
+  if (val === 0 || val === "0" || val === "false") return false;
+  if (val === 1 || val === "1" || val === "true") return true;
+  return null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
@@ -566,13 +574,13 @@ export async function main(
           waive_date: wa.waive_date ?? null,
           cap_value: wa.cap_value ?? null,
           cap_change_value: wa.cap_change_value ?? null,
-          is_cap_calculated: wa.cap_calculated ?? null,
+          is_cap_calculated: toBoolOrNull(wa.cap_calculated),
           tax_value: wa.tax_value ?? null,
           tax_change_value: wa.tax_change_value ?? null,
-          is_tax_calculated: wa.tax_calculated ?? null,
+          is_tax_calculated: toBoolOrNull(wa.tax_calculated),
           apron_value: wa.apron_value ?? null,
           apron_change_value: wa.apron_change_value ?? null,
-          is_apron_calculated: wa.apron_calculated ?? null,
+          is_apron_calculated: toBoolOrNull(wa.apron_calculated),
           mts_value: wa.mts_value ?? null,
           mts_change_value: wa.mts_change_value ?? null,
           two_way_salary: wa.two_way_salary ?? null,
@@ -584,10 +592,15 @@ export async function main(
           ...provenance,
         }));
 
-      if (rows.length === 0) continue;
+      // Dedupe by transaction_waiver_amount_id (avoids batch-level ON CONFLICT duplicates)
+      const dedupedMap = new Map<number, any>();
+      for (const r of rows) dedupedMap.set(r.transaction_waiver_amount_id, r);
+      const dedupedRows = [...dedupedMap.values()];
+
+      if (dedupedRows.length === 0) continue;
 
       await sql`
-        INSERT INTO pcms.transaction_waiver_amounts ${sql(rows)}
+        INSERT INTO pcms.transaction_waiver_amounts ${sql(dedupedRows)}
         ON CONFLICT (transaction_waiver_amount_id) DO UPDATE SET
           transaction_id = EXCLUDED.transaction_id,
           player_id = EXCLUDED.player_id,

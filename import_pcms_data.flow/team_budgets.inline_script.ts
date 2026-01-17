@@ -37,6 +37,14 @@ function normalizeVersionNumber(val: unknown): number | null {
   return Number.isInteger(n) ? n : Math.round(n * 100);
 }
 
+function toBoolOrNull(val: unknown): boolean | null {
+  if (val === null || val === undefined || val === "") return null;
+  if (typeof val === "boolean") return val;
+  if (val === 0 || val === "0" || val === "false") return false;
+  if (val === 1 || val === "1" || val === "true") return true;
+  return null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
@@ -121,7 +129,7 @@ export async function main(
             tax_amount: amount?.tax_amount ?? null,
             mts_amount: amount?.mts_amount ?? null,
             apron_amount: amount?.apron_amount ?? null,
-            is_fa_amount: amount?.fa_amount_flg ?? null,
+            is_fa_amount: toBoolOrNull(amount?.fa_amount_flg),
             option_lk: amount?.option_lk ?? null,
             option_decision_lk: amount?.option_decision_lk ?? null,
             ingested_at: ingestedAt,
@@ -140,9 +148,9 @@ export async function main(
         team_id: t.team_id,
         team_code: teamCodeMap.get(t.team_id) ?? null,
         salary_year: t.salary_year,
-        is_taxpayer: t.taxpayer_flg ?? null,
-        is_repeater_taxpayer: t.taxpayer_repeater_rate_flg ?? null,
-        is_subject_to_apron: t.subject_to_apron_flg ?? null,
+        is_taxpayer: toBoolOrNull(t.taxpayer_flg),
+        is_repeater_taxpayer: toBoolOrNull(t.taxpayer_repeater_rate_flg),
+        is_subject_to_apron: toBoolOrNull(t.subject_to_apron_flg),
         subject_to_apron_reason_lk: t.subject_to_apron_reason_lk ?? null,
         apron_level_lk: t.apron_level_lk ?? null,
         apron1_transaction_id: t.apron1_transaction_id ?? null,
@@ -157,6 +165,27 @@ export async function main(
       `Prepared rows: team_budget_snapshots=${budgetRows.length}, team_tax_summary_snapshots=${taxRows.length}`
     );
 
+    // Dedupe rows by the ON CONFLICT targets to avoid:
+    // "ON CONFLICT DO UPDATE command cannot affect row a second time"
+    const budgetKey = (r: any) =>
+      [
+        r.team_id,
+        r.salary_year,
+        r.transaction_id ?? "∅",
+        r.budget_group_lk ?? "∅",
+        r.player_id ?? "∅",
+        r.contract_id ?? "∅",
+        r.version_number ?? "∅",
+      ].join("|");
+
+    const budgetMap = new Map<string, any>();
+    for (const r of budgetRows) budgetMap.set(budgetKey(r), r);
+    const dedupedBudgetRows = [...budgetMap.values()];
+
+    const taxMap = new Map<string, any>();
+    for (const r of taxRows) taxMap.set(`${r.team_id}|${r.salary_year}`, r);
+    const dedupedTaxRows = [...taxMap.values()];
+
     // ─────────────────────────────────────────────────────────────────────────
     // Dry run
     // ─────────────────────────────────────────────────────────────────────────
@@ -167,8 +196,8 @@ export async function main(
         started_at: startedAt,
         finished_at: new Date().toISOString(),
         tables: [
-          { table: "pcms.team_budget_snapshots", attempted: budgetRows.length, success: true },
-          { table: "pcms.team_tax_summary_snapshots", attempted: taxRows.length, success: true },
+          { table: "pcms.team_budget_snapshots", attempted: dedupedBudgetRows.length, success: true },
+          { table: "pcms.team_tax_summary_snapshots", attempted: dedupedTaxRows.length, success: true },
         ],
         errors: [],
       };
@@ -181,8 +210,8 @@ export async function main(
     // Upsert: team_budget_snapshots
     // ─────────────────────────────────────────────────────────────────────────
 
-    for (let i = 0; i < budgetRows.length; i += BATCH_SIZE) {
-      const rows = budgetRows.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < dedupedBudgetRows.length; i += BATCH_SIZE) {
+      const rows = dedupedBudgetRows.slice(i, i + BATCH_SIZE);
       await sql`
         INSERT INTO pcms.team_budget_snapshots ${sql(rows)}
         ON CONFLICT (team_id, salary_year, transaction_id, budget_group_lk, player_id, contract_id, version_number)
@@ -210,14 +239,14 @@ export async function main(
           ingested_at = EXCLUDED.ingested_at
       `;
     }
-    tables.push({ table: "pcms.team_budget_snapshots", attempted: budgetRows.length, success: true });
+    tables.push({ table: "pcms.team_budget_snapshots", attempted: dedupedBudgetRows.length, success: true });
 
     // ─────────────────────────────────────────────────────────────────────────
     // Upsert: team_tax_summary_snapshots
     // ─────────────────────────────────────────────────────────────────────────
 
-    for (let i = 0; i < taxRows.length; i += BATCH_SIZE) {
-      const rows = taxRows.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < dedupedTaxRows.length; i += BATCH_SIZE) {
+      const rows = dedupedTaxRows.slice(i, i + BATCH_SIZE);
       await sql`
         INSERT INTO pcms.team_tax_summary_snapshots ${sql(rows)}
         ON CONFLICT (team_id, salary_year)
@@ -236,7 +265,7 @@ export async function main(
           ingested_at = EXCLUDED.ingested_at
       `;
     }
-    tables.push({ table: "pcms.team_tax_summary_snapshots", attempted: taxRows.length, success: true });
+    tables.push({ table: "pcms.team_tax_summary_snapshots", attempted: dedupedTaxRows.length, success: true });
 
     return {
       dry_run: false,

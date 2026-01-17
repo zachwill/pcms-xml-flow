@@ -38,9 +38,22 @@ export async function main(
       };
     }
 
+    // Build team_id → team_code lookup map
+    const lookups: any = await Bun.file(`${baseDir}/lookups.json`).json();
+    const teamsData: any[] = lookups?.lk_teams?.lk_team || [];
+    const teamCodeMap = new Map<number, string>();
+    for (const t of teamsData) {
+      const teamId = t?.team_id;
+      const teamCode = t?.team_code ?? t?.team_name_short;
+      if (teamId && teamCode) {
+        teamCodeMap.set(Number(teamId), String(teamCode));
+      }
+    }
+
     // Upsert in batches
     const BATCH_SIZE = 100;
     let total = 0;
+    const ingestedAt = new Date();
 
     for (let i = 0; i < players.length; i += BATCH_SIZE) {
       const batch = players.slice(i, i + BATCH_SIZE);
@@ -53,39 +66,60 @@ export async function main(
       };
     
       // Map to DB columns
-      const rows = batch.map(p => ({
-        person_id: p.player_id,
-        first_name: p.first_name,
-        last_name: p.last_name,
-        middle_name: p.middle_name || null,
-        display_first_name: p.display_first_name,
-        display_last_name: p.display_last_name,
-        roster_first_name: p.roster_first_name,
-        roster_last_name: p.roster_last_name,
-        birth_date: p.birth_date || null,
-        birth_country_lk: p.birth_country_lk,
-        gender: p.gender,
-        height: toIntOrNull(p.height),
-        weight: toIntOrNull(p.weight),
-        person_type_lk: p.person_type_lk,
-        player_status_lk: p.player_status_lk,
-        record_status_lk: p.record_status_lk,
-        league_lk: p.league_lk,
-        team_id: toIntOrNull(p.team_id),
-        school_id: toIntOrNull(p.school_id),
-        draft_year: toIntOrNull(p.draft_year),
-        draft_round: toIntOrNull(p.draft_round),
-        draft_pick: toIntOrNull(Array.isArray(p.draft_pick) ? p.draft_pick[0] : p.draft_pick),
-        years_of_service: toIntOrNull(p.years_of_service),
-        service_years_json: p.player_service_years ?? null,
-        created_at: p.create_date || null,
-        updated_at: p.last_change_date || null,
-        record_changed_at: p.record_change_date || null,
-        poison_pill_amt: toIntOrNull(p.poison_pill_amt),
-        is_two_way: p.two_way_flg ?? false,
-        is_flex: p.flex_flg ?? false,
-        ingested_at: new Date(),
-      }));
+      const rows = batch.map((p) => {
+        const teamId = toIntOrNull(p.team_id);
+        const draftTeamId = toIntOrNull(p.draft_team_id);
+        const dlgReturningRightsTeamId = toIntOrNull(p.dlg_returning_rights_team_id);
+        const dlgTeamId = toIntOrNull(p.dlg_team_id);
+
+        return {
+          person_id: p.player_id,
+          first_name: p.first_name,
+          last_name: p.last_name,
+          middle_name: p.middle_name || null,
+          display_first_name: p.display_first_name,
+          display_last_name: p.display_last_name,
+          roster_first_name: p.roster_first_name,
+          roster_last_name: p.roster_last_name,
+          birth_date: p.birth_date || null,
+          birth_country_lk: p.birth_country_lk,
+          gender: p.gender,
+          height: toIntOrNull(p.height),
+          weight: toIntOrNull(p.weight),
+          person_type_lk: p.person_type_lk,
+          player_status_lk: p.player_status_lk,
+          record_status_lk: p.record_status_lk,
+          league_lk: p.league_lk,
+
+          team_id: teamId,
+          team_code: teamId ? (teamCodeMap.get(teamId) ?? null) : null,
+
+          draft_team_id: draftTeamId,
+          draft_team_code: draftTeamId ? (teamCodeMap.get(draftTeamId) ?? null) : null,
+
+          dlg_returning_rights_team_id: dlgReturningRightsTeamId,
+          dlg_returning_rights_team_code: dlgReturningRightsTeamId
+            ? (teamCodeMap.get(dlgReturningRightsTeamId) ?? null)
+            : null,
+
+          dlg_team_id: dlgTeamId,
+          dlg_team_code: dlgTeamId ? (teamCodeMap.get(dlgTeamId) ?? null) : null,
+
+          school_id: toIntOrNull(p.school_id),
+          draft_year: toIntOrNull(p.draft_year),
+          draft_round: toIntOrNull(p.draft_round),
+          draft_pick: toIntOrNull(Array.isArray(p.draft_pick) ? p.draft_pick[0] : p.draft_pick),
+          years_of_service: toIntOrNull(p.years_of_service),
+          service_years_json: p.player_service_years ?? null,
+          created_at: p.create_date || null,
+          updated_at: p.last_change_date || null,
+          record_changed_at: p.record_change_date || null,
+          poison_pill_amt: toIntOrNull(p.poison_pill_amt),
+          is_two_way: p.two_way_flg ?? false,
+          is_flex: p.flex_flg ?? false,
+          ingested_at: ingestedAt,
+        };
+      });
 
       try {
         await sql`
@@ -108,6 +142,13 @@ export async function main(
             record_status_lk = EXCLUDED.record_status_lk,
             league_lk = EXCLUDED.league_lk,
             team_id = EXCLUDED.team_id,
+            team_code = EXCLUDED.team_code,
+            draft_team_id = EXCLUDED.draft_team_id,
+            draft_team_code = EXCLUDED.draft_team_code,
+            dlg_returning_rights_team_id = EXCLUDED.dlg_returning_rights_team_id,
+            dlg_returning_rights_team_code = EXCLUDED.dlg_returning_rights_team_code,
+            dlg_team_id = EXCLUDED.dlg_team_id,
+            dlg_team_code = EXCLUDED.dlg_team_code,
             school_id = EXCLUDED.school_id,
             draft_year = EXCLUDED.draft_year,
             draft_round = EXCLUDED.draft_round,

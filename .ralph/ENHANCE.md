@@ -30,7 +30,7 @@ team_code: teamCodeMap.get(record.team_id) ?? null,
 - [x] `players_&_people.inline_script.ts` — add `team_code`, `draft_team_code`, `dlg_returning_rights_team_code`, `dlg_team_code`
 - [x] `contracts,_versions,_bonuses_&_salaries.inline_script.ts` — add `team_code`, `sign_and_trade_to_team_code` to contracts table
 - [x] `trades,_transactions_&_ledger.inline_script.ts` — add `from_team_code`, `to_team_code`, `rights_team_code`, `sign_and_trade_team_code` to transactions; `team_code` to ledger_entries (also fix null team_id filter), trade_groups, trade_team_details, trade_teams
-- [ ] `draft_picks.inline_script.ts` — add `original_team_code`, `current_team_code`
+- [x] `draft_picks.inline_script.ts` — add `original_team_code`, `current_team_code`
 - [ ] `team_exceptions_&_usage.inline_script.ts` — add `team_code`
 - [ ] `team_budgets.inline_script.ts` — add `team_code` to team_budget_snapshots, tax_team_status, team_tax_summary_snapshots
 - [ ] `system_values,_rookie_scale_&_nca.inline_script.ts` — add `team_code` to non_contract_amounts

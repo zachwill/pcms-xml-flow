@@ -60,6 +60,16 @@ export async function main(
     const subDir = entries.find((e) => e.isDirectory());
     const baseDir = subDir ? `${extract_dir}/${subDir.name}` : extract_dir;
 
+    // Build team_id → team_code lookup map
+    const lookups: any = await Bun.file(`${baseDir}/lookups.json`).json();
+    const teamsData: any[] = lookups?.lk_teams?.lk_team || [];
+    const teamCodeMap = new Map<number, string>();
+    for (const t of teamsData) {
+      if (t.team_id && t.team_code) {
+        teamCodeMap.set(t.team_id, t.team_code);
+      }
+    }
+
     // Read clean JSON
     const draftPicks: any[] = await Bun.file(`${baseDir}/draft_picks.json`).json();
     console.log(`Found ${draftPicks.length} draft picks`);
@@ -73,6 +83,9 @@ export async function main(
         const { pick_number, pick_number_int } = normalizePick(dp?.pick);
         const histories = asArray<any>(dp?.histories);
 
+        const originalTeamId = dp?.original_team_id ?? null;
+        const currentTeamId = dp?.current_team_id ?? dp?.team_id ?? null;
+
         return {
           draft_pick_id: dp.draft_pick_id,
           draft_year: dp?.draft_year ?? dp?.year ?? null,
@@ -81,8 +94,10 @@ export async function main(
           pick_number_int,
 
           league_lk: dp?.league_lk ?? null,
-          original_team_id: dp?.original_team_id ?? null,
-          current_team_id: dp?.current_team_id ?? dp?.team_id ?? null,
+          original_team_id: originalTeamId,
+          original_team_code: originalTeamId != null ? (teamCodeMap.get(originalTeamId) ?? null) : null,
+          current_team_id: currentTeamId,
+          current_team_code: currentTeamId != null ? (teamCodeMap.get(currentTeamId) ?? null) : null,
 
           is_active: dp?.is_active ?? dp?.active_flg ?? null,
 
@@ -133,7 +148,9 @@ export async function main(
           pick_number_int = EXCLUDED.pick_number_int,
           league_lk = EXCLUDED.league_lk,
           original_team_id = EXCLUDED.original_team_id,
+          original_team_code = EXCLUDED.original_team_code,
           current_team_id = EXCLUDED.current_team_id,
+          current_team_code = EXCLUDED.current_team_code,
           is_active = EXCLUDED.is_active,
           is_protected = EXCLUDED.is_protected,
           protection_description = EXCLUDED.protection_description,

@@ -297,7 +297,7 @@ Scripts organized by dependency order. Each should be 200-600 LOC (max 800 for c
 
 ### Phase 7: Transactions (Large)
 
-- [ ] **7. transactions.duckdb.sql** — Trades, transactions, ledger
+- [x] **7. transactions.duckdb.sql** — Trades, transactions, ledger
   
   **Tables:**
   - `pcms.trades`

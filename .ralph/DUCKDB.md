@@ -282,7 +282,7 @@ Scripts organized by dependency order. Each should be 200-600 LOC (max 800 for c
 
 ### Phase 6: Team Exceptions
 
-- [ ] **6. team_exceptions.duckdb.sql** — Exceptions and usage
+- [x] **6. team_exceptions.duckdb.sql** — Exceptions and usage
   
   **Tables:** `pcms.team_exceptions`, `pcms.team_exception_usage`
   

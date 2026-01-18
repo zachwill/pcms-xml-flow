@@ -370,38 +370,17 @@ export async function main(dry_run = false, extract_dir = "./shared/pcms") {
 
     // ─────────────────────────────────────────────────────────────────────────
     // Upsert: team_budget_snapshots
+    // Note: Uses TRUNCATE + INSERT since the composite key has nullable columns
+    // which don't work well with unique indexes.
     // ─────────────────────────────────────────────────────────────────────────
+
+    await sql`TRUNCATE TABLE pcms.team_budget_snapshots`;
 
     for (let i = 0; i < budgetDeduped.length; i += BATCH_SIZE) {
       const batch = budgetDeduped.slice(i, i + BATCH_SIZE);
       if (batch.length === 0) continue;
 
-      await sql`
-        INSERT INTO pcms.team_budget_snapshots ${sql(batch)}
-        ON CONFLICT (team_id, salary_year, transaction_id, budget_group_lk, player_id, contract_id, version_number)
-        DO UPDATE SET
-          team_code = EXCLUDED.team_code,
-          transaction_type_lk = EXCLUDED.transaction_type_lk,
-          transaction_description_lk = EXCLUDED.transaction_description_lk,
-          contract_type_lk = EXCLUDED.contract_type_lk,
-          free_agent_designation_lk = EXCLUDED.free_agent_designation_lk,
-          free_agent_status_lk = EXCLUDED.free_agent_status_lk,
-          signing_method_lk = EXCLUDED.signing_method_lk,
-          overall_contract_bonus_type_lk = EXCLUDED.overall_contract_bonus_type_lk,
-          overall_protection_coverage_lk = EXCLUDED.overall_protection_coverage_lk,
-          max_contract_lk = EXCLUDED.max_contract_lk,
-          years_of_service = EXCLUDED.years_of_service,
-          ledger_date = EXCLUDED.ledger_date,
-          signing_date = EXCLUDED.signing_date,
-          cap_amount = EXCLUDED.cap_amount,
-          tax_amount = EXCLUDED.tax_amount,
-          mts_amount = EXCLUDED.mts_amount,
-          apron_amount = EXCLUDED.apron_amount,
-          is_fa_amount = EXCLUDED.is_fa_amount,
-          option_lk = EXCLUDED.option_lk,
-          option_decision_lk = EXCLUDED.option_decision_lk,
-          ingested_at = EXCLUDED.ingested_at
-      `;
+      await sql`INSERT INTO pcms.team_budget_snapshots ${sql(batch)}`;
     }
     tables.push({ table: "pcms.team_budget_snapshots", attempted: budgetDeduped.length, success: true });
 

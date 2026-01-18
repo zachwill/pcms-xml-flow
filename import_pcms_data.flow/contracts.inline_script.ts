@@ -29,6 +29,12 @@ function asArray<T = any>(val: any): T[] {
   return Array.isArray(val) ? val : [val];
 }
 
+function dedupeByKey<T>(rows: T[], keyFn: (row: T) => string): T[] {
+  const seen = new Map<string, T>();
+  for (const r of rows) seen.set(keyFn(r), r);
+  return [...seen.values()];
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
@@ -285,8 +291,15 @@ export async function main(
       }
     }
 
+    // Dedupe by ON CONFLICT keys to avoid "cannot affect row a second time" errors
+    const contractDeduped = dedupeByKey(contractRows, (r) => String(r.contract_id));
+    const versionDeduped = dedupeByKey(versionRows, (r) => `${r.contract_id}|${r.version_number}`);
+    const bonusDeduped = dedupeByKey(bonusRows, (r) => String(r.bonus_id));
+    const salaryDeduped = dedupeByKey(salaryRows, (r) => `${r.contract_id}|${r.version_number}|${r.salary_year}`);
+    const paymentScheduleDeduped = dedupeByKey(paymentScheduleRows, (r) => String(r.payment_schedule_id));
+
     console.log(
-      `Prepared rows: contracts=${contractRows.length}, versions=${versionRows.length}, bonuses=${bonusRows.length}, salaries=${salaryRows.length}, payment_schedules=${paymentScheduleRows.length}`
+      `Prepared rows (after dedupe): contracts=${contractDeduped.length}, versions=${versionDeduped.length}, bonuses=${bonusDeduped.length}, salaries=${salaryDeduped.length}, payment_schedules=${paymentScheduleDeduped.length}`
     );
 
     if (dry_run) {
@@ -295,11 +308,11 @@ export async function main(
         started_at: startedAt,
         finished_at: new Date().toISOString(),
         tables: [
-          { table: "pcms.contracts", attempted: contractRows.length, success: true },
-          { table: "pcms.contract_versions", attempted: versionRows.length, success: true },
-          { table: "pcms.contract_bonuses", attempted: bonusRows.length, success: true },
-          { table: "pcms.salaries", attempted: salaryRows.length, success: true },
-          { table: "pcms.payment_schedules", attempted: paymentScheduleRows.length, success: true },
+          { table: "pcms.contracts", attempted: contractDeduped.length, success: true },
+          { table: "pcms.contract_versions", attempted: versionDeduped.length, success: true },
+          { table: "pcms.contract_bonuses", attempted: bonusDeduped.length, success: true },
+          { table: "pcms.salaries", attempted: salaryDeduped.length, success: true },
+          { table: "pcms.payment_schedules", attempted: paymentScheduleDeduped.length, success: true },
         ],
         errors: [],
       };
@@ -310,8 +323,8 @@ export async function main(
     const tables: { table: string; attempted: number; success: boolean }[] = [];
 
     // Contracts
-    for (let i = 0; i < contractRows.length; i += BATCH_SIZE) {
-      const rows = contractRows.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < contractDeduped.length; i += BATCH_SIZE) {
+      const rows = contractDeduped.slice(i, i + BATCH_SIZE);
       try {
         await sql`
           INSERT INTO pcms.contracts ${sql(rows)}
@@ -341,11 +354,11 @@ export async function main(
         console.error(e);
       }
     }
-    tables.push({ table: "pcms.contracts", attempted: contractRows.length, success: true });
+    tables.push({ table: "pcms.contracts", attempted: contractDeduped.length, success: true });
 
     // Contract versions
-    for (let i = 0; i < versionRows.length; i += BATCH_SIZE) {
-      const rows = versionRows.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < versionDeduped.length; i += BATCH_SIZE) {
+      const rows = versionDeduped.slice(i, i + BATCH_SIZE);
       try {
         await sql`
           INSERT INTO pcms.contract_versions ${sql(rows)}
@@ -383,11 +396,11 @@ export async function main(
         console.error(e);
       }
     }
-    tables.push({ table: "pcms.contract_versions", attempted: versionRows.length, success: true });
+    tables.push({ table: "pcms.contract_versions", attempted: versionDeduped.length, success: true });
 
     // Contract bonuses
-    for (let i = 0; i < bonusRows.length; i += BATCH_SIZE) {
-      const rows = bonusRows.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < bonusDeduped.length; i += BATCH_SIZE) {
+      const rows = bonusDeduped.slice(i, i + BATCH_SIZE);
       try {
         await sql`
           INSERT INTO pcms.contract_bonuses ${sql(rows)}
@@ -409,11 +422,11 @@ export async function main(
         console.error(e);
       }
     }
-    tables.push({ table: "pcms.contract_bonuses", attempted: bonusRows.length, success: true });
+    tables.push({ table: "pcms.contract_bonuses", attempted: bonusDeduped.length, success: true });
 
     // Salaries
-    for (let i = 0; i < salaryRows.length; i += BATCH_SIZE) {
-      const rows = salaryRows.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < salaryDeduped.length; i += BATCH_SIZE) {
+      const rows = salaryDeduped.slice(i, i + BATCH_SIZE);
       try {
         await sql`
           INSERT INTO pcms.salaries ${sql(rows)}
@@ -454,11 +467,11 @@ export async function main(
         console.error(e);
       }
     }
-    tables.push({ table: "pcms.salaries", attempted: salaryRows.length, success: true });
+    tables.push({ table: "pcms.salaries", attempted: salaryDeduped.length, success: true });
 
     // Payment schedules
-    for (let i = 0; i < paymentScheduleRows.length; i += BATCH_SIZE) {
-      const rows = paymentScheduleRows.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < paymentScheduleDeduped.length; i += BATCH_SIZE) {
+      const rows = paymentScheduleDeduped.slice(i, i + BATCH_SIZE);
       try {
         await sql`
           INSERT INTO pcms.payment_schedules ${sql(rows)}
@@ -479,7 +492,7 @@ export async function main(
         console.error(e);
       }
     }
-    tables.push({ table: "pcms.payment_schedules", attempted: paymentScheduleRows.length, success: true });
+    tables.push({ table: "pcms.payment_schedules", attempted: paymentScheduleDeduped.length, success: true });
 
     return {
       dry_run: false,

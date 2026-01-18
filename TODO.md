@@ -21,20 +21,38 @@
    
    **Fix:** Added `return result if result else None` at end of `clean()` function.
 
+4. **Fixed Contracts script duplicate row error** (2026-01-18)
+   - **Error:** `ON CONFLICT DO UPDATE command cannot affect row a second time`
+   - **Root cause:** Multiple rows with same `(contract_id, version_number, salary_year)` in same batch
+   - **Fix:** Added `dedupeByKey()` helper to deduplicate all row arrays before inserting
+   - **File:** `import_pcms_data.flow/contracts.inline_script.ts`
+
+5. **Fixed Team Financials missing constraint error** (2026-01-18)
+   - **Error:** `there is no unique or exclusion constraint matching the ON CONFLICT specification`
+   - **Root cause:** `tax_team_status` and `team_budget_snapshots` tables had serial PKs but scripts assumed composite unique keys
+   - **Fix:** 
+     - Created `migrations/007_add_missing_unique_indexes.sql` to add unique indexes on `tax_team_status(team_id, salary_year)`, `salaries(contract_id, version_number, salary_year)`, and `contract_versions(contract_id, version_number)`
+     - Changed `team_budget_snapshots` to use TRUNCATE + INSERT (7-column key with NULLs is problematic for unique indexes)
+   - **File:** `import_pcms_data.flow/team_financials.inline_script.ts`
+
 ### 🔄 Next Steps
 
-1. ~~**Regenerate all JSON files locally**~~ ✅ Done - 22 files regenerated, no empty objects
+1. **Run migration 007** to create missing unique indexes
+   ```bash
+   psql $POSTGRES_URL -f migrations/007_add_missing_unique_indexes.sql
+   ```
 
-2. ~~**Deploy updated Windmill script** -~~ ✅ Done - The fix in `pcms_xml_to_json.inline_script.py` is synced to Windmill
-
-3. **Re-run Windmill flow** to confirm Contracts step passes
+2. **Re-run Windmill flow** to confirm all steps pass
 
 ### 📋 Files Changed
 
 ```
-scripts/xml-to-json.py                              # NEW - local uv script
+scripts/xml-to-json.py                                    # NEW - local uv script
 import_pcms_data.flow/pcms_xml_to_json.inline_script.py  # FIXED - empty object handling
-AGENTS.md                                           # UPDATED - accurate flow docs
+import_pcms_data.flow/contracts.inline_script.ts          # FIXED - deduplication
+import_pcms_data.flow/team_financials.inline_script.ts    # FIXED - truncate+insert for budget snapshots
+migrations/007_add_missing_unique_indexes.sql             # NEW - unique indexes for upserts
+AGENTS.md                                                 # UPDATED - accurate flow docs
 ```
 
 ### 🐛 Bug Details (for reference)

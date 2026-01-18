@@ -2,100 +2,117 @@
 
 ## Project Context
 
-Windmill flow that imports NBA PCMS XML data into PostgreSQL. Runs on Bun runtime.
+Windmill flow that imports NBA PCMS (Player Contract Management System) XML data into PostgreSQL. Runs on Bun runtime (with Python for XML parsing).
 
 ## Architecture (v3.0)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Step A: Lineage (downloads ZIP, parses XML → CLEAN JSON)                   │
+│  Step T: PCMS XML to JSON (Python)                                          │
 │                                                                             │
-│    XML with xsi:nil, camelCase    →    Clean JSON with nulls, snake_case   │
-│    nba_pcms_full_extract_player.xml    players.json                        │
-│    nba_pcms_full_extract_contract.xml  contracts.json                      │
-│    ...                                 ...                                  │
+│    S3 ZIP → Extract → XML → Clean JSON                                      │
+│    nba_pcms_full_extract_player.xml    →    players.json                   │
+│    nba_pcms_full_extract_contract.xml  →    contracts.json                 │
+│    ...                                 →    ...                             │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Steps B-P: Import scripts (read clean JSON, insert to Postgres)           │
+│  Steps K-G: Import scripts (Bun/TypeScript)                                 │
 │                                                                             │
 │    const players = await Bun.file("players.json").json();                  │
-│    await sql`INSERT INTO pcms.people ${sql(players)}`;                     │
+│    await sql`INSERT INTO pcms.people ${sql(rows)}`;                        │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Step L: Finalize Lineage (aggregate results, update state)                │
+│  Step L: Finalize Lineage (aggregate results, report errors)               │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Key insight:** Clean the data ONCE during XML parsing, not in every script.
+**Key insight:** Clean the data ONCE during XML parsing (Python), not in every import script.
 
-## Key Files
+## Flow Steps (11 total)
+
+| ID | Step | Script | Description |
+|----|------|--------|-------------|
+| T | PCMS XML to JSON | `pcms_xml_to_json.inline_script.py` | S3 → extract → XML → clean JSON |
+| K | Lookups | `lookups.inline_script.ts` | Reference tables (43 lookup tables) |
+| B | People & Identity | `people_&_identity.inline_script.ts` | Agencies, agents, people |
+| R | Draft | `draft.inline_script.ts` | Draft picks & summaries |
+| C | Contracts | `contracts.inline_script.ts` | Contracts, versions, salaries, bonuses |
+| D | Team Exceptions | `team_exceptions.inline_script.ts` | Team exceptions & usage |
+| E | Transactions | `transactions_(trades,_ledger,_waiver_amounts).inline_script.ts` | Trades, ledger, waiver amounts |
+| F | League Config | `league_config.inline_script.ts` | System values, rookie scale, salary scales |
+| H | Team Financials | `team_financials.inline_script.ts` | Team budgets, tax rates, cap projections |
+| G | Two-Way | `two-way.inline_script.ts` | Two-way daily statuses & utility |
+| L | Finalize | `finalize_lineage.inline_script.ts` | Aggregate results, report errors |
+
+## Directory Structure
 
 ```
-import_pcms_data.flow/
-├── flow.yaml                              # Flow definition (18 steps)
-├── lineage_management_*.ts                # Step A: S3 → extract → XML → CLEAN JSON
-├── players_&_people.*.ts                  # Step B: People/players
-├── generate_nba_draft_picks.*.ts          # Step R: Generate NBA draft picks from players
-├── contracts,_versions,_bonuses_*.ts      # Step C: Contracts, versions, salaries
-├── team_exceptions_&_usage.*.ts           # Step D: Team exceptions
-├── trades,_transactions_&_ledger.*.ts     # Step E: Trades, transactions, ledger
-├── system_values,_rookie_scale_*.ts       # Step F: System values, rookie scale, NCA
-├── two-way_daily_statuses.*.ts            # Step G: Two-way daily statuses
-├── draft_picks.*.ts                       # Step H: Draft picks
-├── draft_pick_summaries.*.ts              # Step Q: Draft pick summaries
-├── team_budgets.*.ts                      # Step I: Team budgets
-├── waiver_priority_&_ranks.*.ts           # Step J: Waiver priority
-├── lookups.*.ts                           # Step K: Lookups
-├── agents_&_agencies.*.ts                 # Step M: Agents & agencies
-├── transaction_waiver_amounts.*.ts        # Step N: Transaction waiver amounts
-├── league_salary_scales_*.ts              # Step O: League salary scales
-├── two-way_utility.*.ts                   # Step P: Two-way utility
-└── finalize_lineage.*.ts                  # Step L: Finalize (aggregate results)
-
-scripts/
-├── parse-xml-to-json.ts         # Dev tool: XML → clean JSON (mirrors lineage)
-├── inspect-json-structure.ts    # Dev tool: explore JSON
-└── show-all-paths.ts            # Dev tool: path reference
-
-.shared/nba_pcms_full_extract/   # Clean JSON files
-.shared/nba_pcms_full_extract_xml/ # Source XML files (for local dev)
+.
+├── import_pcms_data.flow/           # Windmill flow (11 steps)
+│   ├── flow.yaml                    # Flow definition
+│   ├── pcms_xml_to_json.*.py        # Step T: Python XML parser
+│   ├── lookups.*.ts                 # Step K: Lookup tables
+│   ├── people_&_identity.*.ts       # Step B: People, agents, agencies
+│   ├── draft.*.ts                   # Step R: Draft picks & summaries
+│   ├── contracts.*.ts               # Step C: Contracts, versions, salaries
+│   ├── team_exceptions.*.ts         # Step D: Team exceptions
+│   ├── transactions_*.ts            # Step E: Trades, ledger, waiver amounts
+│   ├── league_config.*.ts           # Step F: System values, scales
+│   ├── team_financials.*.ts         # Step H: Budgets, tax, projections
+│   ├── two-way.*.ts                 # Step G: Two-way statuses
+│   └── finalize_lineage.*.ts        # Step L: Finalize
+│
+├── scripts/                         # Dev tools
+│   ├── parse-xml-to-json.ts         # Local XML → JSON (mirrors Step T)
+│   ├── inspect-json-structure.ts    # Explore JSON structure
+│   └── show-all-paths.ts            # Path reference
+│
+├── .shared/
+│   ├── nba_pcms_full_extract/       # Clean JSON output
+│   └── nba_pcms_full_extract_xml/   # Source XML (local dev)
+│
+├── AGENTS.md                        # This file
+├── README.md                        # Project overview
+└── SCHEMA.md                        # Target database schema
 ```
 
 ## Clean JSON Files
 
-The lineage step produces these clean JSON files:
+The Python lineage step (T) produces these clean JSON files:
 
-| File | Records | Description |
-|------|---------|-------------|
-| `players.json` | 14,421 | Players/people |
-| `contracts.json` | 8,071 | Contracts with nested versions/salaries |
-| `transactions.json` | 232,417 | Transaction history |
-| `ledger.json` | 50,713 | Ledger entries |
-| `trades.json` | 1,731 | Trade records |
-| `draft_picks.json` | 1,169 | Draft picks (DLG/WNBA) |
-| `draft_pick_summaries.json` | 450 | Draft pick summaries by team/year |
-| `team_exceptions.json` | nested | Team exceptions & usage |
-| `team_budgets.json` | nested | Team budget snapshots |
-| `team_transactions.json` | 80,130 | Team transactions (cap hold adjustments) |
-| `transaction_waiver_amounts.json` | varies | Waiver amount calculations |
-| `two_way.json` | 28,659 | Two-way daily statuses |
-| `two_way_utility.json` | nested | Two-way game/contract utility |
-| `lookups.json` | 43 tables | Reference data |
-| `cap_projections.json` | varies | Salary cap projections |
-| `yearly_system_values.json` | varies | League system values by year |
-| `yearly_salary_scales.json` | varies | Salary scales by year |
-| `rookie_scale_amounts.json` | varies | Rookie scale amounts |
-| `non_contract_amounts.json` | varies | Non-contract amounts (cap holds, etc.) |
+| File | Description |
+|------|-------------|
+| `players.json` | Players/people |
+| `contracts.json` | Contracts with nested versions/salaries |
+| `transactions.json` | Transaction history |
+| `ledger.json` | Ledger entries |
+| `trades.json` | Trade records |
+| `draft_picks.json` | Draft picks (DLG/WNBA) |
+| `draft_pick_summaries.json` | Draft pick summaries by team/year |
+| `team_exceptions.json` | Team exceptions & usage |
+| `team_budgets.json` | Team budget snapshots |
+| `team_transactions.json` | Team transactions (cap hold adjustments) |
+| `transaction_waiver_amounts.json` | Waiver amount calculations |
+| `two_way.json` | Two-way daily statuses |
+| `two_way_utility.json` | Two-way game/contract utility |
+| `lookups.json` | Reference data (43 tables) |
+| `cap_projections.json` | Salary cap projections |
+| `yearly_system_values.json` | League system values by year |
+| `yearly_salary_scales.json` | Salary scales by year |
+| `rookie_scale_amounts.json` | Rookie scale amounts |
+| `non_contract_amounts.json` | Non-contract amounts (cap holds, etc.) |
+| `tax_rates.json` | Tax rate tiers |
+| `tax_teams.json` | Team tax status by year |
 
 ## Clean JSON Format
 
 All JSON files have:
 - **snake_case keys** (match DB columns directly)
-- **null values** (not `{ "@_xsi:nil": "true" }`)
+- **null values** (not `{ "@xsi:nil": "true" }`)
 - **No XML wrapper nesting** (just the array of records)
 
 ```typescript
@@ -106,15 +123,15 @@ All JSON files have:
   "last_name": "Newman",
   "birth_date": "1984-10-25",
   "team_id": 1612709911,
-  "agency_id": null,           // ← was { "@_xsi:nil": "true" }
-  "draft_year": null,          // ← was { "@_xsi:nil": "true" }
+  "agency_id": null,           // ← was { "@xsi:nil": "true" }
+  "draft_year": null,          // ← was { "@xsi:nil": "true" }
   ...
 }
 ```
 
 ## Import Script Pattern
 
-Scripts are now simple:
+Scripts are simple—just read clean JSON and insert:
 
 ```typescript
 import { SQL } from "bun";
@@ -122,7 +139,7 @@ import { readdir } from "node:fs/promises";
 
 const sql = new SQL({ url: Bun.env.POSTGRES_URL!, prepare: false });
 
-export async function main(dry_run = false, ..., extract_dir = "./shared/pcms") {
+export async function main(dry_run = false, extract_dir = "./shared/pcms") {
   // Find extract directory
   const entries = await readdir(extract_dir, { withFileTypes: true });
   const subDir = entries.find(e => e.isDirectory());
@@ -141,14 +158,14 @@ export async function main(dry_run = false, ..., extract_dir = "./shared/pcms") 
 ## Local Development
 
 ```bash
-# Generate clean JSON from XML (one-time)
+# Generate clean JSON from XML (one-time, mirrors Step T)
 bun run scripts/parse-xml-to-json.ts
 
 # Explore structure
 bun run scripts/show-all-paths.ts
 
 # Run a step locally
-POSTGRES_URL="postgres://..." bun run import_pcms_data.flow/players_&_people.inline_script.ts
+POSTGRES_URL="postgres://..." bun run import_pcms_data.flow/people_\&_identity.inline_script.ts
 ```
 
 ## Bun Best Practices
@@ -170,3 +187,10 @@ await sql`
     updated_at = EXCLUDED.updated_at
 `;
 ```
+
+## Flow Configuration
+
+Key settings in `flow.yaml`:
+- **`same_worker: true`** — All steps share `./shared/` directory
+- **`extract_dir: './shared/pcms'`** — All import scripts read from here
+- **Step T runs first** — Produces JSON before import scripts run

@@ -1,28 +1,36 @@
-import hashlib
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "lxml",
+#     "orjson",
+# ]
+# ///
+"""
+Parse PCMS XML files to clean JSON.
+
+Usage:
+    uv run scripts/xml-to-json.py [--xml-dir DIR] [--out-dir DIR]
+
+This mirrors the Windmill lineage step (pcms_xml_to_json.inline_script.py)
+so we can produce identical JSON locally for debugging.
+"""
+import argparse
 import json
 import os
 import re
-import shutil
-import zipfile
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-import wmill
 from lxml import etree
 
-# Try orjson for speed, fall back to standard json
-try:
-    import orjson
-    def dump_json(obj: Any, path: Path):
-        path.write_bytes(orjson.dumps(obj, option=orjson.OPT_INDENT_2))
-except ImportError:
-    def dump_json(obj: Any, path: Path):
-        path.write_text(json.dumps(obj, indent=2))
+# Use orjson for speed
+import orjson
 
+def dump_json(obj: Any, path: Path):
+    path.write_bytes(orjson.dumps(obj, option=orjson.OPT_INDENT_2))
 
-DEFAULT_S3_KEY = "pcms/nba_pcms_full_extract.zip"
-SHARED_DIR = Path("./shared/pcms")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Cleaning utilities
@@ -201,13 +209,13 @@ EXTRACT_MAP: dict[str, tuple[str, callable]] = {
 # Worker function for multiprocessing
 # ─────────────────────────────────────────────────────────────────────────────
 
-def process_xml_file(args: tuple[Path, str]) -> tuple[str, str | None, float]:
+def process_xml_file(args: tuple[Path, str, Path]) -> tuple[str, str | None, float]:
     """
     Process a single XML file. Returns (key, output_filename or None, elapsed_seconds).
     This runs in a separate process.
     """
     import time
-    xml_path, key = args
+    xml_path, key, out_dir = args
     
     if key not in EXTRACT_MAP:
         return (key, None, 0.0)
@@ -219,7 +227,7 @@ def process_xml_file(args: tuple[Path, str]) -> tuple[str, str | None, float]:
         parsed = parse_xml_file(xml_path)
         raw_data = extractor(parsed)
         clean_data = clean(raw_data)
-        output_path = xml_path.parent / output_file
+        output_path = out_dir / output_file
         dump_json(clean_data, output_path)
         elapsed = time.perf_counter() - start
         return (key, output_file, elapsed)
@@ -230,56 +238,62 @@ def process_xml_file(args: tuple[Path, str]) -> tuple[str, str | None, float]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Main processing
+# Main
 # ─────────────────────────────────────────────────────────────────────────────
 
-def download_extract_and_parse(s3_key: str) -> dict:
-    """Download from S3, extract ZIP, parse XML files to JSON."""
-    import time
+def main():
+    parser = argparse.ArgumentParser(description="Parse PCMS XML files to clean JSON")
+    parser.add_argument(
+        "--xml-dir", 
+        type=Path, 
+        default=Path(".shared/nba_pcms_full_extract_xml"),
+        help="Directory containing XML files"
+    )
+    parser.add_argument(
+        "--out-dir", 
+        type=Path, 
+        default=Path(".shared/nba_pcms_full_extract"),
+        help="Output directory for JSON files"
+    )
+    parser.add_argument(
+        "--single",
+        type=str,
+        default=None,
+        help="Process only a single file key (e.g., 'contract', 'player')"
+    )
+    args = parser.parse_args()
     
-    # Clean and create shared directory
-    if SHARED_DIR.exists():
-        shutil.rmtree(SHARED_DIR)
-    SHARED_DIR.mkdir(parents=True, exist_ok=True)
+    xml_dir = args.xml_dir
+    out_dir = args.out_dir
     
-    # Download from S3
-    print(f"Downloading {s3_key} from S3...")
-    s3_obj = {"s3": s3_key}
-    data = wmill.load_s3_file(s3_obj)  # Returns bytes directly, no .read() needed
+    if not xml_dir.exists():
+        print(f"❌ XML directory not found: {xml_dir}")
+        return 1
     
-    if not data:
-        raise RuntimeError(f"Failed to download {s3_key} from S3")
-    
-    # Compute hash
-    file_hash = hashlib.sha256(data).hexdigest()
-    print(f"File hash: {file_hash}")
-    
-    # Write and extract ZIP
-    tmp_zip = SHARED_DIR / "extract.zip"
-    tmp_zip.write_bytes(data)
-    
-    print(f"Extracting to {SHARED_DIR}...")
-    with zipfile.ZipFile(tmp_zip, 'r') as zf:
-        zf.extractall(SHARED_DIR)
-    tmp_zip.unlink()
-    
-    # Find extracted directory
-    entries = list(SHARED_DIR.iterdir())
-    extract_dir = next((e for e in entries if e.is_dir()), SHARED_DIR)
+    out_dir.mkdir(parents=True, exist_ok=True)
     
     # List XML files
-    xml_files = list(extract_dir.glob("*.xml"))
-    print(f"Found {len(xml_files)} XML files")
+    xml_files = list(xml_dir.glob("*.xml"))
+    print(f"Found {len(xml_files)} XML files in {xml_dir}")
     
     # Build work items
     work_items = []
     for xml_path in xml_files:
         # Extract key: "nba_pcms_full_extract_player.xml" → "player"
         key = xml_path.stem.replace("nba_pcms_full_extract_", "")
-        work_items.append((xml_path, key))
+        
+        # If --single is specified, only process that one
+        if args.single and key != args.single:
+            continue
+            
+        work_items.append((xml_path, key, out_dir))
+    
+    if not work_items:
+        print("No matching XML files to process")
+        return 1
     
     # Process in parallel using multiprocessing
-    print(f"Parsing XML files in parallel (multiprocessing)...")
+    print(f"Parsing {len(work_items)} XML files...")
     json_files = []
     
     # Use number of CPUs, but cap at 8 to avoid memory issues
@@ -298,45 +312,9 @@ def download_extract_and_parse(s3_key: str) -> dict:
             else:
                 print(f"  ⏭️  {key} - no mapping")
     
-    print(f"Parsed {len(json_files)} clean JSON files")
-    
-    return {
-        "file_hash": file_hash,
-        "extract_dir": str(extract_dir),
-        "json_files": json_files,
-    }
+    print(f"\n✅ Parsed {len(json_files)} clean JSON files to {out_dir}")
+    return 0
 
 
-def main(dry_run: bool = False, s3_key: str = DEFAULT_S3_KEY) -> dict:
-    from datetime import datetime, timezone
-    
-    started_at = datetime.now(timezone.utc).isoformat()
-    errors = []
-    
-    try:
-        result = download_extract_and_parse(s3_key)
-        
-        return {
-            "dry_run": dry_run,
-            "started_at": started_at,
-            "finished_at": datetime.now(timezone.utc).isoformat(),
-            "s3_key": s3_key,
-            "extract_dir": result["extract_dir"],
-            "json_files": result["json_files"],
-            "file_hash": result["file_hash"],
-            "tables": [],
-            "errors": [],
-        }
-    except Exception as e:
-        errors.append(str(e))
-        return {
-            "dry_run": dry_run,
-            "started_at": started_at,
-            "finished_at": datetime.now(timezone.utc).isoformat(),
-            "s3_key": s3_key,
-            "extract_dir": str(SHARED_DIR),
-            "json_files": [],
-            "file_hash": "",
-            "tables": [],
-            "errors": errors,
-        }
+if __name__ == "__main__":
+    exit(main())

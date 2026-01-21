@@ -1,3 +1,7 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["psycopg[binary]"]
+# ///
 """
 League Config Import
 
@@ -619,7 +623,3 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
         "errors": errors,
     }
 
-
-if __name__ == "__main__":
-    result = main(dry_run=True, extract_dir=".shared/nba_pcms_full_extract")
-    print(json.dumps(result, indent=2))

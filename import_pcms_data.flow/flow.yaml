@@ -100,22 +100,7 @@ value:
             expr: '''./shared/pcms'''
         lock: '!inline team_financials.inline_script.lock'
         language: python3
-    - id: h
-      summary: Finalize Lineage
-      value:
-        type: rawscript
-        content: '!inline finalize_lineage.inline_script.py'
-        input_transforms:
-          dry_run:
-            type: javascript
-            expr: flow_input.dry_run
-          summaries:
-            type: javascript
-            expr: >-
-              [results.a, results.b, results.c, results.d, results.e, results.f,
-              results.g]
-        lock: '!inline finalize_lineage.inline_script.lock'
-        language: python3
+
   same_worker: true
 schema:
   $schema: 'https://json-schema.org/draft/2020-12/schema'

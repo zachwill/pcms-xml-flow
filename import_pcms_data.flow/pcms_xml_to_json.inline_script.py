@@ -1,3 +1,7 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["lxml", "orjson", "wmill"]
+# ///
 import hashlib
 import json
 import os

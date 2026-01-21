@@ -32,7 +32,7 @@ Convert the verbose TypeScript import scripts to concise Python/Polars.
 
 ### Phase 3: Config & Teams
 - [x] `league_config.inline_script.py` — system values, scales, projections, tax rates, apron constraints, draft picks, draft summaries (625 lines vs 1054 TS)
-- [ ] `team_financials.inline_script.py` — budgets, tax status, waiver priority, two-way
+- [x] `team_financials.inline_script.py` — budgets, tax status, waiver priority, two-way
 
 ### Phase 4: Finalize & Cleanup
 - [ ] `finalize_lineage.inline_script.py` — aggregate results, report errors

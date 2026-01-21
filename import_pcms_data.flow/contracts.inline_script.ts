@@ -5,8 +5,12 @@
  * - pcms.contracts
  * - pcms.contract_versions
  * - pcms.contract_bonuses
+ * - pcms.contract_bonus_criteria
+ * - pcms.contract_bonus_maximums
  * - pcms.salaries
  * - pcms.payment_schedules
+ * - pcms.contract_protections
+ * - pcms.contract_protection_conditions
  */
 
 import { SQL } from "bun";
@@ -117,9 +121,12 @@ export async function main(
 
     const versionRows: any[] = [];
     const bonusRows: any[] = [];
+    const bonusCriteriaRows: any[] = [];
+    const bonusMaximumRows: any[] = [];
     const salaryRows: any[] = [];
     const paymentScheduleRows: any[] = [];
     const protectionRows: any[] = [];
+    const protectionConditionRows: any[] = [];
 
     for (const c of contracts) {
       const versions = asArray<any>(c?.versions?.version);
@@ -233,6 +240,28 @@ export async function main(
 
             ingested_at: ingestedAt,
           });
+
+          // Extract protection conditions
+          if (hasConditions) {
+            const conditions = asArray<any>(p.protection_conditions?.protection_condition);
+            for (const cond of conditions) {
+              if (!cond?.contract_protection_condition_id) continue;
+
+              protectionConditionRows.push({
+                condition_id: cond.contract_protection_condition_id,
+                protection_id: p.contract_protection_id,
+                amount: cond?.amount ?? null,
+                clause_name: cond?.clause_name ?? null,
+                earned_date: cond?.earned_date ?? null,
+                earned_type_lk: cond?.earned_type_lk ?? null,
+                is_full_condition: cond?.full_flg ?? null,
+                criteria_description: cond?.criteria_description ?? null,
+                criteria_json: cond?.criteria ?? null,
+
+                ingested_at: ingestedAt,
+              });
+            }
+          }
         }
 
         const bonuses = asArray<any>(v?.bonuses?.bonus);
@@ -252,6 +281,52 @@ export async function main(
             clause_name: b?.clause_name ?? null,
             criteria_description: b?.criteria_description ?? null,
             criteria_json: b?.bonus_criteria ?? null,
+
+            ingested_at: ingestedAt,
+          });
+
+          // Extract bonus criteria
+          // bonus_criteria is an array of objects, each may contain a bonus_criterium array
+          const criteriaGroups = asArray<any>(b?.bonus_criteria);
+          for (const group of criteriaGroups) {
+            if (!group) continue;
+            const criteriaItems = asArray<any>(group?.bonus_criterium);
+            for (const cri of criteriaItems) {
+              if (!cri?.bonus_criteria_id) continue;
+
+              bonusCriteriaRows.push({
+                bonus_criteria_id: cri.bonus_criteria_id,
+                bonus_id: b.bonus_id,
+                criteria_lk: cri?.criteria_lk ?? null,
+                criteria_operator_lk: cri?.criteria_operator_lk ?? null,
+                modifier_lk: cri?.modifier_lk ?? null,
+                season_type_lk: cri?.season_type_lk ?? null,
+                is_player_criteria: cri?.player_criteria_flg ?? null,
+                is_team_criteria: cri?.team_criteria_flg ?? null,
+                value_1: cri?.value1 ?? null,
+                value_2: cri?.value2 ?? null,
+                date_1: cri?.date1 ?? null,
+                date_2: cri?.date2 ?? null,
+
+                ingested_at: ingestedAt,
+              });
+            }
+          }
+        }
+
+        // Extract bonus maximums (at version level)
+        const bonusMaximums = asArray<any>(v?.bonus_maximums?.bonus_maximum);
+        for (const bm of bonusMaximums) {
+          if (!bm?.bonus_max_id) continue;
+
+          bonusMaximumRows.push({
+            bonus_max_id: bm.bonus_max_id,
+            contract_id: c.contract_id,
+            version_number: versionNumber,
+            salary_year: bm?.salary_year ?? null,
+            max_amount: bm?.bonus_max_amount ?? null,
+            bonus_type_lk: null, // Not in source data
+            is_likely: bm?.greater_of_max_flg ?? null,
 
             ingested_at: ingestedAt,
           });
@@ -332,12 +407,15 @@ export async function main(
     const contractDeduped = dedupeByKey(contractRows, (r) => String(r.contract_id));
     const versionDeduped = dedupeByKey(versionRows, (r) => `${r.contract_id}|${r.version_number}`);
     const bonusDeduped = dedupeByKey(bonusRows, (r) => String(r.bonus_id));
+    const bonusCriteriaDeduped = dedupeByKey(bonusCriteriaRows, (r) => String(r.bonus_criteria_id));
+    const bonusMaximumDeduped = dedupeByKey(bonusMaximumRows, (r) => String(r.bonus_max_id));
     const salaryDeduped = dedupeByKey(salaryRows, (r) => `${r.contract_id}|${r.version_number}|${r.salary_year}`);
     const paymentScheduleDeduped = dedupeByKey(paymentScheduleRows, (r) => String(r.payment_schedule_id));
     const protectionDeduped = dedupeByKey(protectionRows, (r) => String(r.protection_id));
+    const protectionConditionDeduped = dedupeByKey(protectionConditionRows, (r) => String(r.condition_id));
 
     console.log(
-      `Prepared rows (after dedupe): contracts=${contractDeduped.length}, versions=${versionDeduped.length}, bonuses=${bonusDeduped.length}, salaries=${salaryDeduped.length}, payment_schedules=${paymentScheduleDeduped.length}, protections=${protectionDeduped.length}`
+      `Prepared rows (after dedupe): contracts=${contractDeduped.length}, versions=${versionDeduped.length}, bonuses=${bonusDeduped.length}, bonus_criteria=${bonusCriteriaDeduped.length}, bonus_maximums=${bonusMaximumDeduped.length}, salaries=${salaryDeduped.length}, payment_schedules=${paymentScheduleDeduped.length}, protections=${protectionDeduped.length}, protection_conditions=${protectionConditionDeduped.length}`
     );
 
     if (dry_run) {
@@ -349,9 +427,12 @@ export async function main(
           { table: "pcms.contracts", attempted: contractDeduped.length, success: true },
           { table: "pcms.contract_versions", attempted: versionDeduped.length, success: true },
           { table: "pcms.contract_bonuses", attempted: bonusDeduped.length, success: true },
+          { table: "pcms.contract_bonus_criteria", attempted: bonusCriteriaDeduped.length, success: true },
+          { table: "pcms.contract_bonus_maximums", attempted: bonusMaximumDeduped.length, success: true },
           { table: "pcms.salaries", attempted: salaryDeduped.length, success: true },
           { table: "pcms.payment_schedules", attempted: paymentScheduleDeduped.length, success: true },
           { table: "pcms.contract_protections", attempted: protectionDeduped.length, success: true },
+          { table: "pcms.contract_protection_conditions", attempted: protectionConditionDeduped.length, success: true },
         ],
         errors: [],
       };
@@ -463,6 +544,53 @@ export async function main(
     }
     tables.push({ table: "pcms.contract_bonuses", attempted: bonusDeduped.length, success: true });
 
+    // Contract bonus criteria
+    for (let i = 0; i < bonusCriteriaDeduped.length; i += BATCH_SIZE) {
+      const rows = bonusCriteriaDeduped.slice(i, i + BATCH_SIZE);
+      try {
+        await sql`
+          INSERT INTO pcms.contract_bonus_criteria ${sql(rows)}
+          ON CONFLICT (bonus_criteria_id) DO UPDATE SET
+            bonus_id = EXCLUDED.bonus_id,
+            criteria_lk = EXCLUDED.criteria_lk,
+            criteria_operator_lk = EXCLUDED.criteria_operator_lk,
+            modifier_lk = EXCLUDED.modifier_lk,
+            season_type_lk = EXCLUDED.season_type_lk,
+            is_player_criteria = EXCLUDED.is_player_criteria,
+            is_team_criteria = EXCLUDED.is_team_criteria,
+            value_1 = EXCLUDED.value_1,
+            value_2 = EXCLUDED.value_2,
+            date_1 = EXCLUDED.date_1,
+            date_2 = EXCLUDED.date_2,
+            ingested_at = EXCLUDED.ingested_at
+        `;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    tables.push({ table: "pcms.contract_bonus_criteria", attempted: bonusCriteriaDeduped.length, success: true });
+
+    // Contract bonus maximums
+    for (let i = 0; i < bonusMaximumDeduped.length; i += BATCH_SIZE) {
+      const rows = bonusMaximumDeduped.slice(i, i + BATCH_SIZE);
+      try {
+        await sql`
+          INSERT INTO pcms.contract_bonus_maximums ${sql(rows)}
+          ON CONFLICT (bonus_max_id) DO UPDATE SET
+            contract_id = EXCLUDED.contract_id,
+            version_number = EXCLUDED.version_number,
+            salary_year = EXCLUDED.salary_year,
+            max_amount = EXCLUDED.max_amount,
+            bonus_type_lk = EXCLUDED.bonus_type_lk,
+            is_likely = EXCLUDED.is_likely,
+            ingested_at = EXCLUDED.ingested_at
+        `;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    tables.push({ table: "pcms.contract_bonus_maximums", attempted: bonusMaximumDeduped.length, success: true });
+
     // Salaries
     for (let i = 0; i < salaryDeduped.length; i += BATCH_SIZE) {
       const rows = salaryDeduped.slice(i, i + BATCH_SIZE);
@@ -556,6 +684,29 @@ export async function main(
       }
     }
     tables.push({ table: "pcms.contract_protections", attempted: protectionDeduped.length, success: true });
+
+    // Contract protection conditions
+    for (let i = 0; i < protectionConditionDeduped.length; i += BATCH_SIZE) {
+      const rows = protectionConditionDeduped.slice(i, i + BATCH_SIZE);
+      try {
+        await sql`
+          INSERT INTO pcms.contract_protection_conditions ${sql(rows)}
+          ON CONFLICT (condition_id) DO UPDATE SET
+            protection_id = EXCLUDED.protection_id,
+            amount = EXCLUDED.amount,
+            clause_name = EXCLUDED.clause_name,
+            earned_date = EXCLUDED.earned_date,
+            earned_type_lk = EXCLUDED.earned_type_lk,
+            is_full_condition = EXCLUDED.is_full_condition,
+            criteria_description = EXCLUDED.criteria_description,
+            criteria_json = EXCLUDED.criteria_json,
+            ingested_at = EXCLUDED.ingested_at
+        `;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    tables.push({ table: "pcms.contract_protection_conditions", attempted: protectionConditionDeduped.length, success: true });
 
     return {
       dry_run: false,

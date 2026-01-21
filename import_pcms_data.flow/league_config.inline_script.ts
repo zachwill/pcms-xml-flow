@@ -12,7 +12,7 @@
  *  - pcms.league_salary_scales          (yearly_salary_scales.json)
  *  - pcms.league_salary_cap_projections (cap_projections.json)
  *  - pcms.league_tax_rates              (tax_rates.json)
- *  - pcms.apron_constraints             (apron_constraints.json, if present)
+ *  - pcms.apron_constraints             (derived from lookups × system_values)
  *
  * Clean JSON notes:
  * - snake_case keys
@@ -101,7 +101,6 @@ export async function main(dry_run = false, extract_dir = "./shared/pcms") {
     const salaryScalesFile = Bun.file(`${baseDir}/yearly_salary_scales.json`);
     const capProjectionsFile = Bun.file(`${baseDir}/cap_projections.json`);
     const taxRatesFile = Bun.file(`${baseDir}/tax_rates.json`);
-    const apronConstraintsFile = Bun.file(`${baseDir}/apron_constraints.json`);
 
     const ysv: any[] = (await ysvFile.exists()) ? await ysvFile.json() : [];
     const rookieScale: any[] = (await rookieFile.exists()) ? await rookieFile.json() : [];
@@ -109,13 +108,12 @@ export async function main(dry_run = false, extract_dir = "./shared/pcms") {
     const salaryScales: any[] = (await salaryScalesFile.exists()) ? await salaryScalesFile.json() : [];
     const capProjections: any[] = (await capProjectionsFile.exists()) ? await capProjectionsFile.json() : [];
     const taxRates: any[] = (await taxRatesFile.exists()) ? await taxRatesFile.json() : [];
-    const apronConstraints: any[] = (await apronConstraintsFile.exists()) ? await apronConstraintsFile.json() : [];
 
     console.log(
       `Found yearly_system_values=${ysv.length}, rookie_scale_amounts=${rookieScale.length}, non_contract_amounts=${ncas.length}`
     );
     console.log(
-      `Found salary_scales=${salaryScales.length}, cap_projections=${capProjections.length}, tax_rates=${taxRates.length}, apron_constraints=${apronConstraints.length}`
+      `Found salary_scales=${salaryScales.length}, cap_projections=${capProjections.length}, tax_rates=${taxRates.length}`
     );
 
     const ingestedAt = new Date();
@@ -368,26 +366,6 @@ export async function main(dry_run = false, extract_dir = "./shared/pcms") {
       })
       .filter(Boolean) as Record<string, any>[];
 
-    const apronConstraintRows = apronConstraints
-      .map((ac) => {
-        const apron_level_lk = ac?.apron_level_lk ?? null;
-        const constraint_code = ac?.constraint_code ?? null;
-        const effective_salary_year = toIntOrNull(ac?.effective_salary_year);
-        if (!apron_level_lk || !constraint_code || effective_salary_year === null) return null;
-
-        return {
-          apron_level_lk,
-          constraint_code,
-          effective_salary_year,
-          description: ac?.description ?? null,
-          created_at: ac?.create_date ?? null,
-          updated_at: ac?.last_change_date ?? null,
-          record_changed_at: ac?.record_change_date ?? null,
-          ingested_at: ingestedAt,
-        };
-      })
-      .filter(Boolean) as Record<string, any>[];
-
     // ─────────────────────────────────────────────────────────────────────────
     // Upfront dedupe (entire dataset, then batch)
     // ─────────────────────────────────────────────────────────────────────────
@@ -413,10 +391,6 @@ export async function main(dry_run = false, extract_dir = "./shared/pcms") {
       leagueTaxRateRows,
       (r) => `${r.league_lk}|${r.salary_year}|${r.lower_limit}`
     );
-    const apronConstraintDeduped = dedupeByKey(
-      apronConstraintRows,
-      (r) => `${r.apron_level_lk}|${r.constraint_code}|${r.effective_salary_year}`
-    );
 
     if (dry_run) {
       return {
@@ -430,7 +404,7 @@ export async function main(dry_run = false, extract_dir = "./shared/pcms") {
           { table: "pcms.league_salary_scales", attempted: scaleDeduped.length, success: true },
           { table: "pcms.league_salary_cap_projections", attempted: projectionDeduped.length, success: true },
           { table: "pcms.league_tax_rates", attempted: taxRateDeduped.length, success: true },
-          { table: "pcms.apron_constraints", attempted: apronConstraintDeduped.length, success: true },
+          { table: "pcms.apron_constraints", attempted: "(derived from lookups × system_values)", success: true },
         ],
         errors: [],
       };
@@ -652,22 +626,39 @@ export async function main(dry_run = false, extract_dir = "./shared/pcms") {
     }
 
     // ── apron_constraints ───────────────────────────────────────────────────
+    // Derived from pcms.lookups (lk_subject_to_apron_reasons) × pcms.league_system_values
+    // Creates a row for each constraint × year where aprons are active
 
-    if (apronConstraintDeduped.length > 0) {
-      for (let i = 0; i < apronConstraintDeduped.length; i += BATCH_SIZE_SMALL) {
-        const batch = apronConstraintDeduped.slice(i, i + BATCH_SIZE_SMALL);
-
-        await sql`
-          INSERT INTO pcms.apron_constraints ${sql(batch)}
-          ON CONFLICT (apron_level_lk, constraint_code, effective_salary_year) DO UPDATE SET
-            description = EXCLUDED.description,
-            updated_at = EXCLUDED.updated_at,
-            record_changed_at = EXCLUDED.record_changed_at,
-            ingested_at = EXCLUDED.ingested_at
-        `;
-      }
-      tables.push({ table: "pcms.apron_constraints", attempted: apronConstraintDeduped.length, success: true });
-    }
+    const apronResult = await sql`
+      INSERT INTO pcms.apron_constraints (
+        apron_level_lk,
+        constraint_code,
+        effective_salary_year,
+        description,
+        created_at,
+        updated_at,
+        ingested_at
+      )
+      SELECT 
+        lk.lookup_code as apron_level_lk,
+        lk.properties_json->>'subject_to_apron_reason_lk' as constraint_code,
+        ysv.salary_year as effective_salary_year,
+        lk.description,
+        lk.created_at,
+        lk.updated_at,
+        NOW() as ingested_at
+      FROM pcms.lookups lk
+      CROSS JOIN pcms.league_system_values ysv
+      WHERE lk.lookup_type = 'lk_subject_to_apron_reasons'
+        AND lk.is_active = true
+        AND ysv.tax_apron_amount > 0
+        AND lk.properties_json->>'subject_to_apron_reason_lk' IS NOT NULL
+      ON CONFLICT (apron_level_lk, constraint_code, effective_salary_year) DO NOTHING
+      RETURNING 1
+    `;
+    const apronCount = apronResult?.length ?? 0;
+    console.log(`Derived ${apronCount} apron_constraints from lookups × system_values`);
+    tables.push({ table: "pcms.apron_constraints", attempted: apronCount, success: true });
 
     return {
       dry_run: false,

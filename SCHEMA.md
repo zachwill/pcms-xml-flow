@@ -1,6 +1,7 @@
 # "pcms" Schema
 
-agencies
+table: pcms.agencies
+columns:
  - agency_id integer primary key
  - agency_name text
  - is_active boolean default true
@@ -10,7 +11,8 @@ agencies
  - agency_json jsonb
  - ingested_at timestamp with time zone default now()
 
-agents
+table: pcms.agents
+columns:
  - agent_id integer primary key
  - agency_id integer
  - agency_name text
@@ -26,7 +28,8 @@ agents
  - agent_json jsonb
  - ingested_at timestamp with time zone default now()
 
-apron_constraints
+table: pcms.apron_constraints
+columns:
  - apron_level_lk text primary key
  - constraint_code text primary key
  - effective_salary_year integer primary key
@@ -36,11 +39,10 @@ apron_constraints
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-contract_bonus_criteria
- - contract_id integer (pk)
- - version_number integer (pk)
- - bonus_id integer (pk)
- - bonus_criteria_id integer (pk)
+table: pcms.contract_bonus_criteria
+columns:
+ - bonus_criteria_id integer primary key
+ - bonus_id integer primary key
  - criteria_lk text
  - criteria_operator_lk text
  - modifier_lk text
@@ -52,22 +54,25 @@ contract_bonus_criteria
  - date_1 date
  - date_2 date
  - ingested_at timestamp with time zone default now()
- - FK: (contract_id, version_number, bonus_id) → contract_bonuses
+ - contract_id integer primary key
+ - version_number integer primary key
 
-contract_bonus_maximums
- - contract_id integer (pk)
- - version_number integer (pk)
- - bonus_max_id integer (pk)
+table: pcms.contract_bonus_maximums
+columns:
+ - bonus_max_id integer primary key
+ - contract_id integer primary key
+ - version_number integer primary key
  - salary_year integer
  - max_amount bigint
  - bonus_type_lk text
  - is_likely boolean
  - ingested_at timestamp with time zone default now()
 
-contract_bonuses
- - contract_id integer (pk)
- - version_number integer (pk)
- - bonus_id integer (pk)
+table: pcms.contract_bonuses
+columns:
+ - bonus_id integer primary key
+ - contract_id integer primary key
+ - version_number integer primary key
  - salary_year integer
  - bonus_amount bigint
  - bonus_type_lk text
@@ -79,11 +84,10 @@ contract_bonuses
  - criteria_json jsonb
  - ingested_at timestamp with time zone default now()
 
-contract_protection_conditions
- - contract_id integer (pk)
- - version_number integer (pk)
- - protection_id integer (pk)
- - condition_id integer (pk)
+table: pcms.contract_protection_conditions
+columns:
+ - condition_id integer primary key
+ - protection_id integer primary key
  - amount bigint
  - clause_name text
  - earned_date date
@@ -92,12 +96,14 @@ contract_protection_conditions
  - criteria_description text
  - criteria_json jsonb
  - ingested_at timestamp with time zone default now()
- - FK: (contract_id, version_number, protection_id) → contract_protections
+ - contract_id integer primary key
+ - version_number integer primary key
 
-contract_protections
- - contract_id integer (pk)
- - version_number integer (pk)
- - protection_id integer (pk)
+table: pcms.contract_protections
+columns:
+ - protection_id integer primary key
+ - contract_id integer primary key
+ - version_number integer primary key
  - salary_year integer
  - protection_amount bigint
  - effective_protection_amount bigint
@@ -107,7 +113,8 @@ contract_protections
  - protection_types_json jsonb
  - ingested_at timestamp with time zone default now()
 
-contract_versions
+table: pcms.contract_versions
+columns:
  - contract_version_id serial primary key
  - contract_id integer
  - version_number integer
@@ -141,7 +148,8 @@ contract_versions
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-contracts
+table: pcms.contracts
+columns:
  - contract_id integer primary key
  - player_id integer
  - signing_team_id integer
@@ -165,7 +173,8 @@ contracts
  - team_code text
  - sign_and_trade_to_team_code text
 
-depth_charts
+table: pcms.depth_charts
+columns:
  - team_id integer primary key
  - person_id integer primary key
  - salary_year integer primary key
@@ -186,31 +195,8 @@ depth_charts
  - ingested_at timestamp with time zone default now()
  - team_code text
 
-draft_pick_ownership
- - id serial primary key
- - draft_year integer
- - round integer
- - original_team_id integer
- - original_team_code text
- - current_team_id integer
- - current_team_code text
- - ownership_status text
- - destination_team_id integer
- - destination_team_code text
- - is_conditional boolean default false
- - condition_description text
- - protection_description text
- - swap_rights_team_id integer
- - swap_rights_team_code text
- - provenance_chain jsonb
- - endnote_refs integer[]
- - source text default 'parsed'::text
- - confidence text default 'high'::text
- - notes text
- - created_at timestamp with time zone default now()
- - updated_at timestamp with time zone default now()
-
-draft_pick_summaries
+table: pcms.draft_pick_summaries
+columns:
  - draft_year integer primary key
  - team_id integer primary key
  - team_code text
@@ -222,36 +208,44 @@ draft_pick_summaries
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-draft_picks
- - draft_pick_id integer primary key
+table: pcms.draft_pick_trades
+columns:
+ - id serial primary key
+ - trade_id integer
+ - trade_date date
  - draft_year integer
- - round integer
- - pick_number text
- - pick_number_int integer
- - league_lk text
+ - draft_round integer
+ - from_team_id integer
+ - from_team_code text
+ - to_team_id integer
+ - to_team_code text
  - original_team_id integer
- - current_team_id integer
- - is_active boolean
- - is_protected boolean
- - protection_description text
- - is_swap boolean
- - swap_type_lk text
- - conveyance_year_range text
- - conveyance_trigger_description text
- - first_round_summary text
- - second_round_summary text
- - history_json jsonb
- - draft_json jsonb
- - summary_json jsonb
+ - original_team_code text
+ - is_swap boolean default false
+ - is_future boolean default false
+ - is_conditional boolean default false
+ - conditional_type_lk text
+ - is_draft_year_plus_two boolean default false
+ - ingested_at timestamp with time zone default now()
+
+table: pcms.draft_selections
+columns:
+ - transaction_id integer primary key
+ - draft_year integer
+ - draft_round integer
+ - pick_number integer
+ - player_id integer
+ - drafting_team_id integer
+ - drafting_team_code text
+ - draft_amount bigint
+ - transaction_date date
  - created_at timestamp with time zone
  - updated_at timestamp with time zone
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
- - player_id integer
- - original_team_code text
- - current_team_code text
 
-league_salary_cap_projections
+table: pcms.league_salary_cap_projections
+columns:
  - projection_id integer primary key
  - salary_year integer
  - cap_amount bigint
@@ -265,7 +259,8 @@ league_salary_cap_projections
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-league_salary_scales
+table: pcms.league_salary_scales
+columns:
  - salary_scale_id serial primary key
  - salary_year integer
  - league_lk text
@@ -276,7 +271,8 @@ league_salary_scales
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-league_system_values
+table: pcms.league_system_values
+columns:
  - league_lk text primary key
  - salary_year integer primary key
  - rsa_from_year integer
@@ -356,7 +352,8 @@ league_system_values
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-league_tax_rates
+table: pcms.league_tax_rates
+columns:
  - tax_rate_id serial primary key
  - league_lk text
  - salary_year integer
@@ -371,7 +368,8 @@ league_tax_rates
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-ledger_entries
+table: pcms.ledger_entries
+columns:
  - transaction_ledger_entry_id numeric primary key
  - transaction_id numeric
  - team_id numeric
@@ -405,16 +403,8 @@ ledger_entries
  - ingested_at timestamp with time zone default now()
  - team_code text
 
-lk_subject_to_apron_reasons
- - reason_lk text primary key
- - description text
- - apron_level_lk text
- - created_at timestamp with time zone
- - updated_at timestamp with time zone
- - record_changed_at timestamp with time zone
- - ingested_at timestamp with time zone default now()
-
-lookups
+table: pcms.lookups
+columns:
  - lookup_id serial primary key
  - lookup_type text
  - lookup_code text
@@ -428,7 +418,8 @@ lookups
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-non_contract_amounts
+table: pcms.non_contract_amounts
+columns:
  - non_contract_amount_id bigint primary key
  - player_id integer
  - team_id integer
@@ -460,7 +451,8 @@ non_contract_amounts
  - ingested_at timestamp with time zone default now()
  - team_code text
 
-payment_schedule_details
+table: pcms.payment_schedule_details
+columns:
  - payment_detail_id integer primary key
  - payment_schedule_id integer
  - payment_date date
@@ -474,7 +466,8 @@ payment_schedule_details
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-payment_schedules
+table: pcms.payment_schedules
+columns:
  - payment_schedule_id integer primary key
  - contract_id integer
  - version_number integer
@@ -489,7 +482,8 @@ payment_schedules
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-people
+table: pcms.people
+columns:
  - person_id integer primary key
  - first_name text
  - last_name text
@@ -571,7 +565,8 @@ people
  - dlg_returning_rights_team_code text
  - dlg_team_code text
 
-rookie_scale_amounts
+table: pcms.rookie_scale_amounts
+columns:
  - rookie_scale_id serial primary key
  - salary_year integer
  - pick_number integer
@@ -591,7 +586,8 @@ rookie_scale_amounts
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-salaries
+table: pcms.salaries
+columns:
  - salary_id serial primary key
  - contract_id integer
  - version_number integer
@@ -629,7 +625,8 @@ salaries
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-tax_team_status
+table: pcms.tax_team_status
+columns:
  - tax_team_status_id serial primary key
  - team_id integer
  - salary_year integer
@@ -646,7 +643,8 @@ tax_team_status
  - ingested_at timestamp with time zone default now()
  - team_code text
 
-team_budget_snapshots
+table: pcms.team_budget_snapshots
+columns:
  - team_budget_snapshot_id serial primary key
  - team_id integer
  - salary_year integer
@@ -677,7 +675,8 @@ team_budget_snapshots
  - ingested_at timestamp with time zone default now()
  - team_code text
 
-team_exception_usage
+table: pcms.team_exception_usage
+columns:
  - team_exception_detail_id integer primary key
  - team_exception_id integer
  - seqno integer
@@ -698,7 +697,8 @@ team_exception_usage
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-team_exceptions
+table: pcms.team_exceptions
+columns:
  - team_exception_id integer primary key
  - team_id integer
  - salary_year integer
@@ -718,7 +718,8 @@ team_exceptions
  - ingested_at timestamp with time zone default now()
  - team_code text
 
-team_tax_summary_snapshots
+table: pcms.team_tax_summary_snapshots
+columns:
  - team_tax_summary_id serial primary key
  - team_id integer
  - salary_year integer
@@ -735,7 +736,8 @@ team_tax_summary_snapshots
  - ingested_at timestamp with time zone default now()
  - team_code text
 
-team_transactions
+table: pcms.team_transactions
+columns:
  - team_transaction_id integer primary key
  - team_id integer
  - team_code text
@@ -755,7 +757,8 @@ team_transactions
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-team_two_way_capacity
+table: pcms.team_two_way_capacity
+columns:
  - team_id integer primary key
  - current_contract_count integer
  - games_remaining integer
@@ -764,7 +767,8 @@ team_two_way_capacity
  - ingested_at timestamp with time zone default now()
  - team_code text
 
-teams
+table: pcms.teams
+columns:
  - team_id integer primary key
  - team_name text
  - team_code text
@@ -784,7 +788,8 @@ teams
  - metadata_json jsonb
  - ingested_at timestamp with time zone default now()
 
-trade_groups
+table: pcms.trade_groups
+columns:
  - trade_group_id text primary key
  - trade_id integer
  - team_id integer
@@ -796,7 +801,8 @@ trade_groups
  - ingested_at timestamp with time zone default now()
  - team_code text
 
-trade_team_details
+table: pcms.trade_team_details
+columns:
  - trade_team_detail_id text primary key
  - trade_id integer
  - team_id integer
@@ -828,7 +834,8 @@ trade_team_details
  - ingested_at timestamp with time zone default now()
  - team_code text
 
-trade_teams
+table: pcms.trade_teams
+columns:
  - trade_team_id text primary key
  - trade_id integer
  - team_id integer
@@ -839,7 +846,8 @@ trade_teams
  - ingested_at timestamp with time zone default now()
  - team_code text
 
-trades
+table: pcms.trades
+columns:
  - trade_id integer primary key
  - trade_date date
  - trade_finalized_date date
@@ -851,7 +859,8 @@ trades
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-transaction_waiver_amounts
+table: pcms.transaction_waiver_amounts
+columns:
  - transaction_waiver_amount_id integer primary key
  - transaction_id integer
  - player_id integer
@@ -880,7 +889,8 @@ transaction_waiver_amounts
  - ingested_at timestamp with time zone default now()
  - team_code text
 
-transactions
+table: pcms.transactions
+columns:
  - transaction_id integer primary key
  - player_id integer
  - from_team_id integer
@@ -937,7 +947,8 @@ transactions
  - rights_team_code text
  - sign_and_trade_team_code text
 
-two_way_contract_utility
+table: pcms.two_way_contract_utility
+columns:
  - contract_id integer primary key
  - player_id integer
  - contract_team_id integer
@@ -950,7 +961,8 @@ two_way_contract_utility
  - contract_team_code text
  - signing_team_code text
 
-two_way_daily_statuses
+table: pcms.two_way_daily_statuses
+columns:
  - player_id integer primary key
  - status_date date primary key
  - salary_year integer
@@ -982,7 +994,8 @@ two_way_daily_statuses
  - contract_team_code text
  - signing_team_code text
 
-two_way_game_utility
+table: pcms.two_way_game_utility
+columns:
  - game_id integer primary key
  - team_id integer
  - player_id integer primary key
@@ -999,7 +1012,8 @@ two_way_game_utility
  - team_code text
  - opposition_team_code text
 
-ui_projected_salaries
+table: pcms.ui_projected_salaries
+columns:
  - projection_salary_id serial primary key
  - projection_id uuid
  - team_id integer
@@ -1024,7 +1038,8 @@ ui_projected_salaries
  - ingested_at timestamp with time zone default now()
  - team_code text
 
-ui_projection_overrides
+table: pcms.ui_projection_overrides
+columns:
  - override_id uuid primary key
  - projection_id uuid
  - entity_type text
@@ -1033,7 +1048,8 @@ ui_projection_overrides
  - override_params_json jsonb
  - created_at timestamp with time zone default now()
 
-ui_projections
+table: pcms.ui_projections
+columns:
  - projection_id uuid primary key
  - team_id integer
  - salary_year integer
@@ -1050,7 +1066,8 @@ ui_projections
  - updated_at timestamp with time zone default now()
  - team_code text
 
-waiver_priority
+table: pcms.waiver_priority
+columns:
  - waiver_priority_id integer primary key
  - priority_date date
  - seqno integer
@@ -1061,7 +1078,8 @@ waiver_priority
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-waiver_priority_ranks
+table: pcms.waiver_priority_ranks
+columns:
  - waiver_priority_rank_id integer primary key
  - waiver_priority_id integer
  - team_id integer

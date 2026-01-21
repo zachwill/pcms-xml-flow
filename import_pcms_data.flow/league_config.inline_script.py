@@ -9,7 +9,7 @@ Consolidates:
 - System values, rookie scale & NCA
 - League salary scales & cap projections
 - Tax rates & apron constraints
-- Draft picks & summaries
+- Draft pick summaries
 
 Upserts into:
 - pcms.league_system_values
@@ -19,8 +19,10 @@ Upserts into:
 - pcms.league_salary_cap_projections
 - pcms.league_tax_rates
 - pcms.apron_constraints
-- pcms.draft_picks
 - pcms.draft_pick_summaries
+
+Note: draft_picks table removed - NBA draft data now comes from
+transactions (draft_selections) and trades (draft_pick_trades).
 """
 import os
 import json
@@ -147,13 +149,11 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
         scales_raw = load_json("yearly_salary_scales.json")
         projections_raw = load_json("cap_projections.json")
         tax_rates_raw = load_json("tax_rates.json")
-        draft_picks_raw = load_json("draft_picks.json")
         summaries_raw = load_json("draft_pick_summaries.json")
-        players_raw = load_json("players.json")
 
         print(f"Found: ysv={len(ysv_raw)}, rookie={len(rookie_raw)}, nca={len(nca_raw)}")
         print(f"Found: scales={len(scales_raw)}, projections={len(projections_raw)}, tax_rates={len(tax_rates_raw)}")
-        print(f"Found: draft_picks={len(draft_picks_raw)}, summaries={len(summaries_raw)}, players={len(players_raw)}")
+        print(f"Found: draft_pick_summaries={len(summaries_raw)}")
 
         # ─────────────────────────────────────────────────────────────────────
         # League System Values
@@ -378,52 +378,6 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
             }
 
         # ─────────────────────────────────────────────────────────────────────
-        # Draft Picks (from PCMS)
-        # ─────────────────────────────────────────────────────────────────────
-        draft_picks = {}
-        for dp in draft_picks_raw:
-            pick_id = to_int(dp.get("draft_pick_id"))
-            if pick_id is None:
-                continue
-
-            pick_str, pick_int = normalize_pick(dp.get("pick"))
-            original_team_id = to_int(dp.get("original_team_id"))
-            current_team_id = to_int(dp.get("team_id"))
-
-            histories = as_list(dp.get("histories"))
-            history_json = json.dumps({"history": histories}) if histories else None
-
-            draft_picks[pick_id] = {
-                "draft_pick_id": pick_id,
-                "draft_year": to_int(dp.get("year") or dp.get("draft_year")),
-                "round": to_int(dp.get("round")),
-                "pick_number": pick_str,
-                "pick_number_int": pick_int,
-                "league_lk": dp.get("league_lk"),
-                "original_team_id": original_team_id,
-                "original_team_code": team_code_map.get(original_team_id) if original_team_id else None,
-                "current_team_id": current_team_id,
-                "current_team_code": team_code_map.get(current_team_id) if current_team_id else None,
-                "is_active": dp.get("active_flg"),
-                "is_protected": dp.get("protected_flg") or dp.get("is_protected"),
-                "protection_description": dp.get("protection_description"),
-                "is_swap": dp.get("draft_pick_swap_flg") or dp.get("swap_flg") or dp.get("is_swap"),
-                "swap_type_lk": dp.get("swap_type_lk"),
-                "conveyance_year_range": dp.get("conveyance_year_range"),
-                "conveyance_trigger_description": dp.get("conveyance_trigger_description"),
-                "first_round_summary": dp.get("first_round_summary"),
-                "second_round_summary": dp.get("second_round_summary"),
-                "player_id": to_int(dp.get("player_id")),
-                "history_json": history_json,
-                "draft_json": json.dumps(dp),
-                "summary_json": dp.get("summary_json"),
-                "created_at": dp.get("create_date"),
-                "updated_at": dp.get("last_change_date"),
-                "record_changed_at": dp.get("record_change_date"),
-                "ingested_at": ingested_at,
-            }
-
-        # ─────────────────────────────────────────────────────────────────────
         # Draft Pick Summaries
         # ─────────────────────────────────────────────────────────────────────
         draft_summaries = {}
@@ -446,43 +400,6 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
                 "ingested_at": ingested_at,
             }
 
-        # ─────────────────────────────────────────────────────────────────────
-        # Generate NBA Draft Picks from Players
-        # ─────────────────────────────────────────────────────────────────────
-        generated_picks = {}
-        for p in players_raw:
-            if p.get("league_lk") != "NBA":
-                continue
-            draft_year = to_int(p.get("draft_year"))
-            draft_round = to_int(p.get("draft_round"))
-            draft_pick_raw = p.get("draft_pick")
-            pick_num = to_int(first_scalar(draft_pick_raw))
-
-            if draft_year is None or draft_round is None or pick_num is None or pick_num == 0:
-                continue
-
-            draft_team_id = to_int(p.get("draft_team_id"))
-            # Synthetic ID: YYYY * 100000 + R * 1000 + PICK
-            synthetic_id = draft_year * 100000 + draft_round * 1000 + pick_num
-            player_id = to_int(p.get("player_id"))
-
-            key = (draft_year, draft_round, pick_num, "NBA")
-            generated_picks[key] = {
-                "draft_pick_id": synthetic_id,
-                "draft_year": draft_year,
-                "round": draft_round,
-                "pick_number": str(pick_num),
-                "pick_number_int": pick_num,
-                "league_lk": "NBA",
-                "original_team_id": draft_team_id,
-                "original_team_code": team_code_map.get(draft_team_id) if draft_team_id else None,
-                "current_team_id": draft_team_id,
-                "current_team_code": team_code_map.get(draft_team_id) if draft_team_id else None,
-                "is_active": False,
-                "player_id": player_id,
-                "ingested_at": ingested_at,
-            }
-
         # Convert to lists
         system_values_rows = list(system_values.values())
         rookie_scale_rows = list(rookie_scale.values())
@@ -490,16 +407,13 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
         salary_scales_rows = list(salary_scales.values())
         cap_projections_rows = list(cap_projections.values())
         tax_rates_rows = list(tax_rates.values())
-        draft_picks_rows = list(draft_picks.values())
         draft_summaries_rows = list(draft_summaries.values())
-        generated_picks_rows = list(generated_picks.values())
 
         print(f"Prepared: system_values={len(system_values_rows)}, rookie_scale={len(rookie_scale_rows)}, "
               f"nca={len(non_contract_rows)}")
         print(f"Prepared: scales={len(salary_scales_rows)}, projections={len(cap_projections_rows)}, "
               f"tax_rates={len(tax_rates_rows)}")
-        print(f"Prepared: draft_picks={len(draft_picks_rows)}, summaries={len(draft_summaries_rows)}, "
-              f"generated_nba={len(generated_picks_rows)}")
+        print(f"Prepared: draft_pick_summaries={len(draft_summaries_rows)}")
 
         if not dry_run:
             conn = psycopg.connect(os.environ["POSTGRES_URL"])
@@ -534,45 +448,10 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
                                ["league_lk", "salary_year", "lower_limit"])
                 tables.append({"table": "pcms.league_tax_rates", "attempted": count, "success": True})
 
-                # Draft picks (PCMS first)
-                count = upsert(conn, "pcms.draft_picks", draft_picks_rows, ["draft_pick_id"])
-                tables.append({"table": "pcms.draft_picks", "attempted": count, "success": True})
-
                 # Draft pick summaries
                 count = upsert(conn, "pcms.draft_pick_summaries", draft_summaries_rows,
                                ["draft_year", "team_id"])
                 tables.append({"table": "pcms.draft_pick_summaries", "attempted": count, "success": True})
-
-                # Generated NBA picks (upsert on natural key, not synthetic PK)
-                if generated_picks_rows:
-                    # Use a different conflict key for generated picks
-                    with conn.cursor() as cur:
-                        for row in generated_picks_rows:
-                            cur.execute("""
-                                INSERT INTO pcms.draft_picks (
-                                    draft_pick_id, draft_year, round, pick_number, pick_number_int,
-                                    league_lk, original_team_id, original_team_code, current_team_id,
-                                    current_team_code, is_active, player_id, ingested_at
-                                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                ON CONFLICT (draft_year, round, pick_number_int, league_lk)
-                                WHERE pick_number_int IS NOT NULL
-                                DO UPDATE SET
-                                    player_id = EXCLUDED.player_id,
-                                    original_team_id = EXCLUDED.original_team_id,
-                                    original_team_code = EXCLUDED.original_team_code,
-                                    current_team_id = EXCLUDED.current_team_id,
-                                    current_team_code = EXCLUDED.current_team_code,
-                                    is_active = EXCLUDED.is_active,
-                                    ingested_at = EXCLUDED.ingested_at
-                            """, (
-                                row["draft_pick_id"], row["draft_year"], row["round"],
-                                row["pick_number"], row["pick_number_int"], row["league_lk"],
-                                row["original_team_id"], row["original_team_code"],
-                                row["current_team_id"], row["current_team_code"],
-                                row["is_active"], row["player_id"], row["ingested_at"]
-                            ))
-                    conn.commit()
-                tables.append({"table": "pcms.draft_picks (generated)", "attempted": len(generated_picks_rows), "success": True})
 
                 # Apron constraints (derived from lookups × system_values)
                 with conn.cursor() as cur:
@@ -610,9 +489,7 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
             tables.append({"table": "pcms.league_salary_scales", "attempted": len(salary_scales_rows), "success": True})
             tables.append({"table": "pcms.league_salary_cap_projections", "attempted": len(cap_projections_rows), "success": True})
             tables.append({"table": "pcms.league_tax_rates", "attempted": len(tax_rates_rows), "success": True})
-            tables.append({"table": "pcms.draft_picks", "attempted": len(draft_picks_rows), "success": True})
             tables.append({"table": "pcms.draft_pick_summaries", "attempted": len(draft_summaries_rows), "success": True})
-            tables.append({"table": "pcms.draft_picks (generated)", "attempted": len(generated_picks_rows), "success": True})
             tables.append({"table": "pcms.apron_constraints", "attempted": "(derived)", "success": True})
 
     except Exception as e:

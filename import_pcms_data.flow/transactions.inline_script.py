@@ -5,12 +5,14 @@
 """
 Transactions Import
 
-Imports trades, transactions, ledger entries, waiver amounts, and team exceptions.
+Imports trades, transactions, ledger entries, waiver amounts, team exceptions,
+and draft-related tables derived from transactions/trades.
 
 Order (FK-safe): 
   trades → trade_teams → trade_team_details → trade_groups
   → transactions → ledger_entries → transaction_waiver_amounts
   → team_exceptions → team_exception_usage
+  → draft_selections → draft_pick_trades
 
 Upserts into:
 - pcms.trades
@@ -22,6 +24,8 @@ Upserts into:
 - pcms.transaction_waiver_amounts
 - pcms.team_exceptions
 - pcms.team_exception_usage
+- pcms.draft_selections
+- pcms.draft_pick_trades
 """
 import os
 import json
@@ -540,6 +544,148 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
         print(f"Prepared: team_exceptions={len(exceptions)}, team_exception_usage={len(usage)}")
 
         # ─────────────────────────────────────────────────────────────────────
+        # Draft Selections (NBA draft events from transactions)
+        # ─────────────────────────────────────────────────────────────────────
+        draft_selections = []
+
+        for txn in transactions_raw:
+            # Only NBA draft transactions
+            if txn.get("transaction_type_lk") != "DRAFT":
+                continue
+            if txn.get("league_lk") != "NBA":
+                continue
+
+            txn_id = to_int(txn.get("transaction_id"))
+            player_id = to_int(txn.get("player_id"))
+            drafting_team_id = to_int(txn.get("to_team_id"))
+            draft_year = to_int(txn.get("draft_year"))
+            draft_round = to_int(txn.get("draft_round"))
+            pick_number = to_int(unwrap_single_array(txn.get("draft_pick")))
+
+            # Skip if missing required fields
+            if not all([txn_id, player_id, drafting_team_id, draft_year, draft_round, pick_number]):
+                continue
+
+            draft_selections.append({
+                "transaction_id": txn_id,
+                "draft_year": draft_year,
+                "draft_round": draft_round,
+                "pick_number": pick_number,
+                "player_id": player_id,
+                "drafting_team_id": drafting_team_id,
+                "drafting_team_code": team_code_map.get(drafting_team_id),
+                "draft_amount": txn.get("draft_amount"),
+                "transaction_date": txn.get("transaction_date"),
+                "created_at": txn.get("create_date"),
+                "updated_at": txn.get("last_change_date"),
+                "record_changed_at": txn.get("record_change_date"),
+                "ingested_at": ingested_at,
+            })
+
+        print(f"Prepared: draft_selections={len(draft_selections)}")
+
+        # ─────────────────────────────────────────────────────────────────────
+        # Draft Pick Trades (pick ownership changes from trade_team_details)
+        # ─────────────────────────────────────────────────────────────────────
+        draft_pick_trades = []
+
+        # Build a map of trade_id -> trade metadata
+        trade_meta = {}
+        for t in trades_raw:
+            trade_id = to_int(t.get("trade_id"))
+            if trade_id and t.get("league_lk") == "NBA":
+                trade_meta[trade_id] = {
+                    "trade_date": t.get("trade_date"),
+                    "league_lk": t.get("league_lk"),
+                }
+
+        # Process trade_team_details to find DRPCK entries
+        # We need to pair sent/received entries within the same trade
+        for t in trades_raw:
+            trade_id = to_int(t.get("trade_id"))
+            if trade_id is None:
+                continue
+            if t.get("league_lk") != "NBA":
+                continue
+
+            trade_date = t.get("trade_date")
+
+            # Collect all DRPCK entries for this trade, grouped by (draft_year, draft_round, seqno)
+            pick_entries = []  # List of (team_id, is_sent, draft_info)
+
+            trade_teams_data = t.get("trade_teams", {})
+            trade_team_list = as_list(trade_teams_data.get("trade_team"))
+
+            for tt in trade_team_list:
+                team_id = to_int(tt.get("team_id"))
+                if team_id is None:
+                    continue
+
+                details_data = tt.get("trade_team_details", {})
+                details_list = as_list(details_data.get("trade_team_detail"))
+
+                for d in details_list:
+                    if d.get("trade_entry_lk") != "DRPCK":
+                        continue
+
+                    draft_year = to_int(d.get("draft_pick_year"))
+                    draft_round = to_int(d.get("draft_pick_round"))
+                    if draft_year is None or draft_round is None:
+                        continue
+
+                    pick_entries.append({
+                        "team_id": team_id,
+                        "is_sent": d.get("sent_flg", False),
+                        "draft_year": draft_year,
+                        "draft_round": draft_round,
+                        "seqno": d.get("seqno"),
+                        "is_swap": d.get("draft_pick_swap_flg", False),
+                        "is_future": d.get("draft_pick_future_flg", False),
+                        "conditional_type_lk": d.get("draft_pick_conditional_lk"),
+                        "is_draft_year_plus_two": d.get("draft_year_plus_two_flg", False),
+                        "other_team_id": to_int(d.get("other_team_id")),
+                    })
+
+            # Group by (draft_year, draft_round, seqno) and pair sent/received
+            from collections import defaultdict
+            pick_groups = defaultdict(list)
+            for pe in pick_entries:
+                key = (pe["draft_year"], pe["draft_round"], pe["seqno"])
+                pick_groups[key].append(pe)
+
+            for key, entries in pick_groups.items():
+                senders = [e for e in entries if e["is_sent"]]
+                receivers = [e for e in entries if not e["is_sent"]]
+
+                # Create a trade record for each sender->receiver pair
+                for sender in senders:
+                    for receiver in receivers:
+                        # Determine original_team_id (whose pick slot this is)
+                        # If other_team_id is set, use that; otherwise use sender's team
+                        original_team_id = sender.get("other_team_id") or sender["team_id"]
+
+                        draft_pick_trades.append({
+                            "trade_id": trade_id,
+                            "trade_date": trade_date,
+                            "draft_year": sender["draft_year"],
+                            "draft_round": sender["draft_round"],
+                            "from_team_id": sender["team_id"],
+                            "from_team_code": team_code_map.get(sender["team_id"]),
+                            "to_team_id": receiver["team_id"],
+                            "to_team_code": team_code_map.get(receiver["team_id"]),
+                            "original_team_id": original_team_id,
+                            "original_team_code": team_code_map.get(original_team_id),
+                            "is_swap": sender.get("is_swap", False),
+                            "is_future": sender.get("is_future", False),
+                            "is_conditional": sender.get("conditional_type_lk") in ("YES", "RANGE", "C2ND", "CCASH"),
+                            "conditional_type_lk": sender.get("conditional_type_lk"),
+                            "is_draft_year_plus_two": sender.get("is_draft_year_plus_two", False),
+                            "ingested_at": ingested_at,
+                        })
+
+        print(f"Prepared: draft_pick_trades={len(draft_pick_trades)}")
+
+        # ─────────────────────────────────────────────────────────────────────
         # Upsert
         # ─────────────────────────────────────────────────────────────────────
         if not dry_run:
@@ -576,6 +722,17 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
 
                 count = upsert(conn, "pcms.team_exception_usage", usage, ["team_exception_detail_id"])
                 tables.append({"table": "pcms.team_exception_usage", "attempted": count, "success": True})
+
+                # Draft selections
+                count = upsert(conn, "pcms.draft_selections", draft_selections, ["transaction_id"])
+                tables.append({"table": "pcms.draft_selections", "attempted": count, "success": True})
+
+                # Draft pick trades (no natural key, so delete and re-insert)
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM pcms.draft_pick_trades")
+                conn.commit()
+                count = upsert(conn, "pcms.draft_pick_trades", draft_pick_trades, ["id"])
+                tables.append({"table": "pcms.draft_pick_trades", "attempted": count, "success": True})
             finally:
                 conn.close()
         else:
@@ -588,6 +745,8 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
             tables.append({"table": "pcms.transaction_waiver_amounts", "attempted": len(waiver), "success": True})
             tables.append({"table": "pcms.team_exceptions", "attempted": len(exceptions), "success": True})
             tables.append({"table": "pcms.team_exception_usage", "attempted": len(usage), "success": True})
+            tables.append({"table": "pcms.draft_selections", "attempted": len(draft_selections), "success": True})
+            tables.append({"table": "pcms.draft_pick_trades", "attempted": len(draft_pick_trades), "success": True})
 
     except Exception as e:
         import traceback

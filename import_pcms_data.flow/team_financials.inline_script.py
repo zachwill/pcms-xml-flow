@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["psycopg[binary]"]
+# dependencies = ["psycopg[binary]", "wmill", "typing-extensions"]
 # ///
 """
 Team Financials Import

@@ -31,10 +31,10 @@ value:
         lock: '!inline lookups.inline_script.lock'
         language: python3
     - id: c
-      summary: People & Identity
+      summary: People
       value:
         type: rawscript
-        content: '!inline people_&_identity.inline_script.py'
+        content: '!inline people.inline_script.py'
         input_transforms:
           dry_run:
             type: javascript
@@ -42,7 +42,7 @@ value:
           extract_dir:
             type: javascript
             expr: '''./shared/pcms'''
-        lock: '!inline people_&_identity.inline_script.lock'
+        lock: '!inline people.inline_script.lock'
         language: python3
     - id: d
       summary: Contracts
@@ -59,7 +59,7 @@ value:
         lock: '!inline contracts.inline_script.lock'
         language: python3
     - id: e
-      summary: Transactions & Exceptions
+      summary: Transactions
       value:
         type: rawscript
         content: '!inline transactions.inline_script.py'
@@ -73,7 +73,7 @@ value:
         lock: '!inline transactions.inline_script.lock'
         language: python3
     - id: f
-      summary: League Config & Draft
+      summary: League Config
       value:
         type: rawscript
         content: '!inline league_config.inline_script.py'
@@ -87,7 +87,7 @@ value:
         lock: '!inline league_config.inline_script.lock'
         language: python3
     - id: g
-      summary: Team Financials & Two-Way
+      summary: Team Financials
       value:
         type: rawscript
         content: '!inline team_financials.inline_script.py'

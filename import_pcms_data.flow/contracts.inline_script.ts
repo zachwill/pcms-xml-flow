@@ -119,6 +119,7 @@ export async function main(
     const bonusRows: any[] = [];
     const salaryRows: any[] = [];
     const paymentScheduleRows: any[] = [];
+    const protectionRows: any[] = [];
 
     for (const c of contracts) {
       const versions = asArray<any>(c?.versions?.version);
@@ -163,6 +164,18 @@ export async function main(
           delete versionJson[k];
         }
 
+        // Extract protections and derive flags
+        const protections = asArray<any>(v?.protections?.protection);
+        const hasProtections = protections.length > 0;
+        const allFull = hasProtections && protections.every(
+          (p) => p?.protection_coverage_lk === "FULL"
+        );
+
+        // Derive is_protected_contract and is_full_protection from actual data
+        // (source full_protection_flg is never true, so we derive from protections)
+        const isProtectedContract = hasProtections ? true : (v?.is_protected_contract ?? null);
+        const isFullProtection = hasProtections ? allFull : (v?.full_protection_flg ?? null);
+
         versionRows.push({
           contract_id: c.contract_id,
           version_number: versionNumber,
@@ -174,7 +187,7 @@ export async function main(
           record_status_lk: v?.record_status_lk ?? null,
           agency_id: v?.agency_id ?? null,
           agent_id: v?.agent_id ?? null,
-          is_full_protection: v?.full_protection_flg ?? null,
+          is_full_protection: isFullProtection,
           is_exhibit_10: v?.exhibit10 ?? null,
           exhibit_10_bonus_amount: v?.exhibit10_bonus_amount ?? null,
           exhibit_10_protection_amount: v?.exhibit10_protection_amount ?? null,
@@ -189,7 +202,7 @@ export async function main(
           is_trade_bonus: v?.trade_bonus_flg ?? null,
           is_no_trade: v?.no_trade_flg ?? null,
           is_minimum_contract: v?.is_minimum_contract ?? null,
-          is_protected_contract: v?.is_protected_contract ?? null,
+          is_protected_contract: isProtectedContract,
           version_json: Object.keys(versionJson).length > 0 ? versionJson : null,
 
           created_at: v?.create_date ?? null,
@@ -198,6 +211,29 @@ export async function main(
 
           ingested_at: ingestedAt,
         });
+
+        // Extract protection records
+        for (const p of protections) {
+          if (!p?.contract_protection_id) continue;
+
+          const protectionTypes = asArray<string>(p?.protection_types?.protection_type);
+          const hasConditions = p?.protection_conditions != null;
+
+          protectionRows.push({
+            protection_id: p.contract_protection_id,
+            contract_id: c.contract_id,
+            version_number: versionNumber,
+            salary_year: p?.contract_year ?? null,
+            protection_amount: p?.protection_amount ?? null,
+            effective_protection_amount: p?.effective_protection_amount ?? null,
+            protection_coverage_lk: p?.protection_coverage_lk ?? null,
+            is_conditional_protection: hasConditions,
+            conditional_protection_comments: hasConditions ? String(p.protection_conditions) : null,
+            protection_types_json: protectionTypes.length > 0 ? protectionTypes : null,
+
+            ingested_at: ingestedAt,
+          });
+        }
 
         const bonuses = asArray<any>(v?.bonuses?.bonus);
         for (const b of bonuses) {
@@ -298,9 +334,10 @@ export async function main(
     const bonusDeduped = dedupeByKey(bonusRows, (r) => String(r.bonus_id));
     const salaryDeduped = dedupeByKey(salaryRows, (r) => `${r.contract_id}|${r.version_number}|${r.salary_year}`);
     const paymentScheduleDeduped = dedupeByKey(paymentScheduleRows, (r) => String(r.payment_schedule_id));
+    const protectionDeduped = dedupeByKey(protectionRows, (r) => String(r.protection_id));
 
     console.log(
-      `Prepared rows (after dedupe): contracts=${contractDeduped.length}, versions=${versionDeduped.length}, bonuses=${bonusDeduped.length}, salaries=${salaryDeduped.length}, payment_schedules=${paymentScheduleDeduped.length}`
+      `Prepared rows (after dedupe): contracts=${contractDeduped.length}, versions=${versionDeduped.length}, bonuses=${bonusDeduped.length}, salaries=${salaryDeduped.length}, payment_schedules=${paymentScheduleDeduped.length}, protections=${protectionDeduped.length}`
     );
 
     if (dry_run) {
@@ -314,6 +351,7 @@ export async function main(
           { table: "pcms.contract_bonuses", attempted: bonusDeduped.length, success: true },
           { table: "pcms.salaries", attempted: salaryDeduped.length, success: true },
           { table: "pcms.payment_schedules", attempted: paymentScheduleDeduped.length, success: true },
+          { table: "pcms.contract_protections", attempted: protectionDeduped.length, success: true },
         ],
         errors: [],
       };
@@ -494,6 +532,30 @@ export async function main(
       }
     }
     tables.push({ table: "pcms.payment_schedules", attempted: paymentScheduleDeduped.length, success: true });
+
+    // Contract protections
+    for (let i = 0; i < protectionDeduped.length; i += BATCH_SIZE) {
+      const rows = protectionDeduped.slice(i, i + BATCH_SIZE);
+      try {
+        await sql`
+          INSERT INTO pcms.contract_protections ${sql(rows)}
+          ON CONFLICT (protection_id) DO UPDATE SET
+            contract_id = EXCLUDED.contract_id,
+            version_number = EXCLUDED.version_number,
+            salary_year = EXCLUDED.salary_year,
+            protection_amount = EXCLUDED.protection_amount,
+            effective_protection_amount = EXCLUDED.effective_protection_amount,
+            protection_coverage_lk = EXCLUDED.protection_coverage_lk,
+            is_conditional_protection = EXCLUDED.is_conditional_protection,
+            conditional_protection_comments = EXCLUDED.conditional_protection_comments,
+            protection_types_json = EXCLUDED.protection_types_json,
+            ingested_at = EXCLUDED.ingested_at
+        `;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    tables.push({ table: "pcms.contract_protections", attempted: protectionDeduped.length, success: true });
 
     return {
       dry_run: false,

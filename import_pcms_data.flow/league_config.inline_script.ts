@@ -640,8 +640,8 @@ export async function main(dry_run = false, extract_dir = "./shared/pcms") {
         ingested_at
       )
       SELECT 
-        lk.lookup_code as apron_level_lk,
-        lk.properties_json->>'subject_to_apron_reason_lk' as constraint_code,
+        lk.properties_json->>'apron_level_lk' as apron_level_lk,
+        lk.lookup_code as constraint_code,
         ysv.salary_year as effective_salary_year,
         lk.description,
         lk.created_at,
@@ -652,7 +652,7 @@ export async function main(dry_run = false, extract_dir = "./shared/pcms") {
       WHERE lk.lookup_type = 'lk_subject_to_apron_reasons'
         AND lk.is_active = true
         AND ysv.tax_apron_amount > 0
-        AND lk.properties_json->>'subject_to_apron_reason_lk' IS NOT NULL
+        AND lk.properties_json->>'apron_level_lk' IS NOT NULL
       ON CONFLICT (apron_level_lk, constraint_code, effective_salary_year) DO NOTHING
       RETURNING 1
     `;

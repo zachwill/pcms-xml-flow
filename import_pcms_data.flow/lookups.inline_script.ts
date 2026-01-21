@@ -35,11 +35,34 @@ function firstMatchingKey(obj: Record<string, any>, predicate: (k: string) => bo
   return null;
 }
 
-function inferLookupCode(record: Record<string, any>): { code_key: string | null; lookup_code: string | null } {
-  // Most lookup records have a single "*_lk" field that represents the code.
+function inferLookupCode(record: Record<string, any>, lookupType?: string): { code_key: string | null; lookup_code: string | null } {
+  // Derive expected primary key field from lookup type name.
+  // e.g., "lk_subject_to_apron_reasons" -> "subject_to_apron_reason_lk"
+  //       "lk_criteria" -> "criteria_lk" (or "criterion_lk")
+  if (lookupType) {
+    // lk_foo_bars -> foo_bar_lk (singular)
+    const base = lookupType.replace(/^lk_/, "").replace(/s$/, "");
+    const expectedKey = `${base}_lk`;
+    if (expectedKey in record) {
+      const v = record[expectedKey];
+      if (v !== null && v !== undefined && v !== "") {
+        return { code_key: expectedKey, lookup_code: String(v) };
+      }
+    }
+    // Also try plural form: foo_bars_lk
+    const pluralKey = `${lookupType.replace(/^lk_/, "")}_lk`;
+    if (pluralKey in record) {
+      const v = record[pluralKey];
+      if (v !== null && v !== undefined && v !== "") {
+        return { code_key: pluralKey, lookup_code: String(v) };
+      }
+    }
+  }
+
+  // Fallback: find first *_lk field (excluding known non-primary fields)
   const lkKey = firstMatchingKey(
     record,
-    (k) => k.endsWith("_lk") && k !== "record_status_lk" && k !== "league_lk"
+    (k) => k.endsWith("_lk") && k !== "record_status_lk" && k !== "league_lk" && k !== "apron_level_lk" && k !== "criteria_type_lk"
   );
   if (lkKey) {
     const v = record[lkKey];
@@ -89,7 +112,7 @@ function inferDescription(record: Record<string, any>): { description: string | 
 function transformLookup(lookupType: string, record: unknown, ingestedAt: Date) {
   if (!isPlainObject(record)) return null;
 
-  const { code_key, lookup_code } = inferLookupCode(record);
+  const { code_key, lookup_code } = inferLookupCode(record, lookupType);
   if (!lookup_code) return null;
 
   const { description, short_description } = inferDescription(record);

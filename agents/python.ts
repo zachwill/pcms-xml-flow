@@ -88,7 +88,7 @@ We're consolidating 10 TypeScript scripts into ~5-6 Python scripts:
 4. Commit: git add -A && git commit -m "<what you did>"
 5. Exit after committing
       `,
-        { thinking: "medium", timeout: "8m" }
+        { thinking: "medium", model: "gemini-3-flash", timeout: "8m" }
       );
     }
 

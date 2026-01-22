@@ -80,6 +80,43 @@ def build_full_name(first: str | None, last: str | None) -> str | None:
     return " ".join(parts) if parts else None
 
 
+def clean_name_part(val: str | None) -> str | None:
+    """Normalize a name field.
+
+    PCMS sometimes uses placeholder punctuation (",", ".") for self-represented
+    agents. We treat strings with no alphanumeric characters as NULL.
+    """
+    if val is None:
+        return None
+    if not isinstance(val, str):
+        val = str(val)
+    val = val.strip()
+    if not val:
+        return None
+    # If the string contains no letters/digits (e.g. "," or "."), drop it.
+    if not any(ch.isalnum() for ch in val):
+        return None
+    return val
+
+
+def normalize_agent_name(first: str | None, last: str | None) -> tuple[str | None, str | None, str | None]:
+    """Normalize agent name fields.
+
+    Fixes cases like:
+      first_name="," last_name="Himself"   -> full_name="Represents Himself"
+      first_name="." last_name="Represented Himself" -> full_name="Represented Himself"
+    """
+    first_clean = clean_name_part(first)
+    last_clean = clean_name_part(last)
+
+    if last_clean:
+        last_norm = last_clean.strip()
+        if last_norm.lower() in {"himself", "represents himself", "represented himself"} and first_clean is None:
+            return (None, "Represents Himself", "Represents Himself")
+
+    return (first_clean, last_clean, build_full_name(first_clean, last_clean) or last_clean)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
@@ -156,13 +193,14 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
             if agent_id is None:
                 continue
             agency_id = to_int(p.get("agency_id"))
+            first_name, last_name, full_name = normalize_agent_name(p.get("first_name"), p.get("last_name"))
             agents_seen[agent_id] = {
                 "agent_id": agent_id,
                 "agency_id": agency_id,
                 "agency_name": agency_name_map.get(agency_id) if agency_id else None,
-                "first_name": p.get("first_name"),
-                "last_name": p.get("last_name"),
-                "full_name": build_full_name(p.get("first_name"), p.get("last_name")),
+                "first_name": first_name,
+                "last_name": last_name,
+                "full_name": full_name,
                 "is_active": p.get("record_status_lk") == "ACT" if p.get("record_status_lk") else None,
                 "is_certified": True,
                 "person_type_lk": p.get("person_type_lk"),
@@ -188,15 +226,23 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
             dlg_returning_rights_team_id = to_int(p.get("dlg_returning_rights_team_id"))
             dlg_team_id = to_int(p.get("dlg_team_id"))
 
+            first_name, last_name, _ = normalize_agent_name(p.get("first_name"), p.get("last_name"))
+            display_first_name, display_last_name, _ = normalize_agent_name(
+                p.get("display_first_name"), p.get("display_last_name")
+            )
+            roster_first_name, roster_last_name, _ = normalize_agent_name(
+                p.get("roster_first_name"), p.get("roster_last_name")
+            )
+
             people_seen[person_id] = {
                 "person_id": person_id,
-                "first_name": p.get("first_name"),
-                "last_name": p.get("last_name"),
-                "middle_name": p.get("middle_name") or None,
-                "display_first_name": p.get("display_first_name"),
-                "display_last_name": p.get("display_last_name"),
-                "roster_first_name": p.get("roster_first_name"),
-                "roster_last_name": p.get("roster_last_name"),
+                "first_name": first_name,
+                "last_name": last_name,
+                "middle_name": clean_name_part(p.get("middle_name")) or None,
+                "display_first_name": display_first_name,
+                "display_last_name": display_last_name,
+                "roster_first_name": roster_first_name,
+                "roster_last_name": roster_last_name,
                 "birth_date": p.get("birth_date") or None,
                 "birth_country_lk": p.get("birth_country_lk"),
                 "gender": p.get("gender"),

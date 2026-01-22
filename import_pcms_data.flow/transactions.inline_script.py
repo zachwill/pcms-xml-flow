@@ -130,6 +130,23 @@ def unwrap_single_array(val):
     return val
 
 
+def get_salary_year(date_str: str | None) -> int | None:
+    """
+    Derive salary year from a date string.
+    NBA salary years run July 1 - June 30.
+    e.g., 2001-05-24 -> 2000 (2000-01 season), 2001-07-15 -> 2001 (2001-02 season)
+    """
+    if not date_str:
+        return None
+    try:
+        # Handle both "2001-05-24" and "2001-05-24T..." formats
+        date_part = date_str[:10]
+        year, month, _ = map(int, date_part.split("-"))
+        return year if month >= 7 else year - 1
+    except (ValueError, IndexError):
+        return None
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
@@ -360,7 +377,7 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
                 "qoe_amount": txn.get("qoe_amount"),
                 "tender_amount": txn.get("tender_amount"),
                 "is_divorce": txn.get("divorce_flg"),
-                "effective_salary_year": to_int(txn.get("effective_salary_year")),
+                "salary_year": get_salary_year(txn.get("transaction_date")),
                 "is_initially_convertible_exception": txn.get("initially_convertible_exception_flg"),
                 "is_sign_and_trade": txn.get("sign_and_trade_flg"),
                 "sign_and_trade_team_id": sat_team_id,
@@ -717,6 +734,26 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
 
                 # Transactions
                 count = upsert(conn, "pcms.transactions", transactions, ["transaction_id"])
+                # Update team codes from pcms.teams to ensure consistency
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        UPDATE pcms.transactions t
+                        SET from_team_code = ft.team_code,
+                            to_team_code = tt.team_code,
+                            rights_team_code = rt.team_code,
+                            sign_and_trade_team_code = st.team_code
+                        FROM pcms.transactions txn
+                        LEFT JOIN pcms.teams ft ON ft.team_id = txn.from_team_id
+                        LEFT JOIN pcms.teams tt ON tt.team_id = txn.to_team_id
+                        LEFT JOIN pcms.teams rt ON rt.team_id = txn.rights_team_id
+                        LEFT JOIN pcms.teams st ON st.team_id = txn.sign_and_trade_team_id
+                        WHERE t.transaction_id = txn.transaction_id
+                          AND (t.from_team_code IS DISTINCT FROM ft.team_code
+                               OR t.to_team_code IS DISTINCT FROM tt.team_code
+                               OR t.rights_team_code IS DISTINCT FROM rt.team_code
+                               OR t.sign_and_trade_team_code IS DISTINCT FROM st.team_code)
+                    """)
+                conn.commit()
                 tables.append({"table": "pcms.transactions", "attempted": count, "success": True})
 
                 # Ledger

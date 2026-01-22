@@ -19,7 +19,7 @@ from pathlib import Path
 
 SCRIPTS = {
     "lookups": "lookups.inline_script.py",
-    "people": "people_&_identity.inline_script.py",
+    "people": "people.inline_script.py",
     "contracts": "contracts.inline_script.py",
     "transactions": "transactions.inline_script.py",
     "league_config": "league_config.inline_script.py",

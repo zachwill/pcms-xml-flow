@@ -398,9 +398,62 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
         team_txs = list(team_tx_seen.values())
 
         # ─────────────────────────────────────────────────────────────────────
-        # two_way_daily_statuses (from two_way.json -> daily_statuses)
+        # two_way_daily_statuses (from two_way.json)
         # ─────────────────────────────────────────────────────────────────────
-        # Handle different JSON structures (hyphenated vs underscored keys)
+        # Build enrichment lookup from two_way_seasons (has day_of_season, contract info)
+        seasons_container = two_way.get("two_way_seasons") or {}
+        seasons = as_list(
+            seasons_container.get("two-way-season") or
+            seasons_container.get("two_way_season") or
+            (seasons_container if isinstance(seasons_container, list) else [])
+        )
+
+        # Map: (player_id, date) -> {day_of_season, contract_team_id, signing_team_id}
+        season_enrichment = {}
+        for season in seasons:
+            players_container = season.get("two-way-players") or season.get("two_way_players") or {}
+            players = as_list(
+                players_container.get("two-way-player") or
+                players_container.get("two_way_player") or
+                (players_container if isinstance(players_container, list) else [])
+            )
+            for p in players:
+                player_id = to_int(p.get("player_id"))
+                if not player_id:
+                    continue
+
+                # Get contract info (contract_team_id, signing_team_id)
+                contracts_container = p.get("two-way-contracts") or p.get("two_way_contracts") or {}
+                contracts = as_list(
+                    contracts_container.get("two-way-contract") or
+                    contracts_container.get("two_way_contract") or
+                    (contracts_container if isinstance(contracts_container, list) else [])
+                )
+                # Use first contract's team info (player typically has one two-way contract per season)
+                contract_team_id = None
+                signing_team_id = None
+                if contracts:
+                    contract_team_id = to_int(contracts[0].get("contract_team_id"))
+                    signing_team_id = to_int(contracts[0].get("signing_team_id"))
+
+                # Get daily statuses with day_of_season
+                statuses_container = p.get("two-way-statuses") or p.get("two_way_statuses") or {}
+                daily_stats = as_list(
+                    statuses_container.get("two-way-status") or
+                    statuses_container.get("two_way_status") or
+                    (statuses_container if isinstance(statuses_container, list) else [])
+                )
+                for ds in daily_stats:
+                    date_str = ds.get("date")
+                    if date_str:
+                        key = (player_id, date_str)
+                        season_enrichment[key] = {
+                            "day_of_season": to_int(ds.get("day_of_season")),
+                            "contract_team_id": contract_team_id,
+                            "signing_team_id": signing_team_id,
+                        }
+
+        # Now process daily_statuses and merge with enrichment
         daily_statuses_container = two_way.get("daily_statuses") or {}
         statuses = as_list(
             daily_statuses_container.get("daily-status") or
@@ -420,15 +473,19 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
                 continue
 
             status_team_id = to_int(s.get("team_id") or s.get("status_team_id"))
-            contract_team_id = to_int(s.get("contract_team_id"))
-            signing_team_id = to_int(s.get("signing_team_id"))
+
+            # Get enrichment from two_way_seasons (day_of_season, contract_team_id, signing_team_id)
+            lookup_key = (player_id, status_date)
+            enrichment = season_enrichment.get(lookup_key, {})
+            contract_team_id = enrichment.get("contract_team_id")
+            signing_team_id = enrichment.get("signing_team_id")
 
             key = (player_id, status_date)
             daily_status_seen[key] = {
                 "player_id": player_id,
                 "status_date": status_date,
                 "salary_year": salary_year,
-                "day_of_season": to_int(s.get("day_of_season")),
+                "day_of_season": enrichment.get("day_of_season"),
                 "status_lk": status_lk,
                 "status_team_id": status_team_id,
                 "status_team_code": team_code_map.get(status_team_id) if status_team_id else None,
@@ -437,20 +494,6 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
                 "contract_team_code": team_code_map.get(contract_team_id) if contract_team_id else None,
                 "signing_team_id": signing_team_id,
                 "signing_team_code": team_code_map.get(signing_team_id) if signing_team_id else None,
-                "nba_service_days": to_int(s.get("nba_service_days")),
-                "nba_service_limit": to_int(s.get("nba_service_limit")),
-                "nba_days_remaining": to_int(s.get("nba_days_remaining")),
-                "nba_earned_salary": s.get("nba_earned_salary"),
-                "glg_earned_salary": s.get("glg_earned_salary"),
-                "nba_salary_days": to_int(s.get("nba_salary_days")),
-                "glg_salary_days": to_int(s.get("glg_salary_days")),
-                "unreported_days": to_int(s.get("unreported_days")),
-                "season_active_nba_game_days": to_int(s.get("season_active_nba_game_days")),
-                "season_with_nba_days": to_int(s.get("season_with_nba_days")),
-                "season_travel_with_nba_days": to_int(s.get("season_travel_with_nba_days")),
-                "season_non_nba_days": to_int(s.get("season_non_nba_days")),
-                "season_non_nba_glg_days": to_int(s.get("season_non_nba_glg_days")),
-                "season_total_days": to_int(s.get("season_total_days")),
                 "created_at": s.get("create_date"),
                 "updated_at": s.get("last_change_date"),
                 "record_changed_at": s.get("record_change_date"),

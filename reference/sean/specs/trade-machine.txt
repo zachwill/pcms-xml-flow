@@ -1,0 +1,306 @@
+# Trade Machine Specification
+
+================================================================================
+## 1. PURPOSE
+================================================================================
+
+**Question Answered:**
+"Can these players be legally traded for each other under NBA salary matching rules?"
+
+**Who Uses It:**
+- Front office personnel evaluating trade feasibility
+- Analysts running "what if" scenarios before engaging with other teams
+- Users checking if a specific player-for-player swap works financially
+
+**How It's Used:**
+1. User sets up a scenario (Teams, Year, Ruleset)
+2. User enters players sending (Team 1) and players receiving (Team 2)
+3. Sheet calculates the maximum salary each player/package allows the team to receive
+4. Sheet validates if the trade is legal for both sides
+5. Users can also browse "Can Bring Back" tables to see trade value of every player on the roster
+
+================================================================================
+## 2. LAYOUT
+================================================================================
+
+The sheet consists of **multiple independent trade scenarios** stacked vertically (rows 1-30, 31-60, etc.), followed by reference tables.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ SCENARIO 1 (Rows 1-30)                                                                  │
+│                                                                                         │
+│ ROW 1: CONTROLS                                                                         │
+│ B1:[TEAM 1]  C1:"Scenario 1"  D1:"Multiplier:"  F1:[Ruleset]  G1:[TEAM 2]  J1:[Year]    │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ ROWS 2-7: TPE REFERENCE (Col L-P)                                                       │
+│ L-M: Team 1 TPEs (Name, Value)         O-P: Team 2 TPEs (Name, Value)                   │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ ROWS 3-26: PLAYER ENTRY (Side-by-Side)                                                  │
+│                                                                                         │
+│ TEAM 1 SENDS (Col B-E)                 TEAM 2 SENDS (Col G-J)                           │
+│ B: Player Name    C: Salary            G: Player Name    H: Salary                      │
+│ D: "{"            E: Max RX            I: "{"            J: Max RX                      │
+│                                                                                         │
+│ (Every 3rd row is an input row: 3, 6, 9, 12... 24)                                      │
+│                                                                                         │
+│ REVERSE CALC ROWS (Offset +2: 5, 8, 11...)                                              │
+│ E: Min Outgoing Required               J: Min Outgoing Required                         │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ ROW 27: TOTALS                                                                          │
+│ C27: Team 1 Total Out                  H27: Team 2 Total Out                            │
+│ E27: Team 1 Max Incoming               J27: Team 2 Max Incoming                         │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ ROW 28-29: VALIDITY                                                                     │
+│ F28: Salary Difference (H - C)                                                          │
+│ F29: "Yes"/"No" (Is Trade Valid?)                                                       │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ ROW 10-30: ROSTER REFERENCE (Col L-P)                                                   │
+│ L-M: Team 1 Roster (Sorted by $)       O-P: Team 2 Roster (Sorted by $)                 │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ SCENARIO 2 (Rows 31-60)                                                                 │
+│ ... Identical structure to Scenario 1 ...                                               │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ SCENARIO 3 (Rows 61-90)                                                                 │
+│ ... Identical structure to Scenario 1 ...                                               │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ REFERENCE: CAN BRING BACK (Rows 32-48, Cols L-O, attached to Scen 2)                    │
+│ L32: "Can Bring Back"                                                                   │
+│ L: Player Name    M: Max Incoming ($)    O: Min Incoming ($)                            │
+│ (Calculates trade range for every player on Team 1's roster)                            │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ REFERENCE: CBA RULE BANDS (Rows 3-7, Cols S-U)                                          │
+│ S: Low Threshold   T: High Threshold   U: Rule Description                              │
+│ 4: 0               7.25M               200% + 250K                                      │
+│ 5: 7.25M           29M                 Outgoing + 7.5M                                  │
+│ 6: 29M             Up                  125% + 250K                                      │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+================================================================================
+## 3. INPUTS (Controls)
+================================================================================
+
+### Scenario Controls (Row 1, 31, 61...)
+
+| Cell | Name | Type | Valid Values | Effect |
+|------|------|------|--------------|--------|
+| B1 | Team 1 | 3-letter code | NYK, PHX, POR, etc. | Updates TPEs (L2), Roster (L10), Header Labels |
+| G1 | Team 2 | 3-letter code | 3-letter code | Updates TPEs (O2), Roster (O10) |
+| F1 | Ruleset | Dropdown | "Expanded", "Standard" | Changes salary matching formulas (E/J cols) |
+| J1 | Year | Dropdown | 2024, 2025 | Changes salary lookup columns, rule thresholds |
+
+### Player Inputs (Rows 3, 6, 9... 24)
+
+| Cell | Name | Type | Valid Values | Effect |
+|------|------|------|--------------|--------|
+| B3 | Team 1 Player | Text | Name from X sheet | Looks up salary -> Calculates Max Incoming |
+| G3 | Team 2 Player | Text | Name from X sheet | Looks up salary -> Calculates Max Incoming |
+
+### Propagation
+
+```
+Controls (Team/Year) ───► Reference Tables (Rosters, TPEs)
+                           │
+Player Inputs ─────────────┼──► Salary Lookup (Col C/H)
+                           │       │
+Ruleset (Expanded/Std) ────┤       ▼
+                           ├──► Max Incoming Calc (Col E/J)
+                           │       │
+                           │       ▼
+                           └──► Trade Validity (Row 29)
+```
+
+================================================================================
+## 4. DATA STRUCTURE
+================================================================================
+
+### Scenario Block Columns (Rows 1-29)
+
+| Column | Content | Purpose |
+|--------|---------|---------|
+| B | Team 1 Player | Input for outgoing player |
+| C | Salary | Looked up from X warehouse |
+| D | Formatting "{" | Visual separator |
+| E | Max Incoming | Calculated max salary team can receive for this player |
+| F | Status/Diff | Difference between incoming/outgoing; Validity check |
+| G | Team 2 Player | Input for outgoing player |
+| H | Salary | Looked up from X warehouse |
+| I | Formatting "{" | Visual separator |
+| J | Max Incoming | Calculated max salary team can receive for this player |
+
+### Reference Columns (Rows 2-30)
+
+| Column | Content | Purpose |
+|--------|---------|---------|
+| L | Team 1 TPE Name / Roster Name | Available assets for Team 1 |
+| M | Team 1 TPE Value / Roster Salary | Asset values |
+| O | Team 2 TPE Name / Roster Name | Available assets for Team 2 |
+| P | Team 2 TPE Value / Roster Salary | Asset values |
+| S | Low Threshold | CBA salary band lower bound |
+| T | High Threshold | CBA salary band upper bound |
+| U | Rule Text | Plain English rule description |
+
+### "Can Bring Back" Table (Scenario 2, Cols L-O)
+
+| Column | Content | Formula Pattern |
+|--------|---------|-----------------|
+| L | Player Name | Filtered roster |
+| M | Max Incoming | `=CalculatedMax(Salary)` |
+| O | Min Incoming | `=CalculatedMin(Salary)` |
+
+================================================================================
+## 5. FORMULAS & LOGIC
+================================================================================
+
+### Salary Lookup (Column C, H)
+
+```
+=IFERROR(
+  IF($J$1=2024,
+    INDEX(X!$C:$C, MATCH(B3, X!$A:$A, 0)),  // 2024 Salary
+    INDEX(X!$E:$E, MATCH(B3, X!$A:$A, 0))   // 2025 Salary
+  ), ""
+)
+```
+
+### Max Incoming Calculation (Forward Logic)
+**"If I send out $X, what is the most I can receive?"**
+
+Depends on **Year** (thresholds change) and **Ruleset**.
+
+**Expanded Rules (2024 Thresholds):**
+```
+IF Salary < 7,493,424:
+    Max = Salary * 2 + 250,000          (200% Rule)
+ELSE IF Salary <= 29,973,695:
+    Max = Salary + 7,752,000            (Additive Rule)
+ELSE:
+    Max = Salary * 1.25 + 250,000       (125% Rule)
+```
+
+**Standard Rules:**
+```
+Max = Salary * 1.25 + 250,000 (Simplified for this sheet, usually stricter)
+// Note: The sheet actually implements Standard as "Salary - Band" in reverse, 
+// but for forward calc it often defaults to strict matching or 125% depending on apron.
+```
+
+### Min Outgoing Calculation (Reverse Logic)
+**"If I want to acquire player Y (Salary $H), how much must I send out?"**
+
+Located in offset rows (e.g., Row 5, 8, 11).
+
+```
+IF Expanded AND 2024:
+    IF Incoming - 7.75M <= 7.49M:
+        Min Out = (Incoming - 250k) / 2
+    ELSE IF Incoming - 7.75M > 29.97M:
+        Min Out = (Incoming - 250k) / 1.25
+    ELSE:
+        Min Out = Incoming - 7.75M
+```
+
+### Trade Validity (Row 29)
+
+```
+=IF(E27 >= H27, "Yes", "No")
+```
+**Logic:** Is Team 1's "Max Incoming" capacity (E27) greater than or equal to what Team 2 is sending (H27)?
+*Note: A complete check requires checking both sides (J27 >= C27).*
+
+### CBA Thresholds (Year-Dependent)
+
+| Parameter | 2024 Value | 2025 Value |
+|-----------|------------|------------|
+| Low Band Limit | $7,493,424 | $8,277,000 |
+| Mid Band Limit | $29,973,695 | $33,208,000 |
+| Mid Band Adder | $7,752,000 | $8,527,000 |
+
+================================================================================
+## 6. OUTPUTS
+================================================================================
+
+| Output | Location | Meaning |
+|--------|----------|---------|
+| **Team 1 Max Incoming** | E27 | The total salary Team 1 can absorb |
+| **Team 2 Max Incoming** | J27 | The total salary Team 2 can absorb |
+| **Trade Valid?** | F29 | "Yes" if Team 1 can absorb Team 2's package |
+| **Salary Difference** | F28 | Net salary flow (Positive = Team 1 taking on salary) |
+| **Can Bring Back** | L32:O48 | Reference table showing trade value of all roster players |
+
+================================================================================
+## 7. MAPPING TO ARCHITECTURE
+================================================================================
+
+### Tool Mapping
+
+Maps to **Trade Sandbox** (Tool).
+Specific Mode: **Split Workspace** (Left = Team 1/Give, Right = Team 2/Get).
+
+### Component Structure
+
+```
+src/features/trade-sandbox/
+├── components/
+│   ├── TradeScenario.tsx       // Container for one trade instance
+│   ├── TradeSide.tsx           // "Give" or "Get" column
+│   ├── PlayerRow.tsx           // Input row with name/salary/max-in
+│   ├── TradeOutcome.tsx        // Validity badge, diff calculation
+│   ├── RosterSidebar.tsx       // Draggable/Clickable roster list (L-P cols)
+│   └── CBABands.tsx            // Reference component for rules
+├── logic/
+│   ├── salaryMatching.ts       // The If/Else logic for Expanded/Standard
+│   └── thresholds.ts           // 2024/2025 constants
+└── types/
+    └── Trade.ts
+```
+
+### Data Models
+
+```typescript
+interface TradeScenario {
+  id: string;
+  year: 2024 | 2025;
+  ruleset: 'Expanded' | 'Standard';
+  team1: TeamCode;
+  team2: TeamCode;
+  team1Players: TradePlayer[]; // The "Give" side
+  team2Players: TradePlayer[]; // The "Get" side
+}
+
+interface TradePlayer {
+  id: string;
+  name: string;
+  salary: number;
+}
+
+interface TradeResult {
+  team1MaxIncoming: number;
+  team2MaxIncoming: number;
+  team1TotalOutgoing: number;
+  team2TotalOutgoing: number;
+  isValid: boolean;
+  messages: string[]; // "Team 1 cannot absorb $X..."
+}
+```
+
+### Key Implementation Details
+
+1.  **Bi-directional Calculation**: The UI should show both "Max Incoming" (if building from scratch) AND "Min Outgoing" (if trying to match a specific target).
+2.  **Scenario Stacking**: The React app should allow adding multiple "Trade Cards" or tabs to replicate the vertical stacking.
+3.  **Roster Integration**: Instead of typing names, users should click players from the side panel (Cols L-P).
+4.  **Real-time Validation**: The "Yes/No" in F29 should be an instant visual indicator (Green Check / Red X).
+5.  **"Can Bring Back" Feature**: This is a valuable "Discovery" feature. It should be a mode or a tooltip: "Trading this player allows you to take back $X-$Y".
+
+### API Endpoints
+
+-   `GET /api/roster/{team}/{year}`: Populates the sidebar and lookups.
+-   `POST /api/trade/validate`: Sends the scenario, returns valid boolean and detailed breakdown.

@@ -1,0 +1,333 @@
+# Team Master.txt — Detailed Specification
+
+Source: `reference/sean/Team Master.txt`
+Maps to: **Team Entity**, **Cap Position Tool**
+
+---
+
+## 1. PURPOSE
+
+### Primary Question
+"What is this team's comprehensive cap outlook, including multi-year projections, draft assets, and renegotiation options?"
+
+### Who Uses It
+- **Cap Strategists**: To analyze long-term cap health and plan for future aprons.
+- **Team GMs**: To see the "big picture" of the franchise (roster + picks + money).
+- **Agents**: To model contract renegotiations (e.g., the Deni Avdija example).
+
+### How It's Used
+1.  **Select Team**: Controls the entire sheet (roster, picks, cap history).
+2.  **Analyze Position**: Check current year Tax/Apron status in the top-left summary.
+3.  **Project Future**: Look at the multi-year table (right side) to see when bad contracts expire.
+4.  **Model Contracts**: Use the calculators at the bottom to structure extensions or renegotiations.
+5.  **Track Assets**: View owned draft picks (FRP/SRP) for the next 7 years.
+
+---
+
+## 2. LAYOUT
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ ROW 1: HEADER / CONTROLS                                                                 │
+│ A1:[TEAM]  C1:"Date:" D1:=TODAY()  G1:"Repeater in '25:" H1:[Yes/No]  J1:"Repeater '26:" │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ ROW 2: SECTION HEADERS                                                                   │
+│ A2:"Tax Salary"          F2:"Player Contracts"                                           │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ ROW 3: COLUMN HEADERS                                                                    │
+│ A3:#  B3:Player  C3:2025  │ F3:#  G3:Player  H3:2025  J3:2026 ... R3:2030  S3:TK        │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ ROWS 4-22: ROSTER & SALARY DATA                                                          │
+│ Col A-C: Single Year View  │ Col F-T: Multi-Year Salary View (6 Years)                   │
+│ (Sorted by salary desc)    │ (Detailed lookups from Y Warehouse)                         │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ ROW 23: VET MIN FILLER                                                                   │
+│ Fills roster to 14 with vet minimums (Single Year View)                                  │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ ROW 24: DEAD MONEY                                                                       │
+│ B24: "[TEAM] Dead Money"  C24: looked up from Y                                          │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ ROWS 26-39: SINGLE YEAR KPI SUMMARY (Col A-C)        │ ROWS 40-42: ROSTER HOLDS (Col G) │
+│ Row 26: Total                                        │ Row 40: Roster Count             │
+│ Row 27: Minimum Level                                │ Row 41: (+) Rookie Mins          │
+│ Row 28: +/- Minimum                                  │ Row 42: (+) Vet Mins             │
+│ Row 29: Cap Level                                    │                                  │
+│ Row 30: +/- Cap                                      │                                  │
+│ Row 31: Tax Level                                    │                                  │
+│ Row 32: +/- Tax                                      │                                  │
+│ Row 33: Tax Payment                                  │                                  │
+│ Row 34: Tax Refund                                   │                                  │
+│ Row 35: Net Cost                                     │                                  │
+│ Row 36: Apron 1 Level                                │                                  │
+│ Row 37: +/- Apron 1                                  │                                  │
+│ Row 38: Apron 2 Level                                │                                  │
+│ Row 39: +/- Apron 2                                  │                                  │
+├──────────────────────────────────────────────────────┼──────────────────────────────────┤
+│ ROWS 42-56: 5% RAISE CALCULATOR (Col A-C)            │ ROWS 43-61: MULTI-YEAR KPI SUMMARY│
+│ Model standard extensions                            │ (Col G-R, Years 2025-2030)       │
+│                                                      │ Row 43: Total Committed          │
+│                                                      │ Row 46: Minimum Level            │
+│                                                      │ Row 47: +/- Minimum              │
+│                                                      │ Row 48: Cap Level                │
+│                                                      │ Row 49: Cap Space                │
+│                                                      │ Row 50: Tax Level                │
+│                                                      │ Row 51: +/- Tax                  │
+│                                                      │ Row 52: Tax Payment              │
+│                                                      │ Row 53: Tax Refund               │
+│                                                      │ Row 54: Apron 1 Level            │
+│                                                      │ Row 55: +/- Apron 1              │
+│                                                      │ Row 56: Apron 2 Level            │
+│                                                      │ Row 57: +/- Apron 2              │
+│                                                      │ Row 58: Net Cost                 │
+│                                                      │ Row 59: Cost Savings             │
+│                                                      │ Row 60: Baseline Cost            │
+├──────────────────────────────────────────────────────┼──────────────────────────────────┤
+│ ROWS 58-70: 8% RAISE CALCULATOR (Col A-C)            │ ROWS 62-69: DRAFT PICKS (Col G-N) │
+│ Model max extensions                                 │ G62: "1st Round"  N62: "2nd Round"│
+│                                                      │ Rows 63-69: Years 2025-2031      │
+│                                                      │ Lookup from FRP/SRP Databases    │
+├──────────────────────────────────────────────────────┴──────────────────────────────────┤
+│ ROWS 73-84: MAX RENEGOTIATE CALCULATOR (Col A-D)                                         │
+│ Models renegotiation-and-extend logic (40% drop allowed)                                 │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ ROWS 86-97: DENI RENEGOTIATE CALCULATOR (Col A-H)                                        │
+│ Specific scenario modeling for Deni Avdija (front-loaded structure)                      │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3. INPUTS
+
+### Primary Controls
+
+| Cell | Name | Type | Valid Values | Effect |
+|------|------|------|--------------|--------|
+| A1 | Team Selector | Dropdown | 3-letter codes (OKC, POR, etc.) | Updates Roster, Picks, KPIs, Dead Money |
+| C3 | Year Selector | Manual | 2024, 2025, 2026 | Updates "Tax Salary" view column C |
+
+### Scenario Inputs (Contract Calculators)
+
+| Cell | Calculator | Name | Default | Effect |
+|------|------------|------|---------|--------|
+| C43 | 5% Raise | Total | 166,175,191 | Sets total value for extension model |
+| C45 | 5% Raise | % Raise | -0.08 | Sets annual raise percentage |
+| C58 | 8% Raise | Start Number | 28,650,895 | Sets year 1 salary |
+| C60 | 8% Raise | % Raise | 0.08 | Sets annual raise percentage |
+| C74 | Max Renegotiate | Start | 24,100,000 | Sets new base salary |
+| C76 | Max Renegotiate | % Raise | -0.08 | Sets annual raise percentage |
+| C87 | Deni Renegotiate | Start | 29,194,000 | Sets new base salary |
+
+### Propagation
+
+```
+A1 (Team) ─────┬──► Roster List (B4:B22) ──────► Multi-Year Table (F4:T22)
+               │        │                           │
+               │        ▼                           ▼
+               ├──► Dead Money (C24)          Multi-Year KPI (Row 43-61)
+               │        │
+               │        ▼
+               ├──► Single Year Total (C26)
+               │        │
+               │        ▼
+               ├──► Cap Position KPIs (Row 27-39)
+               │
+               └──► Draft Picks Lookups (H63:N69)
+```
+
+---
+
+## 4. DATA STRUCTURE
+
+### Column A-C: Single Year View
+
+| Column | Content | Type |
+|--------|---------|------|
+| A | Row # | Formula |
+| B | Player Name | Formula (Dynamic Filter) |
+| C | Salary | Formula (Lookup) |
+
+**Key Logic:**
+- **Dynamic Roster:** `B4` contains a `LET` formula that filters the `Y` warehouse for the selected team (`A1`) and sorts players by salary descending. It spills down.
+- **Salary Lookup:** `C4` looks up the salary for the year specified in `C3`.
+
+### Column F-T: Multi-Year View
+
+| Column | Content | Formula Pattern |
+|--------|---------|-----------------|
+| F | Row # | Count if salary > 1000 |
+| G | Player Name | `=B4` (mirrors single year view) |
+| H | 2025 Salary | Index/Match from `Y` col C |
+| I | 2025 % Cap | `=H4/$H$48` (Salary / Cap Level) |
+| J | 2026 Salary | Index/Match from `Y` col E |
+| K | 2026 % Cap | `=J4/$J$48` |
+| ... | ... | ... |
+| R | 2030 Salary | Index/Match from `Y` col M |
+| S | 2030 % Cap | `=R4/$R$48` |
+| T | Trade Kicker | Index/Match from `Y` col P |
+
+### Column G-N (Rows 62-69): Draft Picks
+
+| Column | Content | Formula Pattern |
+|--------|---------|-----------------|
+| G | Year Label | Manual (2025, 2026...) |
+| H | 1st Round | `=INDEX('FRP Database'!C:C, MATCH(Team, 'FRP Database'!B:B, 0))` |
+| N | 2nd Round | `=INDEX('SRP Database'!C:C, MATCH(Team, 'FRP Database'!B:B, 0))` |
+
+---
+
+## 5. FORMULAS & LOGIC
+
+### Dynamic Roster Generation (Cell B4)
+```excel
+=LET(
+    salary_column, IF(C3=2026, Y!$E$4:$E$788, Y!$Z$4:$Z$788),
+    filtered_names, FILTER(Y!$A$4:$A$788, (Y!$B$4:$B$788=A$1) * (salary_column>=1)),
+    filtered_salaries, FILTER(salary_column, (Y!$B$4:$B$788=A$1) * (salary_column>=1)),
+    combined_data, HSTACK(filtered_names, filtered_salaries),
+    sort_helper, IF(filtered_salaries="-", -1, filtered_salaries),
+    sorted_data, SORTBY(combined_data, sort_helper, -1),
+    sorted_data
+)
+```
+**Plain English:**
+1. Selects salary column from Y based on year in C3 (Default to Z column if not 2026).
+2. Filters names and salaries where Team matches A1 and Salary >= 1.
+3. Stacks them horizontally.
+4. Sorts by salary descending (handling "-" as -1).
+
+### Tax Payment Calculation (Cell C33)
+```excel
+=IF($C$3=2024,
+    IF($H$1="Yes", SUMPRODUCT_REPEATER_24, SUMPRODUCT_STANDARD_24),
+    IF($C$3=2025,
+       IF($H$1="Yes", SUMPRODUCT_REPEATER_25, SUMPRODUCT_STANDARD_25),
+       ""
+    )
+)
+```
+**Logic:**
+- Checks Year (2024 vs 2025).
+- Checks Repeater Status (A1=Yes/No).
+- Selects correct tax bracket array (`Repeat Tax Array` vs `TEAM Copy...`).
+- Calculates progressive tax using SUMPRODUCT of overages * rates.
+
+### Roster Holds (Rows 40-42)
+**Logic:**
+- **Row 40 (Count):** Counts actual players on roster (`>1`).
+- **Row 41 (Rookie Mins):** If count < 12, adds (12 - count) * Rookie Min Salary.
+- **Row 42 (Vet Mins):** If count < 14, adds (14 - count) * Vet Min Salary.
+- Used to project "Total Committed" cap figure realistically.
+
+### Renegotiation Calculator (Rows 73-84)
+**Rule Implemented:**
+- Renegotiations can increase current year salary (using cap space).
+- Extension starts at 40% decrease from renegotiated salary (max drop).
+- **Formula:** Year 2 = Year 1 * 0.6 (Cell C79 = 0.6).
+
+---
+
+## 6. OUTPUTS
+
+### Single Year KPIs (Col C)
+| Output | Location | Meaning |
+|--------|----------|---------|
+| Total | C26 | Sum of active roster + dead money |
+| Cap Room | C30 | Total - Cap Level |
+| Tax Payment | C33 | Estimated luxury tax bill |
+| Net Cost | C35 | Total Payroll + Tax Payment - Refunds |
+| Apron Distance | C37, C39 | Distance to First and Second Apron |
+
+### Multi-Year KPIs (Col H-R)
+| Output | Location | Meaning |
+|--------|----------|---------|
+| Total Committed | Row 43 | Active Roster + Dead Money + Cap Holds |
+| Cap Space | Row 49 | Projected room under cap |
+| Net Cost | Row 58 | Projected total cost (Salaries + Tax) |
+
+### Asset Summary
+| Output | Location | Meaning |
+|--------|----------|---------|
+| Future Picks | H63:N69 | 7-year view of own/owed picks |
+
+---
+
+## 7. MAPPING TO ARCHITECTURE
+
+### Components needed
+
+1.  **TeamHeader**:
+    - Displays Team Name, Logo, Record (fetched from elsewhere).
+    - "Repeater" badges.
+    - Year selector.
+
+2.  **CapSummaryCard**:
+    - The "KPI Summary" block (Rows 26-39).
+    - Visual progress bars for Cap, Tax, Apron 1, Apron 2.
+
+3.  **RosterGrid**:
+    - Main table (Rows 4-22).
+    - **Features**: Sortable, Filterable.
+    - **Visuals**: "Salary Bars" (Col I, K...) showing % of cap.
+
+4.  **DraftAssetsList**:
+    - List view of picks (Rows 63-69).
+    - Needs parser for pick strings (e.g., "Own", "PHX 25", "Top-4 Prot").
+
+5.  **ExtensionModeler** (The Calculators):
+    - Interactive tool to simulate extensions.
+    - Input: Base Salary, % Raise, Years.
+    - Output: Annual breakdown table.
+
+### Data Models
+
+```typescript
+interface TeamEntity {
+  code: string; // POR
+  name: string; // Portland Trail Blazers
+  isRepeater2025: boolean;
+  isRepeater2026: boolean;
+  roster: PlayerContract[];
+  deadMoney: DeadMoneyItem[];
+  picks: DraftPick[];
+}
+
+interface PlayerContract {
+  playerId: string;
+  name: string;
+  salaries: {
+    2025: number;
+    2026: number;
+    2027: number;
+    2028: number;
+    2029: number;
+    2030: number;
+  };
+  tradeKicker?: number; // 0.15 = 15%
+}
+
+interface CapProjection {
+  year: number;
+  capLevel: number;
+  taxLevel: number;
+  apron1: number;
+  apron2: number;
+  totalCommitted: number;
+  capSpace: number;
+  taxPayment: number;
+}
+```
+
+### API Endpoints
+
+-   `GET /api/teams/{code}`: Returns full team details.
+-   `GET /api/teams/{code}/roster`: Returns current roster with multi-year contract data.
+-   `GET /api/teams/{code}/picks`: Returns draft assets.
+-   `GET /api/cap/projections`: Returns league-wide cap estimates (Y Warehouse data).
+
+### Implementation Notes
+
+-   **Team Master** is the "Source of Truth" for a team's page.
+-   **Integration**: The `RosterTable` component should be shared with `Salary Book`.
+-   **Calculators**: These should be implemented as client-side hooks (`useContractCalculator`) rather than server-side logic, as they are "what-if" tools.
+-   **Renegotiation Logic**: The specific "Deni" example (Rows 86-97) represents a generic "Front-Load / Renegotiate" feature needed in the UI. Don't hardcode "Deni"; build a "Renegotiation Modeler" component.

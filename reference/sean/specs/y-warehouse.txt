@@ -1,0 +1,259 @@
+# SPEC: Y-Warehouse (y-warehouse.txt)
+
+## 1. PURPOSE
+The **Y-Warehouse** is the master "Future Salary & Cap" database. It acts as the central source of truth for:
+1.  **Player Contracts:** Detailed salary cap hits, options, and trade bonuses for 2025-2030.
+2.  **League Economics:** Historical and projected Salary Cap, Tax, and Apron thresholds.
+3.  **Rookie Scale:** Pre-calculated rookie contract values for future draft classes (2024-2030).
+4.  **Max Contract Calculators:** Logic for projecting maximum extensions based on future caps.
+
+It distinguishes itself from `X` (Current Year/2024-25 focus) by being the "Forward Looking" engine used for multi-year planning, trade machine logic, and salary books.
+
+## 2. LAYOUT
+
+The sheet is organized into four distinct horizontal "Zones".
+
+```
+┌── ZONE 1: PLAYER DATA (A:AI) ────────────────────────────────────────────────────────┐
+│ Rows 4-800+: Individual Players                                                      │
+│                                                                                      │
+│ A:B      C:N                 O:S         T:Y            Z:AI                         │
+│ Identity Salary Grid (25-30) Meta        Option Status  Trade/Tax Math               │
+│ [Name]   [$ | %] ...         [Age/Agent] [PO/TO]        [Outgoing/Incoming]          │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+
+┌── ZONE 2: CAP RULES (AJ:BQ) ──────┐  ┌── ZONE 3: MAX CALCS (BS:DM) ──────────────────┐
+│ Rows 4-15: Year Constants         │  │ Rows 4+: Hypothetical Max Deals               │
+│                                   │  │                                               │
+│ AJ    AK...BO           BP...     │  │ BS...     CA...     ...     DG...             │
+│ Year  [Cap/Tax/Apron]   [Apron 2] │  │ 2025 Max  2026 Max  ...     2030 Max          │
+└───────────────────────────────────┘  └───────────────────────────────────────────────┘
+
+┌── ZONE 4: ROOKIE SCALE (DQ:FS) ──────────────────────────────────────────────────────┐
+│ Rows 4-33: Draft Picks (Pick 1 to 30)                                                │
+│                                                                                      │
+│ DQ...     DY...     EG...     EO...     EW...     FE...     FM...                    │
+│ 2024 Pick 2025 Pick 2026 Pick 2027 Pick 2028 Pick 2029 Pick 2030 Pick                │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+## 3. INPUTS
+**Type:** Static Database / Calculated Reference
+**User Controls:** None. This sheet is populated by external data feeds or manual analyst updates.
+
+**Propagation Diagram:**
+```
+[External Sources]
+(Spotrac/PuckPedia)
+       │
+       ▼
+[Y-Warehouse] ──────────────────────────► [Salary Book Tool]
+  │   │   │                               (Rosters, Multi-year view)
+  │   │   │
+  │   │   └─────────────────────────────► [Trade Sandbox]
+  │   │                                   (Incoming/Outgoing math, Cap rules)
+  │   │
+  │   └─────────────────────────────────► [Cap Position Tool]
+  │                                       (Thresholds, Projections)
+  │
+  └─────────────────────────────────────► [Entity Pages]
+                                          (Player Contract Details)
+```
+
+## 4. DATA STRUCTURE
+
+### ZONE 1: Player Contract Data (Columns A-AI)
+**Rows:** 4+ (One row per player)
+
+| Col | Header | Type | Description |
+|-----|--------|------|-------------|
+| A | Player | String | **Primary Key**. "Last, First" format. |
+| B | Team | String | 3-Letter Code (e.g., MIL, BOS). |
+| C | 2025 | Money | 2025-26 Base Salary. |
+| D | % | Percent | 2025-26 Cap Hit %. |
+| E | 2026 | Money | 2026-27 Base Salary. |
+| F | % | Percent | 2026-27 Cap Hit %. |
+| G | 2027 | Money | 2027-28 Base Salary. |
+| H | % | Percent | 2027-28 Cap Hit %. |
+| I | 2028 | Money | 2028-29 Base Salary. |
+| J | % | Percent | 2028-29 Cap Hit %. |
+| K | 2029 | Money | 2029-30 Base Salary. |
+| L | % | Percent | 2029-30 Cap Hit %. |
+| M | 2030 | Money | 2030-31 Base Salary. |
+| N | % | Percent | 2030-31 Cap Hit %. |
+| O | Total | Money | Total remaining contract value (approx). |
+| P | TK | String | Trade Kicker (e.g., "15%", "Used", "-"). |
+| Q | DOB | Date | Date of Birth. |
+| R | Age | Float | Exact age. |
+| S | Agent | String | Agent Name. |
+| T | 2025 | String | Option: "PO" (Player), "TO" (Team), "-" (None). |
+| U | 2026 | String | Option Status 2026. |
+| V | 2027 | String | Option Status 2027. |
+| W | 2028 | String | Option Status 2028. |
+| X | 2029 | String | Option Status 2029. |
+| Y | 2030 | String | Option Status 2030. |
+| Z | Tax 2025 | Money | Salary count for Tax calculations. |
+| AA | Apron 2026 | Money | *Likely Tax/Apron salary for 2026 (Header might vary).* |
+| AB | Outgoing Buildup | Money | Base salary used for outgoing trade math. |
+| AC | Incoming Buildup | Money | Base salary used for incoming matching. |
+| AD | Incoming Salary | Money | Actual incoming figure (often same as AC). |
+| AE | Incoming Tax | Money | Tax impact if traded for. |
+| AF | Incoming Apron | Money | Apron impact if traded for. |
+| AG | Trade Kicker Amount | Money | Calculated bonus if traded ($ value). |
+| AH | Tax 2026 | Money | 2026 Tax Salary. |
+| AI | Apron 2026 | Money | 2026 Apron Salary. |
+
+### ZONE 2: Cap Rules Lookup (Columns AJ-BQ)
+**Rows:** 4-15 (Years 2019-2030)
+**Usage:** `XLOOKUP(Year, AJ:AJ, TargetCol)`
+
+| Col | Header | Type | Description |
+|-----|--------|------|-------------|
+| AJ | Cap Year | Year | Lookup Key (e.g., 2024, 2025). |
+| AK | Avg Salary | Money | League average salary. |
+| AN | Cap Level | Money | **Salary Cap** threshold. |
+| AP | Tax Level | Money | **Luxury Tax** threshold. |
+| AR | Tax Apron | Money | **First Apron** (Hard Cap 1). |
+| AT | Minimum Level | Money | Minimum Team Salary Floor. |
+| AV | Bi-Annual | Money | BAE value. |
+| AX | Non-TP MLE | Money | Non-Taxpayer MLE (Full MLE). |
+| AZ | TP-MLE | Money | Taxpayer MLE (Mini MLE). |
+| BB | R-MLE | Money | Room MLE. |
+| BD | 0-6 YOS - 25% | Money | Max salary (Tier 1). |
+| BF | 7-9 YOS - 30% | Money | Max salary (Tier 2). |
+| BH | 10+ YOS - 35% | Money | Max salary (Tier 3). |
+| BP | Apron 2 | Money | **Second Apron** (Super Hard Cap). |
+
+### ZONE 3: Max Contract Projections (Columns BS-DM)
+**Rows:** 4+ (Calculated per player/row, but mostly used as a reference block)
+**Logic:** Each block projects a 5-year max contract starting in a specific year.
+
+| Block | Cols | Start Year | Columns Content |
+|-------|------|------------|-----------------|
+| 1 | BS-BY | 2025 | Year 1-5 salaries, Year 1 Cap % |
+| 2 | CA-CG | 2026 | Year 1-5 salaries, Year 1 Cap % |
+| 3 | CI-CO | 2027 | Year 1-5 salaries, Year 1 Cap % |
+| 4 | CQ-CW | 2028 | Year 1-5 salaries, Year 1 Cap % |
+| 5 | CY-DE | 2029 | Year 1-5 salaries, Year 1 Cap % |
+| 6 | DG-DM | 2030 | Year 1-5 salaries, Year 1 Cap % |
+
+### ZONE 4: Rookie Scale Reference (Columns DQ-FS)
+**Rows:** 4-33 (Row 4 = Pick #1, Row 33 = Pick #30)
+**Logic:** Projects the 4-year rookie scale contract for each draft slot.
+
+| Block | Cols | Draft Class | Columns Content |
+|-------|------|-------------|-----------------|
+| 1 | DQ-DW | 2024 | Year 1-4 Salary, Y1 Cap %, Y4 Raise |
+| 2 | DY-EE | 2025 | Year 1-4 Salary, Y1 Cap %, Y4 Raise |
+| 3 | EG-EM | 2026 | Year 1-4 Salary, Y1 Cap %, Y4 Raise |
+| 4 | EO-EU | 2027 | Year 1-4 Salary, Y1 Cap %, Y4 Raise |
+| 5 | EW-FC | 2028 | Year 1-4 Salary, Y1 Cap %, Y4 Raise |
+| 6 | FE-FK | 2029 | Year 1-4 Salary, Y1 Cap %, Y4 Raise |
+| 7 | FM-FS | 2030 | Year 1-4 Salary, Y1 Cap %, Y4 Raise |
+
+## 5. FORMULAS & LOGIC
+
+### Cap Percentage (Col D, F, H...)
+```excel
+=Salary_2025 / Cap_Level_2025
+```
+*Logic:* Expresses raw salary as a percentage of that year's projected cap.
+
+### Trade Math (Col Z-AG)
+*Logic:* These values seem pre-calculated or hard-coded rather than live formulas in the sheet. They handle complex CBA rules:
+- **Outgoing Buildup (AB):** Usually Base Salary, but adjustments for Poison Pill or unlikely bonuses apply.
+- **Trade Kicker (AG):** `MIN(Remaining_Contract * Kicker_%, Trade_Bonus_Pool)`.
+
+### Rookie Scale Projections (Zone 4)
+*Pattern:*
+- Year 1 = `Scale_Amount * 1.20` (120% of scale is standard)
+- Year 2 = Year 1 * Raise%
+- Year 3 = Year 2 * Raise% (Team Option)
+- Year 4 = Year 3 * Raise% (Team Option)
+
+## 6. OUTPUTS
+
+| Output | Location | Meaning |
+|--------|----------|---------|
+| **Player Roster** | A:N | List of players with multi-year salary data. |
+| **Cap Constants** | AJ:BQ | League-wide financial rules by year. |
+| **Draft Slot Values** | DQ:FS | Cost of a specific draft pick (e.g., #1 in 2025). |
+| **Trade Values** | AB:AG | Correct numbers to use in trade math (not always raw salary). |
+
+## 7. MAPPING TO ARCHITECTURE
+
+### Component: `SalaryWarehouse`
+This file is the backend database for the entire application. It should be ingested into a performant store (e.g., IndexedDB, SQLite-in-browser, or just a large JSON blob in memory).
+
+### TypeScript Interfaces
+
+```typescript
+// 1. Player Contract Model
+interface PlayerContract {
+  id: string; // generated from Name?
+  name: string;
+  team: string; // Team Code
+  agent: string;
+  age: number;
+  tradeKicker: string; // "15%", "Used", etc.
+  
+  // Salary Grid
+  salaries: {
+    [year: string]: {
+      amount: number;
+      capPercent: number;
+      option: 'PO' | 'TO' | 'EO' | null;
+      taxAmount?: number; // From Z/AH
+    }
+  };
+
+  // Trade Context
+  trade: {
+    outgoingBase: number; // AB
+    incomingBase: number; // AC
+    kickerAmount: number; // AG
+  };
+}
+
+// 2. League Constants Model
+interface LeagueYear {
+  year: number; // 2025
+  cap: number;
+  tax: number;
+  apron1: number;
+  apron2: number;
+  minFloor: number;
+  mle: {
+    standard: number; // Non-Taxpayer
+    taxpayer: number;
+    room: number;
+  };
+  maxSalaries: {
+    tier1: number; // 0-6 years
+    tier2: number; // 7-9 years
+    tier3: number; // 10+ years
+  };
+}
+
+// 3. Rookie Scale Model
+interface RookieScale {
+  year: number; // Draft Class Year
+  pick: number; // 1-30
+  contract: {
+    year1: number;
+    year2: number;
+    year3: number;
+    year4: number;
+  };
+}
+```
+
+### API Endpoints Needed
+- `GET /api/contracts` - Returns full list of player contracts.
+- `GET /api/league-settings` - Returns the Cap Rules table (AJ:BQ).
+- `GET /api/rookie-scale` - Returns the Rookie Scale table (DQ:FS).
+
+### Implementation Notes
+1.  **Normalization:** The Excel sheet mixes Players, Rules, and Rookie Scale. These should be parsed into **three separate database tables/JSON files** during the ingest process.
+2.  **Trade Logic:** Do not rely on frontend calculation for "Outgoing Salary" if possible. Use columns AB/AC as the source of truth, as they likely contain Sean's manual overrides for CBA edge cases.
+3.  **Future Projections:** The "Max Projections" (Zone 3) and "Rookie Scale" (Zone 4) are essentially lookups. The frontend `Trade Sandbox` should query these tables rather than recalculating values from scratch.

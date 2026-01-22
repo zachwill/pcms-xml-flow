@@ -1,0 +1,222 @@
+# SPEC: Depth Chart
+
+Source: `reference/sean/Depth Chart.txt`
+Maps to: **Position Matrix** Tool
+
+---
+
+## 1. PURPOSE
+
+### Primary Question
+"What does our roster structure look like by position and role for future seasons?"
+
+### Who Uses It
+- General Managers evaluating roster balance (e.g., "Do we have too many guards?")
+- Analysts planning future roster construction (2025-26, 2026-27)
+- Front office modeling trade/signing impacts on depth
+
+### How It's Used
+1. View **Current Roster** locked into positions (PG-C)
+2. Build **Scenario Roster** by overriding slots (trades, signings, or "Vet Min")
+3. View **Role Breakdown** (Guards/Wings/Forwards/Bigs) to check functional balance
+4. Verify **Roster Count** to ensure legality (15 spots)
+
+---
+
+## 2. LAYOUT
+
+The sheet is organized into seasonal blocks (2025-26, 2026-27), stacked vertically.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ROW 1: HEADER "2025-26"                                                                             │
+├──────────────────────────────────────┬──────────────────────────────────────┬───────────────────────┤
+│ CURRENT ROSTER (Cols A-E)            │ SCENARIO ROSTER (Cols H-L)           │ ROLE VIEW (Cols N-Q)  │
+│ A2:PG  B2:SG  C2:SF  D2:PF  E2:C     │ H2:PG  I2:SG  J2:SF  K2:PF  L2:C     │ N:Gds O:Wng P:Fwd Q:Big│
+├──────────────────────────────────────┼──────────────────────────────────────┼───────────────────────┤
+│ [Row 3-7]                            │ [Row 3-7]                            │ [Row 3-7]             │
+│ Simons   Sharpe   Camara  Grant      │ =IF(A3..) or "Lillard"               │ Simons  Avdija  Camara..│
+│ Henderson Banton  Avdija  Murray     │ "Vet Min"                            │ "Vet Min"             │
+│ ...                                  │ ...                                  │ ...                   │
+├──────────────────────────────────────┼──────────────────────────────────────┼───────────────────────┤
+│                                      │ [Row 8]                              │ [Row 8]               │
+│                                      │ L8: Roster Count (e.g. 14)           │ Q8: Role Count        │
+└──────────────────────────────────────┴──────────────────────────────────────┴───────────────────────┘
+
+[Row 9: Gap]
+
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ROW 10: HEADER "2026-27"                                                                            │
+├──────────────────────────────────────┬──────────────────────────────────────┬───────────────────────┤
+│ CURRENT ROSTER (Cols A-E)            │ SCENARIO ROSTER (Cols H-L)           │ ROLE VIEW (Cols N-Q)  │
+│ A11:PG B11:SG C11:SF D11:PF E11:C    │ H11:PG I11:SG J11:SF K11:PF L11:C    │ N:Gds O:Wng P:Fwd Q:Big│
+├──────────────────────────────────────┼──────────────────────────────────────┼───────────────────────┤
+│ [Row 12-16]                          │ [Row 12-16]                          │ [Row 12-16]           │
+│ ...                                  │ ...                                  │ ...                   │
+└──────────────────────────────────────┴──────────────────────────────────────┴───────────────────────┘
+```
+
+---
+
+## 3. INPUTS
+
+### Primary Inputs
+
+| Cell | Name | Type | Valid Values | Effect |
+|------|------|------|--------------|--------|
+| A-E (Rows 3-7) | Current Roster | Manual (Text) | Player Names | Baseline for Scenario columns |
+| H-L (Rows 3-7) | Scenario Overrides | Formula / Manual | Player Names, "Vet Min", "$9M" | Updates Scenario View & Roster Count |
+| N-Q (Rows 3-7) | Role Mapping | Formula / Manual | Player Names | Updates Role View |
+
+### Propagation Diagram
+
+```
+Current Roster (A-E) ───► Scenario Roster (H-L) ───► Role View (N-Q)
+(Baseline Data)          (Inherits or Overrides)    (Functional Grouping)
+                                  │                          │
+                                  ▼                          ▼
+                          Roster Count (L8)          Role Count (Q8)
+```
+
+---
+
+## 4. DATA STRUCTURE
+
+### Columns A-E: Current Roster (Baseline)
+
+| Column | Position | Content | Example |
+|--------|----------|---------|---------|
+| A | PG | Player Name | "Simons" |
+| B | SG | Player Name | "Sharpe" |
+| C | SF | Player Name | "Camara" |
+| D | PF | Player Name | "Grant" |
+| E | C | Player Name | "Ayton" |
+
+### Columns H-L: Scenario Roster (Modeling)
+
+| Column | Position | Content | Logic |
+|--------|----------|---------|-------|
+| H | PG | Formula OR Override | Defaults to Current (A), user types over for trades |
+| I | SG | Formula OR Override | Defaults to Current (B) |
+| J | SF | Formula OR Override | Defaults to Current (C) |
+| K | PF | Formula OR Override | Defaults to Current (D) |
+| L | C | Formula OR Override | Defaults to Current (E) |
+
+### Columns N-Q: Role View (Functional)
+
+| Column | Role | Content | Logic |
+|--------|------|---------|-------|
+| N | Guards | Formula OR Override | Maps PGs/SGs to broad "Guard" category |
+| O | Wings | Formula OR Override | Maps SGs/SFs to "Wing" category |
+| P | Forwards | Formula OR Override | Maps SFs/PFs to "Forward" category |
+| Q | Bigs | Formula OR Override | Maps PFs/Cs to "Big" category |
+
+---
+
+## 5. FORMULAS & LOGIC
+
+### Default Inheritance (Scenario Column)
+**Pattern:**
+```excel
+=IF(A3<>"", A3, "")
+```
+**English:** "If there is a player in the Current Roster slot (A3), copy them here. Otherwise, leave blank."
+**Usage:** The user **deletes this formula** and types a new name (e.g., "Lillard") to simulate a trade, or types "Vet Min" to simulate a signing. To revert, they drag the formula back down.
+
+### Roster Count Validation
+**Pattern:**
+```excel
+=SUMPRODUCT(--(H3:L6<>""))
+```
+**English:** "Count all non-empty cells in the Scenario grid (H3:L6)."
+**Purpose:** Ensures the scenario roster doesn't exceed 15 players or fall below minimums.
+
+### Role Mapping
+**Pattern:**
+The raw sheet shows a mix of direct mapping and manual placement for roles.
+- Some cells: `=IF(G6<>"", G6, "")` (referencing an intermediate spacer column or offset).
+- Intent: To group the 5 positions into 4 functional roles (Guards, Wings, Forwards, Bigs).
+- *Note:* In the raw file, the mapping logic is less strict than the Scenario logic, implying roles are often manually adjusted by the analyst based on player archetypes (e.g., is this PF actually a Wing or a Big?).
+
+### Season Blocks
+- **2025-26:** Rows 1-8
+- **2026-27:** Rows 10-17
+- The structure repeats identically for each future season.
+
+---
+
+## 6. OUTPUTS
+
+### Visual Outputs
+| Output | Location | Meaning |
+|--------|----------|---------|
+| **Depth Chart Grid** | H3:L7 | The primary visual: a 5x5 grid of names showing who plays where. |
+| **Role Balance** | N3:Q7 | A secondary view showing functional depth (e.g., "Do we have enough shooting?"). |
+
+### Validation Outputs
+| Output | Location | Meaning |
+|--------|----------|---------|
+| **Roster Count** | L8, L17 | Number of players on the roster (Target: 14-15). |
+| **Role Count** | Q8, Q17 | Checksum for the Role view. |
+
+---
+
+## 7. MAPPING TO ARCHITECTURE
+
+### Primary Tool: Position Matrix
+
+This sheet maps directly to the **Position Matrix** tool (`src/features/position-matrix/`).
+
+**Question:** "Roster by position?"
+
+### Components Needed
+
+1. **DepthChartGrid**
+   - 5-column layout (PG, SG, SF, PF, C)
+   - Draggable/Droppable cells
+   - "Edit Mode" to type over slots
+
+2. **SeasonTabs**
+   - Toggle between 2025-26, 2026-27, etc.
+
+3. **ScenarioToggle**
+   - Switch between "Current Roster" (Read-only) and "Scenario" (Editable)
+
+4. **RoleView** (Secondary Tab)
+   - Alternative grouping (Guards, Wings, Forwards, Bigs)
+
+### Data Models
+
+```typescript
+// Position Enums
+type Position = 'PG' | 'SG' | 'SF' | 'PF' | 'C';
+type Role = 'Guard' | 'Wing' | 'Forward' | 'Big';
+
+// Grid Slot
+interface RosterSlot {
+  id: string;
+  season: string; // "2025-26"
+  position: Position;
+  depthOrder: number; // 1 (Starter), 2 (Backup), 3 (Reserve)
+  player: Player | null; // Null if empty
+  type: 'contracted' | 'scenario_target' | 'placeholder'; // "Lillard" vs "Vet Min"
+}
+
+// Full Depth Chart
+interface DepthChart {
+  teamId: string;
+  season: string;
+  slots: RosterSlot[];
+}
+```
+
+### Key Interactions
+1. **Drag & Drop:** Move players between depth slots.
+2. **Override:** Click a slot to replace a player with a target or placeholder.
+3. **Validation:** Visual indicator if roster count > 15.
+4. **Role Pivot:** Toggle view to regroup players by Role instead of Position.
+
+### Implementation Notes
+- The "Current Roster" column in the Excel sheet suggests we need a **baseline state** that pulls from actual contracts.
+- The "Scenario Roster" is a **local state** modification of that baseline.
+- **Persisting Scenarios:** The app should allow saving these "what-if" rosters (e.g., "Scenario A: Trade for Giannis") separately from the official team data.

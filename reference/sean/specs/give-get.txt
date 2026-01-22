@@ -1,0 +1,676 @@
+# Give Get.txt — Specification Document
+
+================================================================================
+## 1. PURPOSE
+================================================================================
+
+**Question Answered:**
+"What if I trade player(s) X for player(s) Y? Does the trade work under CBA rules?"
+
+**Who Uses It:**
+- Salary cap analysts evaluating potential trades
+- Front office staff exploring multi-team trade scenarios
+- Agents evaluating client trade viability
+
+**How It's Used:**
+1. User enters up to 4 teams in a trade (Team 1-4)
+2. For each team, user types player names in "Give" and "Get" columns
+3. Sheet auto-calculates salary matching rules, tax implications, apron compliance
+4. Trade Validator shows "Trade Works" or "Does Not Work"
+5. User can toggle year (2024/2025) and ruleset (Standard/Expanded) for different scenarios
+
+================================================================================
+## 2. LAYOUT
+================================================================================
+
+The sheet has 4 identical trade blocks arranged side-by-side, plus a control/reference
+panel on the right (columns AP-AQ).
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│ Row 1: TEAM HEADERS                                                                     │
+│   F1: Team 1 (POR)    O1: Team 2 (BOS)    X1: Team 3 (UTA)    AG1: Team 4 (BOS)        │
+│   G1: Cap trigger     P1: Cap trigger     Y1: Cap trigger     AH1: Cap trigger          │
+│   J1: Repeater? (Yes/No)                  ...                                           │
+│   K1: Ruleset (Expanded/Standard)                                                       │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Row 2: COLUMN HEADERS                                                                   │
+│   F: "Give:"   G: "Cap:"  H: "Tax:"  I: "Apron:"                                        │
+│   J: "Get:"    K: "Cap:"  L: "Tax:"  M: "Apron:"                                        │
+│   (Pattern repeats for Teams 2-4 in columns O-V, X-AE, AG-AN)                           │
+│   AP: "Year:"  AQ: 2025 (editable)                                                      │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Rows 3-12: GIVE/GET PLAYER ENTRIES (up to 10 players per side)                         │
+│   F3-F12: Player names GIVE (user types)     J3-J12: Player names GET (user types)     │
+│   G3-G12: Cap values (looked up)             K3-K12: Cap values (looked up)            │
+│   H3-H12: Tax values (looked up)             L3-L12: Tax values (looked up)            │
+│   I3-I12: Apron values (looked up)           M3-M12: Apron values (looked up)          │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Rows 13-19: TEAM SALARY SUMMARY (Before/After Trade)                                   │
+│   Row 13: Headers "Team Salary:"  "Before:"  "After:"  "+/-"                            │
+│   Row 14: +/- Cap:       [before sum]  [after calculation]  [delta in $M]              │
+│   Row 15: +/- Tax:       [before sum]  [after calculation]  [delta in $M]              │
+│   Row 16: Tax Payment:   [before tax bill]  [after tax bill]  [delta in $M]            │
+│   Row 17: +/- Apron 1:   [before sum]  [after calculation]  [delta in $M]              │
+│   Row 18: +/- Apron 2:   [before sum]  [after calculation]  [delta in $M]              │
+│   Row 19: +/- Cash:      [prorated out] [prorated in]       [net delta]                │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Rows 20-25: TRADE VALIDATION                                                           │
+│   Row 20: Trade Validator:   [result: "Trade Works" or "Does Not Work"]                │
+│   Row 21: Multiplier:        [Yes/No - salary matching passes?]                        │
+│   Row 22: Apron 1:           [Yes/No - compliant?]                                     │
+│   Row 23: Apron 2:           [Yes/No - compliant?]                                     │
+│   Row 24: Use TPE:           [No - manual toggle]                                      │
+│   Row 25: Use Cash:          [No - manual toggle]                                      │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Rows 27-28: ROSTER COUNT                                                               │
+│   Row 27: Post Trade Roster Count: [calculated]                                        │
+│   Row 28: (+) Vet Mins: [added if roster < 14]                                         │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Row 29: ROSTER SECTION HEADER                                                          │
+│   "Roster"  "Cap:"  "Tax:"  "Apron:"                                                   │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Rows 30-54: FULL TEAM ROSTER                                                           │
+│   A30-A54: Team 1 roster (FILTER/SORTBY from X sheet)                                  │
+│   B30-B54: Team 2 roster                                                               │
+│   C30-C54: Team 3 roster                                                               │
+│   D30-D54: Team 4 roster                                                               │
+│   F30-K54: Team 1 roster with Cap/Tax/Apron columns                                    │
+│   (Pattern repeats for each team)                                                      │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Row 51: "Draft Picks" header                                                           │
+│ Rows 52-54: Draft pick slots (user can type pick names)                                │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Row 55: DEAD MONEY                                                                     │
+│   F55: "POR Dead Money"  (concatenated team + "Dead Money")                            │
+│   Values looked up from X warehouse                                                    │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Rows 57-60: TRADE EXCEPTIONS                                                           │
+│   Row 57: Header "Trade Exceptions"                                                    │
+│   Rows 58-60: TPE names, values, expiration dates (from Exceptions Warehouse)          │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Rows 61-68: DRAFT PICK INVENTORY                                                       │
+│   Row 61: Headers "1st Round"  "2nd Round"                                             │
+│   Rows 62-68: Picks by year ('25-'31), looked up from FRP/SRP Database                 │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│ CONTROL PANEL (Columns AP-AQ)                                                          │
+│   AQ2: Year selector (2024 or 2025)                                                    │
+│   AQ3: Cap value for selected year                                                     │
+│   AQ4: Tax threshold                                                                   │
+│   AQ5: Apron 1 threshold                                                               │
+│   AQ6: Apron 2 threshold                                                               │
+│   AQ7: Today's date                                                                    │
+│   AQ8: Days left (in season?)                                                          │
+│   AQ9: Veteran minimum salary                                                          │
+│   AP11-AQ41: Team lookup table (30 teams with triggers)                                │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+================================================================================
+## 3. INPUTS (Controls)
+================================================================================
+
+### Primary User Inputs
+
+| Cell(s) | Description | Valid Values | Propagation |
+|---------|-------------|--------------|-------------|
+| F1, O1, X1, AG1 | Team selector | 3-letter team codes (POR, BOS, etc.) | → Loads roster in rows 30-54, triggers lookup of cap status, dead money, picks, TPEs |
+| AQ2 | Year selector | 2024 or 2025 | → All VLOOKUP formulas switch columns (col 3 vs 5 for cap, col 26 vs 34 for tax, etc.) |
+| K1, T1, AC1, AL1 | Trade ruleset | "Expanded" or "Standard" | → Changes salary matching formula in row 21 |
+| F3-F12, J3-J12 (etc.) | Player names (Give/Get) | Player name in "Last, First" format | → VLOOKUP retrieves Cap/Tax/Apron values |
+| G24, P24, Y24, AH24 | Use TPE toggle | "Yes" or "No" | → Manual flag (not wired in current sheet) |
+| G25, P25, Y25, AH25 | Use Cash toggle | "Yes" or "No" | → Manual flag (not wired in current sheet) |
+
+### Derived Controls (Auto-Calculated)
+
+| Cell(s) | Description | Calculation |
+|---------|-------------|-------------|
+| J1, S1, AB1, AK1 | Repeater Tax status | Looks up team in hardcoded list by year (BRK, LAL, MIL, LAC, GSW for 2024; BOS, PHX, DEN, LAL, MIL, LAC for 2025) |
+| G1, P1, Y1, AH1 | Cap trigger | INDEX/MATCH from team lookup table (AP11:AQ41) |
+
+### Team Lookup Table (AP11:AQ41)
+
+All 30 NBA teams with their "trigger" status:
+- ATL: -
+- BOS: Apron 2
+- BRK: -
+- CHA: -
+- CHI: -
+- CLE: -
+- DAL: Apron 1
+- DEN: Apron 2
+- DET: -
+- GSW: Apron 1
+- HOU: -
+- IND: -
+- LAC: -
+- LAL: Apron 2
+- (etc.)
+
+Trigger values: "-" (no restriction), "Apron 1", "Apron 2"
+
+================================================================================
+## 4. DATA STRUCTURE
+================================================================================
+
+### Trade Block Columns (per team)
+
+Each team occupies 8 columns. Pattern for Team 1 (cols F-M):
+
+| Column | Content | Purpose |
+|--------|---------|---------|
+| F | Player name (GIVE) | User input - player being traded away |
+| G | Cap salary (GIVE) | Looked up from X warehouse |
+| H | Tax salary (GIVE) | Looked up from X warehouse |
+| I | Apron salary (GIVE) | Looked up from X warehouse |
+| J | Player name (GET) | User input - player being received |
+| K | Cap salary (GET) | Looked up from X warehouse |
+| L | Tax salary (GET) | Looked up from X warehouse |
+| M | Apron salary (GET) | Looked up from X warehouse |
+
+**Team Column Mapping:**
+- Team 1: F-M (9 cols including gap)
+- Team 2: O-V
+- Team 3: X-AE
+- Team 4: AG-AN
+
+### Roster Section Columns (per team)
+
+| Column | Content |
+|--------|---------|
+| A | Filtered/sorted roster for Team 1 (source for F30:F54) |
+| B | Filtered/sorted roster for Team 2 |
+| C | Filtered/sorted roster for Team 3 |
+| D | Filtered/sorted roster for Team 4 |
+| F/O/X/AG | Player name (copied from A/B/C/D) |
+| G/P/Y/AH | Cap salary |
+| J/S/AB/AK | Tax salary |
+| K/T/AC/AL | Apron salary |
+
+### Row Structure
+
+| Rows | Content |
+|------|---------|
+| 1 | Team codes, triggers, rulesets |
+| 2 | Column headers (Give/Get/Cap/Tax/Apron) |
+| 3-12 | Trade players (10 slots per side) |
+| 13 | "Team Salary" labels |
+| 14-19 | Before/After salary calculations |
+| 20-25 | Trade validation checks |
+| 27-28 | Roster count + vet min adjustment |
+| 29 | Roster section header |
+| 30-54 | Full team roster (~25 players max) |
+| 51 | Draft Picks header |
+| 52-54 | Draft pick slots |
+| 55 | Dead Money |
+| 57 | Trade Exceptions header |
+| 58-60 | TPE inventory |
+| 61 | Draft picks header (1st/2nd Round) |
+| 62-68 | Pick inventory by year ('25-'31) |
+
+================================================================================
+## 5. FORMULAS & LOGIC
+================================================================================
+
+### Salary Lookup Pattern
+
+All salary lookups follow this pattern (example for Cap salary):
+
+```
+=IFERROR(
+  IF($AQ$2=2024,
+    VLOOKUP(F3, X!$A:$AI, 3, FALSE),    // 2024: column 3
+    VLOOKUP(F3, X!$A:$AI, 5, FALSE)     // 2025: column 5
+  ),
+  ""
+)
+```
+
+**Column Indices in X Warehouse:**
+- Cap (2024): col 3, Cap (2025): col 5
+- Tax (2024): col 26, Tax (2025): col 34
+- Apron (2024): col 27, Apron (2025): col 35
+
+### Roster Filter Formula (Row 30, Column A)
+
+```
+=IF(F1="", "",
+  _xlfn.SORTBY(
+    _xlfn._xlws.FILTER(X!$A$3:$A$791, X!$B$3:$B$791 = $F$1),
+    _xlfn._xlws.FILTER(X!$C$3:$C$791, X!$B$3:$B$791 = $F$1),
+    -1   // Sort descending by salary
+  )
+)
+```
+
+Filters players from X warehouse where team code matches, sorted by salary descending.
+
+### Before/After Salary Calculations (Row 14-18)
+
+**Before Trade (G14 - Cap):**
+```
+=SUM(G30:G55)   // Sum of current roster Cap values
+```
+
+**After Trade (J14 - Cap):**
+```
+=G14 - SUM(G3:G12) + SUM(K3:K12)
+// Before - Give + Get
+```
+
+**Delta (K14):**
+```
+=(J14-G14)/1000000   // Difference in millions
+```
+
+### Tax Payment Calculation (Row 16)
+
+Uses SUMPRODUCT with tax bracket arrays from either:
+- 'Repeat Tax Array' sheet (if repeater = "Yes")
+- 'TEAM Copy 250616_155042' sheet (if repeater = "No")
+
+Different columns for 2024 vs 2025:
+- 2024: columns A:C
+- 2025: columns J:L
+
+Formula pattern:
+```
+=IF($AQ$2=2024,
+  IF($J$1="Yes",
+    SUMPRODUCT(--(G15>'Repeat Tax Array'!$A$1:$A$21), 
+               (G15-'Repeat Tax Array'!$A$1:$A$21), 
+               'Repeat Tax Array'!$C$1:$C$21),
+    // Non-repeater version...
+  ),
+  // 2025 version...
+)
+```
+
+### Trade Salary Matching (Row 21 - "Multiplier")
+
+The core CBA salary matching logic:
+
+```
+=IF(
+  IF(K1="Expanded",
+    // EXPANDED TRADE RULES (under first apron)
+    IF(SUM(G3:G12) < 7493424,
+      SUM(G3:G12)*2 + 250000,              // Small salary: 200% + $250K
+      IF(AND(SUM(G3:G12) > 7493424, SUM(G3:G12) < 29973695),
+        SUM(G3:G12) + 7752000,              // Mid salary: +$7.752M
+        IF(SUM(G3:G12) > 29973695,
+          SUM(G3:G12)*1.25 + 250000,        // Large salary: 125% + $250K
+          SUM(G3:G12)
+        )
+      )
+    ),
+    // STANDARD RULES (above first apron)
+    IF(K1="Standard",
+      SUM(G3:G12),                          // 100% match required
+      SUM(G3:G12)
+    )
+  ) > SUM(K3:K12),                          // Compare to incoming
+  "Yes", "No"
+)
+```
+
+**CBA Salary Matching Tiers (2024-25 Expanded):**
+| Outgoing Salary | Maximum Incoming |
+|-----------------|------------------|
+| < $7,493,424 | 200% + $250,000 |
+| $7,493,424 - $29,973,695 | Outgoing + $7,752,000 |
+| > $29,973,695 | 125% + $250,000 |
+
+**Standard Rules (Above First Apron):**
+Must match 100% (outgoing >= incoming)
+
+### Apron Compliance Checks (Rows 22-23)
+
+```
+=IF(AND(G17>1, J17<1), "Yes",      // Was over, now under
+  IF(AND(G17<1, J17>1), "No",       // Was under, now over - FAIL
+    IF(AND(G17>1, J17<=G17, J17>1), "Yes",  // Still over but same/better
+      IF(AND(G17>1, J17>G17, J17>1), "No",   // Still over but worse - FAIL
+        IF(AND(G17<1, J17<=G17), "Yes",      // Under and same/better
+          IF(AND(G17<1, J17>G17, J17<=0), "Yes", "")
+        )
+      )
+    )
+  )
+)
+```
+
+### Trade Validator (Row 20)
+
+```
+=IF(OR(
+  ISNUMBER(SEARCH("No", G21)),   // Multiplier failed
+  ISNUMBER(SEARCH("No", G22)),   // Apron 1 failed  
+  ISNUMBER(SEARCH("No", G23))    // Apron 2 failed
+), "Does Not Work", "Trade Works")
+```
+
+### Post-Trade Roster Count (Row 27)
+
+```
+=COUNTIFS(G30:G54, "<>0", G30:G54, "<>-", G30:G54, "<>")
+  - COUNTIF(F3:F12, "*,*")   // Subtract players traded away
+  + COUNTIF(J3:J12, "*,*")   // Add players acquired
+```
+
+### Vet Min Roster Fill (Row 28)
+
+```
+=IF(J27<=13, $AQ$9*(14-J27), 0)
+// If under 14 players, add vet mins to reach minimum
+```
+
+### Cash Calculation (Row 19)
+
+```
+// Cash going out (prorated)
+G19: =SUM(G3:G12)*($AQ$8/174)   // Days remaining / 174 total
+
+// Cash coming in (prorated)  
+J19: =SUM(K3:K12)*($AQ$8/174)
+
+// Net cash impact (including tax savings)
+K19: =(((J19-G19)-(G16-J16))/1000000)+K14
+```
+
+### Trade Exception Lookup (Rows 58-60)
+
+```
+// Get TPE names for team
+F58: =IFERROR(INDEX(
+  _xlfn._xlws.FILTER('Exceptions Warehouse - 2024'!$C$4:$C$70, 
+                     'Exceptions Warehouse - 2024'!$B$4:$B$70=F1),
+  _xlfn.SEQUENCE(3)   // Return up to 3 TPEs
+), "")
+
+// Get TPE values
+J58: =IFERROR(INDEX('Exceptions Warehouse - 2024'!$D$5:$D$86, 
+              MATCH(F58, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), "")
+
+// Get TPE expiration
+K58: =IFERROR(INDEX('Exceptions Warehouse - 2024'!$G$5:$G$86,
+              MATCH(F58, 'Exceptions Warehouse - 2024'!$C$5:$C$86, 0)), "")
+```
+
+### Draft Pick Lookup (Rows 62-68)
+
+```
+// First round picks by year ('25-'31)
+F62: =INDEX('FRP Database'!$C$5:$C$34, MATCH($F$1, 'FRP Database'!$B$5:$B$34, 0))
+F63: =INDEX('FRP Database'!$D$5:$D$34, ...)  // Next column for next year
+
+// Second round picks
+J62: =INDEX('SRP Database'!$C$5:$C$34, MATCH($F$1, 'SRP Database'!$B$5:$B$34, 0))
+```
+
+### Repeater Tax Status (Row 1)
+
+```
+=IF($AQ$2=2024,
+  IF(OR($F$1={"BRK","LAL","MIL","LAC","GSW"}), "Yes", "No"),
+  IF($AQ$2=2025,
+    IF($F$1="POR", "No",
+      IF(OR($F$1={"BOS","PHX","DEN","LAL","MIL","LAC"}), "Yes", "No")
+    ),
+    ""
+  )
+)
+```
+
+### Cross-Sheet Dependencies
+
+| Sheet | Data Retrieved |
+|-------|----------------|
+| X! | Player contracts: names (col A), teams (col B), Cap/Tax/Apron salaries by year |
+| Repeat Tax Array | Tax bracket thresholds and multipliers for repeater teams |
+| TEAM Copy 250616_155042 | Tax bracket thresholds for non-repeater teams |
+| Exceptions Warehouse - 2024 | Trade exception inventory (TPEs) |
+| FRP Database | First round pick ownership by year |
+| SRP Database | Second round pick ownership by year |
+
+================================================================================
+## 6. OUTPUTS
+================================================================================
+
+### Primary KPIs (Per Team)
+
+| Metric | Location | Description |
+|--------|----------|-------------|
+| Trade Validator | Row 20, col J/S/AB/AK | "Trade Works" or "Does Not Work" |
+| +/- Cap (delta) | Row 14, col K/T/AC/AL | Change in cap room ($M) |
+| +/- Tax (delta) | Row 15 | Change in tax room ($M) |
+| Tax Payment (delta) | Row 16 | Change in luxury tax bill ($M) |
+| +/- Apron 1 (delta) | Row 17 | Change in first apron room ($M) |
+| +/- Apron 2 (delta) | Row 18 | Change in second apron room ($M) |
+| +/- Cash | Row 19 | Net cash impact including tax savings |
+| Post-Trade Roster | Row 27 | Player count after trade |
+
+### Validation Checks (Per Team)
+
+| Check | Location | Values |
+|-------|----------|--------|
+| Multiplier | Row 21, col G/P/Y/AH | "Yes" = salary matching passes |
+| Apron 1 | Row 22 | "Yes" = compliant with first apron |
+| Apron 2 | Row 23 | "Yes" = compliant with second apron |
+
+### Supporting Data (Per Team)
+
+| Data | Location | Source |
+|------|----------|--------|
+| Full roster with salaries | Rows 30-54 | Filtered from X warehouse |
+| Dead money | Row 55 | Looked up from X warehouse |
+| Trade exceptions | Rows 58-60 | From Exceptions Warehouse |
+| Draft picks by year | Rows 62-68 | From FRP/SRP Databases |
+
+================================================================================
+## 7. MAPPING TO OUR ARCHITECTURE
+================================================================================
+
+### Tool Mapping
+
+This maps directly to: **Trade Sandbox** (Split Layout)
+
+From DESIGN.md:
+> Trade Sandbox answers: "What if I trade X for Y?"
+
+### Recommended Component Structure
+
+```
+TradeSandbox/
+├── components/
+│   ├── TeamTradeBlock.tsx      // One block per team (Give/Get columns)
+│   ├── TradeControls.tsx       // Year toggle, ruleset selector
+│   ├── TradeValidator.tsx      // Pass/fail indicator + checks
+│   ├── SalarySummary.tsx       // Before/After/Delta table (rows 13-19)
+│   ├── ValidationChecks.tsx    // Multiplier, Apron 1, Apron 2 (rows 21-23)
+│   ├── RosterPicker.tsx        // Full roster to click-add players
+│   ├── DraftPickInventory.tsx  // Pick ownership by year
+│   └── TradeExceptions.tsx     // TPE list with values/expiry
+├── hooks/
+│   ├── useSalaryLookup.ts      // VLOOKUP equivalent for player salaries
+│   ├── useTradeValidation.ts   // CBA matching rules engine
+│   ├── useTaxCalculation.ts    // Bracket-based tax computation
+│   └── useRosterFilter.ts      // Filter/sort team roster
+└── utils/
+    ├── cbaRules.ts             // Salary matching tiers, thresholds
+    └── taxBrackets.ts          // Repeater/non-repeater tax tables
+```
+
+### Data Models Required
+
+```typescript
+interface Player {
+  id: string;
+  name: string;           // "Last, First" format
+  teamCode: string;       // 3-letter code
+  capSalary2024: number;
+  capSalary2025: number;
+  taxSalary2024: number;
+  taxSalary2025: number;
+  apronSalary2024: number;
+  apronSalary2025: number;
+}
+
+interface TradeException {
+  id: string;
+  teamCode: string;
+  name: string;           // Usually player name that created it
+  value: number;
+  expirationDate: Date;
+}
+
+interface DraftPick {
+  teamCode: string;
+  year: number;           // 2025-2031
+  round: 1 | 2;
+  owner: string;          // Current owner team code
+  protections?: string;   // Protection details
+}
+
+interface TeamCapStatus {
+  teamCode: string;
+  trigger: 'none' | 'apron1' | 'apron2';
+  isRepeater: boolean;
+  capRoom: number;
+  taxRoom: number;
+  apron1Room: number;
+  apron2Room: number;
+}
+
+interface TradeBlock {
+  teamCode: string;
+  ruleset: 'expanded' | 'standard';
+  playersGiving: Player[];
+  playersGetting: Player[];
+}
+
+interface TradeValidation {
+  isValid: boolean;
+  multiplierPasses: boolean;
+  apron1Passes: boolean;
+  apron2Passes: boolean;
+  beforeAfterSalary: {
+    cap: { before: number; after: number; delta: number };
+    tax: { before: number; after: number; delta: number };
+    taxPayment: { before: number; after: number; delta: number };
+    apron1: { before: number; after: number; delta: number };
+    apron2: { before: number; after: number; delta: number };
+    cash: { before: number; after: number; delta: number };
+  };
+  postTradeRosterCount: number;
+}
+```
+
+### UI Layout (Split Workspace)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CONTROLS                                                                    │
+│ [2024 ▼][2025] Year    ○Standard ●Expanded Ruleset    Status: ✓ TRADE WORKS │
+├───────────────────────────────────┬─────────────────────────────────────────┤
+│ TEAM 1: POR (Give)               │ TEAM 2: BOS (Get)                        │
+│ ────────────────────             │ ────────────────────                     │
+│ Jerami Grant      $32.0M [×]    │ Jrue Holiday      $30.0M [×]             │
+│ Anfernee Simons   $25.0M [×]    │ Lauri Markkanen   $18.0M [×]             │
+│ Robert Williams   $12.5M [×]    │                                          │
+│ ────────────────────             │ ────────────────────                     │
+│ TOTAL: $69.5M                    │ TOTAL: $48.0M                            │
+├───────────────────────────────────┴─────────────────────────────────────────┤
+│ SALARY IMPACT                                                               │
+│          │ POR Before │ POR After │ Δ      │ BOS Before │ BOS After │ Δ    │
+│ Cap Room │ $12.4M     │ -$8.2M    │ -$20.6M│ $0.0M      │ +$21.5M   │+$21.5│
+│ Tax Room │ -$8.2M     │ +$13.3M   │ +$21.5M│ -$45.0M    │ -$23.5M   │+$21.5│
+│ Tax Bill │ $0         │ $0        │ $0     │ $85.2M     │ $42.1M    │-$43.1│
+├─────────────────────────────────────────────────────────────────────────────┤
+│ VALIDATION                                                                  │
+│ ✓ Salary Matching: POR can absorb (Expanded: 125% + $250K)                 │
+│ ✓ Apron 1: BOS remains compliant                                           │
+│ ✓ Apron 2: BOS drops below second apron                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ ROSTERS (click to add to trade)                                            │
+│ POR Roster               │ BOS Roster                                       │
+│ ☐ Shaedon Sharpe  $8.1M  │ ☐ Jayson Tatum   $32.0M                         │
+│ ☐ Scoot Henderson $7.5M  │ ☐ Jaylen Brown   $28.5M                         │
+│ ☐ Donovan Clingan $4.2M  │ ☐ Derrick White  $18.0M                         │
+│ ...                      │ ...                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Implementation Notes
+
+1. **Salary Types Matter**: Cap, Tax, and Apron salaries differ (incentives, partial guarantees). Store all three.
+
+2. **Year Toggle**: Critical - all lookups branch on selected year. Consider date-aware defaults.
+
+3. **Expanded vs Standard**: Teams under first apron get expanded matching. Above first apron = dollar-for-dollar.
+
+4. **Repeater Tax**: Different tax multipliers. Must know team's tax history (last 4 years).
+
+5. **Multi-Team Trades**: Sheet supports 4 teams. All salaries must balance across ALL teams.
+
+6. **TPE Usage**: Not fully wired in sheet but toggle exists. TPE absorbs incoming salary without matching.
+
+7. **Dead Money**: Cap charges from waived/traded players. Included in team totals.
+
+8. **Roster Minimums**: Must have 14 players. Auto-adds vet mins to calculations if under.
+
+### API Endpoints Needed
+
+```
+GET /api/players?team={code}&year={year}
+  → Returns roster with all salary values
+
+GET /api/team/{code}/cap-status?year={year}
+  → Returns cap/tax/apron room, trigger status, repeater flag
+
+GET /api/team/{code}/exceptions?year={year}
+  → Returns active TPEs
+
+GET /api/team/{code}/picks
+  → Returns pick ownership by year
+
+POST /api/trades/validate
+  → Body: { teams: TradeBlock[], year: number }
+  → Returns: TradeValidation for each team
+```
+
+### Database Views Needed
+
+```sql
+-- Player salaries by year
+CREATE VIEW player_salaries AS
+SELECT 
+  player_name,
+  team_code,
+  cap_salary_2024, cap_salary_2025,
+  tax_salary_2024, tax_salary_2025,
+  apron_salary_2024, apron_salary_2025
+FROM contracts
+WHERE status = 'active';
+
+-- Team cap positions
+CREATE VIEW team_cap_status AS
+SELECT
+  team_code,
+  SUM(cap_salary) as total_cap,
+  cap_threshold - SUM(cap_salary) as cap_room,
+  tax_threshold - SUM(tax_salary) as tax_room,
+  apron1_threshold - SUM(apron_salary) as apron1_room,
+  apron2_threshold - SUM(apron_salary) as apron2_room
+FROM player_salaries
+GROUP BY team_code;
+
+-- Tax bracket arrays
+CREATE TABLE tax_brackets (
+  year INT,
+  is_repeater BOOLEAN,
+  threshold_min NUMERIC,
+  threshold_max NUMERIC,
+  rate NUMERIC
+);
+```

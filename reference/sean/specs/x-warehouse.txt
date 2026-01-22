@@ -1,0 +1,311 @@
+# X-Warehouse.txt — Specification Document
+
+Source: `reference/sean/X.txt`
+Maps to: **Contract Data Model** (Database / Warehouse)
+
+---
+
+## 1. PURPOSE
+
+### Primary Question
+"What are the detailed contract terms, trade values, and future projections for every player?"
+
+### Who Uses It
+- **System Only**: This is the backend database for all other tools.
+- **Playground**: Lookups for roster salaries and cap hits.
+- **Give Get**: Lookups for trade math (incoming/outgoing/tax/apron values).
+- **Trade Machine**: Deep detailed trade logic (kickers, poison pill).
+
+### How It's Used
+1. Other sheets use VLOOKUP/INDEX-MATCH on Column A (Player Name).
+2. Provides "Single Source of Truth" for contract data.
+3. Contains pre-calculated "Trade Math" to simplify logic in the Trade Sandbox.
+
+---
+
+## 2. LAYOUT
+
+Flattened, wide-format database table (approx 170 columns).
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ROW 3: HEADERS                                                                               │
+│ A: Player | B: Team | C: 2024 | ... | P: TK | ... | Z: Tax '24 | ... | AJ: Cap Year | ...  │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│ ROW 4+: PLAYER DATA                                                                          │
+│ Damian Lillard | MIL | 48787676 | ... | - | ... | 48787676 | ... | 2019 | ...             │
+│ ...                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3. INPUTS
+
+**None.** This file is a static data export/snapshot, likely generated from a master database or Python script.
+All values are hardcoded text or numbers.
+
+---
+
+## 4. DATA STRUCTURE
+
+### Region 1: Identity & Bio (Cols A-B, Q-S)
+
+| Column | Name | Type | Description |
+|--------|------|------|-------------|
+| A | Player | String | Unique Identifier (Name). "Last, First" |
+| B | Team | String | 3-letter code (MIL, POR) or "-" |
+| Q | DOB | Date | Date of Birth |
+| R | Age | Number | Current age (decimal) |
+| S | Agent | String | Agency/Agent name |
+
+### Region 2: Contract Salary Grid (Cols C-O)
+
+| Column | Name | Type | Description |
+|--------|------|------|-------------|
+| C | 2024 | Money | 2024-25 Base Salary |
+| D | % | Percent | % of 2024 Cap |
+| E | 2025 | Money | 2025-26 Base Salary |
+| F | % | Percent | % of 2025 Cap |
+| G | 2026 | Money | 2026-27 Base Salary |
+| H | % | Percent | % of 2026 Cap |
+| I | 2027 | Money | 2027-28 Base Salary |
+| J | % | Percent | % of 2027 Cap |
+| K | 2028 | Money | 2028-29 Base Salary |
+| L | % | Percent | % of 2028 Cap |
+| M | 2029 | Money | 2029-30 Base Salary |
+| N | % | Percent | % of 2029 Cap |
+| O | Total | Money | Total remaining contract value |
+
+### Region 3: Contract Options (Cols T-Y)
+
+| Column | Name | Type | Description |
+|--------|------|------|-------------|
+| T | '24 Option | String | Option status for 2024 (PO, TO, -) |
+| U | '25 Option | String | Option status for 2025 |
+| V | '26 Option | String | Option status for 2026 |
+| W | '27 Option | String | Option status for 2027 |
+| X | '28 Option | String | Option status for 2028 |
+| Y | '29 Option | String | Option status for 2029 |
+
+### Region 4: Trade Math & Tax Logic (Cols P, Z-AI)
+
+Pre-calculated values for trade scenarios.
+
+| Column | Name | Type | Description |
+|--------|------|------|-------------|
+| P | TK | Percent | Trade Kicker % (e.g., 0.15) |
+| Z | Tax 2024 | Money | Salary count for Tax (can differ from Cap) |
+| AA | Apron 2024 | Money | Salary count for Apron |
+| AB | Outgoing Buildup | Money | Value when TRADED AWAY (Base) |
+| AC | Incoming Buildup | Money | Value when ACQUIRED (Base + Kicker) |
+| AD | Incoming Salary | Money | Final matching salary for trade |
+| AE | Incoming Tax | Money | Tax impact for receiving team |
+| AF | Incoming Apron | Money | Apron impact for receiving team |
+| AG | Trade Kicker Amount | Money | $ Value of kicker if traded |
+| AH | Tax 2025 | Money | 2025-26 Tax Salary |
+| AI | Apron 2025 | Money | 2025-26 Apron Salary |
+
+### Region 5: Cap Constants (Cols AJ-BQ)
+
+Historical league data frozen at time of signing (for max calc).
+
+| Column | Name | Type | Description |
+|--------|------|------|-------------|
+| AJ | Cap Year | Year | Year contract was signed/based on |
+| AN | Cap Level | Money | Salary Cap for that year |
+| AP | Tax Level | Money | Tax Line for that year |
+| AT | Minimum Level | Money | Minimum payroll floor |
+| AZ | TP-MLE | Money | Taxpayer MLE value |
+| BB | R-MLE | Money | Room MLE value |
+| BD | 0-6 YOS | Money | Max salary tier 1 (25%) |
+| BF | 7-9 YOS | Money | Max salary tier 2 (30%) |
+| BH | 10+ YOS | Money | Max salary tier 3 (35%) |
+| BP | Apron 2 | Money | Second Apron level |
+
+### Region 6: Extension Projections (Cols BS-FK)
+
+Hypothetical contract structures starting in different years.
+
+**Block 1: 2023 Start (BS-BY)**
+- BS: "2023" (Label)
+- BT-BX: Year 1-5 Salaries
+- BY: Year 1 Cap %
+
+**Block 2: 2024 Start (CA-CG)**
+- CA: "2024" (Label)
+- CB-CF: Year 1-5 Salaries
+- CG: Year 1 Cap %
+
+**Block 3: 2025 Start (CI-CO)**
+- CI: "2025" (Label)
+- CJ-CN: Year 1-5 Salaries
+- CO: Year 1 Cap %
+
+**Block 4: 2026 Start (CQ-CW)**
+- CQ: "2026" (Label)
+- CR-CV: Year 1-5 Salaries
+- CW: Year 1 Cap %
+
+**Block 5: 2027 Start (CY-DE)**
+- CY: "2027" (Label)
+- CZ-DD: Year 1-5 Salaries
+- DE: Year 1 Cap %
+
+**Block 6: 2028 Start (DG-DM)**
+- DG: "2028" (Label)
+- DH-DL: Year 1-5 Salaries
+- DM: Year 1 Cap %
+
+**Block 7: Rebate/Bonus (DO-DV)**
+- DO: Rebate
+- DQ: "2024"
+- DR-DU: Year 1-4
+- DV: Year 1 % Cap
+
+**Block 8: 2025 Projection (DY-EE)**
+- DY: "2025"
+- DZ-EC: Year 1-4
+- ED: Year 1 % Cap
+
+**Block 9: 2026 Projection (EG-EM)**
+- EG: "2026"
+- EH-EK: Year 1-4
+- EL: Year 1 % Cap
+
+**Block 10: 2027 Projection (EO-EU)**
+- EO: "2027"
+- EP-ES: Year 1-4
+- ET: Year 1 % Cap
+
+**Block 11: 2028 Projection (EW-FC)**
+- EW: "2028"
+- EX-FA: Year 1-4
+- FB: Year 1 % Cap
+
+**Block 12: 2029 Projection (FE-FK)**
+- FE: "2029"
+- FF-FI: Year 1-4
+- FJ: Year 1 % Cap
+
+---
+
+## 5. LOGIC & FORMULAS
+
+Since this is a warehouse, the logic describes **how the values were likely derived**.
+
+### Trade Math
+1. **Outgoing Buildup (AB)**: Usually matches Base Salary (C), unless poison pill provisions apply.
+2. **Trade Kicker Amount (AG)**: `Remaining Value` × `TK %` (P). Often capped.
+3. **Incoming Buildup (AC)**: `Base Salary` + `Trade Kicker Amount`.
+4. **Incoming Salary (AD)**: The number used for salary matching. Usually equals Incoming Buildup, but can be average of years for certain extensions.
+
+### Tax vs Cap
+- **Cap Salary (C)**: Includes likely bonuses.
+- **Tax Salary (Z)**: Can differ based on unlikely bonuses becoming likely, or vice versa.
+- **Apron Salary (AA)**: Often matches Tax Salary, but specific nuances exist for hard cap calculations.
+
+---
+
+## 6. MAPPING TO ARCHITECTURE
+
+### Component File Structure
+This data should live in a backend database or an in-memory store.
+
+`src/lib/data/contracts.ts` (or database schema)
+
+### TypeScript Interfaces
+
+```typescript
+// The main entity
+export interface Contract {
+  playerId: string;
+  playerName: string;
+  teamCode: string; // "MIL", "POR", or "-"
+  
+  // Demographics
+  dob: string;
+  age: number;
+  agent: string;
+  
+  // Salary Structure
+  salaries: {
+    [year: string]: {
+      amount: number;
+      capPercent: number;
+      option?: 'PO' | 'TO' | 'ETO' | null;
+    }
+  };
+  
+  // Trade Specifics
+  tradeKicker: {
+    percentage: number;
+    amount: number;
+  };
+  tradeValues: {
+    outgoing: number;      // Value when trading AWAY
+    incoming: number;      // Value when ACQUIRING
+    incomingTax: number;
+    incomingApron: number;
+  };
+  
+  // Tax & Apron Variants
+  taxSalaries: { [year: string]: number };
+  apronSalaries: { [year: string]: number };
+  
+  // Historical context
+  capYear: string;
+  signingConstants: {
+    capLevel: number;
+    taxLevel: number;
+    apron2Level: number;
+    maxTier1: number; // 0-6 years
+    maxTier2: number; // 7-9 years
+    maxTier3: number; // 10+ years
+  };
+}
+```
+
+### API Endpoints Needed
+
+```
+GET /api/contracts
+  → Returns all active contracts (heavy payload)
+
+GET /api/contracts/{playerId}
+  → Detailed view for single player
+
+GET /api/contracts/team/{teamCode}
+  → Roster view (what Playground uses)
+```
+
+### Database Schema (SQL)
+
+```sql
+CREATE TABLE contracts (
+  id UUID PRIMARY KEY,
+  player_name TEXT NOT NULL,
+  team_code TEXT,
+  
+  -- Current Year (2024-25)
+  salary_2024 NUMERIC,
+  tax_2024 NUMERIC,
+  apron_2024 NUMERIC,
+  option_2024 TEXT,
+  
+  -- Future Years
+  salary_2025 NUMERIC,
+  salary_2026 NUMERIC,
+  -- ... (normalized in real DB, flattened here for performance)
+  
+  -- Trade Math
+  trade_kicker_pct NUMERIC,
+  trade_kicker_amt NUMERIC,
+  outgoing_value NUMERIC,
+  incoming_value NUMERIC,
+  
+  -- Meta
+  agent_name TEXT,
+  dob DATE
+);
+```

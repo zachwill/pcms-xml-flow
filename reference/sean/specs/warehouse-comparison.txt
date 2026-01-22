@@ -1,0 +1,180 @@
+# Warehouse Comparison (X vs Y) — Specification Document
+
+Maps to: **Data Architecture**
+Related Specs: `x-warehouse.txt`, `y-warehouse.txt`, `playground.txt`, `give-get.txt`
+
+---
+
+## 1. PURPOSE
+
+### Primary Question
+"Which data source should I use for my tool: X or Y?"
+
+### Summary
+- **X Warehouse**: The **Current Season (2024-25)** tactical database. Use this for trade calculations, current roster checks, and immediate CBA compliance.
+- **Y Warehouse**: The **Next Season (2025-26)** strategic database. Use this for long-term salary cap planning, off-season projections, and free agency modeling.
+
+### Decision Matrix
+
+| Feature | Use X | Use Y |
+|---------|-------|-------|
+| **Trade Sandbox** (Current Season) | ✅ Primary | ❌ |
+| **Trade Sandbox** (Next Offseason) | ❌ | ✅ Primary |
+| **Salary Book** (Cap Management) | ❌ | ✅ Primary |
+| **Depth Chart** (Current Roster) | ✅ Best | ⚠️ Possible |
+| **Player Bio** (Age, Agent) | ✅ Either | ✅ Either |
+| **Draft Picks** | N/A | N/A (Use FRP/SRP Database) |
+
+---
+
+## 2. DATA STRUCTURE COMPARISON
+
+Both files share a common schema but are shifted by one year.
+
+### Column Mapping (Key Fields)
+
+| Content | X Column (2024-25 Base) | Y Column (2025-26 Base) | Note |
+|---------|-------------------------|-------------------------|------|
+| **Identity** | | | |
+| Player Name | A | A | Primary Key |
+| Team | B | B | |
+| **Salaries** | | | |
+| Current Salary | C (2024) | C (2025) | **CRITICAL SHIFT** |
+| Current % | D | D | |
+| Next Salary | E (2025) | E (2026) | |
+| Year 3 Salary | G (2026) | G (2027) | |
+| Year 4 Salary | I (2027) | I (2028) | |
+| Year 5 Salary | K (2028) | K (2029) | |
+| Year 6 Salary | M (2029) | M (2030) | |
+| **Trade Math** | | | |
+| Trade Kicker | P | P | Same in both |
+| Tax Salary | Z (2024) | Z (2025) | Base year tax |
+| Apron Salary | AA (2024) | AA (2026)* | Base year apron (*Y Label typo?) |
+| Incoming Value | AD | AD | For trades |
+| Incoming Tax | AE | AE | |
+| **Constants** | | | |
+| Cap Year | AJ | AJ | Reference year |
+| Cap Level | AN | AN | |
+| Tax Level | AP | AP | |
+
+### Trade Math Block (Detailed)
+
+This block exists in **BOTH** sheets but calculates for different base years.
+
+| Column | Name | Purpose |
+|--------|------|---------|
+| P | TK % | Trade kicker percentage (e.g. 15%) |
+| AB | Outgoing Buildup | Salary count when sending player OUT |
+| AC | Incoming Buildup | Salary count when receiving player IN (Base + Kicker) |
+| AD | Incoming Salary | Final salary for matching logic |
+| AE | Incoming Tax | Tax impact for receiving team |
+| AF | Incoming Apron | Hard cap impact for receiving team |
+| AG | Kicker Amount | $ Value of the trade bonus |
+
+---
+
+## 3. USAGE IN TOOLS
+
+### Trade Sandbox (`give-get.txt`)
+**Source: X Warehouse**
+
+The Trade Sandbox defaults to **2024** (Current Season).
+- **Lookup:** `VLOOKUP(Name, X!A:AI, 3, FALSE)` → Col 3 is 2024 Salary (Base).
+- **Tax Calc:** Uses X Columns Z (2024 Tax) and AA (2024 Apron).
+- **Logic:** Validates trades under 2024-25 CBA rules.
+
+*Future State:* If user toggles to "2025 Offseason Trade", the tool should switch to **Y Warehouse**.
+
+### Salary Book (`playground.txt`)
+**Source: Y Warehouse**
+
+The Salary Book focuses on **2025** (Next Season) and beyond.
+- **Roster Load:** Filters `Y!A:A` (Names) and `Y!C:C` (2025 Salary).
+- **Projections:** Displays columns C (2025), E (2026), G (2027)...
+- **Cap Analysis:** Compares Total vs `Y!AN` (Cap Level 2025).
+
+---
+
+## 4. ARCHITECTURE IMPLICATIONS
+
+### Data Ingestion Strategy
+
+We should normalize these two sources into a single `PlayerContract` table/store, but keep the "Scenario Year" concept.
+
+```typescript
+// Proposed Unified Schema
+interface PlayerContract {
+  id: string;
+  name: string;
+  
+  // Normalized Year Data
+  years: {
+    2024: ContractYearData; // From X.C or calculated
+    2025: ContractYearData; // From X.E or Y.C
+    2026: ContractYearData; // From X.G or Y.E
+    // ...
+  };
+  
+  // Source-Specific Trade Math
+  tradeScenarios: {
+    currentSeason: TradeMath; // From X (Cols Z-AG)
+    nextSeason: TradeMath;    // From Y (Cols Z-AG)
+  };
+}
+
+interface ContractYearData {
+  baseSalary: number;
+  capPercent: number;
+  taxSalary: number;   // Inferred or explicit
+  apronSalary: number; // Inferred or explicit
+}
+
+interface TradeMath {
+  outgoingValue: number;
+  incomingValue: number;
+  kickerAmount: number;
+  taxImpact: number;
+}
+```
+
+### API Routing
+
+| Endpoint | Logic |
+|----------|-------|
+| `GET /api/players/2024` | Returns data primarily from **X** |
+| `GET /api/players/2025` | Returns data primarily from **Y** |
+| `GET /api/trade/validate` | Uses **X** logic for 2024 trades, **Y** for 2025 |
+
+### Implementation Hazards
+
+1. **The "Hypothetical" Rows**:
+   - Y Warehouse contains hypothetical contract rows (e.g., "Avdija JH Max", "Camara 4").
+   - These are **NOT** real players but scenario placeholders.
+   - **Action:** These must be filtered out or flagged as `isScenario: true` in the UI.
+
+2. **Column Shift Errors**:
+   - Hardcoded column indices (e.g., `col[3]`) are dangerous.
+   - **Action:** Use named lookups or a mapping layer.
+   - *Example:* X[3] is 2024, Y[3] is 2025. One-off errors are likely.
+
+3. **Tax/Apron Label Confusion**:
+   - Y Column AA is labeled "Apron 2026" but aligned with "Tax 2025".
+   - **Action:** Verify with `Cap Year` (AJ) to be safe.
+     - X!AJ = 2019 (Example year) -> Constants rely on AJ lookup.
+     - Trust the column sequence (Tax, Apron) over the header label if ambiguous.
+
+---
+
+## 5. EXTENSION LOGIC (Blocks 6-12)
+
+Both files contain extensive projection blocks (Cols BS-FK) for modeling extensions.
+- **Usage:** These are likely used by the "Contract Calculator" in Playground.
+- **Structure:** Blocks for starting an extension in 2023, 2024, 2025, etc.
+- **Recommendation:** Extract these rules into a TypeScript `ExtensionCalculator` class rather than relying on the raw columns, as the logic is standard CBA algebra (8% raises, 120% or 140% starting max).
+
+## 6. KEY TAKEAWAYS
+
+1. **X = NOW (2024-25)**. Use for **Trade Machine**.
+2. **Y = NEXT (2025-26)**. Use for **Salary Book**.
+3. **Normalize**: Don't use raw columns in app code. Build a localized `Contract` model.
+4. **Beware**: Y has future scenarios mixed with real data.

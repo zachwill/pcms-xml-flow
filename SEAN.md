@@ -2,9 +2,9 @@
 
 Status: **2026-01-22**
 
-We are creating Postgres tables/functions that let us build **Sean-style tooling** (Salary Book / Playground, Team Master, Trade Machine, Give/Get) on top of the PCMS ingest.
+This repo is building **Sean-style tooling outputs** (Salary Book / Playground, Team Master, Trade Machine, Give/Get) on top of the PCMS ingest, with **Postgres as the source of truth**.
 
-Important context: the `reference/sean/` spreadsheets/specs are **directional** and may be ~12 months stale. Treat them as *shape + intent*, not authoritative truth.
+> The `reference/sean/` spreadsheets/specs are directional and may be stale. Treat them as *shape + intent*, not authoritative truth.
 
 ---
 
@@ -12,128 +12,171 @@ Important context: the `reference/sean/` spreadsheets/specs are **directional** 
 
 ### Ingestion flow
 
-This repo’s import flow is **Python-only** (`import_pcms_data.flow/*.inline_script.py`).
+The Windmill flow in `import_pcms_data.flow/` is currently **Python-only** (`*.inline_script.py`).
 
-Notable: `pcms.team_transactions` is **already imported** (it is handled in `import_pcms_data.flow/team_financials.inline_script.py`).
+After imports complete, we run a dedicated refresh step:
 
-### The primary analyst artifact: `pcms.salary_book_warehouse`
+- `import_pcms_data.flow/refresh_caches.inline_script.py`
 
-We already have a working “player-level cache” table:
+which refreshes tool-facing caches in Postgres.
 
-- **Table:** `pcms.salary_book_warehouse`
-- **Refresh:** `SELECT pcms.refresh_salary_book_warehouse();`
-- **Rows:** ~528 active players (NBA + DLG)
-- **Grids:** cap/tax/apron 2025–2030
-- **Includes:** agent, decimal age, options (NONE→NULL), trade flags, best-effort trade-math columns
+### Tool-facing warehouse/cache tables (canonical artifacts)
 
-Migrations involved:
+#### Player-level: `pcms.salary_book_warehouse`
 
-- `migrations/012_analyst_views.sql` (optional scaffolding views)
-- `migrations/013_salary_book_warehouse.sql` (table + initial refresh)
-- `migrations/016_refresh_salary_book_warehouse_fast.sql` (view-independent refresh)
-- `migrations/017_salary_book_age_and_option_normalization.sql` (decimal age + option normalization)
+- one row per active player
+- cap/tax/apron grids (2025–2030)
+- agent fields, age normalization, option normalization
+- some trade-context columns exist for 2025
 
-### The “active player” definition we currently use
-
-Used by the warehouse refresh:
-
-- pick one contract per player where `contracts.record_status_lk IN ('APPR','FUTR')`
-- prefer `APPR` over `FUTR`, then newest `signing_date`, then newest `contract_id`
-- pick latest `contract_versions.version_number` within that contract
-- include `people.league_lk IN ('NBA','DLG')` to avoid dropping two-way players
-
----
-
-## 1) What Sean-style tools need (high level)
-
-From `reference/sean/` (conceptually):
-
-| Tool | Purpose | Primary inputs |
-|------|---------|----------------|
-| Salary Book / Playground | team roster view, sorted by salary | **player cache** (`salary_book_warehouse`) + optional depth chart |
-| Team Master | one-page team cap sheet | **team totals cache** + roster + tax status |
-| Trade Machine | check legality of a trade | trade rules table + team status (cap/tax/apron) + outgoing/incoming salary bases |
-| Give/Get | multi-team sandbox | Trade Machine inputs + **exceptions warehouse** |
-
----
-
-## 2) Current gaps (what’s confusing agents)
-
-These are the main mismatches between older “Sean doc” assumptions and the current implementation:
-
-1) **We are table-first now.** Older plans focused on a giant pivoted view (`vw_salary_warehouse`). The canonical artifact is now `pcms.salary_book_warehouse`.
-
-2) **`team_transactions` is not a missing gap anymore.** It exists (`migrations/006_team_transactions.sql`) and is imported in `team_financials.inline_script.py`.
-
-3) **Contract status code mismatch.** Use `record_status_lk IN ('APPR','FUTR')` for “active-ish” contracts (not `'ACT'`).
-
-4) **Reference specs may be stale.** We should treat them as “what the tool wants to look like” rather than “what the data must be called”.
-
----
-
-## 3) Roadmap (aligned with TODO.md)
-
-### P0 — Team totals cache: `pcms.team_salary_warehouse`
-
-Goal: create **one row per (team_code, salary_year)** capturing totals + subtotals by budget group, with joins to cap/tax constants and tax team status.
-
-Recommended source of truth:
-- `pcms.team_budget_snapshots` (already imported)
-
-Also join:
-- `pcms.league_system_values` (cap/tax/apron constants)
-- `pcms.tax_team_status` (taxpayer/repeater/apron flags)
-
-Deliverables:
-- table: `pcms.team_salary_warehouse`
-- refresh fn: `pcms.refresh_team_salary_warehouse()`
-
-### P0 — Exceptions cache: `pcms.exceptions_warehouse`
-
-Goal: fast lookup of usable TPE/MLE/BAE/etc by team/year.
-
-Source tables:
-- `pcms.team_exceptions`
-- optional: `pcms.team_exception_usage`
-
-Deliverables:
-- table: `pcms.exceptions_warehouse`
-- refresh fn: `pcms.refresh_exceptions_warehouse()`
-
-### P1 — Trade matching parameters: `pcms.trade_rules`
-
-Goal: store the CBA “bands” (expanded vs standard) in Postgres rather than hardcoding them.
-
-Deliverables:
-- `pcms.trade_rules` table
-- seed rows for at least 2024/2025 (and then extend)
-- optional helper function: `pcms.fn_trade_max_incoming(outgoing bigint, salary_year int, rule_type text)`
-
-### Hook refresh into ingest flow
-
-After all PCMS imports complete:
+Refresh:
 
 ```sql
 SELECT pcms.refresh_salary_book_warehouse();
+```
+
+Key migrations:
+- `migrations/013_salary_book_warehouse.sql`
+- `migrations/016_refresh_salary_book_warehouse_fast.sql`
+- `migrations/017_salary_book_age_and_option_normalization.sql`
+
+#### Team-level totals: `pcms.team_salary_warehouse`
+
+- one row per `(team_code, salary_year)`
+- totals + subtotals by budget buckets
+- joins year constants (`pcms.league_system_values`)
+- tax status fields are tool-friendly but preserve missingness via explicit flags and source tracking
+
+Refresh:
+
+```sql
 SELECT pcms.refresh_team_salary_warehouse();
+```
+
+Key migrations:
+- `migrations/019_team_salary_summary.sql`
+- `migrations/021_team_salary_summary_tax_status_flags.sql`
+- `migrations/022_team_salary_summary_tax_status_fallback.sql`
+- `migrations/023_rename_team_salary_summary_to_team_salary_warehouse.sql`
+
+#### Exceptions: `pcms.exceptions_warehouse`
+
+- one row per usable exception instance (`team_exception_id`)
+- filtered: `record_status_lk='APPR' AND COALESCE(remaining_amount,0) > 0`
+- **important fix:** PCMS `team_exceptions.team_code` is often blank; we derive `team_code` via `team_id → pcms.teams.team_code`
+- preserves missingness via:
+  - `team_code_source` (raw PCMS value)
+  - `has_source_team_code`
+
+Refresh:
+
+```sql
 SELECT pcms.refresh_exceptions_warehouse();
+```
+
+Key migrations:
+- `migrations/020_exceptions_warehouse.sql`
+- `migrations/028_fix_exceptions_warehouse_team_code_and_lookups.sql`
+
+#### Team Master drilldowns (fidelity helpers)
+
+- `pcms.dead_money_warehouse` (NBA-only; salary_year>=2025)
+  - refresh: `SELECT pcms.refresh_dead_money_warehouse();`
+- `pcms.cap_holds_warehouse` (**snapshot-scoped**: filtered to budget snapshot membership)
+  - refresh: `SELECT pcms.refresh_cap_holds_warehouse();`
+
+---
+
+## 1) Trade tooling: adapter + primitives + planner (current state)
+
+### Adapter (NOT a warehouse table)
+
+To make trade math sane, we added an adapter view over the wide player warehouse:
+
+- `pcms.salary_book_yearly` (one row per `(player_id, salary_year)` for 2025–2030)
+
+### Primitives
+
+- `pcms.fn_post_trade_apron(team_code, salary_year, outgoing_ids[], incoming_ids[])`
+  - delta-method post-trade apron total using `pcms.team_salary_warehouse.apron_total` baseline
+
+- `pcms.fn_tpe_trade_math(...)`
+  - CBA Article VII 6(j) TPE logic
+  - cap amounts for “Salary” math; apron only for the 6(j)(3) padding gate
+
+### Planner MVP (TPE-only)
+
+- `pcms.fn_trade_plan_tpe(...) -> jsonb`
+  - assigns incoming players into existing TREXC exceptions (expiry-first; largest-that-fits)
+  - computes remaining main-leg via `fn_tpe_trade_math`
+  - returns UI-friendly objects:
+    - `absorption_legs[]` (with absorbed totals + counts)
+    - `main_leg` (with totals + max/created fields)
+    - `summary` (single object suitable for header rendering)
+
+Key migrations:
+- `migrations/026_salary_book_yearly.sql`
+- `migrations/027_tpe_trade_math.sql`
+- `migrations/029_trade_planner_tpe.sql`
+- `migrations/030_trade_planner_tpe_output_totals.sql`
+- `migrations/031_trade_planner_tpe_ui_fields.sql`
+- `migrations/032_trade_planner_tpe_summary.sql`
+- `migrations/033_trade_planner_tpe_summary_delta.sql`
+
+---
+
+## 2) What Sean-style tools need (high level)
+
+| Tool | Purpose | Primary inputs |
+|------|---------|----------------|
+| Salary Book / Playground | team roster view, sorted by salary | `pcms.salary_book_warehouse` |
+| Team Master | one-page team cap sheet | `pcms.team_salary_warehouse` + roster (`salary_book_warehouse`) + drilldowns (`dead_money_warehouse`, `cap_holds_warehouse`, `exceptions_warehouse`) |
+| Trade Machine | check legality / limits of a trade | `fn_trade_plan_tpe` (MVP) + `fn_tpe_trade_math` primitives + team totals (`team_salary_warehouse`) |
+| Give/Get | multi-team sandbox | Trade Machine inputs + exceptions (`exceptions_warehouse`) |
+
+---
+
+## 3) Current gaps / next steps (aligned with TODO.md)
+
+### Next: Trade planner expansion
+
+The current planner is **TPE-only** and single-team-centric.
+
+Next layers:
+- multi-team plans (two+ team proposals, still legged)
+- aggregation constraints windows (e.g. Dec 15 → deadline “minimum aggregation” constraints)
+- MLE-as-vehicle + apron hard-cap restrictions (depends on reliable exception usage state)
+
+### Next: Fidelity / reconciliation artifact
+
+Add one canonical query/view to reconcile:
+- `team_salary_warehouse` totals
+- vs roster sums from `salary_book_warehouse`
+- explained by `team_budget_snapshots.budget_group_lk`
+
+This becomes the debugging hammer for Team Master + trade tooling.
+
+---
+
+## 4) Agent-facing docs / how to validate quickly
+
+- `TODO.md` — current roadmap + invariants
+- `AGENTS.md` — ingest context + “what counts” rules
+- `SALARY_BOOK.md` — salary book interpretation
+- `SCHEMA.md` — DB schema
+
+### SQL checks
+
+The canonical runnable checks live in `queries/sql/`:
+
+```bash
+psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -f queries/sql/run_all.sql
 ```
 
 ---
 
-## 4) Recommended “source of truth” docs for agents
+## 5) Important “don’t regress” notes
 
-If agents are confused, point them here first:
-
-- `TODO.md` — what we’re building next (team totals, exceptions, trade rules)
-- `queries/AGENTS.md` — what already exists + how to query it
-- `SALARY_BOOK.md` — how to interpret contracts/versions/salaries (and the warehouse table)
-- `SCHEMA.md` — column names + tables
-
----
-
-## 5) Small repo hygiene note
-
-Migration filenames should be strictly increasing; we had two `017_...` files previously. The two-way daily statuses cleanup migration has been renumbered to:
-
-- `migrations/018_remove_unused_two_way_daily_statuses_columns.sql`
+- Postgres is the source of truth.
+- Tool-friendly booleans are OK, but preserve missingness via explicit flags.
+- If a drilldown is meant to reconcile to team totals, scope it to `pcms.team_budget_snapshots` membership (detail tables can contain phantom/superset rows).

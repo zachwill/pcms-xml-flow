@@ -1,25 +1,28 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["psycopg[binary]", "wmill", "typing-extensions"]
+# dependencies = ["psycopg[binary]", "typing-extensions"]
 # ///
 """
 Contracts Import
 
 Imports contracts and all nested structures from PCMS extract.
 
-Order (FK-safe): contracts → versions → salaries → bonuses → bonus_criteria →
-                 bonus_maximums → payment_schedules → protections → protection_conditions
+Order (FK-safe): contracts → versions → salaries → bonuses →
+                 bonus_maximums → payment_schedules → payment_schedule_details →
+                 protections → protection_conditions
 
 Upserts into:
 - pcms.contracts
 - pcms.contract_versions
 - pcms.salaries
 - pcms.contract_bonuses
-- pcms.contract_bonus_criteria
 - pcms.contract_bonus_maximums
 - pcms.payment_schedules
+- pcms.payment_schedule_details
 - pcms.contract_protections
 - pcms.contract_protection_conditions
+
+Note: bonus_criteria is stored as JSONB on contract_bonuses.criteria_json
 """
 import os
 import json
@@ -138,9 +141,9 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
         versions_seen = {}
         salaries_seen = {}
         bonuses_seen = {}          # Key: (contract_id, version_number, bonus_id)
-        bonus_criteria_seen = {}   # Key: (contract_id, version_number, bonus_id, bonus_criteria_id)
         bonus_maximums_seen = {}   # Key: (contract_id, version_number, bonus_max_id)
         payments_seen = {}
+        payment_details_seen = {}  # Key: payment_detail_id
         protections_seen = {}      # Key: (contract_id, version_number, protection_id)
         protection_conditions_seen = {}  # Key: (contract_id, version_number, protection_id, condition_id)
 
@@ -328,39 +331,6 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
                         "ingested_at": ingested_at,
                     }
 
-                    # ─────────────────────────────────────────────────────────
-                    # Bonus Criteria (nested under bonus)
-                    # ─────────────────────────────────────────────────────────
-                    criteria_groups = as_list(b.get("bonus_criteria"))
-                    for group in criteria_groups:
-                        if group is None:
-                            continue
-                        criteria_items = as_list(group.get("bonus_criterium") if isinstance(group, dict) else None)
-                        for cri in criteria_items:
-                            criteria_id = to_int(cri.get("bonus_criteria_id"))
-                            if criteria_id is None:
-                                continue
-
-                            criteria_key = (contract_id, version_number, bonus_id, criteria_id)
-
-                            bonus_criteria_seen[criteria_key] = {
-                                "bonus_criteria_id": criteria_id,
-                                "bonus_id": bonus_id,
-                                "contract_id": contract_id,
-                                "version_number": version_number,
-                                "criteria_lk": cri.get("criteria_lk"),
-                                "criteria_operator_lk": cri.get("criteria_operator_lk"),
-                                "modifier_lk": cri.get("modifier_lk"),
-                                "season_type_lk": cri.get("season_type_lk"),
-                                "is_player_criteria": cri.get("player_criteria_flg") or None,
-                                "is_team_criteria": cri.get("team_criteria_flg") or None,
-                                "value_1": cri.get("value1"),
-                                "value_2": cri.get("value2"),
-                                "date_1": cri.get("date1"),
-                                "date_2": cri.get("date2"),
-                                "ingested_at": ingested_at,
-                            }
-
                 # ─────────────────────────────────────────────────────────────
                 # Bonus Maximums (nested under version)
                 # ─────────────────────────────────────────────────────────────
@@ -459,21 +429,48 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
                             "ingested_at": ingested_at,
                         }
 
+                        # ─────────────────────────────────────────────────────────
+                        # Payment Schedule Details (nested under payment_schedule)
+                        # ─────────────────────────────────────────────────────────
+                        schedule_details = as_list(
+                            ps.get("schedule_details", {}).get("schedule_detail")
+                            if ps.get("schedule_details") else None
+                        )
+                        for sd in schedule_details:
+                            detail_id = to_int(sd.get("contract_payment_schedule_detail_id"))
+                            if detail_id is None:
+                                continue
+
+                            payment_details_seen[detail_id] = {
+                                "payment_detail_id": detail_id,
+                                "payment_schedule_id": payment_id,
+                                "payment_date": sd.get("payment_date"),
+                                "payment_amount": to_int(sd.get("payment_amount")),
+                                "number_of_days": to_int(sd.get("number_of_days")),
+                                "payment_type_lk": sd.get("contract_payment_type_lk"),
+                                "within_days_lk": sd.get("within_days_lk"),
+                                "is_scheduled": sd.get("scheduled_payment_flg") or None,
+                                "created_at": sd.get("create_date"),
+                                "updated_at": sd.get("last_change_date"),
+                                "record_changed_at": sd.get("record_change_date"),
+                                "ingested_at": ingested_at,
+                            }
+
         contracts = list(contracts_seen.values())
         versions = list(versions_seen.values())
         salaries = list(salaries_seen.values())
         bonuses = list(bonuses_seen.values())
-        bonus_criteria = list(bonus_criteria_seen.values())
         bonus_maximums = list(bonus_maximums_seen.values())
         payments = list(payments_seen.values())
+        payment_details = list(payment_details_seen.values())
         protections = list(protections_seen.values())
         protection_conditions = list(protection_conditions_seen.values())
 
         print(f"Prepared: contracts={len(contracts)}, versions={len(versions)}, "
               f"salaries={len(salaries)}, bonuses={len(bonuses)}, "
-              f"bonus_criteria={len(bonus_criteria)}, bonus_maximums={len(bonus_maximums)}, "
-              f"payments={len(payments)}, protections={len(protections)}, "
-              f"protection_conditions={len(protection_conditions)}")
+              f"bonus_maximums={len(bonus_maximums)}, payments={len(payments)}, "
+              f"payment_details={len(payment_details)}, "
+              f"protections={len(protections)}, protection_conditions={len(protection_conditions)}")
 
         if not dry_run:
             conn = psycopg.connect(os.environ["POSTGRES_URL"])
@@ -492,11 +489,6 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
                 count = upsert(conn, "pcms.contract_bonuses", bonuses, ["contract_id", "version_number", "bonus_id"])
                 tables.append({"table": "pcms.contract_bonuses", "attempted": count, "success": True})
 
-                # Bonus Criteria - composite key: (contract_id, version_number, bonus_id, bonus_criteria_id)
-                count = upsert(conn, "pcms.contract_bonus_criteria", bonus_criteria,
-                               ["contract_id", "version_number", "bonus_id", "bonus_criteria_id"])
-                tables.append({"table": "pcms.contract_bonus_criteria", "attempted": count, "success": True})
-
                 # Bonus Maximums - composite key: (contract_id, version_number, bonus_max_id)
                 count = upsert(conn, "pcms.contract_bonus_maximums", bonus_maximums,
                                ["contract_id", "version_number", "bonus_max_id"])
@@ -504,6 +496,10 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
 
                 count = upsert(conn, "pcms.payment_schedules", payments, ["payment_schedule_id"])
                 tables.append({"table": "pcms.payment_schedules", "attempted": count, "success": True})
+
+                # Payment Schedule Details - FK to payment_schedules
+                count = upsert(conn, "pcms.payment_schedule_details", payment_details, ["payment_detail_id"])
+                tables.append({"table": "pcms.payment_schedule_details", "attempted": count, "success": True})
 
                 # Protections - composite key: (contract_id, version_number, protection_id)
                 count = upsert(conn, "pcms.contract_protections", protections,
@@ -522,9 +518,9 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
             tables.append({"table": "pcms.contract_versions", "attempted": len(versions), "success": True})
             tables.append({"table": "pcms.salaries", "attempted": len(salaries), "success": True})
             tables.append({"table": "pcms.contract_bonuses", "attempted": len(bonuses), "success": True})
-            tables.append({"table": "pcms.contract_bonus_criteria", "attempted": len(bonus_criteria), "success": True})
             tables.append({"table": "pcms.contract_bonus_maximums", "attempted": len(bonus_maximums), "success": True})
             tables.append({"table": "pcms.payment_schedules", "attempted": len(payments), "success": True})
+            tables.append({"table": "pcms.payment_schedule_details", "attempted": len(payment_details), "success": True})
             tables.append({"table": "pcms.contract_protections", "attempted": len(protections), "success": True})
             tables.append({"table": "pcms.contract_protection_conditions", "attempted": len(protection_conditions), "success": True})
 

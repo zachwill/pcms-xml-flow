@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["psycopg[binary]", "wmill", "typing-extensions"]
+# dependencies = ["psycopg[binary]", "typing-extensions"]
 # ///
 """
 Transactions Import
@@ -548,6 +548,13 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
         # ─────────────────────────────────────────────────────────────────────
         draft_selections = []
 
+        # Known pick number corrections (source data has wrong pick numbers)
+        # Format: player_id -> correct pick number
+        PICK_CORRECTIONS = {
+            1629083: 55,  # Arnoldas Kulboka, 2018 R2 - source incorrectly has 56
+            101166: 58,   # Uros Slokar, 2005 R2 - source incorrectly has 57
+        }
+
         for txn in transactions_raw:
             # Only NBA draft transactions
             if txn.get("transaction_type_lk") != "DRAFT":
@@ -561,6 +568,10 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
             draft_year = to_int(txn.get("draft_year"))
             draft_round = to_int(txn.get("draft_round"))
             pick_number = to_int(unwrap_single_array(txn.get("draft_pick")))
+
+            # Apply pick number corrections for known bad data
+            if player_id in PICK_CORRECTIONS:
+                pick_number = PICK_CORRECTIONS[player_id]
 
             # Skip if missing required fields
             if not all([txn_id, player_id, drafting_team_id, draft_year, draft_round, pick_number]):
@@ -723,8 +734,18 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
                 count = upsert(conn, "pcms.team_exception_usage", usage, ["team_exception_detail_id"])
                 tables.append({"table": "pcms.team_exception_usage", "attempted": count, "success": True})
 
-                # Draft selections
-                count = upsert(conn, "pcms.draft_selections", draft_selections, ["transaction_id"])
+                # Draft selections (conflict on natural key since source data has duplicate pick numbers)
+                count = upsert(conn, "pcms.draft_selections", draft_selections, ["draft_year", "draft_round", "pick_number"])
+                # Update team codes from pcms.teams to ensure consistency
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        UPDATE pcms.draft_selections ds
+                        SET drafting_team_code = t.team_code
+                        FROM pcms.teams t
+                        WHERE ds.drafting_team_id = t.team_id
+                          AND (ds.drafting_team_code IS NULL OR ds.drafting_team_code != t.team_code)
+                    """)
+                conn.commit()
                 tables.append({"table": "pcms.draft_selections", "attempted": count, "success": True})
 
                 # Draft pick trades (no natural key, so delete and re-insert)
@@ -732,6 +753,22 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
                     cur.execute("DELETE FROM pcms.draft_pick_trades")
                 conn.commit()
                 count = upsert(conn, "pcms.draft_pick_trades", draft_pick_trades, ["id"])
+                # Update team codes from pcms.teams to ensure consistency
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        UPDATE pcms.draft_pick_trades dpt
+                        SET from_team_code = ft.team_code,
+                            to_team_code = tt.team_code,
+                            original_team_code = ot.team_code
+                        FROM pcms.teams ft, pcms.teams tt, pcms.teams ot
+                        WHERE dpt.from_team_id = ft.team_id
+                          AND dpt.to_team_id = tt.team_id
+                          AND dpt.original_team_id = ot.team_id
+                          AND (dpt.from_team_code IS DISTINCT FROM ft.team_code
+                               OR dpt.to_team_code IS DISTINCT FROM tt.team_code
+                               OR dpt.original_team_code IS DISTINCT FROM ot.team_code)
+                    """)
+                conn.commit()
                 tables.append({"table": "pcms.draft_pick_trades", "attempted": count, "success": True})
             finally:
                 conn.close()

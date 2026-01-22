@@ -39,24 +39,6 @@ columns:
  - record_changed_at timestamp with time zone
  - ingested_at timestamp with time zone default now()
 
-table: pcms.contract_bonus_criteria
-columns:
- - bonus_criteria_id integer primary key
- - bonus_id integer primary key
- - criteria_lk text
- - criteria_operator_lk text
- - modifier_lk text
- - season_type_lk text
- - is_player_criteria boolean
- - is_team_criteria boolean
- - value_1 numeric
- - value_2 numeric
- - date_1 date
- - date_2 date
- - ingested_at timestamp with time zone default now()
- - contract_id integer primary key
- - version_number integer primary key
-
 table: pcms.contract_bonus_maximums
 columns:
  - bonus_max_id integer primary key

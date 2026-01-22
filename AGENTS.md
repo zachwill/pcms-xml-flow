@@ -56,6 +56,8 @@ Each script has inline `upsert()` and `find_extract_dir()` helpers (no shared im
 
 ## Local Dev
 
+**Always use `uv run` for Python scripts** (handles dependencies automatically).
+
 ```bash
 uv run scripts/xml-to-json.py              # Generate JSON from XML
 uv run scripts/test-import.py lookups      # Test single step

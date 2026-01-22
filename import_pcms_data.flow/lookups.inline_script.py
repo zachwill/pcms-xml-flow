@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["psycopg[binary]", "wmill", "typing-extensions"]
+# dependencies = ["psycopg[binary]", "typing-extensions"]
 # ///
 """
 Lookups Import

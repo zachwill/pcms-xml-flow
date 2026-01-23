@@ -101,6 +101,21 @@ uv run scripts/test-import.py <step> --write
 - Pycache can mask changes → `rm -rf import_pcms_data.flow/__pycache__`.
 - You probably forgot `--write` → dry-run is default.
 
+### Postgres regex gotcha (important)
+
+When writing `LANGUAGE sql` functions using `$$ ... $$` bodies, **backslashes are literal**.
+That means regex escapes like `\s`, `\b`, `\d` should generally be written as **single-backslash**
+(`\s`, `\b`, `\d`) *inside the function body*, not double-escaped.
+
+Symptoms when you get this wrong:
+- regex `~* '^to\\s+'` appears to work in some ad-hoc contexts, but inside the function all matches fail
+- CASE expressions fall through and everything becomes `'OTHER'`
+- `regexp_matches()` extraction returns empty arrays unexpectedly
+
+Fix:
+- Prefer `~* '^to\s+'` (single backslash) inside `$$`-quoted SQL function bodies.
+- Validate patterns with a tiny `SELECT` inside psql before baking into a migration.
+
 ---
 
 ## Tooling caches: source-of-truth hierarchy (Team Master / Trade tools)

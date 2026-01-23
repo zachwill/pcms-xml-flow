@@ -160,16 +160,13 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
         base_dir = find_extract_dir(extract_dir)
         ingested_at = datetime.now().isoformat()
 
-        # Load lookups for team code mapping
+        # Load lookups (used for various lk_* tables).
+        # NOTE: lookups.json does NOT include NBA team abbreviations in this extract.
+        # We must backfill team_code from pcms.teams after upsert.
         with open(base_dir / "lookups.json") as f:
             lookups = json.load(f)
 
-        teams_raw = lookups.get("lk_teams", {}).get("lk_team", [])
-        team_code_map = {
-            t["team_id"]: t.get("team_code")
-            for t in teams_raw
-            if t.get("team_id") and t.get("team_code")
-        }
+        team_code_map = {}  # backfilled from pcms.teams later
 
         # Load data files
         with open(base_dir / "trades.json") as f:
@@ -724,9 +721,29 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
                 tables.append({"table": "pcms.trades", "attempted": count, "success": True})
 
                 count = upsert(conn, "pcms.trade_teams", trade_teams, ["trade_team_id"])
+                # Backfill team_code from pcms.teams (lookups.json does not include abbreviations)
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        UPDATE pcms.trade_teams tt
+                        SET team_code = t.team_code
+                        FROM pcms.teams t
+                        WHERE tt.team_id = t.team_id
+                          AND (tt.team_code IS NULL OR tt.team_code = '' OR tt.team_code IS DISTINCT FROM t.team_code)
+                    """)
+                conn.commit()
                 tables.append({"table": "pcms.trade_teams", "attempted": count, "success": True})
 
                 count = upsert(conn, "pcms.trade_team_details", trade_details, ["trade_team_detail_id"])
+                # Backfill team_code from pcms.teams
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        UPDATE pcms.trade_team_details ttd
+                        SET team_code = t.team_code
+                        FROM pcms.teams t
+                        WHERE ttd.team_id = t.team_id
+                          AND (ttd.team_code IS NULL OR ttd.team_code = '' OR ttd.team_code IS DISTINCT FROM t.team_code)
+                    """)
+                conn.commit()
                 tables.append({"table": "pcms.trade_team_details", "attempted": count, "success": True})
 
                 count = upsert(conn, "pcms.trade_groups", trade_groups, ["trade_group_id"])

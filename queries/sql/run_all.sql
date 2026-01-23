@@ -14,3 +14,7 @@
 -- Trade planner MVP (TPE-only)
 \ir 040_trade_planner_tpe_assertions.sql
 \ir 041_trade_planner_tpe_multi_absorb_assertions.sql
+
+-- Draft assets (picks + rights)
+\ir 051_draft_picks_warehouses_assertions.sql
+\ir 052_player_rights_warehouse_assertions.sql

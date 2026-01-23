@@ -182,19 +182,29 @@ We likely want **two different shapes** because “Sean-style pick grids” mix:
 
 ### 3.2 Implemented (2026-01-23): `pcms.draft_pick_slots_warehouse` (slot/provenance-derived)
 
-**Status:** implemented via `migrations/038_draft_picks_warehouses.sql`.
+**Status:** implemented via `migrations/038_draft_picks_warehouses.sql` + improved via `migrations/039_draft_pick_slots_warehouse_outcomes.sql`.
 
-**Purpose:** "who owns which original pick slot" queries with provenance.
+**Purpose:** "who owns which original pick slot" queries with provenance, while preserving ambiguity.
 
 **Grain:** `(draft_year, draft_round, original_team_id)`
 
 **Inputs:**
 - `pcms.draft_pick_trades`
 
-**Behavior:**
-- Latest movement row (by `trade_date desc, trade_id desc, id desc`) determines current holder.
-- Carries `last_trade_id/last_trade_date` + from/to team codes.
-- `needs_review=true` if `is_swap` or `is_conditional`.
+**Behavior (post-039):**
+- Stores *all* trade-derived candidate outcomes per slot in:
+  - `ownership_outcomes_json jsonb` (ordered newest-first)
+  - `outcomes_count`
+  - `distinct_to_teams_count`
+- Computes a scalar `current_team_*` via heuristic:
+  1) prefer `is_conditional=false`
+  2) then newest by `trade_date desc, trade_id desc, id desc`
+- `needs_review=true` if:
+  - any outcome is swap/conditional, **or**
+  - multiple outcomes exist, **or**
+  - outcomes disagree on destination team
+
+**Why:** the raw pick movement table contains conditional/swap branches that cannot be flattened to a single deterministic owner without endnote/outcome resolution.
 
 **Refresh:**
 - `SELECT pcms.refresh_draft_pick_slots_warehouse();`

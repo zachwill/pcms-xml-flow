@@ -15,6 +15,17 @@ BEGIN
     RAISE EXCEPTION 'missing relation: pcms.draft_pick_slots_warehouse';
   END IF;
 
+  -- Ensure new outcomes JSON exists (added in 039)
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema='pcms'
+      AND table_name='draft_pick_slots_warehouse'
+      AND column_name='ownership_outcomes_json'
+  ) THEN
+    RAISE EXCEPTION 'pcms.draft_pick_slots_warehouse missing ownership_outcomes_json (run migration 039)';
+  END IF;
+
   -- Non-empty
   SELECT COUNT(*) INTO c FROM pcms.draft_picks_warehouse;
   IF c = 0 THEN

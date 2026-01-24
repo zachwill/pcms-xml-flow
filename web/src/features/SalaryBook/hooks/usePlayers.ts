@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import useSWR from "swr";
 import type { SalaryBookPlayer, ContractOption } from "../data";
 
 /**
@@ -20,6 +20,12 @@ interface PlayerApiResponse {
   cap_2028: number | null;
   cap_2029: number | null;
   cap_2030: number | null;
+  pct_cap_2025: number | null;
+  pct_cap_2026: number | null;
+  pct_cap_2027: number | null;
+  pct_cap_2028: number | null;
+  pct_cap_2029: number | null;
+  pct_cap_2030: number | null;
   option_2025: string | null;
   option_2026: string | null;
   option_2027: string | null;
@@ -31,6 +37,13 @@ interface PlayerApiResponse {
   agency_id: string | null;
   agency_name: string | null;
   is_two_way: boolean;
+
+  // Trade restriction flags (from salary_book_warehouse)
+  is_no_trade: boolean;
+  is_trade_bonus: boolean;
+  is_trade_consent_required_now: boolean;
+  is_trade_preconsented: boolean;
+  player_consent_lk: string | null;
 }
 
 /**
@@ -87,6 +100,12 @@ function mapApiToPlayer(data: PlayerApiResponse): SalaryBookPlayer {
     cap_2028: data.cap_2028,
     cap_2029: data.cap_2029,
     cap_2030: data.cap_2030,
+    pct_cap_2025: data.pct_cap_2025,
+    pct_cap_2026: data.pct_cap_2026,
+    pct_cap_2027: data.pct_cap_2027,
+    pct_cap_2028: data.pct_cap_2028,
+    pct_cap_2029: data.pct_cap_2029,
+    pct_cap_2030: data.pct_cap_2030,
     option_2025: normalizeOption(data.option_2025),
     option_2026: normalizeOption(data.option_2026),
     option_2027: normalizeOption(data.option_2027),
@@ -105,6 +124,12 @@ function mapApiToPlayer(data: PlayerApiResponse): SalaryBookPlayer {
     agency_id: data.agency_id,
     agency_name: data.agency_name,
     is_two_way: data.is_two_way,
+    is_no_trade: data.is_no_trade,
+    is_trade_bonus: data.is_trade_bonus,
+    is_trade_consent_required_now: data.is_trade_consent_required_now,
+    is_trade_preconsented: data.is_trade_preconsented,
+    player_consent_lk: data.player_consent_lk,
+
     // Fields not returned by current API — set to null
     bird_rights: null,
     free_agency_type: null,
@@ -115,12 +140,27 @@ function mapApiToPlayer(data: PlayerApiResponse): SalaryBookPlayer {
 }
 
 /**
+ * SWR fetcher for players API
+ */
+async function fetcher(url: string): Promise<SalaryBookPlayer[]> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch players: ${response.status}`);
+  }
+  const data: PlayerApiResponse[] = await response.json();
+  return data.map(mapApiToPlayer);
+}
+
+/**
  * Hook to fetch players for a specific team
  *
- * Fetches from /api/salary-book/players?team=:teamCode and provides:
- * - Players sorted by salary (highest first)
- * - Loading and error states
- * - Refetch function
+ * Uses SWR for automatic caching, deduplication, and revalidation.
+ * When switching teams, cached data is shown immediately while revalidating.
+ *
+ * Key benefits over manual useState/useEffect:
+ * - Global cache: Agent view can reuse player data without re-fetching
+ * - Deduplication: Multiple TeamSections mounting won't cause duplicate requests
+ * - Stale-while-revalidate: Shows cached data instantly, updates in background
  *
  * @param teamCode - 3-letter team code (e.g., "BOS", "LAL"). Pass null to skip fetch.
  *
@@ -137,50 +177,24 @@ function mapApiToPlayer(data: PlayerApiResponse): SalaryBookPlayer {
  * ```
  */
 export function usePlayers(teamCode: string | null): UsePlayersReturn {
-  const [players, setPlayers] = useState<SalaryBookPlayer[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchPlayers = useCallback(async () => {
-    if (!teamCode) {
-      setPlayers([]);
-      setIsLoading(false);
-      setError(null);
-      return;
+  const { data, error, isLoading, mutate } = useSWR<SalaryBookPlayer[], Error>(
+    teamCode ? `/api/salary-book/players?team=${encodeURIComponent(teamCode)}` : null,
+    fetcher,
+    {
+      // Keep data fresh but don't refetch too aggressively
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000, // Dedupe requests within 5 seconds
+      keepPreviousData: true, // Show previous team's data while loading new team
     }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(
-        `/api/salary-book/players?team=${encodeURIComponent(teamCode)}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch players: ${response.status}`);
-      }
-
-      const data: PlayerApiResponse[] = await response.json();
-      const mapped = data.map(mapApiToPlayer);
-
-      setPlayers(mapped);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
-      setPlayers([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [teamCode]);
-
-  useEffect(() => {
-    fetchPlayers();
-  }, [fetchPlayers]);
+  );
 
   return {
-    players,
-    isLoading,
-    error,
-    refetch: fetchPlayers,
+    players: data ?? [],
+    isLoading: isLoading && !data, // Only show loading if we have no cached data
+    error: error ?? null,
+    refetch: async () => {
+      await mutate();
+    },
   };
 }

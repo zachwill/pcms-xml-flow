@@ -1,12 +1,13 @@
 /**
- * SidebarPanel — Main sidebar container with stack-based navigation
+ * SidebarPanel — Main sidebar container with intentionally-shallow navigation
  *
- * Handles the sidebar state machine:
+ * Modes:
  * - DEFAULT MODE: Shows team context from scroll-spy active team
- * - ENTITY MODE: Shows pushed detail view (player/agent/pick/team)
+ * - ENTITY MODE: Shows a single detail view (player/agent/pick/team)
  *
- * Key behavior: Back button returns to CURRENT viewport team, not origin.
- * The sidebar stack only tracks entity views, not team context.
+ * Key behavior:
+ * - Clicking around swaps the detail view; it does NOT build up a deep "back" history.
+ * - Back returns to the team context in a single step (except when a team is pinned).
  */
 
 import { cx, focusRing } from "@/lib/utils";

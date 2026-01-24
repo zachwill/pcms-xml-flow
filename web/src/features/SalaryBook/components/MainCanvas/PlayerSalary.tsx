@@ -15,8 +15,8 @@ export interface PlayerSalaryProps {
   amount: number | null;
   /** Render a two-way badge instead of a number */
   showTwoWayBadge?: boolean;
-  /** Width of the salary slot (in ch units) */
-  slotWidthCh?: number;
+  /** Width of the numeric slot (default 6ch, use 7ch for totals) */
+  slotWidth?: string;
   className?: string;
 }
 
@@ -50,7 +50,7 @@ function formatSalary(amount: number | null): string {
 export function PlayerSalary({
   amount,
   showTwoWayBadge = false,
-  slotWidthCh = 7,
+  slotWidth = "6ch",
   className,
 }: PlayerSalaryProps) {
   if (showTwoWayBadge) {
@@ -62,14 +62,18 @@ export function PlayerSalary({
   }
 
   const label = formatSalary(amount);
+  const isEmpty = amount === null;
 
   return (
     // Outer wrapper: takes full cell width so the *slot* can be centered reliably.
     <span className={cx("grid place-items-center w-full", className)}>
-      {/* Inner slot: fixed width + right aligned for numeric alignment */}
+      {/* Inner slot: configurable width + right aligned for numeric alignment */}
       <span
-        className={cx("inline-block", "text-right", "font-mono tabular-nums")}
-        style={{ width: `${slotWidthCh}ch` }}
+        className={cx(
+          "inline-block font-mono tabular-nums",
+          isEmpty ? "text-center text-gray-400/50" : "text-right"
+        )}
+        style={{ width: slotWidth }}
       >
         {label}
       </span>

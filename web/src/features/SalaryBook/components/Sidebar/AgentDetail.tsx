@@ -115,7 +115,7 @@ function ClientRow({
     client.cap_2028,
     client.cap_2029,
     client.cap_2030,
-  ].reduce<number>((sum, val) => sum + (val ?? 0), 0);
+  ].reduce<number>((sum, val) => sum + Number(val ?? 0), 0);
 
   return (
     <button
@@ -143,7 +143,7 @@ function ClientRow({
 
       {/* Salary info */}
       <div className="flex-shrink-0 text-right">
-        {currentSalary ? (
+        {currentSalary !== null && currentSalary > 0 ? (
           <>
             <div className="font-mono tabular-nums text-sm font-medium">
               {formatters.compactCurrency(currentSalary)}
@@ -203,13 +203,16 @@ function ClientRoster({
 
   // Sort clients by salary (highest first)
   const sortedClients = [...clients].sort((a, b) => {
-    const aSalary = a.cap_2025 ?? 0;
-    const bSalary = b.cap_2025 ?? 0;
+    const aSalary = Number(a.cap_2025 ?? 0);
+    const bSalary = Number(b.cap_2025 ?? 0);
     return bSalary - aSalary;
   });
 
   // Calculate total book value
-  const totalBook = clients.reduce<number>((sum, c) => sum + (c.cap_2025 ?? 0), 0);
+  const totalBook = clients.reduce<number>(
+    (sum, c) => sum + Number(c.cap_2025 ?? 0),
+    0
+  );
 
   return (
     <div className="space-y-3">

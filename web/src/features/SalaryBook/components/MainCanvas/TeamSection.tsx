@@ -8,7 +8,7 @@
  * - Delegates horizontal scroll + filtering to SalaryTable
  */
 
-import React from "react";
+import React, { useCallback } from "react";
 import { cx } from "@/lib/utils";
 import { useSalaryBookContext } from "../../SalaryBook";
 import { usePlayers, useTeamSalary, usePicks, useTeams } from "../../hooks";
@@ -112,10 +112,10 @@ export function TeamSection({ teamCode }: TeamSectionProps) {
   const isLoading = playersLoading || salaryLoading || picksLoading;
 
   // ========================================================================
-  // Sidebar navigation handlers
+  // Sidebar navigation handlers (memoized to prevent PlayerRow re-renders)
   // ========================================================================
 
-  const handlePlayerClick = (player: SalaryBookPlayer) => {
+  const handlePlayerClick = useCallback((player: SalaryBookPlayer) => {
     const entity: PlayerEntity = {
       type: "player",
       playerId: parseInt(player.id, 10) || 0,
@@ -123,9 +123,9 @@ export function TeamSection({ teamCode }: TeamSectionProps) {
       teamCode: player.team_code,
     };
     pushEntity(entity);
-  };
+  }, [pushEntity]);
 
-  const handleAgentClick = (e: React.MouseEvent, player: SalaryBookPlayer) => {
+  const handleAgentClick = useCallback((e: React.MouseEvent, player: SalaryBookPlayer) => {
     e.stopPropagation();
     if (!player.agent_id || !player.agent_name) return;
 
@@ -135,9 +135,9 @@ export function TeamSection({ teamCode }: TeamSectionProps) {
       agentName: player.agent_name,
     };
     pushEntity(entity);
-  };
+  }, [pushEntity]);
 
-  const handlePickClick = (pick: DraftPick) => {
+  const handlePickClick = useCallback((pick: DraftPick) => {
     const entity: PickEntity = {
       type: "pick",
       teamCode: pick.team_code,
@@ -146,7 +146,7 @@ export function TeamSection({ teamCode }: TeamSectionProps) {
       rawFragment: `${pick.origin_team_code} Round ${pick.round}`,
     };
     pushEntity(entity);
-  };
+  }, [pushEntity]);
 
   // ========================================================================
   // Loading / Error

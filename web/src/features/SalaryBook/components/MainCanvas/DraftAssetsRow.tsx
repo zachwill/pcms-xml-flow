@@ -6,7 +6,7 @@
  *
  * Layout must align with the player rows/table header:
  * - Sticky left block = headshot spacer (w-10) + label column (w-40)
- * - 5 year columns (w-24 each)
+ * - 6 year columns (w-24 each)
  * - total spacer column (w-24)
  * - management spacer (w-40)
  */

@@ -22,7 +22,7 @@ import type { TeamSalary } from "../../data";
 // ============================================================================
 
 export interface TotalsFooterProps {
-  /** Team salary data by year (2025-2029) */
+  /** Team salary data by year (2025-2030) */
   salaryByYear: Map<number, TeamSalary>;
   /** Show tax line + apron lines */
   showTaxAprons?: boolean;
@@ -32,7 +32,7 @@ export interface TotalsFooterProps {
   showLuxuryTax?: boolean;
 }
 
-// Contract years to display (5-year horizon)
+// Contract years to display (6-year horizon; aligns with salary_book_warehouse cap_2025..cap_2030)
 const SALARY_YEARS = [2025, 2026, 2027, 2028, 2029] as const;
 
 // ============================================================================

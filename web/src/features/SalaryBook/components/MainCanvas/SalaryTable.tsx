@@ -13,7 +13,7 @@
  * - Header/body horizontal scroll positions are synced
  */
 
-import React, { useRef, useState, useCallback, useEffect } from "react";
+import React, { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { cx } from "@/lib/utils";
 import type { SalaryBookPlayer, DraftPick, TeamSalary } from "../../data";
 import type { FilterState } from "../../hooks";
@@ -33,7 +33,7 @@ export interface SalaryTableProps {
   players: SalaryBookPlayer[];
   /** Draft picks for the team */
   picks: DraftPick[];
-  /** Team salary data by year (2025-2029) */
+  /** Team salary data by year (2025-2030) */
   salaryByYear: Map<number, TeamSalary>;
   /** Active filter state */
   filters: FilterState;
@@ -45,14 +45,14 @@ export interface SalaryTableProps {
   onPickClick: (pick: DraftPick) => void;
 }
 
-// Contract years to display (5-year horizon)
+// Contract years to display (6-year horizon; aligns with salary_book_warehouse cap_2025..cap_2030)
 const SALARY_YEARS = [2025, 2026, 2027, 2028, 2029] as const;
 
 // Sticky left block width: w-52 = 13rem = 208px
 const STICKY_LEFT_WIDTH_PX = 208;
 
-// w-52 (208) + 5 years (5*96=480) + total (96) + agent (160) = 944
-const MIN_TABLE_WIDTH = "944px";
+// w-52 (208) + 6 years (6*96=576) + total (96) + agent (160) = 1040
+const MIN_TABLE_WIDTH = "1040px";
 
 // ============================================================================
 // Helpers
@@ -171,10 +171,13 @@ export function SalaryTable({
     };
   }, [syncScroll]);
 
-  const filteredPlayers = players.filter((player) => {
-    if (!filters.contracts.twoWay && isTwoWayContract(player)) return false;
-    return true;
-  });
+  // Memoize filtered players to avoid re-filtering on every render
+  const filteredPlayers = useMemo(() => {
+    return players.filter((player) => {
+      if (!filters.contracts.twoWay && isTwoWayContract(player)) return false;
+      return true;
+    });
+  }, [players, filters.contracts.twoWay]);
 
   const showDraftPicks = filters.display.draftPicks;
   const showCapHolds = filters.display.capHolds;

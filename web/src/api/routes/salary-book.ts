@@ -81,6 +81,12 @@ salaryBookRouter.get("/players", async (req) => {
       s.cap_2028::numeric,
       s.cap_2029::numeric,
       s.cap_2030::numeric,
+      s.pct_cap_2025::numeric,
+      s.pct_cap_2026::numeric,
+      s.pct_cap_2027::numeric,
+      s.pct_cap_2028::numeric,
+      s.pct_cap_2029::numeric,
+      s.pct_cap_2030::numeric,
       s.option_2025,
       s.option_2026,
       s.option_2027,
@@ -91,11 +97,11 @@ salaryBookRouter.get("/players", async (req) => {
       s.agent_name,
       a.agency_id,
       a.agency_name,
-      s.is_two_way::boolean,
-      s.is_no_trade::boolean,
-      s.is_trade_bonus::boolean,
-      s.is_trade_consent_required_now::boolean,
-      s.is_trade_preconsented::boolean,
+      COALESCE(s.is_two_way, false)::boolean as is_two_way,
+      COALESCE(s.is_no_trade, false)::boolean as is_no_trade,
+      COALESCE(s.is_trade_bonus, false)::boolean as is_trade_bonus,
+      COALESCE(s.is_trade_consent_required_now, false)::boolean as is_trade_consent_required_now,
+      COALESCE(s.is_trade_preconsented, false)::boolean as is_trade_preconsented,
       s.player_consent_lk
     FROM pcms.salary_book_warehouse s
     LEFT JOIN pcms.people p ON s.player_id = p.person_id
@@ -303,11 +309,11 @@ salaryBookRouter.get("/player/:playerId", async (req) => {
       s.agent_name,
       a.agency_id,
       a.agency_name,
-      s.is_two_way::boolean,
-      s.is_no_trade::boolean,
-      s.is_trade_bonus::boolean,
-      s.is_trade_consent_required_now::boolean,
-      s.is_trade_preconsented::boolean,
+      COALESCE(s.is_two_way, false)::boolean as is_two_way,
+      COALESCE(s.is_no_trade, false)::boolean as is_no_trade,
+      COALESCE(s.is_trade_bonus, false)::boolean as is_trade_bonus,
+      COALESCE(s.is_trade_consent_required_now, false)::boolean as is_trade_consent_required_now,
+      COALESCE(s.is_trade_preconsented, false)::boolean as is_trade_preconsented,
       s.player_consent_lk
     FROM pcms.salary_book_warehouse s
     LEFT JOIN pcms.people p ON s.player_id = p.person_id

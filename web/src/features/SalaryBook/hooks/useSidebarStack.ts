@@ -1,22 +1,30 @@
 import { useCallback, useMemo, useState } from "react";
 
 /**
- * useSidebarStack — Manages entity navigation stack for the sidebar
+ * useSidebarStack — Manages sidebar entity navigation (intentionally shallow)
  *
- * The sidebar has two modes:
- * 1. Default Mode: Shows context for the current team from scroll-spy
- * 2. Entity Mode: Shows detail view for a pushed entity (player/agent/pick/team)
+ * Problem this solves:
+ * - The sidebar should NOT behave like a browser history where every click
+ *   adds another "Back" step.
  *
- * Key behavior: Back returns to CURRENT viewport team, not where you started.
- * This means the stack only tracks entity views, not team context.
+ * Intended UX:
+ * - Default Mode: show TeamContext (driven by scroll-spy)
+ * - Entity Mode: show ONE detail entity (player/agent/pick/team)
+ * - Clicking another entity swaps the detail view (doesn't push deeper)
+ * - Back returns to the team context in a single step
  *
- * State Machine:
- * - DEFAULT MODE (empty stack) → shows scroll-spy active team
- * - ENTITY MODE (stack has items) → shows top of stack
- * - Back → pops stack, returns to previous entity or default mode
+ * Optional exception:
+ * - If a user pins a Team entity (team detail), we allow ONE additional
+ *   detail entity on top of that pinned team, so Back returns to the pinned
+ *   team (and another Back returns to scroll-spy context).
+ *
+ * This means the internal "stack" is capped to:
+ * - []
+ * - [entity]
+ * - [teamEntity, entity]
  */
 
-/** Entity types that can be pushed onto the sidebar stack */
+/** Entity types that can be pushed onto the sidebar */
 export type EntityType = "player" | "agent" | "pick" | "team";
 
 /** Base entity structure */
@@ -50,7 +58,7 @@ export interface PickEntity extends BaseEntity {
 
 /**
  * Team entity pushed when clicking team name in header
- * Unlike default mode, this is "pinned" and won't change on scroll
+ * Unlike default mode, this is "pinned" and won't change on scroll.
  */
 export interface TeamEntity extends BaseEntity {
   type: "team";
@@ -68,19 +76,19 @@ interface SidebarStackResult {
   /** Current sidebar mode: default (team context) or entity (detail view) */
   mode: SidebarMode;
 
-  /** Current entity at top of stack (null in default mode) */
+  /** Current entity being displayed (null in default mode) */
   currentEntity: SidebarEntity | null;
 
-  /** Full entity stack (for breadcrumb UI if needed) */
+  /** Internal stack (capped at 2; useful for future breadcrumbs/debugging) */
   stack: SidebarEntity[];
 
   /** Stack depth (0 = default mode) */
   depth: number;
 
-  /** Push an entity onto the stack */
+  /** Open an entity in the sidebar (shallow; typically replaces current) */
   push: (entity: SidebarEntity) => void;
 
-  /** Pop the top entity from stack (go back) */
+  /** Back (pops to pinned team, or to default mode) */
   pop: () => void;
 
   /** Clear entire stack (return to default mode) */
@@ -89,72 +97,72 @@ interface SidebarStackResult {
   /** Check if we can go back */
   canGoBack: boolean;
 
-  /** Replace the current entity (for navigation within same level) */
+  /** Replace current entity (alias of push for now; preserves pinned team base) */
   replace: (entity: SidebarEntity) => void;
 }
 
-/**
- * Hook to manage sidebar entity navigation stack
- *
- * @example
- * ```tsx
- * const { mode, currentEntity, push, pop, canGoBack } = useSidebarStack();
- *
- * // Push player when row clicked
- * const handlePlayerClick = (player: PlayerEntity) => {
- *   push({ type: 'player', ...player });
- * };
- *
- * // Pop when back clicked (returns to current viewport team)
- * const handleBack = () => pop();
- * ```
- */
+function isTeamEntity(entity: SidebarEntity | undefined): entity is TeamEntity {
+  return entity?.type === "team";
+}
+
 export function useSidebarStack(): SidebarStackResult {
   const [stack, setStack] = useState<SidebarEntity[]>([]);
 
   /**
-   * Push an entity onto the stack
-   * Opens the entity detail view in the sidebar
+   * Push (shallow navigation)
+   *
+   * Rules:
+   * - Clicking a team pins that team: [team]
+   * - If a team is pinned as the base, clicking a non-team entity shows it on top: [team, entity]
+   * - Otherwise, clicking any entity replaces what you're looking at: [entity]
    */
   const push = useCallback((entity: SidebarEntity) => {
-    setStack((prev) => [...prev, entity]);
-  }, []);
-
-  /**
-   * Pop the top entity from the stack
-   * Returns to previous entity, or default mode if stack becomes empty
-   *
-   * IMPORTANT: This returns to the CURRENT viewport team (via scroll-spy),
-   * not the team you were viewing when you first pushed an entity.
-   */
-  const pop = useCallback(() => {
     setStack((prev) => {
-      if (prev.length === 0) return prev;
-      return prev.slice(0, -1);
+      // Pinning a team always resets to that team
+      if (entity.type === "team") return [entity];
+
+      // If there's a pinned team base, keep it and swap/insert the detail entity
+      const base = prev[0];
+      if (isTeamEntity(base)) return [base, entity];
+
+      // Otherwise: single-step detail navigation
+      return [entity];
     });
   }, []);
 
   /**
-   * Clear entire stack
-   * Returns immediately to default mode (current viewport team)
+   * Pop (Back)
+   * - [team, entity] -> [team]
+   * - [entity] -> []
    */
+  const pop = useCallback(() => {
+    setStack((prev) => {
+      if (prev.length === 0) return prev;
+      if (prev.length === 1) return [];
+      // length 2 (capped) => return base
+      return prev.slice(0, 1);
+    });
+  }, []);
+
+  /** Clear to default mode */
   const clear = useCallback(() => {
     setStack([]);
   }, []);
 
   /**
-   * Replace the current entity at top of stack
-   * Useful for navigating between entities at the same level
-   * (e.g., switching from one player to another without adding to stack)
+   * Replace current entity.
+   *
+   * Today this behaves like `push`, but we keep the method for API stability
+   * and to make intent explicit for callers.
    */
   const replace = useCallback((entity: SidebarEntity) => {
     setStack((prev) => {
-      if (prev.length === 0) {
-        // If empty, just push
-        return [entity];
-      }
-      // Replace top of stack
-      return [...prev.slice(0, -1), entity];
+      if (entity.type === "team") return [entity];
+
+      const base = prev[0];
+      if (isTeamEntity(base)) return [base, entity];
+
+      return [entity];
     });
   }, []);
 
@@ -164,8 +172,7 @@ export function useSidebarStack(): SidebarStackResult {
   const canGoBack = stack.length > 0;
   const depth = stack.length;
 
-  // Memoize the result to prevent unnecessary re-renders
-  const result = useMemo<SidebarStackResult>(
+  return useMemo<SidebarStackResult>(
     () => ({
       mode,
       currentEntity,
@@ -179,6 +186,4 @@ export function useSidebarStack(): SidebarStackResult {
     }),
     [mode, currentEntity, stack, depth, push, pop, clear, canGoBack, replace]
   );
-
-  return result;
 }

@@ -21,12 +21,12 @@ import { cx } from "@/lib/utils";
 // ============================================================================
 
 export interface TableHeaderProps {
-  /** Years to display as columns (default: 2025-2029) */
+  /** Years to display as columns (default: 2025-2030) */
   years?: readonly number[];
 }
 
 // Default contract years to display
-const DEFAULT_YEARS = [2025, 2026, 2027, 2028, 2029] as const;
+const DEFAULT_YEARS = [2025, 2026, 2027, 2028, 2029, 2030] as const;
 
 // ============================================================================
 // Component

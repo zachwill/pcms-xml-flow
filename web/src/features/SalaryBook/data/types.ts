@@ -59,6 +59,14 @@ export interface SalaryBookPlayer {
   cap_2029: number | null;
   cap_2030: number | null;
 
+  // Percent of cap per year (pct_cap_2025..pct_cap_2030)
+  pct_cap_2025: number | null;
+  pct_cap_2026: number | null;
+  pct_cap_2027: number | null;
+  pct_cap_2028: number | null;
+  pct_cap_2029: number | null;
+  pct_cap_2030: number | null;
+
   // Option flags per year (option_2025..option_2030)
   option_2025: ContractOption;
   option_2026: ContractOption;
@@ -83,6 +91,19 @@ export interface SalaryBookPlayer {
 
   // Contract metadata
   is_two_way: boolean;
+  is_no_trade: boolean;
+  is_trade_bonus: boolean;
+
+  /**
+   * Player trade-consent restriction (derived from contract version_json).
+   * If true, show the red "Consent" badge under the current season.
+   */
+  is_trade_consent_required_now: boolean;
+  /** Player has pre-consented to a trade (YRKPC code) */
+  is_trade_preconsented: boolean;
+  /** Raw consent lookup code (YEARK/YRKPC/ROFRE/...) */
+  player_consent_lk: string | null;
+
   bird_rights: BirdRights;
   free_agency_type: FreeAgencyType;
   free_agency_year: number | null;

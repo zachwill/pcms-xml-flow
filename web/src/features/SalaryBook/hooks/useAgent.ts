@@ -9,12 +9,15 @@ interface AgentClient {
   player_name: string;
   team_code: string;
   position: string | null;
-  cap_2025: number | null;
-  cap_2026: number | null;
-  cap_2027: number | null;
-  cap_2028: number | null;
-  cap_2029: number | null;
-  cap_2030: number | null;
+
+  // Bun SQL can return Postgres `numeric` values as strings.
+  // Keep this loose and coerce in `mapApiToAgentDetail`.
+  cap_2025: string | number | null;
+  cap_2026: string | number | null;
+  cap_2027: string | number | null;
+  cap_2028: string | number | null;
+  cap_2029: string | number | null;
+  cap_2030: string | number | null;
 }
 
 /**
@@ -71,6 +74,12 @@ export interface UseAgentReturn {
  * Maps API response to AgentDetail type
  */
 function mapApiToAgentDetail(data: AgentApiResponse): AgentDetail {
+  const asNumberOrNull = (value: unknown): number | null => {
+    if (value === null || value === undefined) return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  };
+
   return {
     id: data.id,
     name: data.name,
@@ -83,12 +92,12 @@ function mapApiToAgentDetail(data: AgentApiResponse): AgentDetail {
       player_name: client.player_name,
       team_code: client.team_code,
       position: client.position,
-      cap_2025: client.cap_2025,
-      cap_2026: client.cap_2026,
-      cap_2027: client.cap_2027,
-      cap_2028: client.cap_2028,
-      cap_2029: client.cap_2029,
-      cap_2030: client.cap_2030,
+      cap_2025: asNumberOrNull(client.cap_2025),
+      cap_2026: asNumberOrNull(client.cap_2026),
+      cap_2027: asNumberOrNull(client.cap_2027),
+      cap_2028: asNumberOrNull(client.cap_2028),
+      cap_2029: asNumberOrNull(client.cap_2029),
+      cap_2030: asNumberOrNull(client.cap_2030),
     })),
   };
 }

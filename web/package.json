@@ -1,5 +1,5 @@
 {
-  "name": "bun-template",
+  "name": "pcms-salary-book",
   "private": true,
   "scripts": {
     "dev": "bun --hot src/server.ts",

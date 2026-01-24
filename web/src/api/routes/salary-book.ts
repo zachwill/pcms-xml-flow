@@ -8,12 +8,23 @@ import { RouteRegistry } from "@/lib/server/router";
  */
 export const salaryBookRouter = new RouteRegistry();
 
-// Initialize SQL connection (uses POSTGRES_URL from environment)
-const sql = new SQL(process.env.POSTGRES_URL!);
+// Lazily initialize SQL connection (requires POSTGRES_URL)
+let sql: SQL | null = null;
+function getSql() {
+  const url = process.env.POSTGRES_URL;
+  if (!url) {
+    throw new Error("POSTGRES_URL is not set");
+  }
+  if (!sql) {
+    sql = new SQL(url);
+  }
+  return sql;
+}
 
 // GET /api/salary-book/teams
 // Fetch all NBA teams from pcms.teams
 salaryBookRouter.get("/teams", async () => {
+  const sql = getSql();
   const teams = await sql`
     SELECT
       team_code,
@@ -48,6 +59,8 @@ salaryBookRouter.get("/players", async (req) => {
   if (!teamCode) {
     return Response.json({ error: "team parameter required" }, { status: 400 });
   }
+
+  const sql = getSql();
 
   const players = await sql`
     SELECT
@@ -108,6 +121,8 @@ salaryBookRouter.get("/team-salary", async (req) => {
   if (!teamCode) {
     return Response.json({ error: "team parameter required" }, { status: 400 });
   }
+
+  const sql = getSql();
 
   const salaries = await sql`
     SELECT
@@ -185,6 +200,8 @@ salaryBookRouter.get("/picks", async (req) => {
     return Response.json({ error: "team parameter required" }, { status: 400 });
   }
 
+  const sql = getSql();
+
   const picks = await sql`
     SELECT
       team_code,
@@ -206,6 +223,7 @@ salaryBookRouter.get("/picks", async (req) => {
 // Fetch agent info + their clients from salary_book_warehouse
 salaryBookRouter.get("/agent/:agentId", async (req) => {
   const agentId = req.params.agentId;
+  const sql = getSql();
 
   // Fetch agent info
   const agents = await sql`
@@ -257,6 +275,7 @@ salaryBookRouter.get("/agent/:agentId", async (req) => {
 // Fetch a single player's full details
 salaryBookRouter.get("/player/:playerId", async (req) => {
   const playerId = req.params.playerId;
+  const sql = getSql();
 
   const players = await sql`
     SELECT
@@ -328,6 +347,8 @@ salaryBookRouter.get("/pick", async (req) => {
       { status: 400 }
     );
   }
+
+  const sql = getSql();
 
   // Fetch the pick details
   const picks = await sql`

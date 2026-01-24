@@ -1,49 +1,38 @@
-# Bun Template
+# PCMS Salary Book (web)
 
-**Bun + React + TypeScript** starter template.
+This directory contains the **Salary Book** web app for this repo.
 
-## Features
+- Runtime: **Bun**
+- UI: **React + TypeScript**
+- API: Bun `routes` under `/api/*`
+- Data: reads from Postgres `pcms.*` tables (typically `*_warehouse` views/tables)
 
-- Bun server with hot reloading
-- React 19 with TypeScript
-- Radix UI primitives
-- Tailwind CSS via CDN
-- SWR for data fetching
-- Simple router pattern
-- Light/dark mode support
+## Prereqs
 
-## Development
+- Bun installed
+- A Postgres database with the `pcms` schema populated (run the Python import flow in the repo root)
+- `POSTGRES_URL` set when using Salary Book endpoints
+
+## Dev
 
 ```bash
+cd web
 bun install
-bun dev        # http://localhost:3001
+
+# Start dev server (hot reload)
+POSTGRES_URL="$POSTGRES_URL" bun run dev
+
+# Optional: choose a port
+PORT=3001 POSTGRES_URL="$POSTGRES_URL" bun run dev
+```
+
+Default port is **3002** if `PORT` is not set.
+
+## Tests
+
+```bash
+cd web
 bun test
 ```
 
-## Structure
-
-```
-src/
-  server.ts       # Bun server entry
-  client.tsx      # React app entry
-  index.html      # HTML shell
-  api/
-    routes/       # API route handlers
-  components/
-    ui/           # Shared UI components
-  features/       # Feature modules
-  lib/
-    server/       # Server utilities (router)
-    utils.ts      # Client utilities
-tests/
-  api.test.ts     # API tests
-```
-
-## Scripts
-
-| Script | Description |
-|--------|-------------|
-| `bun dev` | Start dev server with hot reload |
-| `bun start` | Start production server |
-| `bun test` | Run all tests |
-| `bun typecheck` | TypeScript type checking |
+Tests spin up a server on an ephemeral port and hit `/api/health`.

@@ -1,29 +1,47 @@
 import homepage from "./index.html";
-import { router } from "./lib/server/router";
-import { exampleRouter } from "./api/routes/example";
+import { RouteRegistry } from "./lib/server/router";
+import { healthRouter } from "./api/routes/health";
 import { salaryBookRouter } from "./api/routes/salary-book";
 
-// Merge all routers
-router.merge(exampleRouter, "/api/example");
-router.merge(salaryBookRouter, "/api/salary-book");
+function parsePort(value: string | undefined, fallback: number) {
+  if (value == null) return fallback;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
 
-// Add static/SPA routes
-router.register("/favicon.ico", new Response(null, { status: 204 }));
-router.register("/*", homepage);
+export function createServer(opts: { port?: number } = {}) {
+  const appRouter = new RouteRegistry();
 
-const server = Bun.serve({
-  port: process.env.PORT || 3002,
-  hostname: "0.0.0.0",
+  // API routes
+  appRouter.merge(healthRouter, "/api/health");
+  appRouter.merge(salaryBookRouter, "/api/salary-book");
 
-  routes: router.compile(),
+  // Static/SPA routes
+  appRouter.register("/favicon.ico", new Response(null, { status: 204 }));
+  appRouter.register("/*", homepage);
 
-  error(error) {
-    console.error("Fatal Server Error:", error);
-    return Response.json({
-      error: "Internal Server Error",
-      message: error instanceof Error ? error.message : String(error)
-    }, { status: 500 });
-  },
-});
+  const port = opts.port ?? parsePort(process.env.PORT, 3002);
 
-console.log(`Server running at http://localhost:${server.port}`);
+  return Bun.serve({
+    port,
+    hostname: "0.0.0.0",
+
+    routes: appRouter.compile(),
+
+    error(error) {
+      console.error("Fatal Server Error:", error);
+      return Response.json(
+        {
+          error: "Internal Server Error",
+          message: error instanceof Error ? error.message : String(error),
+        },
+        { status: 500 }
+      );
+    },
+  });
+}
+
+if (import.meta.main) {
+  const server = createServer();
+  console.log(`Server running at http://localhost:${server.port}`);
+}

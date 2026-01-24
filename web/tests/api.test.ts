@@ -1,43 +1,26 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect, beforeAll, afterAll } from "bun:test";
+import { createServer } from "../src/server";
 
-const BASE_URL = "http://localhost:3001";
+let server: ReturnType<typeof createServer>;
+let baseUrl: string;
 
-describe("API Routes", () => {
-  describe("GET /api/example", () => {
-    test("returns hello message", async () => {
-      const response = await fetch(`${BASE_URL}/api/example`);
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data.message).toBe("Hello from the API!");
-      expect(data.timestamp).toBeDefined();
-    });
-  });
+beforeAll(() => {
+  // Use an ephemeral port so tests don't collide with a running dev server.
+  server = createServer({ port: 0 });
+  baseUrl = `http://localhost:${server.port}`;
+});
 
-  describe("GET /api/example/:id", () => {
-    test("returns item by id", async () => {
-      const response = await fetch(`${BASE_URL}/api/example/123`);
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data.id).toBe("123");
-      expect(data.message).toBe("You requested item 123");
-    });
-  });
+afterAll(() => {
+  server.stop(true);
+});
 
-  describe("POST /api/example", () => {
-    test("accepts and echoes data", async () => {
-      const payload = { name: "test", value: 42 };
-      const response = await fetch(`${BASE_URL}/api/example`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data.received).toEqual(payload);
-      expect(data.message).toBe("Data received successfully");
-    });
+describe("API", () => {
+  test("GET /api/health returns ok", async () => {
+    const response = await fetch(`${baseUrl}/api/health`);
+    expect(response.status).toBe(200);
+
+    const data = await response.json();
+    expect(data.ok).toBe(true);
+    expect(data.timestamp).toBeDefined();
   });
 });

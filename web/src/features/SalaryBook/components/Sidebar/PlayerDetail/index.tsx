@@ -123,6 +123,7 @@ export function PlayerDetail({ entity, className }: PlayerDetailProps) {
         tradeBonusPercent={player.trade_bonus_percent}
         isConsentRequired={player.is_trade_consent_required_now}
         isPreconsented={player.is_trade_preconsented}
+        isPoisonPill={player.is_poison_pill}
       />
     </div>
   );

@@ -75,13 +75,49 @@ export interface SalaryBookPlayer {
   option_2029: ContractOption;
   option_2030: ContractOption;
 
-  // Guarantee structure per year
-  guarantee_2025: GuaranteeType;
-  guarantee_2026: GuaranteeType;
-  guarantee_2027: GuaranteeType;
-  guarantee_2028: GuaranteeType;
-  guarantee_2029: GuaranteeType;
-  guarantee_2030: GuaranteeType;
+  // Guarantee structure per year (warehouse stores numeric amounts + booleans)
+  guaranteed_amount_2025: number | null;
+  guaranteed_amount_2026: number | null;
+  guaranteed_amount_2027: number | null;
+  guaranteed_amount_2028: number | null;
+  guaranteed_amount_2029: number | null;
+  guaranteed_amount_2030: number | null;
+
+  is_fully_guaranteed_2025: boolean | null;
+  is_fully_guaranteed_2026: boolean | null;
+  is_fully_guaranteed_2027: boolean | null;
+  is_fully_guaranteed_2028: boolean | null;
+  is_fully_guaranteed_2029: boolean | null;
+  is_fully_guaranteed_2030: boolean | null;
+
+  is_partially_guaranteed_2025: boolean | null;
+  is_partially_guaranteed_2026: boolean | null;
+  is_partially_guaranteed_2027: boolean | null;
+  is_partially_guaranteed_2028: boolean | null;
+  is_partially_guaranteed_2029: boolean | null;
+  is_partially_guaranteed_2030: boolean | null;
+
+  is_non_guaranteed_2025: boolean | null;
+  is_non_guaranteed_2026: boolean | null;
+  is_non_guaranteed_2027: boolean | null;
+  is_non_guaranteed_2028: boolean | null;
+  is_non_guaranteed_2029: boolean | null;
+  is_non_guaranteed_2030: boolean | null;
+
+  // Likely vs unlikely bonuses (per year)
+  likely_bonus_2025: number | null;
+  likely_bonus_2026: number | null;
+  likely_bonus_2027: number | null;
+  likely_bonus_2028: number | null;
+  likely_bonus_2029: number | null;
+  likely_bonus_2030: number | null;
+
+  unlikely_bonus_2025: number | null;
+  unlikely_bonus_2026: number | null;
+  unlikely_bonus_2027: number | null;
+  unlikely_bonus_2028: number | null;
+  unlikely_bonus_2029: number | null;
+  unlikely_bonus_2030: number | null;
 
   // Agent/Agency info
   agent_id: string | null;

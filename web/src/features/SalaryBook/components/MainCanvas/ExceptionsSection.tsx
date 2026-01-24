@@ -102,9 +102,16 @@ export function ExceptionsSection({ exceptions }: { exceptions: TeamException[] 
 
               {SALARY_YEARS.map((year) => {
                 const amt = getRemaining(row, year);
+                const isEmpty = amt === null;
                 return (
-                  <div key={year} className="w-24 shrink-0 font-mono tabular-nums text-center">
-                    {amt === null ? "—" : formatters.compactCurrency(amt)}
+                  <div
+                    key={year}
+                    className={cx(
+                      "w-24 shrink-0 font-mono tabular-nums text-center",
+                      isEmpty && "text-gray-400/50"
+                    )}
+                  >
+                    {isEmpty ? "—" : formatters.compactCurrency(amt)}
                   </div>
                 );
               })}

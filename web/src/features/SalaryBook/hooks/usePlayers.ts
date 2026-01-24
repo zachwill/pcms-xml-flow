@@ -32,6 +32,51 @@ interface PlayerApiResponse {
   option_2028: string | null;
   option_2029: string | null;
   option_2030: string | null;
+
+  // Guarantee structure per year (warehouse stores numeric amounts + booleans)
+  guaranteed_amount_2025: number | null;
+  guaranteed_amount_2026: number | null;
+  guaranteed_amount_2027: number | null;
+  guaranteed_amount_2028: number | null;
+  guaranteed_amount_2029: number | null;
+  guaranteed_amount_2030: number | null;
+
+  is_fully_guaranteed_2025: boolean | null;
+  is_fully_guaranteed_2026: boolean | null;
+  is_fully_guaranteed_2027: boolean | null;
+  is_fully_guaranteed_2028: boolean | null;
+  is_fully_guaranteed_2029: boolean | null;
+  is_fully_guaranteed_2030: boolean | null;
+
+  is_partially_guaranteed_2025: boolean | null;
+  is_partially_guaranteed_2026: boolean | null;
+  is_partially_guaranteed_2027: boolean | null;
+  is_partially_guaranteed_2028: boolean | null;
+  is_partially_guaranteed_2029: boolean | null;
+  is_partially_guaranteed_2030: boolean | null;
+
+  is_non_guaranteed_2025: boolean | null;
+  is_non_guaranteed_2026: boolean | null;
+  is_non_guaranteed_2027: boolean | null;
+  is_non_guaranteed_2028: boolean | null;
+  is_non_guaranteed_2029: boolean | null;
+  is_non_guaranteed_2030: boolean | null;
+
+  // Likely vs unlikely bonuses (per year)
+  likely_bonus_2025: number | null;
+  likely_bonus_2026: number | null;
+  likely_bonus_2027: number | null;
+  likely_bonus_2028: number | null;
+  likely_bonus_2029: number | null;
+  likely_bonus_2030: number | null;
+
+  unlikely_bonus_2025: number | null;
+  unlikely_bonus_2026: number | null;
+  unlikely_bonus_2027: number | null;
+  unlikely_bonus_2028: number | null;
+  unlikely_bonus_2029: number | null;
+  unlikely_bonus_2030: number | null;
+
   agent_id: string | null;
   agent_name: string | null;
   agency_id: string | null;
@@ -83,6 +128,7 @@ function normalizeOption(value: string | null): ContractOption {
   return null;
 }
 
+
 /**
  * Maps API response to SalaryBookPlayer type
  */
@@ -115,13 +161,49 @@ function mapApiToPlayer(data: PlayerApiResponse): SalaryBookPlayer {
     option_2028: normalizeOption(data.option_2028),
     option_2029: normalizeOption(data.option_2029),
     option_2030: normalizeOption(data.option_2030),
-    // Guarantee fields not returned by API yet — set to null
-    guarantee_2025: null,
-    guarantee_2026: null,
-    guarantee_2027: null,
-    guarantee_2028: null,
-    guarantee_2029: null,
-    guarantee_2030: null,
+
+    guaranteed_amount_2025: data.guaranteed_amount_2025,
+    guaranteed_amount_2026: data.guaranteed_amount_2026,
+    guaranteed_amount_2027: data.guaranteed_amount_2027,
+    guaranteed_amount_2028: data.guaranteed_amount_2028,
+    guaranteed_amount_2029: data.guaranteed_amount_2029,
+    guaranteed_amount_2030: data.guaranteed_amount_2030,
+
+    is_fully_guaranteed_2025: data.is_fully_guaranteed_2025,
+    is_fully_guaranteed_2026: data.is_fully_guaranteed_2026,
+    is_fully_guaranteed_2027: data.is_fully_guaranteed_2027,
+    is_fully_guaranteed_2028: data.is_fully_guaranteed_2028,
+    is_fully_guaranteed_2029: data.is_fully_guaranteed_2029,
+    is_fully_guaranteed_2030: data.is_fully_guaranteed_2030,
+
+    is_partially_guaranteed_2025: data.is_partially_guaranteed_2025,
+    is_partially_guaranteed_2026: data.is_partially_guaranteed_2026,
+    is_partially_guaranteed_2027: data.is_partially_guaranteed_2027,
+    is_partially_guaranteed_2028: data.is_partially_guaranteed_2028,
+    is_partially_guaranteed_2029: data.is_partially_guaranteed_2029,
+    is_partially_guaranteed_2030: data.is_partially_guaranteed_2030,
+
+    is_non_guaranteed_2025: data.is_non_guaranteed_2025,
+    is_non_guaranteed_2026: data.is_non_guaranteed_2026,
+    is_non_guaranteed_2027: data.is_non_guaranteed_2027,
+    is_non_guaranteed_2028: data.is_non_guaranteed_2028,
+    is_non_guaranteed_2029: data.is_non_guaranteed_2029,
+    is_non_guaranteed_2030: data.is_non_guaranteed_2030,
+
+    likely_bonus_2025: data.likely_bonus_2025,
+    likely_bonus_2026: data.likely_bonus_2026,
+    likely_bonus_2027: data.likely_bonus_2027,
+    likely_bonus_2028: data.likely_bonus_2028,
+    likely_bonus_2029: data.likely_bonus_2029,
+    likely_bonus_2030: data.likely_bonus_2030,
+
+    unlikely_bonus_2025: data.unlikely_bonus_2025,
+    unlikely_bonus_2026: data.unlikely_bonus_2026,
+    unlikely_bonus_2027: data.unlikely_bonus_2027,
+    unlikely_bonus_2028: data.unlikely_bonus_2028,
+    unlikely_bonus_2029: data.unlikely_bonus_2029,
+    unlikely_bonus_2030: data.unlikely_bonus_2030,
+
     agent_id: data.agent_id,
     agent_name: data.agent_name,
     agency_id: data.agency_id,

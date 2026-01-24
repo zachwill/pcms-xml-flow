@@ -1,31 +1,11 @@
 import { cx, formatters } from "@/lib/utils";
+import { OptionBadge } from "../../MainCanvas/badges";
+import type { ContractOption } from "../../../data";
 
 interface YearData {
   year: number;
   salary: number | null;
   option: string | null;
-}
-
-/**
- * Option badge component
- */
-function OptionBadge({ option }: { option: string }) {
-  const colorMap: Record<string, string> = {
-    PO: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-    TO: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-    ETO: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-  };
-
-  return (
-    <span
-      className={cx(
-        "inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium",
-        colorMap[option] ?? "bg-muted text-muted-foreground"
-      )}
-    >
-      {option}
-    </span>
-  );
 }
 
 /**
@@ -65,11 +45,11 @@ export function YearByYearBreakdown({ years }: { years: YearData[] }) {
           >
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground tabular-nums">
-                {yearData.year - 1}-{String(yearData.year).slice(-2)}
+                {String(yearData.year).slice(-2)}-{String(yearData.year + 1).slice(-2)}
               </span>
               {/* Don't show options for the current season (25-26 / cap_2025) */}
               {yearData.option && yearData.year !== 2025 && (
-                <OptionBadge option={yearData.option} />
+                <OptionBadge option={yearData.option as ContractOption} />
               )}
             </div>
             <span className="font-mono tabular-nums text-sm font-medium">

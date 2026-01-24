@@ -114,23 +114,27 @@ function getSalaryCellStyle(
   // --------------------------------------------------------------------------
 
   // Guarantee colors (base layer)
+  // GTD (fully guaranteed) has no special styling - it's the default/expected state
+  // PARTIAL has no special styling for now
+  // For option years, only show guarantee tooltip if it's notable (PARTIAL/NON-GTD)
+  const hasOption = !!option && !isCurrentSeason;
+  
   if (guarantee === "GTD") {
-    bgClass = "bg-green-100/60 dark:bg-green-900/30";
-    textClass = "text-green-700 dark:text-green-300";
-    tooltips.push("Fully Guaranteed");
+    // Only show "Fully Guaranteed" tooltip if there's no option taking precedence
+    if (!hasOption) {
+      tooltips.push("Fully Guaranteed");
+    }
   } else if (guarantee === "PARTIAL") {
-    bgClass = "bg-yellow-100/60 dark:bg-yellow-900/30";
-    textClass = "text-yellow-700 dark:text-yellow-300";
     tooltips.push("Partially Guaranteed");
   } else if (guarantee === "NON-GTD") {
-    bgClass = "bg-red-100/60 dark:bg-red-900/30";
-    textClass = "text-red-700 dark:text-red-300";
+    bgClass = "bg-yellow-100/60 dark:bg-yellow-900/30";
+    textClass = "text-yellow-700 dark:text-yellow-300";
     tooltips.push("Non-Guaranteed");
   }
 
   // Option colors (override guarantee if present, except current season)
   // (Options take precedence visually over trade bonus in future years.)
-  if (option && !isCurrentSeason) {
+  if (hasOption) {
     if (option === "PO") {
       bgClass = "bg-blue-100/60 dark:bg-blue-900/30";
       textClass = "text-blue-700 dark:text-blue-300";
@@ -171,16 +175,27 @@ function getSalaryCellStyle(
   }
 
   // --------------------------------------------------------------------------
+  // No-Trade Clause
+  // - Applies to ALL seasons.
+  // - Options (PO/TO/ETO) take visual precedence in future years.
+  // - Current season continues to show no-trade styling even if an option exists.
+  // --------------------------------------------------------------------------
+
+  if (isNoTrade) {
+    tooltips.push("No-Trade Clause");
+
+    const optionTakesPrecedence = !!option && !isCurrentSeason;
+    if (!optionTakesPrecedence) {
+      bgClass = "bg-red-100/60 dark:bg-red-900/30";
+      textClass = "text-red-700 dark:text-red-300";
+    }
+  }
+
+  // --------------------------------------------------------------------------
   // Current-season trade restrictions (override all other coloring)
   // --------------------------------------------------------------------------
 
   if (isCurrentSeason) {
-    if (isNoTrade) {
-      bgClass = "bg-red-100/60 dark:bg-red-900/30";
-      textClass = "text-red-700 dark:text-red-300";
-      tooltips.push("No-Trade Clause");
-    }
-
     if (isConsentRequired) {
       bgClass = "bg-red-100/60 dark:bg-red-900/30";
       textClass = "text-red-700 dark:text-red-300";

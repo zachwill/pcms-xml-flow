@@ -83,25 +83,59 @@ export function getOption(player: SalaryBookPlayer, year: number): ContractOptio
 }
 
 /**
- * Get guarantee type for a specific year from player data
+ * Get guarantee type for a specific year.
+ *
+ * salary_book_warehouse stores guarantee info as numeric amounts + booleans.
+ * For UI coloring/tooltips, we normalize that into a GuaranteeType.
  */
 export function getGuarantee(player: SalaryBookPlayer, year: number): GuaranteeType {
-  switch (year) {
-    case 2025:
-      return player.guarantee_2025;
-    case 2026:
-      return player.guarantee_2026;
-    case 2027:
-      return player.guarantee_2027;
-    case 2028:
-      return player.guarantee_2028;
-    case 2029:
-      return player.guarantee_2029;
-    case 2030:
-      return player.guarantee_2030;
-    default:
-      return null;
-  }
+  const flags = (() => {
+    switch (year) {
+      case 2025:
+        return {
+          full: player.is_fully_guaranteed_2025,
+          partial: player.is_partially_guaranteed_2025,
+          non: player.is_non_guaranteed_2025,
+        };
+      case 2026:
+        return {
+          full: player.is_fully_guaranteed_2026,
+          partial: player.is_partially_guaranteed_2026,
+          non: player.is_non_guaranteed_2026,
+        };
+      case 2027:
+        return {
+          full: player.is_fully_guaranteed_2027,
+          partial: player.is_partially_guaranteed_2027,
+          non: player.is_non_guaranteed_2027,
+        };
+      case 2028:
+        return {
+          full: player.is_fully_guaranteed_2028,
+          partial: player.is_partially_guaranteed_2028,
+          non: player.is_non_guaranteed_2028,
+        };
+      case 2029:
+        return {
+          full: player.is_fully_guaranteed_2029,
+          partial: player.is_partially_guaranteed_2029,
+          non: player.is_non_guaranteed_2029,
+        };
+      case 2030:
+        return {
+          full: player.is_fully_guaranteed_2030,
+          partial: player.is_partially_guaranteed_2030,
+          non: player.is_non_guaranteed_2030,
+        };
+      default:
+        return { full: null, partial: null, non: null };
+    }
+  })();
+
+  if (flags.full) return "GTD";
+  if (flags.partial) return "PARTIAL";
+  if (flags.non) return "NON-GTD";
+  return null;
 }
 
 /**

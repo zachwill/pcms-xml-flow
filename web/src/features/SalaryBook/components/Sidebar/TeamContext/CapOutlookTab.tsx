@@ -185,7 +185,7 @@ export function CapOutlookTab({
       <div className="border-t border-border pt-4">
         <div className="flex items-center justify-between mb-3">
           <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            2024-25 Cap Outlook
+            2025-26 Cap Outlook
           </div>
           {currentSalary && (
             <TaxStatusBadge

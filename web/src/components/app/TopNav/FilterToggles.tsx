@@ -12,12 +12,7 @@
 
 import { cx, focusRing } from "@/lib/utils";
 import { Checkbox } from "@/components/ui";
-import { useSalaryBookContext } from "../../SalaryBook";
-import {
-  FILTER_METADATA,
-  type FilterState,
-  type FilterKey,
-} from "../../hooks/useFilterState";
+import { useFilters, FILTER_METADATA, type FilterState, type FilterKey } from "@/state/filters";
 
 /**
  * Group header labels
@@ -78,7 +73,7 @@ interface FilterGroupProps {
 }
 
 function FilterGroup({ group, label }: FilterGroupProps) {
-  const { isFilterActive, toggleFilter } = useSalaryBookContext();
+  const { isFilterActive, toggleFilter } = useFilters();
   const filters = FILTER_METADATA[group];
 
   return (

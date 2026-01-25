@@ -23,7 +23,7 @@ import type {
   TeamException,
   DeadMoney,
 } from "../../data";
-import type { FilterState } from "../../hooks";
+import type { FilterState } from "@/state/filters";
 import { TableHeader } from "./TableHeader";
 import { PlayerRow } from "./PlayerRow";
 import { DraftAssetsRow } from "./DraftAssetsRow";

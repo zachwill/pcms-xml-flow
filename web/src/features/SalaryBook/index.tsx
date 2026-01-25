@@ -11,13 +11,12 @@
  */
 
 // Main component
-export { SalaryBook, useSalaryBookContext } from "./SalaryBook";
+export { SalaryBook } from "./SalaryBook";
 
 // Hooks
 export {
   useScrollSpy,
   useSidebarStack,
-  useFilterState,
   type EntityType,
   type SidebarEntity,
   type SidebarMode,
@@ -25,14 +24,6 @@ export {
   type AgentEntity,
   type PickEntity,
   type TeamEntity,
-  type DisplayFilter,
-  type FinancialsFilter,
-  type ContractsFilter,
-  type FilterKey,
-  type FilterState,
-  type FilterMeta,
-  type UseFilterStateReturn,
-  FILTER_METADATA,
 } from "./hooks";
 
 // Data types

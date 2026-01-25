@@ -12,7 +12,7 @@
 
 import { useState, memo } from "react";
 import { cx } from "@/lib/utils";
-import { useSalaryBookContext } from "../../../SalaryBook";
+import { useShellContext } from "@/state/shell";
 import { useTeamSalary, useTeams, useTwoWayCapacity } from "../../../hooks";
 import { TeamContextHeader } from "./TeamContextHeader";
 import { TabToggle, type TabId } from "./TabToggle";
@@ -48,7 +48,7 @@ export interface TeamContextProps {
  * - AI Analysis insights
  */
 export function TeamContext({ teamCode: teamCodeProp, className }: TeamContextProps) {
-  const { activeTeam } = useSalaryBookContext();
+  const { activeTeam } = useShellContext();
   const { getTeam, isLoading: teamsLoading } = useTeams();
 
   // Tab state

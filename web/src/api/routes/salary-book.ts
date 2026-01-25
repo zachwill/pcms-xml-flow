@@ -439,7 +439,8 @@ salaryBookRouter.get("/agent/:agentId", async (req) => {
       s.cap_2027::numeric,
       s.cap_2028::numeric,
       s.cap_2029::numeric,
-      s.cap_2030::numeric
+      s.cap_2030::numeric,
+      COALESCE(s.is_two_way, false)::boolean as is_two_way
     FROM pcms.salary_book_warehouse s
     LEFT JOIN pcms.people p ON s.player_id = p.person_id
     WHERE s.agent_id = ${agentId}

@@ -11,8 +11,8 @@
  */
 
 import { cx } from "@/lib/utils";
+import type { PickEntity } from "@/state/shell";
 import { usePickDetail, useTeams } from "../../../hooks";
-import type { PickEntity } from "../../../hooks";
 import { PickHeader } from "./PickHeader";
 import { PickTransfer } from "./PickTransfer";
 import { AssetTypeBadge, ProtectionsSection, PickDescription } from "./PickMeta";

@@ -12,9 +12,8 @@
 
 import React from "react";
 import { cx, focusRing } from "@/lib/utils";
-import { useSalaryBookContext } from "../../SalaryBook";
+import { useShellContext, type SidebarEntity } from "@/state/shell";
 import { useTeams } from "../../hooks";
-import type { SidebarEntity } from "../../hooks";
 import { TeamContext } from "./TeamContext";
 import { PlayerDetail } from "./PlayerDetail";
 import { AgentDetail } from "./AgentDetail";
@@ -126,7 +125,7 @@ export function SidebarPanel({ className }: SidebarPanelProps) {
     popEntity,
     canGoBack,
     activeTeam,
-  } = useSalaryBookContext();
+  } = useShellContext();
 
   const { getTeam } = useTeams();
 

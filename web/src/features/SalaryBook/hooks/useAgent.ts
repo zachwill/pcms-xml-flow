@@ -19,6 +19,9 @@ interface AgentClientApiResponse {
   cap_2029: string | number | null;
   cap_2030: string | number | null;
 
+  // Flags
+  is_two_way?: boolean | null;
+
   // Optional fields that may appear later
   years_of_service?: number | null;
   position?: string | null;
@@ -57,6 +60,7 @@ export interface AgentClientPlayer {
   cap_2028: number | null;
   cap_2029: number | null;
   cap_2030: number | null;
+  is_two_way: boolean;
 }
 
 /**
@@ -110,6 +114,7 @@ function mapApiToAgentDetail(data: AgentApiResponse): AgentDetail {
       cap_2028: asNumberOrNull(client.cap_2028),
       cap_2029: asNumberOrNull(client.cap_2029),
       cap_2030: asNumberOrNull(client.cap_2030),
+      is_two_way: client.is_two_way === true,
     })),
   };
 }

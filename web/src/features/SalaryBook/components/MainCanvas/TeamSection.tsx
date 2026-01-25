@@ -10,7 +10,8 @@
 
 import React, { useCallback } from "react";
 import { cx } from "@/lib/utils";
-import { useSalaryBookContext } from "../../SalaryBook";
+import { useShellContext, type PlayerEntity, type AgentEntity, type PickEntity } from "@/state/shell";
+import { useFilters } from "@/state/filters";
 import {
   usePlayers,
   useTeamSalary,
@@ -21,7 +22,6 @@ import {
   useTeams,
 } from "../../hooks";
 import type { SalaryBookPlayer, DraftPick } from "../../data";
-import type { PlayerEntity, AgentEntity, PickEntity } from "../../hooks";
 import { TeamHeader } from "./TeamHeader";
 import { TableHeader } from "./TableHeader";
 import { SalaryTable } from "./SalaryTable";
@@ -94,8 +94,8 @@ function TeamSectionError({
 // ============================================================================
 
 export function TeamSection({ teamCode }: TeamSectionProps) {
-  const { registerSection, activeTeam, pushEntity, filters } =
-    useSalaryBookContext();
+  const { registerSection, activeTeam, pushEntity } = useShellContext();
+  const { filters } = useFilters();
 
   const { getTeam } = useTeams();
 

@@ -4,8 +4,8 @@
  * Exports all hooks for the Salary Book feature.
  */
 
-export { useScrollSpy } from "./useScrollSpy";
 export {
+  useScrollSpy,
   useSidebarStack,
   type EntityType,
   type SidebarEntity,
@@ -14,19 +14,7 @@ export {
   type AgentEntity,
   type PickEntity,
   type TeamEntity,
-} from "./useSidebarStack";
-export {
-  useFilterState,
-  type DisplayFilter,
-  type FinancialsFilter,
-  type ContractsFilter,
-  type FilterKey,
-  type FilterState,
-  type FilterMeta,
-  type UseFilterStateOptions,
-  type UseFilterStateReturn,
-  FILTER_METADATA,
-} from "./useFilterState";
+} from "@/state/shell";
 export { useTeams, type UseTeamsReturn } from "./useTeams";
 export { usePlayers, type UsePlayersReturn } from "./usePlayers";
 export { useTeamSalary, type UseTeamSalaryReturn } from "./useTeamSalary";

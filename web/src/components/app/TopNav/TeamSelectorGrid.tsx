@@ -11,9 +11,9 @@
  */
 
 import { cx } from "@/lib/utils";
-import { useSalaryBookContext } from "../../SalaryBook";
-import { useTeams } from "../../hooks";
-import type { Team } from "../../data";
+import { useShellContext } from "@/state/shell";
+import { useTeams } from "@/features/SalaryBook/hooks";
+import type { Team } from "@/features/SalaryBook/data";
 
 interface TeamPillProps {
   team: Team;
@@ -137,7 +137,7 @@ export function TeamSelectorGrid() {
     loadedTeams,
     setLoadedTeams,
     scrollToTeam,
-  } = useSalaryBookContext();
+  } = useShellContext();
 
   const { teamsByConference, isLoading, error } = useTeams();
 

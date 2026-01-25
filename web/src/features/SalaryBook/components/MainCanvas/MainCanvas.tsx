@@ -6,7 +6,7 @@
  */
 
 import { cx } from "@/lib/utils";
-import { useSalaryBookContext } from "../../SalaryBook";
+import { useShellContext } from "@/state/shell";
 import { TeamSection } from "./TeamSection";
 
 export interface MainCanvasProps {
@@ -16,7 +16,7 @@ export interface MainCanvasProps {
 
 /** Main scrollable canvas - renders all team sections */
 export function MainCanvas({ className }: MainCanvasProps) {
-  const { canvasRef, loadedTeams } = useSalaryBookContext();
+  const { canvasRef, loadedTeams } = useShellContext();
 
   return (
     <div

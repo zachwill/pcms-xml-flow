@@ -12,9 +12,8 @@
  */
 
 import { cx } from "@/lib/utils";
-import { useSalaryBookContext } from "../../../SalaryBook";
+import { useShellContext, type PlayerEntity } from "@/state/shell";
 import { usePlayer, useTeams } from "../../../hooks";
-import type { PlayerEntity } from "../../../hooks";
 import { PlayerHeader } from "./PlayerHeader";
 import { ContractSummary } from "./ContractSummary";
 import { YearByYearBreakdown, type YearData } from "./YearByYearBreakdown";
@@ -40,7 +39,7 @@ export interface PlayerDetailProps {
  * PlayerDetail — Full player contract view for sidebar
  */
 export function PlayerDetail({ entity, className }: PlayerDetailProps) {
-  const { pushEntity } = useSalaryBookContext();
+  const { pushEntity } = useShellContext();
   const { getTeam } = useTeams();
 
   const { player, isLoading, error } = usePlayer(entity.playerId);

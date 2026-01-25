@@ -1,9 +1,10 @@
 /**
- * TopCommandBar — Fixed navigation and filter bar
+ * TopNav — Fixed navigation + filter header
  *
  * Composes:
  * - TeamSelectorGrid: 30-team navigation grid with scroll-spy highlight
- * - FilterToggles: Display/Financial/Contract filter checkboxes
+ * - FilterToggles: global "lens" checkboxes
+ * - ViewSelector: placeholder view list (Salary Book is the only active view today)
  *
  * Positioned fixed at viewport top with highest z-index.
  * Height: 130px (main content area is offset by this height)
@@ -12,14 +13,12 @@
 import { cx } from "@/lib/utils";
 import { FilterToggles } from "./FilterToggles";
 import { TeamSelectorGrid } from "./TeamSelectorGrid";
+import { ViewSelector } from "./ViewSelector";
 
 /**
- * TopCommandBar — Main export
- *
- * Fixed position header containing team navigation and filters.
- * Acts as scroll-spy status indicator and filtering controls.
+ * TopNav — Main export
  */
-export function TopCommandBar() {
+export function TopNav() {
   return (
     <div
       className={cx(
@@ -42,6 +41,12 @@ export function TopCommandBar() {
 
       {/* Filters: positioned next to teams */}
       <FilterToggles />
+
+      {/* Vertical divider */}
+      <div className="h-20 w-px bg-border self-center" />
+
+      {/* Views: placeholder (Salary Book is the only active view right now) */}
+      <ViewSelector />
     </div>
   );
 }

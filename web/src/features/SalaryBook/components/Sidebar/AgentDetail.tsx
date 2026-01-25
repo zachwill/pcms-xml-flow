@@ -11,9 +11,9 @@
  */
 
 import { cx, formatters, focusRing } from "@/lib/utils";
-import { useSalaryBookContext } from "../../SalaryBook";
+import { useShellContext, type AgentEntity } from "@/state/shell";
+import { TwoWaySalaryBadge } from "../MainCanvas/badges";
 import { useAgent, useTeams, type AgentClientPlayer } from "../../hooks";
-import type { AgentEntity } from "../../hooks";
 
 // ============================================================================
 // Types
@@ -173,7 +173,11 @@ function ClientRow({
 
       {/* Salary info */}
       <div className="flex-shrink-0 text-right">
-        {currentSalary !== null && currentSalary > 0 ? (
+        {client.is_two_way ? (
+          <div className="flex justify-end">
+            <TwoWaySalaryBadge />
+          </div>
+        ) : currentSalary !== null && currentSalary > 0 ? (
           <>
             <div className="font-mono tabular-nums text-sm font-medium">
               {formatters.compactCurrency(currentSalary)}
@@ -337,7 +341,7 @@ function AgentDetailError({
  * Each client is clickable to push a PlayerEntity onto the sidebar stack.
  */
 export function AgentDetail({ entity, className }: AgentDetailProps) {
-  const { pushEntity } = useSalaryBookContext();
+  const { pushEntity } = useShellContext();
   const { getTeam } = useTeams();
 
   // Fetch agent data

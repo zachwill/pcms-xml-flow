@@ -15,8 +15,7 @@
 
 import React from "react";
 import { cx, formatters } from "@/lib/utils";
-import { useSalaryBookContext } from "../../SalaryBook";
-import type { TeamEntity } from "../../hooks";
+import { useShellContext, type TeamEntity } from "@/state/shell";
 
 // ============================================================================
 // Types
@@ -111,7 +110,7 @@ export function TeamHeader({
   rosterCount,
   isActive = false,
 }: TeamHeaderProps) {
-  const { pushEntity } = useSalaryBookContext();
+  const { pushEntity } = useShellContext();
 
   const [logoErrored, setLogoErrored] = React.useState(false);
 

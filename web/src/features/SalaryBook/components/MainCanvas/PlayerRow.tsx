@@ -528,7 +528,7 @@ function TotalSalaryCell({
             />
           </div>
           <div className="h-5 -mt-0.5 flex items-start justify-center">
-            <span className="text-[10px] tabular-nums italic opacity-70 whitespace-nowrap">
+            <span className="text-[10px] tabular-nums italic leading-none opacity-50 whitespace-nowrap">
               {contractTypeCode ?? "—"}
             </span>
           </div>

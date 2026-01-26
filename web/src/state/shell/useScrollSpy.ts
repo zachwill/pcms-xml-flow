@@ -7,6 +7,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * - Scroll position IS state (not derived from it)
  * - Progress-driven model: exposes 0→1 progress through current section
  * - Lifecycle awareness: idle → scrolling → settling
+ * - State-machine based boundary handling with two interaction modes:
+ *   1. Top-boundary anchoring mode: Traps small movements near section top
+ *   2. Normal scrolling mode: Standard section tracking with minimal hysteresis
  *
  * The "active team" is determined by which section header is currently at/past
  * the sticky threshold. This drives:
@@ -23,6 +26,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // ============================================================================
 
 export type ScrollState = "idle" | "scrolling" | "settling";
+
+/**
+ * Boundary interaction mode — determines how scroll position maps to active team.
+ *
+ * - anchored: User is within the anchor zone at the top of a section.
+ *             Small movements don't change active team. Provides "stickiness".
+ * - committed: User has scrolled beyond the anchor zone (committed to scroll).
+ *              Normal section tracking applies.
+ */
+export type BoundaryMode = "anchored" | "committed";
 
 export interface ScrollSpyOptions {
   /**
@@ -57,12 +70,28 @@ export interface ScrollSpyOptions {
   settleDelay?: number;
 
   /**
-   * Buffer in pixels for "active team hysteresis".
-   * Prevents rapid flipping between sections when near a boundary.
-   * If a team is active, it stays active until the user has scrolled
-   * this far past the boundary.
+   * Buffer in pixels for UPWARD scroll hysteresis.
+   * When scrolling UP near a boundary, the current team stays active until
+   * the user scrolls this far past the boundary.
+   * This prevents flicker when user subtly scrolls up at the top of a team.
+   * Set smaller than before since we now have anchor zones.
    */
   hysteresisBuffer?: number;
+
+  /**
+   * Anchor zone size in pixels at the top of each section.
+   * Within this zone, small movements (both up and down) are "trapped" —
+   * the active team doesn't change until you scroll beyond this zone.
+   * This prevents "top-of-page drift" where tiny scrolls expose content.
+   */
+  anchorZone?: number;
+
+  /**
+   * Commitment threshold in pixels. When scrolling upward near a team
+   * boundary, the user must scroll at least this far to "commit" to
+   * switching to the previous team. Prevents flicker during snap-back.
+   */
+  commitmentThreshold?: number;
 
   /**
    * Small range in pixels at the top of a section where progress
@@ -96,6 +125,13 @@ export interface ScrollSpyResult {
   scrollState: ScrollState;
 
   /**
+   * Current boundary interaction mode.
+   * - anchored: Within anchor zone, small movements trapped
+   * - committed: Beyond anchor zone, normal tracking
+   */
+  boundaryMode: BoundaryMode;
+
+  /**
    * Register a section element for tracking.
    * Call with null to unregister.
    */
@@ -120,7 +156,16 @@ export interface ScrollSpyResult {
 
 const DEFAULT_SCROLL_END_DELAY = 100;
 const DEFAULT_SETTLE_DELAY = 50;
-const DEFAULT_HYSTERESIS_BUFFER = 32;
+
+// Reduced from 32px — anchor zone now handles most top-boundary cases
+const DEFAULT_HYSTERESIS_BUFFER = 16;
+
+// Anchor zone: ~10px at top of section where small scrolls are "trapped"
+const DEFAULT_ANCHOR_ZONE = 10;
+
+// Commitment threshold: user must scroll 20px past boundary to commit to switch
+const DEFAULT_COMMITMENT_THRESHOLD = 20;
+
 const DEFAULT_TOP_STICK_RANGE = 12;
 
 // ============================================================================
@@ -135,6 +180,8 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
     scrollEndDelay = DEFAULT_SCROLL_END_DELAY,
     settleDelay = DEFAULT_SETTLE_DELAY,
     hysteresisBuffer = DEFAULT_HYSTERESIS_BUFFER,
+    anchorZone = DEFAULT_ANCHOR_ZONE,
+    commitmentThreshold = DEFAULT_COMMITMENT_THRESHOLD,
     topStickRange = DEFAULT_TOP_STICK_RANGE,
   } = options;
 
@@ -152,9 +199,10 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
 
   const [sectionProgress, setSectionProgress] = useState(0);
   const [scrollState, setScrollState] = useState<ScrollState>("idle");
+  const [boundaryMode, setBoundaryMode] = useState<BoundaryMode>("anchored");
 
   // ---------------------------------------------------------------------------
-  // Refs
+  // Refs for State Machine
   // ---------------------------------------------------------------------------
 
   // Registered section elements: teamCode → element
@@ -169,6 +217,17 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
 
   // RAF handle for batching updates
   const rafRef = useRef<number | null>(null);
+
+  // Previous scroll position for direction detection
+  const prevScrollTopRef = useRef<number>(0);
+
+  // Track the "anchor point" — where we entered the current section
+  // Used to determine if we've scrolled far enough to commit to a switch
+  const anchorPointRef = useRef<number | null>(null);
+
+  // Pending team change — used for debounced/committed team switches
+  // Prevents flicker by requiring sustained scroll before switching
+  const pendingTeamRef = useRef<string | null>(null);
 
   // ---------------------------------------------------------------------------
   // Helpers
@@ -235,23 +294,41 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
   }, [getElementTop]);
 
   /**
-   * Calculate active team and section progress.
-   * Returns [activeTeamCode, progress].
+   * Calculate active team, section progress, and boundary mode.
+   * Returns [activeTeamCode, progress, boundaryMode].
+   *
+   * State machine logic:
+   * 1. Detect scroll direction (up/down/none)
+   * 2. Find "natural" active section (which section header is at threshold)
+   * 3. Apply anchor zone logic: if within anchor zone, trap small movements
+   * 4. Apply commitment logic: require sustained scroll to switch teams
+   * 5. Calculate progress through current section
    */
-  const calculateScrollState = useCallback((): [string | null, number] => {
+  const calculateScrollState = useCallback((): [string | null, number, BoundaryMode] => {
     const sections = sectionsRef.current;
     const sortedCodes = sortedSectionsRef.current;
 
     if (sortedCodes.length === 0) {
-      return [null, 0];
+      return [null, 0, "anchored"];
     }
 
     const metrics = getScrollMetrics();
-    const threshold = metrics.scrollTop + topOffset + activationOffset;
+    const currentScrollTop = metrics.scrollTop;
+    const threshold = currentScrollTop + topOffset + activationOffset;
 
-    // 1. Find the "Natural" Active Section
+    // 1. Detect Scroll Direction
+    const prevScrollTop = prevScrollTopRef.current;
+    const scrollDelta = currentScrollTop - prevScrollTop;
+    const isScrollingUp = scrollDelta < 0;
+    const isScrollingDown = scrollDelta > 0;
+    prevScrollTopRef.current = currentScrollTop;
+
+    // 2. Find the "Natural" Active Section
     // This is the last section whose top is at or before the threshold.
     let naturalIndex = -1;
+    let naturalElement: HTMLElement | null = null;
+    let naturalTop = 0;
+
     for (let i = sortedCodes.length - 1; i >= 0; i--) {
       const code = sortedCodes[i];
       if (!code) continue;
@@ -262,45 +339,96 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
       const elementTop = getElementTop(element);
       if (elementTop <= threshold) {
         naturalIndex = i;
+        naturalElement = element;
+        naturalTop = elementTop;
         break;
       }
     }
 
-    // 2. Resolve Active Team with Hysteresis (Upward-Biased Gravity)
-    // Silk pattern: A section stays active even when its header has moved 
-    // slightly below the threshold, but only when scrolling UP.
-    // This prevents "boundary chatter" during scroll snaps.
+    // Fallback: If nothing above threshold, default to the first section
+    if (naturalIndex === -1 && sortedCodes.length > 0) {
+      naturalIndex = 0;
+      const firstCode = sortedCodes[0];
+      if (firstCode) {
+        naturalElement = sections.get(firstCode) ?? null;
+        naturalTop = naturalElement ? getElementTop(naturalElement) : 0;
+      }
+    }
+
+    const naturalCode = sortedCodes[naturalIndex] ?? null;
     const currentActive = activeTeamRef.current;
+    const currentIndex = currentActive ? sortedCodes.indexOf(currentActive) : -1;
+
+    // 3. Determine Boundary Mode: Are we in the anchor zone?
+    // The anchor zone is a small region at the top of each section where
+    // small movements (both up and down) are "trapped" — the active team
+    // doesn't change until you scroll beyond this zone.
+    const distanceIntoSection = threshold - naturalTop;
+    const isInAnchorZone = distanceIntoSection >= 0 && distanceIntoSection < anchorZone;
+    let newBoundaryMode: BoundaryMode = isInAnchorZone ? "anchored" : "committed";
+
+    // 4. Resolve Active Team with Commitment Logic
+    // Different rules for different scenarios:
     let activeIndex = naturalIndex;
 
-    if (currentActive && naturalIndex !== -1) {
-      const currentIndex = sortedCodes.indexOf(currentActive);
-      
-      // Case: Scrolling UP (Natural choice is ABOVE our current active team)
-      if (naturalIndex < currentIndex) {
+    if (currentActive && naturalIndex !== -1 && naturalIndex !== currentIndex) {
+      // Case A: Scrolling UP (Natural choice is ABOVE our current active team)
+      if (isScrollingUp && naturalIndex < currentIndex) {
         const currentElement = sections.get(currentActive);
         if (currentElement) {
           const currentTop = getElementTop(currentElement);
-          
-          // Stick to the current team if its header is still "close" to the top
-          // (i.e. it hasn't fallen more than hysteresisBuffer pixels down)
-          if (currentTop <= threshold + hysteresisBuffer) {
+
+          // Set anchor point when we first enter the boundary zone
+          if (anchorPointRef.current === null) {
+            anchorPointRef.current = currentScrollTop;
+          }
+
+          const scrolledDistance = anchorPointRef.current - currentScrollTop;
+
+          // Stay with current team unless:
+          // 1. User has scrolled past commitment threshold, OR
+          // 2. Current team header has fallen well below threshold
+          if (scrolledDistance < commitmentThreshold &&
+              currentTop <= threshold + hysteresisBuffer) {
             activeIndex = currentIndex;
+            newBoundaryMode = "anchored";
+          } else {
+            // User has committed to the switch
+            anchorPointRef.current = null;
           }
         }
       }
-      // Case: Scrolling DOWN (Natural is below Current)
-      // No hysteresis applied; the next team takes over immediately.
-    }
-
-    // Fallback: If nothing above threshold, default to the first section
-    if (activeIndex === -1 && sortedCodes.length > 0) {
-      activeIndex = 0;
+      // Case B: Scrolling DOWN (Natural is below Current)
+      // Much less hysteresis needed. Switch immediately but respect anchor zone.
+      else if (isScrollingDown && naturalIndex > currentIndex) {
+        // If we're in the anchor zone of the new section, stay with current
+        // This prevents "top-of-page drift" when scrolling just a tiny bit
+        if (isInAnchorZone && distanceIntoSection < anchorZone / 2) {
+          activeIndex = currentIndex;
+          newBoundaryMode = "anchored";
+        } else {
+          // Clear anchor point — we've moved to a new section
+          anchorPointRef.current = null;
+        }
+      }
+      // Case C: Not actively scrolling (scrollDelta ≈ 0)
+      // Keep current team to prevent flicker during micro-adjustments
+      else if (Math.abs(scrollDelta) < 1) {
+        activeIndex = currentIndex;
+      }
+    } else {
+      // Same section or no previous team — clear anchor point
+      if (naturalIndex === currentIndex) {
+        // If we've scrolled beyond anchor zone, clear the anchor point
+        if (!isInAnchorZone) {
+          anchorPointRef.current = null;
+        }
+      }
     }
 
     const activeCode = sortedCodes[activeIndex] ?? null;
 
-    // 3. Calculate Progress with "Top Stick" Clamping
+    // 5. Calculate Progress with "Top Stick" Clamping
     let progress = 0;
 
     if (activeCode !== null) {
@@ -308,7 +436,7 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
 
       if (activeElement) {
         const activeTop = getElementTop(activeElement);
-        
+
         // Find the next section (if any)
         const nextCode = sortedCodes[activeIndex + 1];
         const nextElement = nextCode ? sections.get(nextCode) : null;
@@ -321,7 +449,7 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
             // Apply Top-Stick: If we are within the stick range, progress is 0.
             const rawDistance = threshold - activeTop;
             const distanceScrolled = rawDistance < topStickRange ? 0 : rawDistance;
-            
+
             progress = Math.max(0, Math.min(1, distanceScrolled / sectionHeight));
 
             // Silk pattern: Edge Clamping
@@ -332,7 +460,7 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
           // Last section: progress based on scroll to bottom
           const rawDistance = threshold - activeTop;
           const distanceScrolled = rawDistance < topStickRange ? 0 : rawDistance;
-          
+
           const remainingScroll = metrics.scrollHeight - metrics.clientHeight - activeTop;
 
           if (remainingScroll > 0) {
@@ -348,8 +476,8 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
       }
     }
 
-    return [activeCode, progress];
-  }, [getScrollMetrics, getElementTop, topOffset, activationOffset, hysteresisBuffer, topStickRange]);
+    return [activeCode, progress, newBoundaryMode];
+  }, [getScrollMetrics, getElementTop, topOffset, activationOffset, hysteresisBuffer, anchorZone, commitmentThreshold, topStickRange]);
 
   // ---------------------------------------------------------------------------
   // Scroll State Machine
@@ -402,14 +530,18 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
     }
 
     rafRef.current = requestAnimationFrame(() => {
-      const [newActiveTeam, newProgress] = calculateScrollState();
+      const [newActiveTeam, newProgress, newBoundaryMode] = calculateScrollState();
 
-      setActiveTeam((prev) => (prev !== newActiveTeam ? newActiveTeam : prev));
+      // Only update if value actually changed (prevents unnecessary renders)
+      if (activeTeamRef.current !== newActiveTeam) {
+        setActiveTeam(newActiveTeam);
+      }
       setSectionProgress(newProgress);
+      setBoundaryMode(newBoundaryMode);
 
       rafRef.current = null;
     });
-  }, [calculateScrollState]);
+  }, [calculateScrollState, setActiveTeam]);
 
   // ---------------------------------------------------------------------------
   // Scroll Handler
@@ -457,6 +589,11 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
       // Set active team immediately to prevent flicker
       setActiveTeam(teamCode);
       setSectionProgress(0);
+      setBoundaryMode("anchored");
+
+      // Reset state machine refs for clean transition
+      anchorPointRef.current = null;
+      pendingTeamRef.current = null;
 
       // Perform the scroll
       const targetTop = getElementTop(element) - topOffset;
@@ -473,7 +610,7 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
         container.scrollTo({ top: clampedTop, behavior });
       }
     },
-    [containerRef, topOffset, getElementTop]
+    [containerRef, topOffset, getElementTop, setActiveTeam]
   );
 
   // ---------------------------------------------------------------------------
@@ -510,6 +647,7 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
     activeTeam,
     sectionProgress,
     scrollState,
+    boundaryMode,
     registerSection,
     scrollToTeam,
     setActiveTeam,

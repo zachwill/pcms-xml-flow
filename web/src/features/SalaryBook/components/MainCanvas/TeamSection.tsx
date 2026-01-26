@@ -263,7 +263,11 @@ export function TeamSection({ teamCode }: TeamSectionProps) {
     <div
       ref={(el) => registerSection(teamCode, el)}
       data-team={teamCode}
-      className="border-b border-border"
+      className={cx(
+        "border-b border-border",
+        // Silk pattern: scroll snap alignment for "stick" behavior
+        "snap-start scroll-mt-0"
+      )}
     >
       <SalaryTable
         stickyHeaderContentRef={stickyHeaderContentRef}

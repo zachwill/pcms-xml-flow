@@ -2,6 +2,7 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -94,6 +95,16 @@ export function ShellProvider({
     activationOffset,
     containerRef: canvasRef,
   });
+
+  // ---------------------------------------------------------------------------
+  // Sync scroll state to DOM (Silk pattern for performant CSS-based updates)
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    el.setAttribute("data-scroll-state", scrollState);
+  }, [scrollState]);
 
   // ---------------------------------------------------------------------------
   // Filter-change scroll preservation

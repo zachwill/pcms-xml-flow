@@ -277,6 +277,8 @@ function PlayerRowContainer({
         "group cursor-pointer",
         // Border between rows
         "border-b border-border/50",
+        // Silk pattern: disable pointer events (and thus hover/tooltips) during active scroll
+        "[[data-scroll-state=scrolling]_&]:pointer-events-none",
         // Hover highlights BOTH rows as one unit (subtle yellow)
         "hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10",
         // Smooth transition for hover

@@ -76,7 +76,16 @@ export function ExceptionsSection({ exceptions }: { exceptions: TeamException[] 
         const subtitle = row.trade_exception_player_name ?? null;
 
         return (
-          <div key={row.id} className={cx("border-b border-border/50", "hover:bg-muted/30 dark:hover:bg-muted/15", "transition-colors")}>
+          <div
+            key={row.id}
+            className={cx(
+              "border-b border-border/50",
+              // Silk pattern: disable pointer events during active scroll
+              "[[data-scroll-state=scrolling]_&]:pointer-events-none",
+              "hover:bg-muted/30 dark:hover:bg-muted/15",
+              "transition-colors"
+            )}
+          >
             <div className="h-8 flex items-center text-xs">
               <div
                 className={cx(

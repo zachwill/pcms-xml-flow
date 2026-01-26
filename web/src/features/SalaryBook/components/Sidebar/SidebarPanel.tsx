@@ -142,11 +142,9 @@ export function SidebarPanel({ className }: SidebarPanelProps) {
   const {
     currentEntity,
     popEntity,
-    canGoBack,
     activeTeam,
   } = useShellContext();
 
-  // Transition hook manages staged entity and animations
   const {
     stagedEntity,
     transitionState,
@@ -154,124 +152,42 @@ export function SidebarPanel({ className }: SidebarPanelProps) {
     safeToUnmount,
   } = useSidebarTransition(currentEntity);
 
-  // Render entity if we have a staged entity OR exit animation is running
   const showEntity = stagedEntity !== null || !safeToUnmount;
-
-  // Whether we're in "entity mode" (for crossfade logic)
-  const isEntityMode = showEntity;
-
-  // Track if we're exiting to team context (for crossfade)
-  const isExitingToTeam = transitionState === "exiting" && currentEntity === null;
+  const isEntityMode = currentEntity !== null;
+  const isExiting = transitionState === "exiting";
 
   const { getTeam } = useTeams();
-
-  // Get team info for the back button
   const team = activeTeam ? getTeam(activeTeam) : null;
   const teamId = team?.team_id ?? null;
-
-  // Use the active team code for the back button, fallback to "Back"
   const backLabel = activeTeam || "Back";
 
-  // Show back button if we can go back OR if entity is still animating out
-  const showBackButton = canGoBack || (transitionState === "exiting");
+  const backButtonRef = useRef<HTMLButtonElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
 
-  // -------------------------------------------------------------------------
-  // Refs for coordinated animations
-  // -------------------------------------------------------------------------
-  const headerButtonRef = useRef<HTMLButtonElement>(null);
-  const teamContextRef = useRef<HTMLDivElement>(null);
-  
-  // Track header mount state for conditional rendering
-  const [headerMounted, setHeaderMounted] = useState(showBackButton);
-  
-  // Track previous entity to detect enter/exit transitions
-  const prevEntityRef = useRef(currentEntity);
-
-  // -------------------------------------------------------------------------
-  // Coordinated WAAPI animations (Silk-style)
-  // 
-  // Key insight: We trigger exit animations when currentEntity becomes null,
-  // NOT when showBackButton changes. This lets header/TeamContext/entity
-  // all animate out in parallel instead of sequentially.
-  // -------------------------------------------------------------------------
+  /**
+   * Silk Pattern: Layered Coordination
+   * 
+   * We animate the back button via WAAPI for that high-performance slide,
+   * while the header background uses CSS transitions for simplicity.
+   */
   useEffect(() => {
-    const prevEntity = prevEntityRef.current;
-    prevEntityRef.current = currentEntity;
+    const btn = backButtonRef.current;
+    if (!btn) return;
 
-    const teamEl = teamContextRef.current;
-    const headerEl = headerButtonRef.current;
-
-    // Case 1: ENTERING entity mode (null -> entity)
-    // - Header button slides in from left
-    // - TeamContext slides down to make room
-    if (currentEntity !== null && prevEntity === null) {
-      setHeaderMounted(true);
-      
-      requestAnimationFrame(() => {
-        // Animate header button in from left
-        if (headerEl) {
-          animate(headerEl, [
-            { opacity: 0, transform: "translateX(-8px)" },
-            { opacity: 1, transform: "translateX(0)" },
-          ], {
-            duration: durations.normal,
-            easing: easings.easeOut,
-          });
-        }
-
-        // TeamContext slides down from natural position
-        if (teamEl) {
-          animate(teamEl, [
-            { transform: "translateY(0)" },
-            { transform: `translateY(${HEADER_HEIGHT}px)` },
-          ], {
-            duration: durations.normal,
-            easing: easings.easeOut,
-          });
-        }
-      });
+    if (isEntityMode && !isExiting) {
+      // ENTERING ENTITY MODE: Back button slides in
+      animate(btn, [
+        { opacity: 0, transform: "translateX(-12px)" },
+        { opacity: 1, transform: "translateX(0)" },
+      ], { duration: durations.normal, easing: easings.easeOut });
+    } else if (!isEntityMode && isExiting) {
+      // EXITING TO TEAM MODE: Back button slides out
+      animate(btn, [
+        { opacity: 1, transform: "translateX(0)" },
+        { opacity: 0, transform: "translateX(-12px)" },
+      ], { duration: durations.fast, easing: easings.easeIn });
     }
-
-    // Case 2: EXITING entity mode (entity -> null)
-    // - Header button slides out to left
-    // - TeamContext slides up to natural position
-    // This runs IN PARALLEL with useSidebarTransition's entity exit animation
-    if (currentEntity === null && prevEntity !== null) {
-      // Run animations in parallel
-      const animations: Promise<unknown>[] = [];
-
-      // Header slides out to left
-      if (headerEl) {
-        animations.push(
-          animate(headerEl, [
-            { opacity: 1, transform: "translateX(0)" },
-            { opacity: 0, transform: "translateX(-8px)" },
-          ], {
-            duration: durations.fast,
-            easing: easings.easeIn,
-          })
-        );
-      }
-
-      // TeamContext slides up to natural position
-      if (teamEl) {
-        animations.push(
-          animate(teamEl, [
-            { transform: `translateY(${HEADER_HEIGHT}px)` },
-            { transform: "translateY(0)" },
-          ], {
-            duration: durations.fast,
-            easing: easings.easeIn,
-          })
-        );
-      }
-
-      // After all animations complete, unmount header
-      Promise.all(animations).then(() => {
-        setHeaderMounted(false);
-      });
-    }
-  }, [currentEntity]);
+  }, [isEntityMode, isExiting]);
 
   return (
     <div
@@ -279,77 +195,88 @@ export function SidebarPanel({ className }: SidebarPanelProps) {
         "w-[30%] min-w-[320px] max-w-[480px]",
         "border-l border-border",
         "bg-background",
-        "overflow-hidden relative",
+        "overflow-hidden relative", 
         className
       )}
     >
-      {/* Sidebar content - fills entire sidebar */}
-      <div className="absolute inset-0 overflow-hidden">
-        {/* Base layer: TeamContext (always rendered, revealed during exit) */}
-        {/* Transform is controlled entirely by WAAPI, not React's style prop */}
-        <div
-          ref={teamContextRef}
+      {/* 
+        SILK PATTERN: Absolute Header Overlay
+        This sits ON TOP of the content area. It is transparent in team mode
+        and becomes opaque in entity mode.
+      */}
+      <div 
+        ref={headerRef}
+        className={cx(
+          "absolute top-0 left-0 right-0 h-10 px-4 flex items-center z-20",
+          "border-b transition-colors duration-200",
+          isEntityMode ? "bg-background border-border" : "bg-transparent border-transparent"
+        )}
+      >
+        <button
+          ref={backButtonRef}
+          type="button"
+          onClick={popEntity}
+          disabled={!isEntityMode}
           className={cx(
-            "absolute inset-0 overflow-y-auto",
-            "pt-4 px-4 pb-4",
-            // Hide when entity fully covers it (not during exit)
-            showEntity && !isExitingToTeam ? "invisible" : "visible"
+            "flex items-center gap-1.5 text-sm transition-colors",
+            "text-muted-foreground hover:text-foreground",
+            "disabled:pointer-events-none",
+            !isEntityMode && !isExiting ? "opacity-0" : "opacity-100",
+            focusRing()
+          )}
+        >
+          <ChevronLeftIcon className="w-4 h-4" />
+          <BackButtonTeamBadge
+            teamCode={activeTeam}
+            teamId={teamId}
+            isEntityMode={showEntity}
+          />
+          <span className="font-medium">{backLabel}</span>
+        </button>
+      </div>
+
+      {/* 
+        CONTENT AREA
+        Both layers start at top: 0. 
+        TeamContext uses the full height (padding in its own header handles the offset).
+        EntityDetail starts with top-14 padding to stay clear of the header.
+      */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Base Layer: Team Context (utilizes full height) */}
+        <div
+          className={cx(
+            "absolute inset-0 overflow-y-auto pt-4 px-4 pb-4 transition-opacity duration-300",
+            isEntityMode ? "opacity-20 grayscale pointer-events-none" : "opacity-100"
           )}
         >
           <TeamContext />
         </div>
 
-        {/* Overlay layer: Entity detail */}
-        {/* Uses top offset instead of transform so WAAPI animations don't conflict */}
+        {/* 
+          SILK PATTERN: Persistent Entity Backdrop
+          This layer stays solid during entity-to-entity replacements to prevent flicker.
+          It only fades out when completely returning to the Team view.
+        */}
+        <div
+          className={cx(
+            "absolute inset-0 bg-background z-10 transition-opacity duration-200",
+            isEntityMode ? "opacity-100" : "opacity-0 pointer-events-none"
+          )}
+        />
+
+        {/* Overlay Layer: Entity Detail (Now transparent, uses backdrop above) */}
         {showEntity && stagedEntity && (
           <div
             ref={containerRef}
-            className="absolute left-0 right-0 bottom-0 overflow-y-auto bg-background z-10 pt-4 px-4 pb-4"
-            style={{
-              // Static offset for header — use top, not transform
-              // Transform is reserved for WAAPI animations (translateX for enter/exit)
-              top: HEADER_HEIGHT,
-            }}
+            className="absolute inset-0 overflow-y-auto z-10"
             data-transition-state={transitionState}
           >
-            <EntityDetail entity={stagedEntity} />
+            <div className="pt-14 px-4 pb-4">
+              <EntityDetail entity={stagedEntity} />
+            </div>
           </div>
         )}
       </div>
-
-      {/* Back button header - overlays content */}
-      {(showBackButton || headerMounted) && (
-        <div
-          className={cx(
-            "absolute top-0 left-0 right-0 z-20",
-            "h-10 px-4 flex items-center",
-            "bg-background border-b border-border"
-          )}
-        >
-          <button
-            ref={headerButtonRef}
-            type="button"
-            onClick={popEntity}
-            disabled={transitionState === "exiting"}
-            className={cx(
-              "flex items-center gap-1.5 text-sm",
-              "text-muted-foreground hover:text-foreground",
-              "transition-colors duration-150",
-              "disabled:opacity-50 disabled:cursor-default",
-              focusRing()
-            )}
-          >
-            <ChevronLeftIcon className="w-4 h-4" />
-            {/* Team logo avatar with crossfade animation */}
-            <BackButtonTeamBadge
-              teamCode={activeTeam}
-              teamId={teamId}
-              isEntityMode={isEntityMode}
-            />
-            <span>{backLabel}</span>
-          </button>
-        </div>
-      )}
     </div>
   );
 }

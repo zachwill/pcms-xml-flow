@@ -52,10 +52,10 @@ We're building a **front-office instrument**, not a documentation UI. Key princi
 
 | File | Purpose |
 |------|---------|
-| `reference/silkhq/AGENTS.md` | Quick patterns to steal from Silk |
-| `reference/silkhq/07-scroll-and-scrolltrap.md` | Silk's scroll system (we model ours after this) |
-| `reference/silkhq/04-sheet-runtime-model.md` | State machines, safeToUnmount, travel progress |
-| `reference/silkhq/03-animation-system.md` | Progress-driven animations, `tween()` pattern |
+| `reference/silkhq/AGENTS.md` | Patterns we steal from Silk (what to read + why) |
+| `reference/silkhq/03-scroll-and-gesture-trapping.md` | Scroll + gesture trapping patterns (inspiration for our scroll-spy) |
+| `reference/silkhq/02-sheet-system-architecture.md` | Sheet runtime model: travel/detents/state machines + safe-to-unmount |
+| `reference/silkhq/05-animations-and-recipes.md` | Progress-driven animations + WAAPI persistence (`commitStyles()+cancel()`) |
 
 ---
 

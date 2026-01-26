@@ -79,7 +79,9 @@ export function DraftAssetsRow({ picks, onPickClick }: DraftAssetsRowProps) {
     <div
       className={cx(
         "bg-muted/10 dark:bg-muted/5",
-        "border-b border-border/50"
+        "border-b border-border/50",
+        // Silk pattern: disable pointer events during active scroll
+        "[[data-scroll-state=scrolling]_&]:pointer-events-none"
       )}
     >
       <div className="h-8 flex items-center text-xs">

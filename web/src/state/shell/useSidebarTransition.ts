@@ -12,8 +12,8 @@ import type { SidebarEntity } from "./useSidebarStack";
  *
  * This prevents "content disappears before animation finishes".
  *
- * @see web/reference/silkhq/04-sheet-runtime-model.md
- * @see web/reference/silkhq/AGENTS.md (Quick patterns to steal)
+ * @see web/reference/silkhq/02-sheet-system-architecture.md
+ * @see web/reference/silkhq/AGENTS.md (patterns we steal)
  */
 
 export type TransitionState =

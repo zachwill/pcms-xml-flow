@@ -20,7 +20,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { cx, focusRing } from "@/lib/utils";
 import { useShellContext, useSidebarTransition, type SidebarEntity } from "@/state/shell";
 import { useTeams } from "../../hooks";
-import { animate, durations, easings } from "@/lib/animate";
+import { durations, easings } from "@/lib/animate";
 import { TeamContext } from "./TeamContext";
 import { PlayerDetail } from "./PlayerDetail";
 import { AgentDetail } from "./AgentDetail";
@@ -162,6 +162,7 @@ export function SidebarPanel({ className }: SidebarPanelProps) {
   const backLabel = activeTeam || "Back";
 
   const backButtonRef = useRef<HTMLButtonElement>(null);
+  const backButtonAnimationRef = useRef<Animation | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -174,19 +175,74 @@ export function SidebarPanel({ className }: SidebarPanelProps) {
     const btn = backButtonRef.current;
     if (!btn) return;
 
+    const cancelAnimation = () => {
+      if (backButtonAnimationRef.current) {
+        backButtonAnimationRef.current.cancel();
+        backButtonAnimationRef.current = null;
+      }
+    };
+
+    const applyTargetStyles = (target: "visible" | "hidden") => {
+      if (target === "visible") {
+        btn.style.opacity = "1";
+        btn.style.transform = "translateX(0)";
+      } else {
+        btn.style.opacity = "0";
+        btn.style.transform = "translateX(-12px)";
+      }
+    };
+
+    cancelAnimation();
+
     if (isEntityMode && !isExiting) {
       // ENTERING ENTITY MODE: Back button slides in
-      animate(btn, [
-        { opacity: 0, transform: "translateX(-12px)" },
-        { opacity: 1, transform: "translateX(0)" },
-      ], { duration: durations.normal, easing: easings.easeOut });
+      applyTargetStyles("hidden");
+      const anim = btn.animate(
+        [
+          { opacity: 0, transform: "translateX(-12px)" },
+          { opacity: 1, transform: "translateX(0)" },
+        ],
+        { duration: durations.normal, easing: easings.easeOut, fill: "forwards" }
+      );
+
+      backButtonAnimationRef.current = anim;
+      anim.onfinish = () => {
+        applyTargetStyles("visible");
+        anim.cancel();
+        backButtonAnimationRef.current = null;
+      };
+      anim.oncancel = () => {
+        applyTargetStyles("visible");
+        backButtonAnimationRef.current = null;
+      };
     } else if (!isEntityMode && isExiting) {
       // EXITING TO TEAM MODE: Back button slides out
-      animate(btn, [
-        { opacity: 1, transform: "translateX(0)" },
-        { opacity: 0, transform: "translateX(-12px)" },
-      ], { duration: durations.fast, easing: easings.easeIn });
+      applyTargetStyles("visible");
+      const anim = btn.animate(
+        [
+          { opacity: 1, transform: "translateX(0)" },
+          { opacity: 0, transform: "translateX(-12px)" },
+        ],
+        { duration: durations.fast, easing: easings.easeIn, fill: "forwards" }
+      );
+
+      backButtonAnimationRef.current = anim;
+      anim.onfinish = () => {
+        applyTargetStyles("hidden");
+        anim.cancel();
+        backButtonAnimationRef.current = null;
+      };
+      anim.oncancel = () => {
+        applyTargetStyles("hidden");
+        backButtonAnimationRef.current = null;
+      };
+    } else {
+      applyTargetStyles(isEntityMode ? "visible" : "hidden");
     }
+
+    return () => {
+      cancelAnimation();
+    };
   }, [isEntityMode, isExiting]);
 
   return (

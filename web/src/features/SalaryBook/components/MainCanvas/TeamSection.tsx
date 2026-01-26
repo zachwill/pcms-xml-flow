@@ -38,6 +38,7 @@ interface TeamSectionProps {
 const teamSectionStyle: React.CSSProperties = {
   contentVisibility: "auto",
   containIntrinsicSize: "800px 600px",
+  scrollSnapAlign: "start",
 };
 
 // ============================================================================

@@ -30,6 +30,7 @@ export function MainCanvas({ className }: MainCanvasProps) {
       style={{
         isolation: "isolate",
         WebkitOverflowScrolling: "touch", // iOS momentum scrolling
+        scrollSnapType: "y mandatory",
       }}
     >
       {/* Team sections will be rendered here */}

@@ -1,7 +1,7 @@
 -- 054_exceptions_warehouse_proration_assertions.sql
 --
 -- Invariants for the Daily Exception Reduction Rule fields added in
--- migrations/042_exceptions_warehouse_expiration_and_proration.sql.
+-- migrations/archive/042_exceptions_warehouse_expiration_and_proration.sql.
 
 -- 1) Warehouse should not contain expired exceptions.
 DO $$

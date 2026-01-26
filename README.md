@@ -76,7 +76,8 @@ The lineage step produces these files in `shared/pcms/nba_pcms_full_extract/`:
 │   ├── transactions.*.py        # Step E: Transactions & exceptions
 │   ├── league_config.*.py       # Step F: League config & draft
 │   └── team_financials.*.py     # Step G: Team financials & two-way
-├── migrations/                  # SQL migrations for pcms schema
+├── migrations/                  # Canonical entrypoint (000_canonical.sql)
+│   └── archive/                 # SQL migrations for pcms schema
 ├── scripts/
 │   ├── xml-to-json.py           # Local XML → JSON (mirrors Step A)
 │   ├── test-import.py           # Test import scripts locally

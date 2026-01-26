@@ -139,7 +139,7 @@ pcms.league_system_values (cap/tax constants by year)
 
 There are also “warehouse-ish” views used as scaffolding / debugging:
 
-- `migrations/012_analyst_views.sql` creates:
+- `migrations/archive/012_analyst_views.sql` creates:
   - `pcms.vw_active_contract_versions`
   - `pcms.vw_salary_pivot_2024_2030`
   - `pcms.vw_y_warehouse`

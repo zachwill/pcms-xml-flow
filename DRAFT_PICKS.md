@@ -309,7 +309,7 @@ WHERE first_round ILIKE '%LAL%' OR second_round ILIKE '%LAL%';
 ## Implementation Plan
 
 ### Phase 1: Schema & Raw Data
-1. ✅ Run `migrations/004_draft_pick_tables.sql` (creates both tables)
+1. ✅ Run `migrations/archive/004_draft_pick_tables.sql` (creates both tables)
 2. Create import script `draft_pick_summaries.inline_script.ts`
 3. Add step to `flow.yaml`
 
@@ -331,7 +331,7 @@ WHERE first_round ILIKE '%LAL%' OR second_round ILIKE '%LAL%';
 |------|---------|
 | `draft_pick_summaries.json` | Clean JSON from lineage step |
 | `draft_picks.json` | DLG/WNBA picks only (not NBA) |
-| `migrations/004_draft_pick_tables.sql` | Schema for both tables (summaries + ownership) |
+| `migrations/archive/004_draft_pick_tables.sql` | Schema for both tables (summaries + ownership) |
 | `draft_pick_summaries.inline_script.ts` | Import script for summaries |
 
 ---

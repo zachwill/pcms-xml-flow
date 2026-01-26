@@ -75,7 +75,7 @@ export interface ShellProviderProps {
 export function ShellProvider({
   children,
   topOffset = 0,
-  activationOffset = 160,
+  activationOffset = 0,
 }: ShellProviderProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
 

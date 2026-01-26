@@ -29,8 +29,23 @@ The scroll container's position maps to:
 | `activeTeam` | Which team's header is currently in the sticky position |
 | `sectionProgress` | 0→1 progress through that team's section |
 | `scrollState` | Lifecycle: `idle → scrolling → settling` |
+| `boundaryMode` | Boundary state: `anchored` (trapped at top) or `committed` (free scrolling) |
 
 These aren't derived after the fact — they ARE the state. Components subscribe to them and react.
+
+### Boundary Mode (State Machine)
+
+The `boundaryMode` distinguishes two interaction patterns:
+
+| Mode | Meaning | Behavior |
+|------|---------|----------|
+| `anchored` | Within anchor zone at section top | Small movements trapped; prevents "top-of-page drift" and active-team flicker |
+| `committed` | Scrolled beyond anchor zone | Normal section tracking; team switches when boundary crossed |
+
+This dual-mode approach solves:
+- **Top-of-page drift**: Tiny scrolls (4-6px) no longer expose content unintentionally
+- **Flicker prevention**: Subtle upward scrolls don't rapidly toggle active team
+- **Commitment semantics**: Must scroll ~20px to "commit" to switching teams
 
 ### Progress-Driven Animations
 

@@ -10,7 +10,7 @@ import React, {
 } from "react";
 
 import { useRegisterFilterChangeHandlers } from "@/state/filters";
-import { useScrollSpy, type ScrollState } from "./useScrollSpy";
+import { useScrollSpy, type ScrollState, type BoundaryMode } from "./useScrollSpy";
 import {
   useSidebarStack,
   type SidebarEntity,
@@ -29,6 +29,7 @@ export interface ShellContextValue {
   activeTeam: string | null;
   sectionProgress: number;
   scrollState: ScrollState;
+  boundaryMode: BoundaryMode;
   registerSection: (teamCode: string, element: HTMLElement | null) => void;
   scrollToTeam: (teamCode: string, behavior?: ScrollBehavior) => void;
 
@@ -88,6 +89,7 @@ export function ShellProvider({
     activeTeam,
     sectionProgress,
     scrollState,
+    boundaryMode,
     registerSection,
     scrollToTeam,
   } = useScrollSpy({
@@ -104,7 +106,8 @@ export function ShellProvider({
     const el = canvasRef.current;
     if (!el) return;
     el.setAttribute("data-scroll-state", scrollState);
-  }, [scrollState]);
+    el.setAttribute("data-boundary-mode", boundaryMode);
+  }, [scrollState, boundaryMode]);
 
   // ---------------------------------------------------------------------------
   // Filter-change scroll preservation
@@ -209,6 +212,7 @@ export function ShellProvider({
       activeTeam,
       sectionProgress,
       scrollState,
+      boundaryMode,
       registerSection: registerSectionWithTracking,
       scrollToTeam,
       sidebarMode,
@@ -224,6 +228,7 @@ export function ShellProvider({
       activeTeam,
       sectionProgress,
       scrollState,
+      boundaryMode,
       registerSectionWithTracking,
       scrollToTeam,
       sidebarMode,

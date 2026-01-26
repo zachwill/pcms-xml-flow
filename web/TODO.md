@@ -95,6 +95,27 @@ When the user scrolls the main canvas while viewing an entity, the "back" destin
 - [x] Updated `SidebarPanel.tsx` to use the new component
 - [x] Removed inline logo loading/error state (now encapsulated in badge)
 
+### 5c) Improved scroll hysteresis with state machine ✅
+
+Previous implementation used a single hysteresis buffer for all scenarios, causing:
+- "Top-of-page drift" (small scrolls exposing content)
+- Active team flicker during upward boundary scrolls
+- Inconsistent behavior between scroll directions
+
+- [x] Rewrote `useScrollSpy` with a state-machine approach:
+  - **Anchor zone**: ~10px at top of each section where small movements are "trapped"
+  - **Commitment threshold**: ~20px of sustained upward scroll required to switch teams
+  - **Direction-aware**: Different hysteresis for up vs down scrolling
+  - **Boundary mode**: New `boundaryMode` state (`anchored | committed`)
+- [x] Reduced default `hysteresisBuffer` from 32px to 16px (anchor zone now handles most cases)
+- [x] Added `anchorZone` and `commitmentThreshold` options
+- [x] Updated `ShellProvider` and `ShellContextValue` to expose `boundaryMode`
+- [x] Added `data-boundary-mode` attribute to scroll container for CSS-based styling
+
+**Key insight from Silk:** Two distinct interaction modes:
+1. **Top-boundary anchoring** — keep user "stuck" to top unless intentional scroll
+2. **Normal scrolling** — minimal hysteresis, immediate team switches
+
 ---
 
 ## Deferred: Mobile Hardening

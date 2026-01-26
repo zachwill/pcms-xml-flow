@@ -14,8 +14,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * 2. Team Selector Grid highlight
  * 3. Scroll-linked animations (via sectionProgress)
  *
- * @see web/reference/silkhq/03-scroll-and-gesture-trapping.md
- * @see web/reference/silkhq/02-sheet-system-architecture.md
+ * @see web/reference/silkhq/07-scroll-and-scrolltrap.md
+ * @see web/reference/silkhq/04-sheet-runtime-model.md
  */
 
 // ============================================================================
@@ -55,20 +55,6 @@ export interface ScrollSpyOptions {
    * Allows scroll snap / momentum to complete.
    */
   settleDelay?: number;
-
-  /**
-   * Buffer in pixels for "active team hysteresis".
-   * Prevents rapid flipping between sections when near a boundary.
-   * If a team is active, it stays active until the user has scrolled
-   * this far past the boundary.
-   */
-  hysteresisBuffer?: number;
-
-  /**
-   * Small range in pixels at the top of a section where progress
-   * is forced to 0. Prevents accidental cutoff of top-row content.
-   */
-  topStickRange?: number;
 }
 
 export interface ScrollSpyResult {
@@ -120,8 +106,6 @@ export interface ScrollSpyResult {
 
 const DEFAULT_SCROLL_END_DELAY = 100;
 const DEFAULT_SETTLE_DELAY = 50;
-const DEFAULT_HYSTERESIS_BUFFER = 32;
-const DEFAULT_TOP_STICK_RANGE = 12;
 
 // ============================================================================
 // Hook Implementation
@@ -134,22 +118,13 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
     containerRef,
     scrollEndDelay = DEFAULT_SCROLL_END_DELAY,
     settleDelay = DEFAULT_SETTLE_DELAY,
-    hysteresisBuffer = DEFAULT_HYSTERESIS_BUFFER,
-    topStickRange = DEFAULT_TOP_STICK_RANGE,
   } = options;
 
   // ---------------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------------
 
-  const [activeTeam, _setActiveTeam] = useState<string | null>(null);
-  const activeTeamRef = useRef<string | null>(null);
-
-  const setActiveTeam = useCallback((team: string | null) => {
-    activeTeamRef.current = team;
-    _setActiveTeam(team);
-  }, []);
-
+  const [activeTeam, setActiveTeam] = useState<string | null>(null);
   const [sectionProgress, setSectionProgress] = useState(0);
   const [scrollState, setScrollState] = useState<ScrollState>("idle");
 
@@ -179,7 +154,6 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
    */
   const getScrollMetrics = useCallback(() => {
     const container = containerRef?.current;
-    const vv = window.visualViewport;
 
     if (container) {
       return {
@@ -190,12 +164,11 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
       };
     }
 
-    // Window scroll — prioritize visualViewport height on mobile
-    // to account for keyboard, but fallback to innerHeight/documentElement
+    // Window scroll
     return {
       scrollTop: window.scrollY ?? document.documentElement.scrollTop,
       scrollHeight: document.documentElement.scrollHeight,
-      clientHeight: vv ? vv.height : (window.innerHeight ?? document.documentElement.clientHeight),
+      clientHeight: window.innerHeight,
       containerTop: 0,
     };
   }, [containerRef]);
@@ -249,9 +222,10 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
     const metrics = getScrollMetrics();
     const threshold = metrics.scrollTop + topOffset + activationOffset;
 
-    // 1. Find the "Natural" Active Section
-    // This is the last section whose top is at or before the threshold.
-    let naturalIndex = -1;
+    // Find the active section: last section whose top is at or before threshold
+    let activeCode: string | null = null;
+    let activeIndex = -1;
+
     for (let i = sortedCodes.length - 1; i >= 0; i--) {
       const code = sortedCodes[i];
       if (!code) continue;
@@ -260,47 +234,24 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
       if (!element) continue;
 
       const elementTop = getElementTop(element);
+
       if (elementTop <= threshold) {
-        naturalIndex = i;
+        activeCode = code;
+        activeIndex = i;
         break;
       }
     }
 
-    // 2. Resolve Active Team with Hysteresis (Upward-Biased Gravity)
-    // Silk pattern: A section stays active even when its header has moved 
-    // slightly below the threshold, but only when scrolling UP.
-    // This prevents "boundary chatter" during scroll snaps.
-    const currentActive = activeTeamRef.current;
-    let activeIndex = naturalIndex;
-
-    if (currentActive && naturalIndex !== -1) {
-      const currentIndex = sortedCodes.indexOf(currentActive);
-      
-      // Case: Scrolling UP (Natural choice is ABOVE our current active team)
-      if (naturalIndex < currentIndex) {
-        const currentElement = sections.get(currentActive);
-        if (currentElement) {
-          const currentTop = getElementTop(currentElement);
-          
-          // Stick to the current team if its header is still "close" to the top
-          // (i.e. it hasn't fallen more than hysteresisBuffer pixels down)
-          if (currentTop <= threshold + hysteresisBuffer) {
-            activeIndex = currentIndex;
-          }
-        }
+    // If nothing found, use the first section (we're above all sections)
+    if (activeCode === null && sortedCodes.length > 0) {
+      const firstCode = sortedCodes[0];
+      if (firstCode) {
+        activeCode = firstCode;
+        activeIndex = 0;
       }
-      // Case: Scrolling DOWN (Natural is below Current)
-      // No hysteresis applied; the next team takes over immediately.
     }
 
-    // Fallback: If nothing above threshold, default to the first section
-    if (activeIndex === -1 && sortedCodes.length > 0) {
-      activeIndex = 0;
-    }
-
-    const activeCode = sortedCodes[activeIndex] ?? null;
-
-    // 3. Calculate Progress with "Top Stick" Clamping
+    // Calculate progress through the active section
     let progress = 0;
 
     if (activeCode !== null) {
@@ -308,39 +259,27 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
 
       if (activeElement) {
         const activeTop = getElementTop(activeElement);
-        
+
         // Find the next section (if any)
         const nextCode = sortedCodes[activeIndex + 1];
         const nextElement = nextCode ? sections.get(nextCode) : null;
 
         if (nextElement) {
+          // Progress = how far from active top to next top
           const nextTop = getElementTop(nextElement);
           const sectionHeight = nextTop - activeTop;
 
           if (sectionHeight > 0) {
-            // Apply Top-Stick: If we are within the stick range, progress is 0.
-            const rawDistance = threshold - activeTop;
-            const distanceScrolled = rawDistance < topStickRange ? 0 : rawDistance;
-            
+            const distanceScrolled = threshold - activeTop;
             progress = Math.max(0, Math.min(1, distanceScrolled / sectionHeight));
-
-            // Silk pattern: Edge Clamping
-            if (progress < 0.05) progress = 0;
-            if (progress > 0.95) progress = 1;
           }
         } else {
           // Last section: progress based on scroll to bottom
-          const rawDistance = threshold - activeTop;
-          const distanceScrolled = rawDistance < topStickRange ? 0 : rawDistance;
-          
+          const distanceScrolled = threshold - activeTop;
           const remainingScroll = metrics.scrollHeight - metrics.clientHeight - activeTop;
 
           if (remainingScroll > 0) {
             progress = Math.max(0, Math.min(1, distanceScrolled / remainingScroll));
-
-            // Silk pattern: Edge Clamping
-            if (progress < 0.05) progress = 0;
-            if (progress > 0.95) progress = 1;
           } else {
             progress = 1;
           }
@@ -349,7 +288,7 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
     }
 
     return [activeCode, progress];
-  }, [getScrollMetrics, getElementTop, topOffset, activationOffset, hysteresisBuffer, topStickRange]);
+  }, [getScrollMetrics, getElementTop, topOffset, activationOffset]);
 
   // ---------------------------------------------------------------------------
   // Scroll State Machine

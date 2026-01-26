@@ -24,8 +24,6 @@ export function MainCanvas({ className }: MainCanvasProps) {
       className={cx(
         "flex-1 overflow-y-auto overflow-x-hidden",
         "bg-background relative",
-        // Silk pattern: scroll snap for "slideshow" feel (subtle stick to headers)
-        "snap-y snap-proximity",
         className
       )}
       style={{ isolation: "isolate" }}

@@ -196,25 +196,26 @@ function SalaryProjections({
 }
 
 /**
- * Two-Way Capacity section
- * Shows games remaining for two-way players based on team's contract count
+ * Two-Way section
+ * - Shows the number of two-way players (from team_salary_warehouse)
+ * - Shows games remaining context (from team_two_way_capacity)
  */
 function TwoWayCapacitySection({
   capacity,
+  twoWayPlayerCount,
 }: {
   capacity: TwoWayCapacity | null;
+  twoWayPlayerCount: number | null;
 }) {
-  if (!capacity) {
+  // If we have neither a count nor capacity context, hide the section.
+  if (!capacity && twoWayPlayerCount === null) {
     return null;
   }
 
-  const isUnder15Contracts = (capacity.current_contract_count ?? 0) < 15;
-  const gamesRemainingLabel = isUnder15Contracts
-    ? "Games Remaining (Under 15)"
-    : "Games Remaining";
+  const isUnder15Contracts = (capacity?.current_contract_count ?? 0) < 15;
   const gamesRemainingValue = isUnder15Contracts
-    ? capacity.under_15_games_remaining
-    : capacity.games_remaining;
+    ? capacity?.under_15_games_remaining ?? null
+    : capacity?.games_remaining ?? null;
 
   // Red text if games remaining is below 30
   const gamesRemainingColor =
@@ -225,15 +226,19 @@ function TwoWayCapacitySection({
   return (
     <div className="border-t border-border pt-4">
       <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
-        Two-Way Capacity
+        Two-Way
       </div>
       <div className="space-y-0.5">
         <SimpleStatRow
-          label="Contracts"
-          value={capacity.current_contract_count}
+          label="Standard Contracts"
+          value={capacity?.current_contract_count ?? null}
         />
         <SimpleStatRow
-          label={gamesRemainingLabel}
+          label="Two-Way Contracts"
+          value={twoWayPlayerCount}
+        />
+        <SimpleStatRow
+          label="Games Remaining"
           value={gamesRemainingValue}
           valueClassName={gamesRemainingColor}
         />
@@ -308,8 +313,11 @@ export function CapOutlookTab({
         </div>
       )}
 
-      {/* Two-Way Capacity */}
-      <TwoWayCapacitySection capacity={twoWayCapacity} />
+      {/* Two-Way */}
+      <TwoWayCapacitySection
+        capacity={twoWayCapacity}
+        twoWayPlayerCount={currentSalary?.two_way_row_count ?? null}
+      />
     </>
   );
 }

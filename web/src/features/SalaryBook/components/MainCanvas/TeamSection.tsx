@@ -236,6 +236,7 @@ export function TeamSection({ teamCode }: TeamSectionProps) {
             roomUnderFirstApron={currentYearSalary?.room_under_first_apron ?? null}
             roomUnderSecondApron={currentYearSalary?.room_under_second_apron ?? null}
             rosterCount={currentYearSalary?.roster_row_count ?? null}
+            twoWayCount={currentYearSalary?.two_way_row_count ?? null}
             isActive={isActive}
           />
         }

@@ -42,6 +42,8 @@ export interface TeamHeaderProps {
   roomUnderSecondApron: number | null;
   /** Number of roster players */
   rosterCount: number | null;
+  /** Number of two-way contracts */
+  twoWayCount: number | null;
   /** Whether this team is currently active (scroll-spy) */
   isActive?: boolean;
 }
@@ -108,6 +110,7 @@ export function TeamHeader({
   roomUnderFirstApron,
   roomUnderSecondApron,
   rosterCount,
+  twoWayCount,
   isActive = false,
 }: TeamHeaderProps) {
   const { pushEntity } = useShellContext();
@@ -226,7 +229,18 @@ export function TeamHeader({
           ) : null}
         </div>
 
-        {/* Slot 2: above 26-27 */}
+        {/* Slot 2: Two-Way */}
+        <div className="w-24 shrink-0 flex justify-center">
+          {twoWayCount !== null ? (
+            <KpiCard
+              label="Two-Way"
+              value={`${twoWayCount}`}
+              title="Number of two-way contracts"
+            />
+          ) : null}
+        </div>
+
+        {/* Slot 3: Total */}
         <div className="w-24 shrink-0 flex justify-center">
           {currentYearTotal !== null ? (
             <KpiCard
@@ -237,7 +251,7 @@ export function TeamHeader({
           ) : null}
         </div>
 
-        {/* Slot 3: above 27-28 */}
+        {/* Slot 4: Cap Space */}
         <div className="w-24 shrink-0 flex justify-center">
           {currentYearCapSpace !== null ? (
             <KpiCard
@@ -249,7 +263,7 @@ export function TeamHeader({
           ) : null}
         </div>
 
-        {/* Slot 4: above 28-29 */}
+        {/* Slot 5: Tax Room */}
         <div className="w-24 shrink-0 flex justify-center">
           {roomUnderTax !== null ? (
             <KpiCard
@@ -261,7 +275,7 @@ export function TeamHeader({
           ) : null}
         </div>
 
-        {/* Slot 5: above 29-30 */}
+        {/* Slot 6: Apron 1 */}
         <div className="w-24 shrink-0 flex justify-center">
           {roomUnderFirstApron !== null ? (
             <KpiCard
@@ -273,7 +287,7 @@ export function TeamHeader({
           ) : null}
         </div>
 
-        {/* Slot 6: above Total column */}
+        {/* Slot 7: Apron 2 */}
         <div className="w-24 shrink-0 flex justify-center">
           {roomUnderSecondApron !== null ? (
             <KpiCard

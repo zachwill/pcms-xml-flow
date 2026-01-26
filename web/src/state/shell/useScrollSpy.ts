@@ -120,7 +120,7 @@ export interface ScrollSpyResult {
 
 const DEFAULT_SCROLL_END_DELAY = 100;
 const DEFAULT_SETTLE_DELAY = 50;
-const DEFAULT_HYSTERESIS_BUFFER = 32;
+const DEFAULT_HYSTERESIS_BUFFER = 20;
 const DEFAULT_TOP_STICK_RANGE = 12;
 
 // ============================================================================
@@ -275,22 +275,27 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
 
     if (currentActive && naturalIndex !== -1) {
       const currentIndex = sortedCodes.indexOf(currentActive);
-      
-      // Case: Scrolling UP (Natural choice is ABOVE our current active team)
-      if (naturalIndex < currentIndex) {
-        const currentElement = sections.get(currentActive);
-        if (currentElement) {
-          const currentTop = getElementTop(currentElement);
-          
+
+      const currentElement = sections.get(currentActive);
+      if (currentElement) {
+        const currentTop = getElementTop(currentElement);
+        const anchorDistance = currentTop - threshold;
+
+        // Top anchor: keep the current team active until we've moved
+        // beyond the top-stick range.
+        if (anchorDistance >= 0 && anchorDistance <= topStickRange) {
+          activeIndex = currentIndex;
+        } else if (naturalIndex < currentIndex) {
+          // Case: Scrolling UP (Natural choice is ABOVE our current active team)
           // Stick to the current team if its header is still "close" to the top
           // (i.e. it hasn't fallen more than hysteresisBuffer pixels down)
           if (currentTop <= threshold + hysteresisBuffer) {
             activeIndex = currentIndex;
           }
         }
+        // Case: Scrolling DOWN (Natural is below Current)
+        // No hysteresis applied; the next team takes over immediately.
       }
-      // Case: Scrolling DOWN (Natural is below Current)
-      // No hysteresis applied; the next team takes over immediately.
     }
 
     // Fallback: If nothing above threshold, default to the first section
@@ -366,14 +371,44 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
     }
   }, []);
 
+  const maybeClampToSectionTop = useCallback(() => {
+    const currentActive = activeTeamRef.current;
+    if (!currentActive) return;
+
+    const element = sectionsRef.current.get(currentActive);
+    if (!element) return;
+
+    const metrics = getScrollMetrics();
+    const activeTop = getElementTop(element);
+    const anchorThreshold = metrics.scrollTop + topOffset;
+    const anchorDistance = anchorThreshold - activeTop;
+
+    if (anchorDistance > 0 && anchorDistance < topStickRange) {
+      const targetTop = activeTop - topOffset;
+      const scrollTarget = containerRef?.current ?? window;
+
+      if (scrollTarget === window) {
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        const clampedTop = Math.max(0, Math.min(targetTop, maxScroll));
+        window.scrollTo({ top: clampedTop, behavior: "instant" });
+      } else if (containerRef?.current) {
+        const container = containerRef.current;
+        const maxScroll = container.scrollHeight - container.clientHeight;
+        const clampedTop = Math.max(0, Math.min(targetTop, maxScroll));
+        container.scrollTo({ top: clampedTop, behavior: "instant" });
+      }
+    }
+  }, [containerRef, getElementTop, getScrollMetrics, topOffset, topStickRange]);
+
   const transitionToSettling = useCallback(() => {
     setScrollState("settling");
+    maybeClampToSectionTop();
 
     settleTimerRef.current = window.setTimeout(() => {
       setScrollState("idle");
       settleTimerRef.current = null;
     }, settleDelay);
-  }, [settleDelay]);
+  }, [maybeClampToSectionTop, settleDelay]);
 
   const handleScrollStart = useCallback(() => {
     clearTimers();
@@ -404,7 +439,9 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
     rafRef.current = requestAnimationFrame(() => {
       const [newActiveTeam, newProgress] = calculateScrollState();
 
-      setActiveTeam((prev) => (prev !== newActiveTeam ? newActiveTeam : prev));
+      if (activeTeamRef.current !== newActiveTeam) {
+        setActiveTeam(newActiveTeam);
+      }
       setSectionProgress(newProgress);
 
       rafRef.current = null;

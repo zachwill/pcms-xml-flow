@@ -110,6 +110,7 @@ export interface ScrollSpyResult {
 
 const DEFAULT_SCROLL_END_DELAY = 100;
 const DEFAULT_SETTLE_DELAY = 50;
+const FADE_THRESHOLD = 0.8;
 
 // ============================================================================
 // Hook Implementation
@@ -279,6 +280,38 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
     return [activeSection.code, progress];
   }, [containerRef, topOffset, activationOffset]);
 
+  const applyFadedSections = useCallback((activeCode: string | null, progress: number) => {
+    const cached = cachedSectionsRef.current;
+    if (cached.length === 0) return;
+
+    if (!activeCode) {
+      cached.forEach((section) => {
+        const el = sectionsRef.current.get(section.code);
+        if (el) {
+          el.removeAttribute("data-faded");
+        }
+      });
+      return;
+    }
+
+    const activeIndex = cached.findIndex((s) => s.code === activeCode);
+
+    cached.forEach((section, index) => {
+      const el = sectionsRef.current.get(section.code);
+      if (!el) return;
+
+      const shouldFade =
+        activeIndex !== -1 &&
+        (index < activeIndex || (index === activeIndex && progress >= FADE_THRESHOLD));
+
+      if (shouldFade) {
+        el.setAttribute("data-faded", "");
+      } else {
+        el.removeAttribute("data-faded");
+      }
+    });
+  }, []);
+
   // ---------------------------------------------------------------------------
   // Scroll State Machine
   // ---------------------------------------------------------------------------
@@ -351,33 +384,13 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
       // =====================================================================
       // CSS-driven fading: only update data-faded attributes at boundaries
       // =====================================================================
-      const FADE_THRESHOLD = 0.8;
       const crossedThreshold =
         (prevProgress < FADE_THRESHOLD && newProgress >= FADE_THRESHOLD) ||
         (prevProgress >= FADE_THRESHOLD && newProgress < FADE_THRESHOLD);
       const teamChanged = newActiveTeam !== prevActiveTeam;
 
       if (teamChanged || crossedThreshold) {
-        const newActiveIndex = cached.findIndex((s) => s.code === newActiveTeam);
-
-        // Update data-faded on all sections
-        cached.forEach((section, index) => {
-          const el = sectionsRef.current.get(section.code);
-          if (!el) return;
-
-          // Teams before active → faded
-          // Active team when progress >= 80% → faded
-          // Everything else → not faded
-          const shouldFade =
-            index < newActiveIndex ||
-            (index === newActiveIndex && newProgress >= FADE_THRESHOLD);
-
-          if (shouldFade) {
-            el.setAttribute("data-faded", "");
-          } else {
-            el.removeAttribute("data-faded");
-          }
-        });
+        applyFadedSections(newActiveTeam, newProgress);
       }
 
       // Only update React state if activeTeam actually changed
@@ -386,7 +399,7 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
         setActiveTeam(newActiveTeam);
       }
     });
-  }, [handleScrollStart, handleScrollContinue, calculateFromCache]);
+  }, [handleScrollStart, handleScrollContinue, calculateFromCache, applyFadedSections]);
 
   // ---------------------------------------------------------------------------
   // Public API
@@ -407,15 +420,17 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
 
         // Recalculate active team if we haven't set one yet or on unregistration
         if (lastActiveTeamRef.current === null || !element) {
-          const [newActive] = calculateFromCache();
+          const [newActive, newProgress] = calculateFromCache();
           if (newActive) {
             lastActiveTeamRef.current = newActive;
+            sectionProgressRef.current = newProgress;
             setActiveTeam(newActive);
+            applyFadedSections(newActive, newProgress);
           }
         }
       });
     },
-    [rebuildPositionCache, calculateFromCache]
+    [rebuildPositionCache, calculateFromCache, applyFadedSections]
   );
 
   const scrollToTeam = useCallback(
@@ -428,6 +443,7 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
       lastActiveTeamRef.current = teamCode;
       setActiveTeam(teamCode);
       sectionProgressRef.current = 0;
+      applyFadedSections(teamCode, 0);
 
       // Scroll to position
       const targetTop = cached.top - topOffset;
@@ -448,7 +464,7 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
         });
       }
     },
-    [containerRef, topOffset]
+    [containerRef, topOffset, applyFadedSections]
   );
 
   // ---------------------------------------------------------------------------
@@ -464,9 +480,11 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
     rebuildPositionCache();
 
     // Initial active section
-    const [initialActive] = calculateFromCache();
+    const [initialActive, initialProgress] = calculateFromCache();
     lastActiveTeamRef.current = initialActive;
+    sectionProgressRef.current = initialProgress;
     setActiveTeam(initialActive);
+    applyFadedSections(initialActive, initialProgress);
 
     // Scroll listener (passive for perf)
     scrollTarget.addEventListener("scroll", handleScroll, { passive: true });
@@ -508,6 +526,7 @@ export function useScrollSpy(options: ScrollSpyOptions = {}): ScrollSpyResult {
     handleScroll,
     rebuildPositionCache,
     calculateFromCache,
+    applyFadedSections,
     clearTimers,
   ]);
 

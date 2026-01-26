@@ -1,6 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { cx, focusRing } from "@/lib/utils";
-import { animate, easings, durations } from "@/lib/animate";
 
 type TabId = "cap-outlook" | "team-stats";
 
@@ -44,25 +43,13 @@ export function TabToggle({
     const targetLeft = activeButton.offsetLeft;
     const targetWidth = activeButton.offsetWidth;
 
+    indicator.style.transform = `translateX(${targetLeft}px)`;
+    indicator.style.width = `${targetWidth}px`;
+
     if (!hasInitialized.current) {
-      // Initial position — set immediately without animation
-      indicator.style.transform = `translateX(${targetLeft}px)`;
-      indicator.style.width = `${targetWidth}px`;
       hasInitialized.current = true;
       setIsReady(true);
-      return;
     }
-
-    // Animate to new position
-    // WAAPI with single keyframe animates FROM current computed style TO target
-    animate(
-      indicator,
-      [{ transform: `translateX(${targetLeft}px)`, width: `${targetWidth}px` }],
-      {
-        duration: durations.fast,
-        easing: easings.snappy,
-      }
-    );
   }, [activeTab]);
 
   // Register tab button refs
@@ -86,6 +73,7 @@ export function TabToggle({
           "absolute top-1 bottom-1 rounded-md",
           "bg-background shadow-sm",
           "pointer-events-none",
+          "transition-[transform,width,opacity] duration-150 ease-out",
           // Start invisible until positioned (prevents flash)
           !isReady && "opacity-0"
         )}

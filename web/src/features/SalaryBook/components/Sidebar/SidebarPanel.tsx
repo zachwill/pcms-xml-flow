@@ -303,7 +303,7 @@ export function SidebarPanel({ className }: SidebarPanelProps) {
         {/* Base Layer: Team Context (utilizes full height) */}
         <div
           className={cx(
-            "absolute inset-0 overflow-y-auto overscroll-y-contain pt-4 px-4 pb-4 transition-opacity duration-300",
+            "absolute inset-0 overflow-y-auto overscroll-y-contain pt-2 px-4 pb-4 transition-opacity duration-300",
             isEntityMode ? "opacity-20 grayscale pointer-events-none" : "opacity-100"
           )}
           style={{ WebkitOverflowScrolling: "touch" }}

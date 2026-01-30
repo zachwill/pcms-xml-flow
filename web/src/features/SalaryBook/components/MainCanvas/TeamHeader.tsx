@@ -148,9 +148,9 @@ export function TeamHeader({
         </div>
 
         {/* Team name + Conference (stacked vertically) */}
-        <div className="grid grid-rows-[26px_18px] min-w-0">
+        <div className="grid grid-rows-[24px_16px] min-w-0">
           {/* Row A: Team name */}
-          <div className="h-[26px] flex items-end min-w-0">
+          <div className="h-[24px] flex items-end min-w-0">
             <button
               onClick={handleTeamClick}
               className={cx(
@@ -167,7 +167,7 @@ export function TeamHeader({
           </div>
 
           {/* Row B: Conference label */}
-          <div className="h-[18px] -mt-px flex items-start min-w-0">
+          <div className="h-[16px] -mt-px flex items-start min-w-0">
             <span className="text-[10px] leading-none tabular-nums text-muted-foreground/80 truncate">
               {conference}
             </span>

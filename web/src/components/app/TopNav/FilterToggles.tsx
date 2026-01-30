@@ -75,13 +75,12 @@ function DisplayGroup() {
   );
 }
 
-type RowsMode = "ctg" | "epm" | "intel" | "salary";
+type RowsMode = "ctg" | "epm" | "salary";
 
 const ROWS_OPTIONS: Array<{ value: RowsMode; label: string; disabled?: boolean }> = [
   { value: "ctg", label: "CTG", disabled: true },
   { value: "epm", label: "EPM", disabled: true },
-  { value: "intel", label: "Intel", disabled: true },
-  { value: "salary", label: "Salary" },
+  { value: "salary", label: "Salaries" },
 ];
 
 interface RowsRadioProps {

@@ -29,11 +29,11 @@ The Salary Book UI steals these patterns.
 ### 1) Scroll position IS state
 Silk’s core travel model: scroll position *is* the state.
 - In Salary Book: `activeTeam`, `sectionProgress`, `scrollState`.
-- Implementation: `web/src/state/shell/useScrollSpy.ts`
+- Implementation: `web/src/features/SalaryBook/shell/useScrollSpy.ts`
 
 ### 2) Safe-to-unmount lifecycle
 Silk’s staging machine decouples “open” vs “still mounted for exit animation”.
-- Implementation: `web/src/state/shell/useSidebarTransition.ts`
+- Implementation: `web/src/features/SalaryBook/shell/useSidebarTransition.ts`
 
 ### 3) WAAPI animations that persist end styles
 Silk pattern: `element.animate(..., { fill: 'forwards' })` -> `onfinish: commitStyles(); cancel();`.

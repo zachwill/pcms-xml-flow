@@ -1,17 +1,11 @@
 /**
- * SalaryBook — View
+ * SalaryBook — Compatibility alias
  *
- * The Salary Book is one view rendered inside the invariant AppShell.
- * The shell owns:
- * - fixed top nav / filters
- * - scroll-spy context
- * - sidebar state machine
+ * Keeps existing imports working while the view shell lives in SalaryBookPage.
  */
 
-import { AppShell } from "@/components/app";
-import { MainCanvas } from "./components/MainCanvas";
-import { SidebarPanel } from "./components/Sidebar";
+import { SalaryBookPage } from "./pages/SalaryBookPage";
 
 export function SalaryBook() {
-  return <AppShell main={<MainCanvas />} sidebar={<SidebarPanel />} />;
+  return <SalaryBookPage />;
 }

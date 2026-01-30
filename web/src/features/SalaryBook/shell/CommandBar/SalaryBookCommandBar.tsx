@@ -1,5 +1,5 @@
 /**
- * TopNav — Fixed navigation + filter header
+ * SalaryBookCommandBar — Fixed navigation + filter header
  *
  * Composes:
  * - TeamSelectorGrid: 30-team navigation grid with scroll-spy highlight
@@ -7,7 +7,7 @@
  * - ViewSelector: placeholder view list (Salary Book is the only active view today)
  *
  * Positioned fixed at viewport top with highest z-index.
- * Height: 130px (main content area is offset by this height)
+ * Height: SALARY_BOOK_COMMAND_BAR_HEIGHT (main content area is offset by this height)
  */
 
 import { cx } from "@/lib/utils";
@@ -21,23 +21,26 @@ import {
   type SidebarViewKey,
 } from "@/config/views";
 
+export const SALARY_BOOK_COMMAND_BAR_HEIGHT = 130;
+
 /**
- * TopNav — Main export
+ * SalaryBookCommandBar — Main export
  */
-export function TopNav() {
+export function SalaryBookCommandBar() {
   return (
     <div
       className={cx(
         // Fixed positioning at viewport top
         "fixed top-0 left-0 right-0 z-50",
-        // Height matches the topOffset in SalaryBookProvider
-        "h-[130px]",
         // Border
         "border-b border-border",
         // Layout - items aligned to start, not spread apart
         "flex items-start px-4 pt-3 gap-4"
       )}
-      style={{ backgroundColor: "var(--background, #fff)" }}
+      style={{
+        height: SALARY_BOOK_COMMAND_BAR_HEIGHT,
+        backgroundColor: "var(--background, #fff)",
+      }}
     >
       {/* Team Selector Grid */}
       <TeamSelectorGrid />

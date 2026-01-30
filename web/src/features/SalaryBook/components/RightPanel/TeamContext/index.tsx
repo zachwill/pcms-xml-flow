@@ -14,7 +14,7 @@
 
 import { useState, memo } from "react";
 import { cx } from "@/lib/utils";
-import { useShellScrollContext } from "@/state/shell";
+import { useShellScrollContext } from "@/features/SalaryBook/shell";
 import { useTeamSalary, useTeams, useTwoWayCapacity } from "../../../hooks";
 import { TeamContextHeader } from "./TeamContextHeader";
 import { TabToggle, type TabId } from "./TabToggle";

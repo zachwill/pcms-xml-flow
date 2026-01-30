@@ -1,34 +1,35 @@
 import React, { type ReactNode } from "react";
 
-import { ShellProvider } from "@/state/shell";
-import { TopNav } from "@/components/app/TopNav/TopNav";
+import { ThreePaneFrame } from "@/layouts/ThreePaneFrame";
 
 export interface AppShellProps {
+  /** Optional header slot. */
+  header?: ReactNode;
+  /** Main surface. */
   main: ReactNode;
-  sidebar: ReactNode;
+  /** Optional right-hand panel (legacy name: sidebar). */
+  sidebar?: ReactNode;
+  /** Header offset in pixels. */
+  headerHeight?: number;
 }
 
 /**
- * AppShell — The invariant application layout
+ * AppShell — Legacy wrapper around ThreePaneFrame
  *
- * - Fixed top navigation / filters header
- * - Single vertical scroll canvas (main)
- * - Intelligence sidebar (right)
+ * Kept for compatibility; new views should use ThreePaneFrame directly.
  */
-export function AppShell({ main, sidebar }: AppShellProps) {
+export function AppShell({
+  header,
+  main,
+  sidebar,
+  headerHeight,
+}: AppShellProps) {
   return (
-    <ShellProvider topOffset={0}>
-      <div className="h-screen w-screen flex flex-col overflow-hidden bg-background">
-        <TopNav />
-
-        <div
-          className="flex flex-1 overflow-hidden relative"
-          style={{ marginTop: "130px", zIndex: 0 }}
-        >
-          {main}
-          {sidebar}
-        </div>
-      </div>
-    </ShellProvider>
+    <ThreePaneFrame
+      header={header}
+      main={main}
+      right={sidebar}
+      headerHeight={headerHeight}
+    />
   );
 }

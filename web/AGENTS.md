@@ -109,8 +109,15 @@ src/
     routes/           # API route handlers (one file per domain)
   components/
     ui/               # Shared UI components
-    app/              # App-level components (TopNav, etc.)
+    app/              # Legacy app wrappers (AppShell)
+  layouts/
+    ThreePaneFrame/   # Slot-based layout frame (header/main/right)
   features/           # Feature modules (SalaryBook, etc.)
+    SalaryBook/
+      shell/          # SalaryBook runtime (scroll-spy, sidebar, transitions)
+        CommandBar/   # SalaryBook command bar (teams + filters)
+      components/
+        RightPanel/   # Right-hand intelligence panel
   lib/
     animate.ts        # WAAPI helpers (animate, tween, applyProgressStyles)
     server/
@@ -118,11 +125,6 @@ src/
       utils.ts        # Error handling helpers
     utils.ts          # Client utilities (cx, focusRing, etc.)
   state/
-    shell/            # Shell state (scroll-spy, sidebar, transitions)
-      useScrollSpy.ts         # Scroll-spy with sectionProgress
-      useSidebarStack.ts      # Sidebar entity stack
-      useSidebarTransition.ts # Animation lifecycle (safeToUnmount)
-      ShellProvider.tsx       # Context provider
     filters/          # Filter state
 specs/
   00-ui-philosophy.md

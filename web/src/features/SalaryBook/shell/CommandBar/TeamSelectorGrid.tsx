@@ -14,8 +14,8 @@ import { cx } from "@/lib/utils";
 import {
   useShellScrollContext,
   useShellTeamsContext,
-} from "@/state/shell";
-import { sortTeamsByOrder } from "@/state/shell/teamOrder";
+} from "@/features/SalaryBook/shell";
+import { sortTeamsByOrder } from "@/features/SalaryBook/shell/teamOrder";
 import { useTeams } from "@/features/SalaryBook/hooks";
 import type { Team } from "@/features/SalaryBook/data";
 

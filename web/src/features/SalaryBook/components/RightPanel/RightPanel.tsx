@@ -1,5 +1,5 @@
 /**
- * SidebarPanel — Main sidebar container with intentionally-shallow navigation
+ * RightPanel — Main right panel container with intentionally-shallow navigation
  *
  * Modes:
  * - DEFAULT MODE: Shows team context from scroll-spy active team
@@ -23,7 +23,7 @@ import {
   useShellSidebarContext,
   useSidebarTransition,
   type SidebarEntity,
-} from "@/state/shell";
+} from "@/features/SalaryBook/shell";
 import { useTeams } from "../../hooks";
 import { durations, easings } from "@/lib/animate";
 import { TeamContext } from "./TeamContext";
@@ -120,16 +120,16 @@ function EntityDetail({ entity }: { entity: SidebarEntity }) {
 }
 
 // ============================================================================
-// SidebarPanel
+// RightPanel
 // ============================================================================
 
-export interface SidebarPanelProps {
+export interface RightPanelProps {
   /** Additional className for the panel container */
   className?: string;
 }
 
 /**
- * SidebarPanel — Intelligence panel with stack-based entity navigation
+ * RightPanel — Intelligence panel with stack-based entity navigation
  *
  * State Machine:
  * - Empty stack (default mode): Shows scroll-spy active team context
@@ -143,7 +143,7 @@ export interface SidebarPanelProps {
  * - Header slides left, entity slides right, TeamContext slides up — all together
  * - No CSS transitions that fight with WAAPI
  */
-export function SidebarPanel({ className }: SidebarPanelProps) {
+export function RightPanel({ className }: RightPanelProps) {
   const { currentEntity, popEntity } = useShellSidebarContext();
   const { activeTeam } = useShellScrollContext();
 

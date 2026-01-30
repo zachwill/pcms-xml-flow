@@ -6,8 +6,8 @@
  */
 
 import { cx } from "@/lib/utils";
-import { useShellScrollContext, useShellTeamsContext } from "@/state/shell";
-import { TEAM_ORDER } from "@/state/shell/teamOrder";
+import { useShellScrollContext, useShellTeamsContext } from "@/features/SalaryBook/shell";
+import { TEAM_ORDER } from "@/features/SalaryBook/shell/teamOrder";
 import { TeamSection, TeamSectionPlaceholder } from "./TeamSection";
 
 export interface MainCanvasProps {

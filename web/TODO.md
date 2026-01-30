@@ -11,7 +11,7 @@ Focused follow-ups for the **Salary Book** UI (informed by `web/reference/silkhq
 ~~We have two implementations; only one should exist. Do this first to avoid confusion.~~
 
 - [x] **Deleted** `web/src/features/SalaryBook/hooks/useScrollSpy.ts` (dead; Shell uses the canonical one)
-- [x] Canonical hook: `web/src/state/shell/useScrollSpy.ts`
+- [x] Canonical hook: `web/src/features/SalaryBook/shell/useScrollSpy.ts`
 - [x] Verified no lingering imports
 
 ---
@@ -37,12 +37,12 @@ Focused follow-ups for the **Salary Book** UI (informed by `web/reference/silkhq
 
 ~~**Silk pattern:** Separate `open` from `safeToUnmount`. Mount if `open || !safeToUnmount`. On close, set `open=false` immediately but delay unmount until exit animation finishes.~~
 
-- [x] Added `web/src/state/shell/useSidebarTransition.ts`:
+- [x] Added `web/src/features/SalaryBook/shell/useSidebarTransition.ts`:
   - `stagedEntity` — the entity to render (lags behind during exit)
   - `transitionState` — `idle | entering | present | exiting | replacing`
   - `safeToUnmount` — false while animation running
   - `containerRef` — attach to element for WAAPI animations
-- [x] Updated `SidebarPanel.tsx` to use the hook
+- [x] Updated `RightPanel.tsx` to use the hook
 - [x] Entity now animates out before unmounting (slide + fade)
 
 ---
@@ -76,7 +76,7 @@ Focused follow-ups for the **Salary Book** UI (informed by `web/reference/silkhq
   - `scrollState` (`idle | scrolling | settling`) — scroll lifecycle
   - Cleaner architecture: sorted sections, proper progress calculation
   - Programmatic scroll locking to prevent flicker during `scrollToTeam`
-- [x] Updated `ShellProvider` and `ShellContextValue` to expose new values
+- [x] Updated `SalaryBookShellProvider` and `ShellContextValue` to expose new values
 - [x] Exported `ScrollState` and `ScrollSpyResult` types
 
 **Use cases unlocked:**
@@ -88,11 +88,11 @@ Focused follow-ups for the **Salary Book** UI (informed by `web/reference/silkhq
 
 When the user scrolls the main canvas while viewing an entity, the "back" destination changes silently. Now the back button's team logo crossfades to communicate this.
 
-- [x] Added `web/src/features/SalaryBook/components/Sidebar/BackButtonTeamBadge.tsx`:
+- [x] Added `web/src/features/SalaryBook/components/RightPanel/BackButtonTeamBadge.tsx`:
   - Tracks previous/current team with safeToUnmount pattern
   - Crossfades logo when `activeTeam` changes while in entity mode
   - Uses WAAPI `animate()` for scale+opacity transitions
-- [x] Updated `SidebarPanel.tsx` to use the new component
+- [x] Updated `RightPanel.tsx` to use the new component
 - [x] Removed inline logo loading/error state (now encapsulated in badge)
 
 ---

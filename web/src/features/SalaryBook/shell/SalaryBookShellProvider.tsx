@@ -22,7 +22,7 @@ import {
 // Context Types
 // ============================================================================
 
-const INITIAL_TEAMS = ["ATL", "BKN", "BOS", "POR"];
+const INITIAL_TEAMS = sortTeamsByOrder(["ATL", "BKN", "BOS", "POR"]);
 
 export interface ShellScrollContextValue {
   // Canvas ref (scroll container)
@@ -60,7 +60,7 @@ const ShellTeamsContext = createContext<ShellTeamsContextValue | null>(null);
 export function useShellScrollContext() {
   const ctx = useContext(ShellScrollContext);
   if (!ctx) {
-    throw new Error("useShellScrollContext must be used within <ShellProvider>");
+    throw new Error("useShellScrollContext must be used within <SalaryBookShellProvider>");
   }
   return ctx;
 }
@@ -68,7 +68,7 @@ export function useShellScrollContext() {
 export function useShellSidebarContext() {
   const ctx = useContext(ShellSidebarContext);
   if (!ctx) {
-    throw new Error("useShellSidebarContext must be used within <ShellProvider>");
+    throw new Error("useShellSidebarContext must be used within <SalaryBookShellProvider>");
   }
   return ctx;
 }
@@ -76,7 +76,7 @@ export function useShellSidebarContext() {
 export function useShellTeamsContext() {
   const ctx = useContext(ShellTeamsContext);
   if (!ctx) {
-    throw new Error("useShellTeamsContext must be used within <ShellProvider>");
+    throw new Error("useShellTeamsContext must be used within <SalaryBookShellProvider>");
   }
   return ctx;
 }
@@ -85,7 +85,7 @@ export function useShellTeamsContext() {
 // Provider
 // ============================================================================
 
-export interface ShellProviderProps {
+export interface SalaryBookShellProviderProps {
   children: ReactNode;
 
   /** Sticky threshold offset INSIDE the scroll container (typically 0). */
@@ -95,11 +95,11 @@ export interface ShellProviderProps {
   activationOffset?: number;
 }
 
-export function ShellProvider({
+export function SalaryBookShellProvider({
   children,
   topOffset = 0,
   activationOffset = 0,
-}: ShellProviderProps) {
+}: SalaryBookShellProviderProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // ---------------------------------------------------------------------------

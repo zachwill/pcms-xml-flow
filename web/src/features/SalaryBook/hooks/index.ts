@@ -16,7 +16,7 @@ export {
   type TeamEntity,
   type ScrollState,
   type ScrollSpyResult,
-} from "@/state/shell";
+} from "@/features/SalaryBook/shell";
 export { useTeams, type UseTeamsReturn } from "./useTeams";
 export { usePlayers, type UsePlayersReturn } from "./usePlayers";
 export { useTeamSalary, type UseTeamSalaryReturn } from "./useTeamSalary";

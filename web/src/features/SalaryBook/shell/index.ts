@@ -1,12 +1,13 @@
 export {
-  ShellProvider,
+  SalaryBookShellProvider,
   useShellScrollContext,
   useShellSidebarContext,
   useShellTeamsContext,
   type ShellScrollContextValue,
   type ShellSidebarContextValue,
   type ShellTeamsContextValue,
-} from "./ShellProvider";
+  type SalaryBookShellProviderProps,
+} from "./SalaryBookShellProvider";
 export { useScrollSpy, type ScrollState, type ScrollSpyResult } from "./useScrollSpy";
 export {
   useSidebarStack,

@@ -1,5 +1,5 @@
 /**
- * FilterToggles — TopNav filter controls
+ * FilterToggles — Command bar filter controls
  *
  * Today we expose two controls:
  * - Display: checkbox filters that shape the Salary Book table

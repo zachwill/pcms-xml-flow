@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SWRConfig } from "swr";
-import { SalaryBook } from "@/features/SalaryBook";
+import { SalaryBookPage } from "@/features/SalaryBook";
 import { ToastProvider } from "@/components/ui";
 import { FilterProvider } from "@/state/filters";
 
@@ -19,7 +19,7 @@ function App() {
           <BrowserRouter>
             <Routes>
               {/* Salary Book is the only active view today */}
-              <Route path="/" element={<SalaryBook />} />
+              <Route path="/" element={<SalaryBookPage />} />
 
               {/* Backwards-compatible alias */}
               <Route path="/salary-book" element={<Navigate to="/" replace />} />

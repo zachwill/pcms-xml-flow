@@ -13,7 +13,7 @@
 import React from "react";
 
 import { cx, formatters, focusRing } from "@/lib/utils";
-import { useShellSidebarContext, type AgentEntity } from "@/state/shell";
+import { useShellSidebarContext, type AgentEntity } from "@/features/SalaryBook/shell";
 import { TwoWaySalaryBadge } from "../MainCanvas/badges";
 import { useAgent, useTeams, type AgentClientPlayer } from "../../hooks";
 

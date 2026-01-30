@@ -11,7 +11,7 @@
  */
 
 import { cx } from "@/lib/utils";
-import type { PickEntity } from "@/state/shell";
+import type { PickEntity } from "@/features/SalaryBook/shell";
 import { usePickDetail, useTeams } from "../../../hooks";
 import { PickHeader } from "./PickHeader";
 import { PickTransfer } from "./PickTransfer";

@@ -17,7 +17,7 @@ import {
   type PlayerEntity,
   type AgentEntity,
   type PickEntity,
-} from "@/state/shell";
+} from "@/features/SalaryBook/shell";
 import { useFilters } from "@/state/filters";
 import {
   usePlayers,

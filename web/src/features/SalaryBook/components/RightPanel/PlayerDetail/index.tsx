@@ -12,7 +12,7 @@
  */
 
 import { cx } from "@/lib/utils";
-import { useShellSidebarContext, type PlayerEntity } from "@/state/shell";
+import { useShellSidebarContext, type PlayerEntity } from "@/features/SalaryBook/shell";
 import { usePlayer, useTeams } from "../../../hooks";
 import { PlayerHeader } from "./PlayerHeader";
 import { ContractSummary } from "./ContractSummary";

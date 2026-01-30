@@ -360,7 +360,7 @@ el.style.opacity = tween("1", "0.7", sectionProgress);
 
 ### Implementation
 
-**Hook:** `useScrollSpy` in `src/state/shell/useScrollSpy.ts`
+**Hook:** `useScrollSpy` in `src/features/SalaryBook/shell/useScrollSpy.ts`
 
 **Key implementation details:**
 - Sections registered via `registerSection(teamCode, element)`

@@ -43,9 +43,9 @@ We're building a **front-office instrument**, not a documentation UI. Key princi
 
 | File | Purpose |
 |------|---------|
-| `src/state/shell/useScrollSpy.ts` | **Scroll-spy with progress** — tracks `activeTeam`, `sectionProgress`, `scrollState` |
-| `src/state/shell/useSidebarTransition.ts` | **Sidebar animations** — safeToUnmount pattern for entity transitions |
-| `src/state/shell/ShellProvider.tsx` | **Shell context** — provides scroll-spy + sidebar state to the app |
+| `src/features/SalaryBook/shell/useScrollSpy.ts` | **Scroll-spy with progress** — tracks `activeTeam`, `sectionProgress`, `scrollState` |
+| `src/features/SalaryBook/shell/useSidebarTransition.ts` | **Sidebar animations** — safeToUnmount pattern for entity transitions |
+| `src/features/SalaryBook/shell/SalaryBookShellProvider.tsx` | **Shell context** — provides scroll-spy + sidebar state to the app |
 | `src/lib/animate.ts` | **WAAPI helpers** — `animate()`, `tween()`, `applyProgressStyles()` |
 
 ### Reference material
@@ -167,7 +167,7 @@ bun run typecheck  # Verify types
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         ShellProvider                           │
+│                 SalaryBookShellProvider                         │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  useScrollSpy                                             │   │
 │  │  ├── activeTeam: string | null                           │   │
@@ -185,7 +185,7 @@ bun run typecheck  # Verify types
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                        SidebarPanel                             │
+│                         RightPanel                              │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  useSidebarTransition(currentEntity)                      │   │
 │  │  ├── stagedEntity (lags during exit)                     │   │

@@ -1,10 +1,10 @@
 /**
- * Sidebar Barrel Export
+ * RightPanel Barrel Export
  *
- * Exports all sidebar components for the Salary Book feature.
+ * Exports all right panel components for the Salary Book feature.
  */
 
-export { SidebarPanel, type SidebarPanelProps } from "./SidebarPanel";
+export { RightPanel, type RightPanelProps } from "./RightPanel";
 export { TeamContext, type TeamContextProps } from "./TeamContext";
 export { PlayerDetail, type PlayerDetailProps } from "./PlayerDetail";
 export { AgentDetail, type AgentDetailProps } from "./AgentDetail";

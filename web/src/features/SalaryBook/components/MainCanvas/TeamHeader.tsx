@@ -15,7 +15,7 @@
 
 import React from "react";
 import { cx, formatters } from "@/lib/utils";
-import { useShellSidebarContext, type TeamEntity } from "@/state/shell";
+import { useShellSidebarContext, type TeamEntity } from "@/features/SalaryBook/shell";
 import { KpiCell } from "./KpiCell";
 
 // ============================================================================

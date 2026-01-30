@@ -10,8 +10,9 @@
  *   import type { SalaryBookPlayer, Team } from "@/features/SalaryBook";
  */
 
-// Main component
+// Main components
 export { SalaryBook } from "./SalaryBook";
+export { SalaryBookPage } from "./pages/SalaryBookPage";
 
 // Hooks
 export {

@@ -1,2 +1,2 @@
 export { MainCanvas, TeamSection } from "./MainCanvas";
-export { SidebarPanel } from "./Sidebar";
+export { RightPanel } from "./RightPanel";

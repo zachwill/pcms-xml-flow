@@ -331,7 +331,7 @@ function PlayerStickyColumn({
       )}
     >
       <div
-        className="grid grid-cols-[40px_1fr] grid-rows-[28px_20px]"
+        className="grid grid-cols-[40px_1fr] grid-rows-[26px_18px]"
         aria-label={`${rowName} player info`}
       >
         {/* Headshot spans both sub-rows */}
@@ -340,16 +340,16 @@ function PlayerStickyColumn({
         </div>
 
         {/* Row A: Name */}
-        <div className="h-7 flex items-end min-w-0 pl-1 pr-2">
+        <div className="h-[26px] flex items-end min-w-0 pl-1 pr-2">
           <span className="truncate font-medium text-[14px] group-hover:text-primary transition-colors">
             {rowName}
           </span>
         </div>
 
         {/* Row B: Details */}
-        <div className="h-5 -mt-0.5 flex items-start gap-2 min-w-0 pl-1 pr-2 leading-none text-xs text-muted-foreground">
+        <div className="h-[18px] -mt-px flex items-start gap-2 min-w-0 pl-1 pr-2 leading-none text-[10px] text-muted-foreground/80 tabular-nums">
           {player.position && <PositionChip position={player.position} />}
-          <span className="tabular-nums">
+          <span>
             {player.age !== null && <>{Number(player.age).toFixed(1)} YRS</>}
             {player.age !== null &&
               player.experience !== null &&
@@ -429,7 +429,7 @@ function SalaryYearCell({
       className={cx(
         "w-24 shrink-0",
         showTwoWayBadge
-          ? "grid place-items-center h-[calc(1.75rem+1.25rem-0.125rem)]"
+          ? "grid place-items-center h-[42px]"
           : "flex flex-col",
         cellStyle.bgClass,
         cellStyle.textClass
@@ -443,7 +443,7 @@ function SalaryYearCell({
           {/* Row A: Salary */}
           <div
             className={cx(
-              "h-7 flex items-end justify-center text-sm",
+              "h-[26px] flex items-end justify-center text-sm",
               salary === null && "text-muted-foreground/50"
             )}
           >
@@ -453,14 +453,19 @@ function SalaryYearCell({
             />
           </div>
           {/* Row B: Percent of cap with percentile blocks */}
-          <div className="h-5 -mt-0.5 flex items-start justify-center">
+          <div className="h-[18px] -mt-px flex items-start justify-center">
             {pctCapDisplay && (
-              <span className="text-[10px] tabular-nums italic opacity-70 whitespace-nowrap">
+              <span
+                className={cx(
+                  "text-[10px] leading-none tabular-nums whitespace-nowrap",
+                  // If the salary cell is tinted (option/guarantee/etc), let the pct-cap
+                  // line inherit that color and just soften via opacity.
+                  cellStyle.textClass ? "opacity-80" : "text-muted-foreground/80"
+                )}
+              >
                 {pctCapDisplay.label}
                 {pctCapDisplay.blocks && (
-                  <span className="ml-0.5 not-italic opacity-60">
-                    {pctCapDisplay.blocks}
-                  </span>
+                  <span className="ml-0.5 opacity-70">{pctCapDisplay.blocks}</span>
                 )}
               </span>
             )}
@@ -491,7 +496,7 @@ function TotalSalaryCell({
       className={cx(
         "w-24 shrink-0",
         showTotalTwoWay
-          ? "grid place-items-center h-[calc(1.75rem+1.25rem-0.125rem)]"
+          ? "grid place-items-center h-[42px]"
           : "flex flex-col"
       )}
       title={contractTypeLabel ?? undefined}
@@ -505,17 +510,23 @@ function TotalSalaryCell({
         />
       ) : (
         <>
-          <div className="h-7 flex items-end justify-center text-sm">
+          <div className="h-[26px] flex items-end justify-center text-sm">
             <PlayerSalary
               amount={totalSalary}
               slotWidth="7ch"
               className="font-semibold"
             />
           </div>
-          <div className="h-5 -mt-0.5 flex items-start justify-center">
-            <span className="text-[10px] tabular-nums italic leading-none opacity-50 whitespace-nowrap">
-              {contractTypeCode ?? "—"}
-            </span>
+          <div className="h-[18px] -mt-px flex items-start justify-center">
+            {contractTypeCode ? (
+              <span className="text-[10px] leading-none tabular-nums whitespace-nowrap text-gray-400 dark:text-gray-500">
+                {contractTypeCode}
+              </span>
+            ) : (
+              <span className="text-[10px] leading-none tabular-nums whitespace-nowrap text-gray-400/50 dark:text-gray-500/50">
+                —
+              </span>
+            )}
           </div>
         </>
       )}
@@ -535,7 +546,7 @@ function AgentAgencyColumn({
   return (
     <div className="w-40 shrink-0 flex flex-col pr-4">
       {/* Row A: Agent name (baseline-aligned with player name + total) */}
-      <div className="h-7 flex items-end justify-start min-w-0">
+      <div className="h-[26px] flex items-end justify-start min-w-0">
         {player.agent_name ? (
           <button
             onClick={onAgentClick}
@@ -554,11 +565,13 @@ function AgentAgencyColumn({
         )}
       </div>
       {/* Row B: Agency + Bird rights + Free agency */}
-      <div className="h-5 -mt-0.5 flex items-start justify-start gap-1.5 leading-none text-xs text-muted-foreground min-w-0">
-        {player.agency_name && (
-          <span className="text-gray-400 dark:text-gray-500 truncate italic">
+      <div className="h-[18px] -mt-px flex items-start justify-start gap-1.5 leading-none text-[10px] tabular-nums min-w-0">
+        {player.agency_name ? (
+          <span className="text-gray-400 dark:text-gray-500 truncate">
             {player.agency_name}
           </span>
+        ) : (
+          <span className="text-gray-400/50 dark:text-gray-500/50">—</span>
         )}
         {player.bird_rights && <BirdRightsBadge birdRights={player.bird_rights} />}
         {player.free_agency_type && (

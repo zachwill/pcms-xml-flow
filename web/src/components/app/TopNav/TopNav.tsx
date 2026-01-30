@@ -35,7 +35,7 @@ export function TopNav() {
         // Border
         "border-b border-border",
         // Layout - items aligned to start, not spread apart
-        "flex items-start px-4 pt-3 gap-6"
+        "flex items-start px-4 pt-3 gap-4"
       )}
       style={{ backgroundColor: "var(--background, #fff)" }}
     >
@@ -52,18 +52,22 @@ export function TopNav() {
       <div className="h-20 w-px bg-border self-center" />
 
       {/* Views: placeholder (Salary Book is the only active view right now) */}
-      <ViewSelector<MainViewKey>
-        title="Main View"
-        views={MAIN_VIEWS}
-        activeView="salary-book"
-      />
+      <div className="min-w-[4.5rem]">
+        <ViewSelector<MainViewKey>
+          title="App"
+          views={MAIN_VIEWS}
+          activeView="salary-book"
+        />
+      </div>
 
       {/* Sidebar Views: placeholder */}
-      <ViewSelector<SidebarViewKey>
-        title="Sidebar View"
-        views={SIDEBAR_VIEWS}
-        activeView="team-view"
-      />
+      <div className="min-w-[4.5rem]">
+        <ViewSelector<SidebarViewKey>
+          title="Sidebar"
+          views={SIDEBAR_VIEWS}
+          activeView="team-view"
+        />
+      </div>
     </div>
   );
 }

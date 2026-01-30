@@ -435,7 +435,10 @@ salaryBookRouter.get("/agent/:agentId", async (req) => {
         NULLIF(TRIM(CONCAT_WS(' ', p.display_first_name, p.display_last_name)), ''),
         s.player_name
       ) as player_name,
+      p.display_first_name,
+      p.display_last_name,
       COALESCE(NULLIF(s.person_team_code, ''), s.team_code) as team_code,
+      s.age,
       p.years_of_service,
       s.cap_2025::numeric,
       s.cap_2026::numeric,

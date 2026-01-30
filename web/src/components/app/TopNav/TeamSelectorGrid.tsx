@@ -183,7 +183,7 @@ export function TeamSelectorGrid() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex gap-6">
+      <div className="flex gap-4">
         <div className="space-y-1">
           <div className="h-3 w-16 bg-muted/50 rounded animate-pulse" />
           <div className="grid grid-cols-5 gap-1">
@@ -214,7 +214,7 @@ export function TeamSelectorGrid() {
   }
 
   return (
-    <div className="flex gap-6">
+    <div className="flex gap-4">
       <ConferenceGrid
         label="Eastern"
         teams={teamsByConference.EAST}

@@ -34,11 +34,22 @@ export function useTransformCompensation(
       if (parts && parts[1]) {
         const matrix = parts[1].split(", ").map(Number);
         if (matrix.length === 6) {
-          const [a, b, c, d, tx, ty] = matrix;
-          
-          // Apply inverse transform to target
-          // Using translate3d(0,0,0) as base to ensure layer promotion
-          target.style.transform = `matrix(${1/a}, ${-b}, ${-c}, ${1/d}, ${-tx}, ${-ty})`;
+          const [a, b, c, d, tx, ty] = matrix as [
+            number,
+            number,
+            number,
+            number,
+            number,
+            number,
+          ];
+
+          // Apply inverse transform to target.
+          // Using translate3d(0,0,0) as base to ensure layer promotion.
+          if (a !== 0 && d !== 0) {
+            target.style.transform = `matrix(${1 / a}, ${-b}, ${-c}, ${1 / d}, ${-tx}, ${-ty})`;
+          } else {
+            target.style.transform = "";
+          }
         }
       }
     } else {

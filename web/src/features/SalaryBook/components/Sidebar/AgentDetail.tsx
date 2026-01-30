@@ -10,6 +10,8 @@
  * 3. Client roster (clickable player list with salary summaries)
  */
 
+import React from "react";
+
 import { cx, formatters, focusRing } from "@/lib/utils";
 import { useShellSidebarContext, type AgentEntity } from "@/state/shell";
 import { TwoWaySalaryBadge } from "../MainCanvas/badges";
@@ -92,6 +94,58 @@ function AgentHeader({
   );
 }
 
+/**
+ * Team avatar (logo) with fallback to tricode
+ */
+function TeamAvatar({
+  teamId,
+  teamCode,
+  teamName,
+  className,
+}: {
+  teamId: number | null;
+  teamCode: string;
+  teamName: string;
+  className?: string;
+}) {
+  const [logoErrored, setLogoErrored] = React.useState(false);
+
+  const logoUrl = teamId
+    ? `https://cdn.nba.com/logos/nba/${teamId}/primary/L/logo.svg`
+    : null;
+
+  React.useEffect(() => {
+    setLogoErrored(false);
+  }, [teamId]);
+
+  return (
+    <div
+      className={cx(
+        "rounded-full border border-border bg-background overflow-hidden",
+        "flex items-center justify-center",
+        className
+      )}
+      title={teamName}
+      aria-label={teamName}
+    >
+      {logoUrl && !logoErrored ? (
+        <img
+          src={logoUrl}
+          alt={`${teamName} logo`}
+          className="w-full h-full object-contain p-0.5"
+          loading="lazy"
+          decoding="async"
+          onError={() => setLogoErrored(true)}
+        />
+      ) : (
+        <span className="text-[9px] font-semibold text-muted-foreground">
+          {teamCode}
+        </span>
+      )}
+    </div>
+  );
+}
+
 /** Fallback headshot for when NBA CDN image fails */
 const FALLBACK_HEADSHOT_DATA_URI =
   "data:image/svg+xml;utf8," +
@@ -104,17 +158,35 @@ const FALLBACK_HEADSHOT_DATA_URI =
   "</svg>";
 
 /**
+ * Format player name for row display
+ * Requirement: LAST, FIRST (fallback to player_name)
+ */
+function getClientRowName(client: AgentClientPlayer): string {
+  const last = client.display_last_name?.trim() || "";
+  const first = client.display_first_name?.trim() || "";
+
+  if (last && first) return `${last}, ${first}`;
+  if (last) return last;
+  if (first) return first;
+  return client.player_name;
+}
+
+/**
  * Client row — single player in the client list
  */
 function ClientRow({
   client,
   teamName,
+  teamId,
   onClick,
 }: {
   client: AgentClientPlayer;
   teamName: string;
+  teamId: number | null;
   onClick: () => void;
 }) {
+  const rowName = getClientRowName(client);
+
   // Build headshot URL from player id
   const headshotUrl = `https://cdn.nba.com/headshots/nba/latest/1040x760/${client.id}.png`;
 
@@ -131,63 +203,89 @@ function ClientRow({
     client.cap_2030,
   ].reduce<number>((sum, val) => sum + Number(val ?? 0), 0);
 
+  // Build metadata line: Team Name · AGE · YOS
+  const metaParts: string[] = [];
+  if (client.age) metaParts.push(`${Number(client.age).toFixed(1)} YRS`);
+  if (client.years_of_service !== null && client.years_of_service !== undefined) {
+    metaParts.push(`${client.years_of_service} YOS`);
+  }
+
+  const detailLine = metaParts.length > 0 ? metaParts.join(" · ") : teamName;
+
   return (
     <button
       type="button"
       onClick={onClick}
       className={cx(
         "w-full text-left",
-        "flex items-center justify-between gap-3",
-        "py-2.5 px-2 rounded-lg",
+        // Match Main View row density
+        "flex items-center justify-between gap-2",
+        "py-0.5 px-1.5 rounded-md",
         "hover:bg-muted/50 transition-colors",
         focusRing()
       )}
     >
-      {/* Player headshot */}
-      <div className="w-8 h-8 rounded border border-border bg-background overflow-hidden flex-shrink-0">
-        <img
-          src={headshotUrl}
-          alt={client.player_name}
-          className="w-full h-full object-cover object-top bg-muted"
-          loading="lazy"
-          decoding="async"
-          onError={(e) => {
-            if (e.currentTarget.src !== FALLBACK_HEADSHOT_DATA_URI) {
-              e.currentTarget.src = FALLBACK_HEADSHOT_DATA_URI;
-            }
-          }}
+      {/* Team avatar + player headshot (side-by-side) */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <TeamAvatar
+          teamId={teamId}
+          teamCode={client.team_code}
+          teamName={teamName}
+          className="w-7 h-7"
         />
+        <div className="w-7 h-7 rounded border border-border bg-background overflow-hidden">
+          <img
+            src={headshotUrl}
+            alt={rowName}
+            className="w-full h-full object-cover object-top bg-muted"
+            loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              if (e.currentTarget.src !== FALLBACK_HEADSHOT_DATA_URI) {
+                e.currentTarget.src = FALLBACK_HEADSHOT_DATA_URI;
+              }
+            }}
+          />
+        </div>
       </div>
 
       <div className="flex-1 min-w-0">
-        {/* Player name */}
-        <div className="font-medium text-sm truncate">{client.player_name}</div>
+        {/* Row A: Name */}
+        <div className="h-[26px] flex items-end min-w-0">
+          <div className="font-medium text-[14px] truncate">{rowName}</div>
+        </div>
 
-        {/* Team + position */}
-        <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <span>{client.team_code}</span>
-          <span>·</span>
-          <span>{teamName}</span>
+        {/* Row B: Details (match Main View secondary line rhythm) */}
+        <div className="h-[18px] -mt-px flex items-start min-w-0 leading-none text-[10px] text-muted-foreground/80 tabular-nums">
+          <span className="truncate">{detailLine}</span>
         </div>
       </div>
 
       {/* Salary info */}
       <div className="flex-shrink-0 text-right">
         {client.is_two_way ? (
-          <div className="flex justify-end">
+          <div className="grid place-items-center h-[44px]">
             <TwoWaySalaryBadge />
           </div>
         ) : currentSalary !== null && currentSalary > 0 ? (
           <>
-            <div className="font-mono tabular-nums text-sm font-medium">
-              {formatters.compactCurrency(currentSalary)}
+            <div className="h-[26px] flex items-end justify-end">
+              <div className="font-mono tabular-nums text-sm font-medium whitespace-nowrap">
+                {formatters.compactCurrency(currentSalary)}
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              {formatters.compactCurrency(totalValue)} total
+            <div className="h-[18px] -mt-px flex items-start justify-end">
+              <div className="text-[10px] leading-none tabular-nums whitespace-nowrap text-gray-400 dark:text-gray-500">
+                {formatters.compactCurrency(totalValue)} total
+              </div>
             </div>
           </>
         ) : (
-          <div className="text-xs text-muted-foreground italic">No salary</div>
+          <div className="grid place-items-center h-[44px]">
+            <div className="text-[10px] leading-none font-mono tabular-nums text-muted-foreground/60 italic whitespace-nowrap">
+              No salary
+            </div>
+          </div>
         )}
       </div>
 
@@ -215,11 +313,11 @@ function ClientRow({
  */
 function ClientRoster({
   clients,
-  getTeamName,
+  getTeamInfo,
   onClientClick,
 }: {
   clients: AgentClientPlayer[];
-  getTeamName: (teamCode: string) => string;
+  getTeamInfo: (teamCode: string) => { teamName: string; teamId: number | null };
   onClientClick: (client: AgentClientPlayer) => void;
 }) {
   if (clients.length === 0) {
@@ -260,14 +358,19 @@ function ClientRoster({
       </div>
 
       <div className="divide-y divide-border/50">
-        {sortedClients.map((client) => (
-          <ClientRow
-            key={client.id}
-            client={client}
-            teamName={getTeamName(client.team_code)}
-            onClick={() => onClientClick(client)}
-          />
-        ))}
+        {sortedClients.map((client) => {
+          const { teamName, teamId } = getTeamInfo(client.team_code);
+
+          return (
+            <ClientRow
+              key={client.id}
+              client={client}
+              teamName={teamName}
+              teamId={teamId}
+              onClick={() => onClientClick(client)}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -347,9 +450,12 @@ export function AgentDetail({ entity, className }: AgentDetailProps) {
   // Fetch agent data
   const { agent, isLoading, error } = useAgent(entity.agentId);
 
-  // Helper to get team name from code
-  const getTeamName = (teamCode: string): string => {
-    return getTeam(teamCode)?.name ?? teamCode;
+  const getTeamInfo = (teamCode: string): { teamName: string; teamId: number | null } => {
+    const team = getTeam(teamCode);
+    return {
+      teamName: team?.name ?? teamCode,
+      teamId: team?.team_id ?? null,
+    };
   };
 
   // Handle client click — push player entity onto stack
@@ -357,7 +463,7 @@ export function AgentDetail({ entity, className }: AgentDetailProps) {
     pushEntity({
       type: "player",
       playerId: Number(client.id),
-      playerName: client.player_name,
+      playerName: getClientRowName(client),
       teamCode: client.team_code,
     });
   };
@@ -394,7 +500,7 @@ export function AgentDetail({ entity, className }: AgentDetailProps) {
       {/* Client Roster */}
       <ClientRoster
         clients={agent.clients}
-        getTeamName={getTeamName}
+        getTeamInfo={getTeamInfo}
         onClientClick={handleClientClick}
       />
     </div>

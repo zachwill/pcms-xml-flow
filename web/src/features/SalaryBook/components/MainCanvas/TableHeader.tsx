@@ -1,11 +1,10 @@
 /**
- * TableHeader — Two-row header for the salary table
+ * TableHeader — One-row header for the salary table
  *
  * Designed to be part of the iOS Contacts-style sticky header group
  * along with TeamHeader. This header sticks below the team header.
  *
- * Row 1: Category groups (PLAYER INFO | CONTRACT YEARS | MANAGEMENT)
- * Row 2: Column labels (Name | year columns | Agent)
+ * Row: Column labels (Name | year columns | Total | Agent)
  *
  * Features:
  * - Opaque background to prevent content bleed-through
@@ -36,44 +35,7 @@ export function TableHeader({ years = DEFAULT_YEARS }: TableHeaderProps) {
   return (
     // Fully opaque background - no bleed-through
     <div className="border-b border-border bg-background">
-      {/* Row 1: Category groups */}
-      <div
-        className={cx(
-          "h-6 flex items-center",
-          "text-[10px] font-medium uppercase tracking-wide",
-          "text-muted-foreground",
-          "border-b border-border/30"
-        )}
-      >
-        {/* Player column (STICKY LEFT COLUMN) */}
-        <div
-          className={cx(
-            "w-52 shrink-0",
-            "sticky left-0 z-[2]",
-            "bg-background",
-            // Visual separator shadow on right edge
-            "after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px",
-            "after:bg-border/50",
-            "relative",
-            "text-center"
-          )}
-        >
-          Player Info
-        </div>
-
-        {/* Contract Years group - spans all year columns + Total */}
-        <div
-          className="text-center"
-          style={{ width: `${(years.length + 1) * 96}px` }}
-        >
-          Contract Years
-        </div>
-
-        {/* Management group */}
-        <div className="w-40 text-center">Management</div>
-      </div>
-
-      {/* Row 2: Column labels */}
+      {/* Column labels */}
       <div
         className={cx(
           "h-8 flex items-center",

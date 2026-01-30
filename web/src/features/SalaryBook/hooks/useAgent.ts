@@ -9,6 +9,8 @@ import type { Agent } from "../data";
 interface AgentClientApiResponse {
   player_id: string | number;
   player_name: string;
+  display_first_name?: string | null;
+  display_last_name?: string | null;
   team_code: string;
 
   // Bun SQL can return Postgres `numeric` values as strings.
@@ -23,7 +25,8 @@ interface AgentClientApiResponse {
   is_two_way?: boolean | null;
 
   // Optional fields that may appear later
-  years_of_service?: number | null;
+  age?: string | number | null;
+  years_of_service?: string | number | null;
   position?: string | null;
 }
 
@@ -52,7 +55,11 @@ interface AgentApiResponse {
 export interface AgentClientPlayer {
   id: string;
   player_name: string;
+  display_first_name: string | null;
+  display_last_name: string | null;
   team_code: string;
+  age: number | null;
+  years_of_service: number | null;
   position: string | null;
   cap_2025: number | null;
   cap_2026: number | null;
@@ -106,7 +113,11 @@ function mapApiToAgentDetail(data: AgentApiResponse): AgentDetail {
     clients: (data.clients ?? []).map((client) => ({
       id: String(client.player_id),
       player_name: client.player_name,
+      display_first_name: client.display_first_name ?? null,
+      display_last_name: client.display_last_name ?? null,
       team_code: client.team_code,
+      age: asNumberOrNull(client.age),
+      years_of_service: asNumberOrNull(client.years_of_service),
       position: client.position ?? null,
       cap_2025: asNumberOrNull(client.cap_2025),
       cap_2026: asNumberOrNull(client.cap_2026),

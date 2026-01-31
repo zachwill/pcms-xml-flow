@@ -64,7 +64,7 @@ rg -n "'<Sheet Name>'!" reference/warehouse/*.json
 
 ### Core warehouses / constants
 - [x] Spec: `y.json` (Y Warehouse — multi-year salary matrix)
-- [ ] Spec: `dynamic_contracts.json`
+- [x] Spec: `dynamic_contracts.json`
 - [x] Spec: `contract_protections.json`
 - [x] Spec: `system_values.json`
 - [x] Spec: `minimum_salary_scale.json`

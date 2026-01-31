@@ -35,7 +35,7 @@ loop({
     `
 You are the supervisor for the "Sean workbook" reverse-engineering effort.
 
-Every 4 commits, review the current state of:
+Every 5 commits, review the current state of:
 
 1) reference/warehouse/AGENTS.md (file inventory + high-level relationships)
 2) reference/warehouse/specs/ (the specs written so far)
@@ -57,7 +57,7 @@ If you make changes:
 - git add -A && git commit -m "sean: supervisor review"
     `,
     {
-      every: 4,
+      every: 5,
       model: "gpt-5.2",
       provider: "openai-codex",
       thinking: "high",

@@ -90,7 +90,8 @@ The planner and primitives consume `salary_book_yearly`:
 The refresh function selects **one contract per player** from `pcms.contracts` where:
 
 - `contracts.record_status_lk IN ('APPR','FUTR')`
-- prefer `APPR` over `FUTR`, then newest `signing_date`, then newest `contract_id`
+- prefer the **most recently signed** contract (`signing_date DESC`), with `APPR/FUTR` as tie-breakers
+  - this makes rookies with extensions surface as `RSEX`/`VETEX` etc instead of `RKSC`
 - choose latest `contract_versions.version_number` within that contract
 
 Important:

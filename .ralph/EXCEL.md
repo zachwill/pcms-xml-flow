@@ -19,7 +19,7 @@ This backlog is intentionally concrete. The Excel agent should do **one task per
 
 ## Tasks
 
-- [ ] Create Python module skeleton under `excel/capbook/` (multiple files; keep it small):
+- [x] Create Python module skeleton under `excel/capbook/` (multiple files; keep it small):
   - `excel/capbook/db.py` — connect + query helpers + run assertions
   - `excel/capbook/extract.py` — dataset extract functions per data contract
   - `excel/capbook/xlsx.py` — XlsxWriter helpers (formats, tables, named ranges)

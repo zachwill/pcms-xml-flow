@@ -87,7 +87,7 @@ rg -n "'<Sheet Name>'!" reference/warehouse/*.json
 - [x] Spec: `pick_database.json`
 
 ### Projections / calculators
-- [ ] Spec: `the_matrix.json`
+- [x] Spec: `the_matrix.json`
 - [ ] Spec: `high_low.json`
 - [ ] Spec: `tax_array.json`
 

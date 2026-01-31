@@ -43,9 +43,10 @@ This backlog is intentionally concrete. The Excel agent should do **one task per
   - Hide `DATA_*` sheets
   - Implemented in `excel/capbook/sheets/ui_stubs.py` with dedicated stub writers per blueprint
 
-- [ ] Add XlsxWriter helper to write an Excel Table with a stable name:
+- [x] Add XlsxWriter helper to write an Excel Table with a stable name:
   - Example: `write_table(worksheet, table_name, start_row, start_col, columns, rows)`
   - Always set explicit headers and a deterministic table range
+  - Returns (end_row, end_col) for chaining; handles empty rows; auto-fits columns
 
 - [ ] Audit existing UI conventions in `web/src/features/SalaryBook/` and codify them as Excel format constants in `excel/capbook/xlsx.py`:
   - `MINIMUM` display for min contracts (`PlayerRow.tsx`)

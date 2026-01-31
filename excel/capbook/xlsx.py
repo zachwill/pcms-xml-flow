@@ -106,42 +106,85 @@ def write_table(
     columns: list[str],
     rows: list[dict[str, Any]],
     *,
-    header_format: Any | None = None,
-) -> None:
+    autofit: bool = True,
+    style: str = "Table Style Light 1",
+) -> tuple[int, int]:
     """
-    Write an Excel Table (ListObject) with a stable name.
+    Write an Excel Table (ListObject) with a stable, deterministic name.
+
+    The table range is always explicit and deterministic:
+    - Start: (start_row, start_col)
+    - End: (start_row + len(rows), start_col + len(columns) - 1)
+
+    The table includes a header row at start_row, followed by data rows.
+    If rows is empty, a single-row table with headers only is created.
 
     Args:
         worksheet: Target worksheet
-        table_name: Excel table name (e.g., "tbl_system_values")
-        start_row: 0-indexed starting row
+        table_name: Excel table name (e.g., "tbl_system_values").
+                    Must be unique within the workbook and follow Excel
+                    naming rules (no spaces, start with letter/underscore).
+        start_row: 0-indexed starting row for the table header
         start_col: 0-indexed starting column
-        columns: List of column header names
-        rows: List of dicts (each dict is a row)
-        header_format: Optional format for header row
+        columns: List of column header names (must not be empty)
+        rows: List of dicts (each dict is a row; keys should match columns)
+        autofit: If True, auto-size columns based on header width (default True)
+        style: Excel table style name (default "Table Style Light 1")
+
+    Returns:
+        Tuple of (end_row, end_col) - 0-indexed position of the last cell.
+        Useful for placing content below the table.
+
+    Raises:
+        ValueError: If columns is empty
+
+    Example:
+        >>> cols = ["team_code", "salary_year", "cap_total"]
+        >>> data = [{"team_code": "LAL", "salary_year": 2025, "cap_total": 150000000}]
+        >>> end_row, end_col = write_table(ws, "tbl_teams", 0, 0, cols, data)
     """
     if not columns:
-        return
+        raise ValueError("columns must not be empty for write_table")
 
-    # Calculate table range
-    end_row = start_row + len(rows)  # +1 for header, but 0-indexed
+    # Calculate table range (deterministic)
+    # Header is at start_row, data rows follow
+    # For N data rows, end_row = start_row + N (0-indexed last row)
+    # For 0 data rows, end_row = start_row (header-only table)
+    num_data_rows = len(rows)
+    end_row = start_row + max(num_data_rows, 1)  # At least 1 data row for valid table
     end_col = start_col + len(columns) - 1
 
-    # Build data matrix (header + data rows)
+    # Build data matrix from row dicts
     data = []
     for row_dict in rows:
         data.append([row_dict.get(col) for col in columns])
 
+    # If no data rows, add an empty row (Excel tables require at least 1 data row)
+    if not data:
+        data = [[None] * len(columns)]
+
+    # Build column definitions with explicit headers
+    column_defs = [{"header": col} for col in columns]
+
     # Configure table options
     table_options: dict[str, Any] = {
         "name": table_name,
-        "columns": [{"header": col} for col in columns],
+        "columns": column_defs,
         "data": data,
-        "style": "Table Style Light 1",
+        "style": style,
     }
 
-    # Add the table
+    # Add the table with explicit range
     worksheet.add_table(start_row, start_col, end_row, end_col, table_options)
+
+    # Auto-fit column widths based on header length (approximate)
+    if autofit:
+        for i, col in enumerate(columns):
+            # Use header length + padding, minimum 10 chars
+            width = max(len(str(col)) + 2, 10)
+            worksheet.set_column(start_col + i, start_col + i, width)
+
+    return end_row, end_col
 
 
 def define_named_cell(

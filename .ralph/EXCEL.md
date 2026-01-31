@@ -64,7 +64,7 @@ Build a new, self-contained Sean-style Excel cap workbook **generated from code*
   - `MINIMUM` label semantics + `% of cap` display helper
 
 ### Phase 5 - BUDGET_LEDGER (authoritative totals v1)
-- [ ] Implement budget ledger snapshot + derived totals
+- [x] Implement budget ledger snapshot + derived totals
   - Snapshot totals from `DATA_team_salary_warehouse`
   - Placeholder plan delta section (zeros for now)
   - Derived totals + delta vs snapshot

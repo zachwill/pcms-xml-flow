@@ -9,6 +9,7 @@ For sheets with shared command bar (most UI sheets):
 """
 
 from .audit import write_audit_and_reconcile
+from .budget_ledger import write_budget_ledger
 from .cockpit import (
     write_team_cockpit_with_command_bar,
     get_command_bar_cell_refs,
@@ -43,6 +44,8 @@ from .ui_stubs import (
 __all__ = [
     # Audit
     "write_audit_and_reconcile",
+    # Budget ledger
+    "write_budget_ledger",
     # Cockpit
     "write_team_cockpit_with_command_bar",
     "get_command_bar_cell_refs",

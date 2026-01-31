@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["httpx", "psycopg[binary]"]
+# dependencies = ["httpx", "psycopg[binary]", "typing-extensions"]
 # ///
 """
 Upsert sr.game_team_stats, sr.game_player_stats, sr.game_period_scores from SportRadar API.

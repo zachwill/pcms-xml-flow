@@ -113,7 +113,7 @@ grep -nE "'<Sheet Name>'!" reference/warehouse/*.json
 
 ### Next (tooling correctness blockers)
 
-- [x] **Decide warehouse year horizon**: extend tool-facing warehouses to **2031** (Sean's Y goes to 2031) vs keep 2025–2030. → **Decision: Keep 2025–2030** (see `reference/warehouse/specs/year-horizon-decision.md`).
+- [x] **Decide warehouse year horizon**: extend tool-facing warehouses to **2031** (Sean's Y goes to 2031) vs keep 2025-2030. → **Decision: Keep 2025-2030** (see `reference/warehouse/specs/year-horizon-decision.md`).
 - [x] **Minimum salary parity**: validate Sean's multi-year minimum escalators (Years 2-5) + proration assumptions (`/174`) vs what we expose from `pcms.league_salary_scales` (Year 1 only today). → See `reference/warehouse/specs/minimum-salary-parity.md`.
 - [x] **Luxury tax primitive**: implement `pcms.fn_luxury_tax_amount(salary_year, over_tax_amount, is_repeater)` (or equivalent) using `pcms.league_tax_rates`, so UI tools can replicate the workbook's "Tax Payment" outputs without SUMPRODUCT emulation. → See `migrations/057_fn_luxury_tax_amount.sql` and `reference/warehouse/specs/fn_luxury_tax_amount.md`.
 
@@ -121,7 +121,7 @@ grep -nE "'<Sheet Name>'!" reference/warehouse/*.json
 
 - [x] Reverse-engineer **buyout / waiver scenario math** from `buyout_calculator` + `kuzma_buyout`:
   - ✅ Confirmed `174` day constant + `waived_date + 2` clearance assumption
-  - ⚠️ $600,000 subtraction appears contract-specific (protection threshold) — needs further validation
+  - ⚠️ $600,000 subtraction appears contract-specific (protection threshold) - needs further validation
   - ✅ Codified **stretch provision years** rule: `2 × years_remaining + 1`
   - → See `reference/warehouse/specs/buyout-waiver-math.md`
 
@@ -134,6 +134,6 @@ grep -nE "'<Sheet Name>'!" reference/warehouse/*.json
 
 - [x] Replace hard-coded repeater flags (Playground/Team `J1`/`N1`) with `pcms.tax_team_status` (or `pcms.team_salary_warehouse.is_repeater_taxpayer`), parameterized by year. → See `reference/warehouse/specs/repeater-flag-parameterization.md`.
 - [x] Parameterize trade-matching thresholds in SQL (`pcms.fn_tpe_trade_math`) from `pcms.league_system_values` (TPE allowance) instead of hard-coded 2024/2025 constants (see `machine.md`). → **Analysis complete:** Already parameterized via `tpe_dollar_allowance`; tier breakpoints are implicit. See `reference/warehouse/specs/tpe-threshold-parameterization.md`.
-- [ ] Add a small helper primitive for Trade Machine “can bring back” (invert matching rules) to match Sean’s `E5/J5` logic.
+- [x] Add a small helper primitive for Trade Machine "can bring back" (invert matching rules) to match Sean's `E5/J5` logic. → See `reference/warehouse/specs/fn_can_bring_back.md`.
 - [ ] Decide how to represent the season-day constants for buyout/stretch tooling (`174` days, waivers clear at `+2` days): hardcoded constant vs system table.
 - [ ] Repo hygiene: restore/update `SCHEMA.md` (repo docs reference it; currently missing) or replace with a generated schema reference from `migrations/`.

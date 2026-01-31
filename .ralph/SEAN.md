@@ -83,7 +83,7 @@ rg -n "'<Sheet Name>'!" reference/warehouse/*.json
 - [x] Spec: `trade_bonus_amounts.json`
 
 ### Draft picks
-- [ ] Spec: `draft_picks.json`
+- [x] Spec: `draft_picks.json`
 - [ ] Spec: `pick_database.json`
 
 ### Projections / calculators

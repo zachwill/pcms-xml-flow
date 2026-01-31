@@ -71,7 +71,7 @@ rg -n "'<Sheet Name>'!" reference/warehouse/*.json
 - [x] Spec: `rookie_scale_amounts.json`
 
 ### Team + salary book views
-- [ ] Spec: `playground.json`
+- [x] Spec: `playground.json`
 - [x] Spec: `team.json`
 - [ ] Spec: `team_summary.json`
 - [ ] Spec: `finance.json`

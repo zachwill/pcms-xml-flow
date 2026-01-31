@@ -25,7 +25,7 @@ from .extract import (
     extract_salary_book_yearly,
 )
 from .xlsx import create_standard_formats, write_table
-from .sheets import write_meta_sheet
+from .sheets import write_meta_sheet, UI_STUB_WRITERS, write_home_stub
 
 
 # Sheet names per the blueprint
@@ -145,29 +145,13 @@ def build_capbook(
     # Write META sheet (full metadata for reproducibility)
     write_meta_sheet(ui_worksheets["META"], formats, build_meta)
 
-    # Write HOME sheet (summary with link to META)
-    home = ui_worksheets["HOME"]
-    home.set_column(0, 0, 20)
-    home.set_column(1, 1, 30)
-    home.write(0, 0, "NBA Cap Workbook", formats["header"])
-    home.write(0, 1, "", formats["header"])
+    # Write HOME sheet (summary with navigation)
+    write_home_stub(ui_worksheets["HOME"], formats, build_meta)
 
-    # Validation status banner on HOME (prominent)
-    if build_meta["validation_status"] == "PASS":
-        home.write(2, 0, "Status:", formats["alert_ok"])
-        home.write(2, 1, "✓ PASS", formats["alert_ok"])
-    else:
-        home.write(2, 0, "Status:", formats["alert_fail"])
-        home.write(2, 1, "✗ FAILED - See META sheet", formats["alert_fail"])
-
-    home.write(4, 0, "Base Year:")
-    home.write(4, 1, base_year)
-    home.write(5, 0, "As-Of Date:")
-    home.write(5, 1, as_of.isoformat())
-    home.write(6, 0, "Refreshed:")
-    home.write(6, 1, build_meta["refreshed_at"])
-
-    home.write(8, 0, "See META sheet for full build details.")
+    # Write UI sheet stubs (structure for future implementation)
+    for sheet_name, writer_fn in UI_STUB_WRITERS.items():
+        if sheet_name in ui_worksheets:
+            writer_fn(ui_worksheets[sheet_name], formats)
 
     # Write DATA tables
     if datasets.get("system_values"):

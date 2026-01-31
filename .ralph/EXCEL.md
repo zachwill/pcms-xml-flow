@@ -37,10 +37,11 @@ This backlog is intentionally concrete. The Excel agent should do **one task per
   - add a visible "FAILED" banner cell if validations fail
   - implemented in `excel/capbook/sheets/meta.py`
 
-- [ ] Implement workbook skeleton creation (code, not a template):
+- [x] Implement workbook skeleton creation (code, not a template):
   - Create UI sheets (empty stubs to start): `HOME`, `TEAM_COCKPIT`, `ROSTER_GRID`, `BUDGET_LEDGER`, `PLAN_MANAGER`, `PLAN_JOURNAL`, `TRADE_MACHINE`, `SIGNINGS_AND_EXCEPTIONS`, `WAIVE_BUYOUT_STRETCH`, `ASSETS`, `AUDIT_AND_RECONCILE`, `RULES_REFERENCE`
   - Create data sheets: `DATA_system_values`, `DATA_tax_rates`, `DATA_team_salary_warehouse`, `DATA_salary_book_warehouse`, `DATA_salary_book_yearly`, `DATA_cap_holds_warehouse`, `DATA_dead_money_warehouse`, `DATA_exceptions_warehouse`, `DATA_draft_picks_warehouse`
   - Hide `DATA_*` sheets
+  - Implemented in `excel/capbook/sheets/ui_stubs.py` with dedicated stub writers per blueprint
 
 - [ ] Add XlsxWriter helper to write an Excel Table with a stable name:
   - Example: `write_table(worksheet, table_name, start_row, start_col, columns, rows)`

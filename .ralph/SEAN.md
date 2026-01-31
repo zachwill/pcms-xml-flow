@@ -98,7 +98,7 @@ grep -nE "'<Sheet Name>'!" reference/warehouse/*.json
 - [x] Spec: `2025.json`
 - [x] Spec: `por.json` (duplicate of playground.json)
 - [x] Spec: `buyout_calculator.json`
-- [ ] Spec: `kuzma_buyout.json`
+- [x] Spec: `kuzma_buyout.json`
 - [ ] Spec: `set-off.json`
 - [ ] Spec: `cover.json`
 

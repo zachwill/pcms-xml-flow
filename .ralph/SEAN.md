@@ -114,7 +114,7 @@ grep -nE "'<Sheet Name>'!" reference/warehouse/*.json
 ### Next (tooling correctness blockers)
 
 - [x] **Decide warehouse year horizon**: extend tool-facing warehouses to **2031** (Sean's Y goes to 2031) vs keep 2025–2030. → **Decision: Keep 2025–2030** (see `reference/warehouse/specs/year-horizon-decision.md`).
-- [ ] **Minimum salary parity**: validate Sean's multi-year minimum escalators (Years 2-5) + proration assumptions (`/174`) vs what we expose from `pcms.league_salary_scales` (Year 1 only today).
+- [x] **Minimum salary parity**: validate Sean's multi-year minimum escalators (Years 2-5) + proration assumptions (`/174`) vs what we expose from `pcms.league_salary_scales` (Year 1 only today). → See `reference/warehouse/specs/minimum-salary-parity.md`.
 - [ ] **Luxury tax primitive**: implement `pcms.fn_luxury_tax_amount(salary_year, over_tax_amount, is_repeater)` (or equivalent) using `pcms.league_tax_rates`, so UI tools can replicate the workbook's "Tax Payment" outputs without SUMPRODUCT emulation.
 
 ### Scenario math

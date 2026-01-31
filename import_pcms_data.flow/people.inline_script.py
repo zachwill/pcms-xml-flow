@@ -271,7 +271,25 @@ def main(dry_run: bool = False, extract_dir: str = "./shared/pcms"):
                 "created_at": p.get("create_date") or None,
                 "updated_at": p.get("last_change_date") or None,
                 "record_changed_at": p.get("record_change_date") or None,
+
+                # Trade / contract restriction fields (player-level convenience)
                 "poison_pill_amt": to_int(p.get("poison_pill_amt")),
+                "is_poison_pill": p.get("poison_pill_flg") or False,
+                "is_trade_bonus": p.get("trade_bonus_flg") or False,
+                "is_trade_bonus_earned": p.get("trade_bonus_earned_flg") or False,
+                "is_no_trade": p.get("no_trade_flg") or False,
+
+                "is_no_aggregate": p.get("no_aggregate_flg") or False,
+                "no_aggregate_end_date": p.get("no_aggregate_end_date") or None,
+
+                "trade_restriction_lk": p.get("trade_restriction_lk"),
+                "trade_restriction_end_date": p.get("trade_restriction_end_date") or None,
+
+                "player_consent_lk": p.get("player_consent_lk"),
+                "player_consent_end_date": p.get("player_consent_end_date") or None,
+
+                "min_contract_lk": p.get("min_contract_lk"),
+
                 "is_two_way": p.get("two_way_flg") or False,
                 "is_flex": p.get("flex_flg") or False,
                 "ingested_at": ingested_at,

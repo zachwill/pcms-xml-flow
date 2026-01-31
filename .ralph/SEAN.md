@@ -137,4 +137,4 @@ grep -nE "'<Sheet Name>'!" reference/warehouse/*.json
 - [x] Add a small helper primitive for Trade Machine "can bring back" (invert matching rules) to match Sean's `E5/J5` logic. → See `reference/warehouse/specs/fn_can_bring_back.md`.
 - [x] Decide how to represent the season-day constants for buyout/stretch tooling (`174` days, waivers clear at `+2` days): hardcoded constant vs system table. → See `reference/warehouse/specs/season-day-constants-decision.md`. **Decision:** Use `days_in_season` from system table; hardcode waiver clearance (+2 days).
 - [x] Add assertion-style SQL tests in `queries/sql/` for `pcms.fn_luxury_tax_amount` / `pcms.fn_team_luxury_tax` (edge cases + 1–2 parity spot checks vs Sean workbook outputs). → See `reference/warehouse/specs/fn_luxury_tax_amount.md` §10 and `queries/sql/055_luxury_tax_assertions.sql`.
-- [ ] Repo hygiene: restore/update `SCHEMA.md` (repo docs reference it; currently missing) or replace with a generated schema reference from `migrations/`.
+- [x] Repo hygiene: restore/update `SCHEMA.md` (repo docs reference it; currently missing) or replace with a generated schema reference from `migrations/`. → See `SCHEMA.md`.

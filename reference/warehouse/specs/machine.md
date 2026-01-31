@@ -98,8 +98,8 @@ This table encodes the CBA salary-matching brackets.
 | Sheet | Usage | Example |
 |-------|-------|---------|
 | `Y` | Player salary lookup | `=IFERROR(INDEX(Y!$D:$J,MATCH($B3,Y!$B:$B,0),MATCH($J$1,Y!$D$2:$J$2,0)),"")` |
-| `Exceptions Warehouse - 2024` | TPE list for team | `=IFERROR(_xlfn._xlws.FILTER('[2]Exceptions Warehouse - 2024'!$C$4:$C$70, '[2]Exceptions Warehouse - 2024'!$B$4:$B$70=B1),"None")` |
-| `X` (external) | Cap constants | `=[2]X!AN9` (cap for 2024) |
+| `Exceptions` (legacy `[2]Exceptions Warehouse - 2024`) | TPE list for team | `=IFERROR(_xlfn._xlws.FILTER('[2]Exceptions Warehouse - 2024'!$C$4:$C$70, '[2]Exceptions Warehouse - 2024'!$B$4:$B$70=B1),"None")` → use `exceptions.json` / `pcms.exceptions_warehouse` |
+| `X` (legacy external workbook) | Cap constants (used for 2024 thresholds) | `=[2]X!AN9` → use `system_values.json` / `pcms.league_system_values` |
 
 ### Dynamic roster lookup (cols L, O):
 

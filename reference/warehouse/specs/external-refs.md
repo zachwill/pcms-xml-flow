@@ -156,16 +156,17 @@ This pulls cell F1 (header row) from the protections sheet.
 - `F: "Protection Coverage"`
 
 **Postgres equivalent:**
-- `pcms.contract_amounts` — contains guarantee/protection fields
+- `pcms.contract_protections` — guarantee/protection rows by contract/version/year
 
 ```sql
-SELECT guarantee_type_lk, protection_amount
-  FROM pcms.contract_amounts
+SELECT protection_coverage_lk, protection_amount, effective_protection_amount
+  FROM pcms.contract_protections
  WHERE contract_id = ?
+   AND version_number = ?
    AND salary_year = ?;
 ```
 
-**Status:** ✅ Resolvable — use `contract_protections.json` (local) or `pcms.contract_amounts` (DB).
+**Status:** ✅ Resolvable — use `contract_protections.json` (local) or `pcms.contract_protections` (DB).
 
 ---
 

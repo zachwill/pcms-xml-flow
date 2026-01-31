@@ -233,7 +233,7 @@ Sums cap salary column X for all players where team = BX3.
 | L (Tax Salary) | `pcms.salaries` | `contract_tax_salary` |
 | M (Apron Salary) | `pcms.salaries` | `contract_tax_apron_salary` |
 | N (Option) | `pcms.salaries` | `option_lk` |
-| O (Protection lookup) | `pcms.contract_amounts` | guarantee fields |
+| O (Protection lookup) | `pcms.contract_protections` | `protection_coverage_lk`, `protection_amount`, `effective_protection_amount` |
 | V–BC (pivot view) | `pcms.salary_book_warehouse` | Wide-form player view |
 | BY–CW (team totals) | `pcms.team_salary_warehouse` | Team totals by year |
 

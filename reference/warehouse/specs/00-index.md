@@ -169,11 +169,11 @@ The workbook has a layered architecture:
 
 | Sean Concept | Warehouse File(s) | Our Table(s) |
 |--------------|-------------------|--------------|
-| Player salaries by year | `y.json`, `dynamic_contracts.json` | `pcms.salary_book_warehouse`, `pcms.contract_amounts` |
+| Player salaries by year | `y.json`, `dynamic_contracts.json` | `pcms.salary_book_warehouse` (tool-facing) + `pcms.salaries` (raw) |
 | CBA constants | `system_values.json` | `pcms.league_system_values` |
 | Trade exceptions | `exceptions.json` | `pcms.exceptions_warehouse`, `pcms.team_exceptions` |
 | Team totals | `team_summary.json` | `pcms.team_salary_warehouse`, `pcms.team_budget_snapshots` |
-| Contract protections | `contract_protections.json` | `pcms.contract_amounts` (guarantee fields) |
+| Contract protections | `contract_protections.json` | `pcms.contract_protections` (guarantees by contract/version/year) |
 | Rookie scale | `rookie_scale_amounts.json` | `pcms.rookie_scale_amounts` |
 | Draft picks | `draft_picks.json`, `pick_database.json` | `pcms.draft_picks` / `pcms.draft_picks_warehouse` |
 | Trade kickers | `trade_bonus_amounts.json` | `pcms.contract_versions.trade_bonus_percent` |
@@ -221,7 +221,7 @@ Some formulas use `[2]` syntax to reference an **external workbook** (prior-seas
 | `[2]Exceptions Warehouse - 2024` | Use `exceptions.json` or `pcms.exceptions_warehouse` |
 | `[2]Y!` | Use `y.json` or `pcms.salary_book_warehouse` |
 | `[2]X!` | Prior-year warehouse; use `pcms.league_system_values` for cap constants |
-| `[2]Contract Protections` | Use `contract_protections.json` or `pcms.contract_amounts` |
+| `[2]Contract Protections` | Use `contract_protections.json` or `pcms.contract_protections` |
 
 ---
 

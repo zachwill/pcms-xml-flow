@@ -235,7 +235,7 @@ J11: =I11-K11                     -- Grant: true earned
 |--------------|-------------------|--------|
 | Player cap salary by year | `pcms.salary_book_yearly.cap_amount` | ✅ |
 | Minimum salary by YOS | `pcms.league_salary_scales.minimum_salary_amount` | ✅ |
-| Contract protections | `pcms.contract_protections` or `pcms.contract_amounts` | ✅ (partial) |
+| Contract protections | `pcms.contract_protections` | ✅ |
 | Trade kicker % | `pcms.contract_versions.trade_bonus_percent` | ✅ |
 | 174-day season constant | — | ❌ Not stored (hardcode) |
 | Dead money (historical) | `pcms.dead_money_warehouse` | ✅ |

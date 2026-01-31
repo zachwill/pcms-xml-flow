@@ -134,7 +134,8 @@ Rows 65-72: Draft pick ownership grid
 
 ### What references Playground:
 
-- **Y Warehouse** contains a row named "Playground" (row ~2054) — likely a reference marker, not a formula dependency
+- No inbound `'Playground'!` references were found across the exported JSON sheets.
+- `por.json` is a byte-for-byte duplicate of `playground.json` (a saved POR view in the workbook); treat them as the same logic.
 
 ---
 
@@ -232,7 +233,7 @@ Computes expanded trade matching salary (125% + $250K rules).
 
 ## 8. Open Questions / TODO
 
-- [ ] `por.json` appears to be a frozen snapshot of Playground with D1=POR. Verify if it's just a copy or has distinct logic.
+- [x] Confirmed: `por.json` is byte-for-byte identical to `playground.json` (both exports have `D1="POR"`).
 - [ ] Repeater status (J1/N1) is hardcoded — should come from `pcms.teams` or computed from 3-year tax history.
 - [ ] Contract Calculator blocks (Y–AK) are standalone scenario tools — may warrant separate utility functions.
 - [ ] Tax Array integration: verify our luxury tax calculation matches Sean's SUMPRODUCT pattern.

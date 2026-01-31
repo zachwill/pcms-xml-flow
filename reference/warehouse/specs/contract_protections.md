@@ -75,18 +75,19 @@ None (self-contained table).
 
 ## 6. Mapping to Postgres
 
-Most direct mapping is to our contract-year amounts model:
+Most direct mapping is to **`pcms.contract_protections`** (one row per contract version × salary year protection entry).
 
 | Sean column | Our table | Notes |
 |---|---|---|
-| Contract Id / Version Number | `pcms.contract_versions` | identifies a specific contract version |
-| Player ID | `pcms.people.person_id` | identity join key |
-| Protection Year | `pcms.salaries.salary_year` | year of the salary row |
-| Coverage (Full/Partial/None) | `pcms.contract_amounts` or derived fields in `pcms.salary_book_warehouse` | our warehouse already computes guarantee labels/flags from PCMS data |
+| Contract Id / Version Number | `pcms.contract_protections` | join keys: `contract_id`, `version_number` |
+| Player ID | `pcms.contract_protections` + `pcms.people` | protections store `player_id`; join to `pcms.people` for identity |
+| Protection Year | `pcms.contract_protections.salary_year` | year of the salary row |
+| Coverage (Full/Partial/None/Cond) | `pcms.contract_protections.protection_coverage_lk` | values include `FULL`, `NONE`, `NOCND` (+ partial/conditional variants) |
+| Protection amount (if partial) | `pcms.contract_protections.protection_amount` / `effective_protection_amount` | used to derive guaranteed dollars |
 
 Practical warehouse mapping:
-- The workbook uses protections mainly to decide whether a salary-year is treated as **guaranteed vs non-guaranteed vs partial**.
-- In our tooling, we should prefer the already-imported guarantee fields in `pcms.salaries`/`pcms.contract_amounts` and expose them via `pcms.salary_book_warehouse`.
+- `pcms.refresh_salary_book_warehouse()` joins `pcms.salaries` to `pcms.contract_protections` by `(contract_id, version_number, salary_year)`.
+- That join drives tool-facing fields like `guaranteed_amount_20xx` and `is_fully_guaranteed_20xx` / `is_partially_guaranteed_20xx`.
 
 ---
 

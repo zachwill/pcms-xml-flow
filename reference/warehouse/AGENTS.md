@@ -42,7 +42,7 @@ Example from `dynamic_contracts.json`:
 |------|------|---------|
 | `y.json` | 1.5MB | **Y Warehouse** — multi-year salary matrix per player (2025+ base year). Primary source for Salary Book / Playground. |
 | `dynamic_contracts.json` | 5.3MB | Detailed contract rows with salaries (cap/tax/apron), options, protections, trade bonus calcs. Feeds the pivoted views. |
-| `contract_protections.json` | 580KB | Guarantee/protection lookup by contract + year. |
+| `contract_protections.json` | 580KB | Guarantee/protection lookup by contract + version + year. |
 
 ### System / CBA Constants
 
@@ -118,7 +118,7 @@ The Excel workbook has cross-sheet dependencies. Key patterns:
 
 3. **`system_values.json`** provides CBA constants that formulas reference (e.g., `='System Values'!G8` for salary cap).
 
-4. **`contract_protections.json`** is a lookup table joined by contract ID + year.
+4. **`contract_protections.json`** is a lookup table joined by `(contract_id, version_number, salary_year)` (and sometimes by player/year in Excel formulas).
 
 5. **`playground.json`** / **`team.json`** are presentation layers that filter/sort the warehouse data by team.
 
@@ -130,11 +130,11 @@ The Excel workbook has cross-sheet dependencies. Key patterns:
 
 | Sean Concept | Warehouse File | Our Table(s) |
 |--------------|----------------|--------------|
-| Player salaries by year | `y.json`, `dynamic_contracts.json` | `pcms.salary_book_warehouse`, `pcms.contract_amounts` |
+| Player salaries by year | `y.json`, `dynamic_contracts.json` | `pcms.salary_book_warehouse` (tool-facing) + `pcms.salaries` (raw) |
 | CBA constants | `system_values.json` | `pcms.league_system_values` |
 | Trade exceptions | `exceptions.json` | `pcms.exceptions_warehouse`, `pcms.team_exceptions` |
 | Team totals | `team_summary.json` | `pcms.team_salary_warehouse`, `pcms.team_budget_snapshots` |
-| Contract protections | `contract_protections.json` | `pcms.contract_amounts` (guarantee fields) |
+| Contract protections | `contract_protections.json` | `pcms.contract_protections` (guarantees by contract/version/year) |
 | Rookie scale | `rookie_scale_amounts.json` | `pcms.rookie_scale_amounts` |
 | Minimum salary scale (by YOS) | `minimum_salary_scale.json` | `pcms.league_salary_scales` (minimum_salary_amount by YOS/year) |
 | Luxury tax brackets / rates | `tax_array.json` | `pcms.league_tax_rates` (rates + base charges) + `pcms.tax_team_status` (repeater flag) |

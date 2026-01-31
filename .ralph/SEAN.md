@@ -127,4 +127,13 @@ grep -nE "'<Sheet Name>'!" reference/warehouse/*.json
 
 ### Hygiene
 
-- [ ] Identify other **duplicate snapshot sheets** (like `por.json` = `playground.json`) so we don't spec/implement redundant logic.
+- [x] Identify other **duplicate snapshot sheets** (like `por.json` = `playground.json`) so we don't spec/implement redundant logic.
+  - Result: only `por.json` and `playground.json` are byte-for-byte identical among the exported `reference/warehouse/*.json` files.
+
+### Next (tooling parity follow-ups implied by specs)
+
+- [ ] Replace hard-coded repeater flags (Playground/Team `J1`/`N1`) with `pcms.tax_team_status` (or `pcms.team_salary_warehouse.is_repeater_taxpayer`), parameterized by year.
+- [ ] Parameterize trade-matching thresholds in SQL (`pcms.fn_tpe_trade_math`) from `pcms.league_system_values` (TPE allowance) instead of hard-coded 2024/2025 constants (see `machine.md`).
+- [ ] Add a small helper primitive for Trade Machine “can bring back” (invert matching rules) to match Sean’s `E5/J5` logic.
+- [ ] Decide how to represent the season-day constants for buyout/stretch tooling (`174` days, waivers clear at `+2` days): hardcoded constant vs system table.
+- [ ] Repo hygiene: restore/update `SCHEMA.md` (repo docs reference it; currently missing) or replace with a generated schema reference from `migrations/`.

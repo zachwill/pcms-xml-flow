@@ -29,8 +29,8 @@ Sean's workbook is the canonical analyst reference for NBA salary cap modeling. 
 | Minimum Salary Scale | `minimum_salary_scale.json` | Minimum salary by years of service | [minimum_salary_scale.md](minimum_salary_scale.md) |
 | Rookie Scale Amounts | `rookie_scale_amounts.json` | Rookie scale salary by pick + year | [rookie_scale_amounts.md](rookie_scale_amounts.md) |
 | Playground | `playground.json` | Interactive team salary book view | [playground.md](playground.md) |
-| POR | `por.json` | Portland-specific playground snapshot | TODO |
-| 2025 | `2025.json` | 2025 season snapshot view | TODO |
+| POR | `por.json` | Portland-specific playground snapshot | [por.md](por.md) |
+| 2025 | `2025.json` | 2025 season snapshot view | [2025.md](2025.md) |
 | Team | `team.json` | Team roster with contract calculator blocks | [team.md](team.md) |
 | Team Summary | `team_summary.json` | Team salary totals dashboard (vs cap/tax/apron) | [team_summary.md](team_summary.md) |
 | Finance | `finance.json` | Team financial data | [finance.md](finance.md) |
@@ -43,8 +43,8 @@ Sean's workbook is the canonical analyst reference for NBA salary cap modeling. 
 | The Matrix | `the_matrix.json` | Multi-team trade scenario tool | [the_matrix.md](the_matrix.md) |
 | High Low | `high_low.json` | Player salary ranking / band search tool | [high_low.md](high_low.md) |
 | Tax Array | `tax_array.json` | Luxury tax bracket calculations | [tax_array.md](tax_array.md) |
-| Buyout Calculator | `buyout_calculator.json` | Buyout scenario calculator | TODO |
-| Kuzma Buyout | `kuzma_buyout.json` | Specific buyout example | TODO |
+| Buyout Calculator | `buyout_calculator.json` | Buyout scenario calculator | [buyout_calculator.md](buyout_calculator.md) |
+| Kuzma Buyout | `kuzma_buyout.json` | Specific buyout example | [kuzma_buyout.md](kuzma_buyout.md) |
 | Set-Off | `set-off.json` | Waiver set-off calculations | TODO |
 
 ---
@@ -222,14 +222,10 @@ Presentation sheets like `playground.json` use a team dropdown (e.g., cell `D1 =
 
 ## Next Steps
 
-Remaining specs are mostly **snapshots / single-purpose calculators** (lower dependency risk):
+Remaining specs (low dependency risk):
 
-1. `2025.md` — 2025 snapshot sheet (mostly a frozen Playground/Team view)
-2. `por.md` — team-specific Playground snapshot
-3. `buyout_calculator.md` — buyout scenario calculator
-4. `kuzma_buyout.md` — worked buyout example
-5. `set-off.md` — waiver set-off calculator
-6. `cover.md` — metadata only
+1. `set-off.md` — waiver set-off calculator
+2. `cover.md` — metadata only
 
 Follow-up investigations (not specs, but correctness blockers for tooling parity):
 

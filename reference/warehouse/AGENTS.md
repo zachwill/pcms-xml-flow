@@ -66,7 +66,7 @@ Example from `dynamic_contracts.json`:
 | File | Size | Purpose |
 |------|------|---------|
 | `playground.json` | 98KB | Interactive team Salary Book view (pick team → see roster by year). |
-| `por.json` | 98KB | Portland-specific playground snapshot. |
+| `por.json` | 98KB | Portland-specific Playground snapshot (exact duplicate of `playground.json` with team selector set to POR). |
 | `2025.json` | 132KB | 2025 season snapshot. |
 
 ### Trade Tooling
@@ -121,6 +121,8 @@ The Excel workbook has cross-sheet dependencies. Key patterns:
 4. **`contract_protections.json`** is a lookup table joined by contract ID + year.
 
 5. **`playground.json`** / **`team.json`** are presentation layers that filter/sort the warehouse data by team.
+
+6. Some presentation sheets are **cloned snapshots** of others (e.g., `por.json` is an exact copy of `playground.json`).
 
 ---
 

@@ -110,3 +110,8 @@ grep -nE "'<Sheet Name>'!" reference/warehouse/*.json
 - [ ] Validate **luxury tax parity**: Sean’s `Tax Array` SUMPRODUCT vs `pcms.league_tax_rates` (and repeater flags from `pcms.tax_team_status`).
 - [ ] Validate **minimum salary parity**: Sean’s multi-year minimum escalators vs what PCMS provides (`pcms.league_salary_scales` is year-1 only).
 - [ ] Decide whether our tool-facing warehouses should extend to **2031** (Sean’s Y goes to 2031; ours is typically 2025–2030).
+- [ ] Reverse-engineer **buyout / waiver scenario math** from `buyout_calculator` + `kuzma_buyout`:
+  - confirm the `174` day constant + `waived_date + 2` clearance assumption
+  - explain the **$600,000 subtraction** in `kuzma_buyout` (guarantee protection?)
+  - codify **stretch provision years** rule (typically `2 × years_remaining + 1`)
+- [ ] Identify other **duplicate snapshot sheets** (like `por.json` = `playground.json`) so we don’t spec/implement redundant logic.

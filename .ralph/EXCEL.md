@@ -66,7 +66,7 @@ This backlog is intentionally concrete. The Excel agent should do **one task per
 
 - [x] Implement dataset extract: `tbl_exceptions_warehouse` → `DATA_exceptions_warehouse`
 
-- [ ] Implement dataset extract: `tbl_draft_picks_warehouse` → `DATA_draft_picks_warehouse`
+- [x] Implement dataset extract: `tbl_draft_picks_warehouse` → `DATA_draft_picks_warehouse`
 
 - [x] Add build step: run SQL assertions (`queries/sql/run_all.sql`) before writing workbook.
   - If assertions fail: set `META.validation_status = FAILED` and include error message(s)

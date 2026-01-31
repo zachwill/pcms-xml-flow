@@ -550,5 +550,52 @@ def extract_exceptions_warehouse(
     return columns, rows
 
 
-# TODO: Implement remaining extract functions per data contract:
-# - extract_draft_picks_warehouse
+def extract_draft_picks_warehouse(
+    base_year: int,
+) -> tuple[list[str], list[dict[str, Any]]]:
+    """
+    Extract tbl_draft_picks_warehouse dataset.
+
+    Returns (columns, rows) for DATA_draft_picks_warehouse sheet.
+
+    Per the data contract:
+    - Filters: draft_year >= base_year (future picks only)
+    - Primary key: (team_code, draft_year, draft_round, asset_slot)
+    - Used by: assets dashboard
+    """
+    sql = """
+        SELECT
+            team_id,
+            team_code,
+            draft_year,
+            draft_round,
+            asset_slot,
+            asset_type,
+            raw_round_text,
+            raw_fragment,
+            is_forfeited,
+            is_conditional_text,
+            is_swap_text,
+            needs_review,
+            refreshed_at
+        FROM pcms.draft_picks_warehouse
+        WHERE draft_year >= %(base_year)s
+        ORDER BY team_code, draft_year, draft_round, asset_slot
+    """
+    rows = fetch_all(sql, {"base_year": base_year})
+    columns = [
+        "team_id",
+        "team_code",
+        "draft_year",
+        "draft_round",
+        "asset_slot",
+        "asset_type",
+        "raw_round_text",
+        "raw_fragment",
+        "is_forfeited",
+        "is_conditional_text",
+        "is_swap_text",
+        "needs_review",
+        "refreshed_at",
+    ]
+    return columns, rows

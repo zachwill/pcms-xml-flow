@@ -46,10 +46,13 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Fix subtotal placement so SelectedYear totals align with the displayed year column
 
 ### 4) ROSTER_GRID mode-aware amounts (Cap / Tax / Apron)
-- [ ] Make the roster grid amounts switch by `SelectedMode`
-  - Either add a mode-switch column (single-year display) **or** provide 3 side-by-side blocks
-  - Update reconciliation block to match the active mode
-  - Keep formulas compatible with relative-year columns
+- [x] Make the roster grid amounts switch by `SelectedMode`
+  - Mode-switch uses IF(SelectedMode=...) pattern in all salary column formulas
+  - Year column headers show mode + year (e.g., "Cap 2025", "Tax 2026")
+  - Roster/Two-Way/Holds/Dead Money sections all use mode-aware amounts
+  - Reconciliation block uses mode-appropriate warehouse columns (cap_*/tax_*/apron_*)
+  - Reconciliation status message includes mode name for clarity
+  - Formulas remain compatible with relative-year columns (cap_y0..cap_y5, tax_y0..tax_y5, etc.)
 
 ### 5) Apply badge formatting in ROSTER_GRID
 - [ ] Map option/guarantee/trade restriction text → colored badges

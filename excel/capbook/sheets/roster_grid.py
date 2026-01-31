@@ -5,7 +5,7 @@ This module implements:
 1. Shared command bar (read-only reference to TEAM_COCKPIT)
 2. Roster rows section (from tbl_salary_book_warehouse)
    - Player name, team, badge columns (option, guarantee, trade restrictions)
-   - Multi-year salary columns (cap_y0..cap_y5)
+   - Multi-year salary columns (mode-aware: cap_y0..cap_y5 / tax_y0..tax_y5 / apron_y0..apron_y5)
    - Bucket classification (ROST/2WAY)
    - Explicit CountsTowardTotal (Ct$) and CountsTowardRoster (CtR) columns
    - MINIMUM label display when is_min_contract=TRUE
@@ -22,8 +22,9 @@ Per the blueprint (excel-cap-book-blueprint.md):
 - CountsTowardTotal/CountsTowardRoster columns make counting logic explicit
 
 Design notes:
-- Uses Excel formulas filtered by SelectedTeam + SelectedYear
-- Reconciliation block sums rows and compares to team_salary_warehouse totals
+- Uses Excel formulas filtered by SelectedTeam + SelectedYear + SelectedMode
+- SelectedMode ("Cap"/"Tax"/"Apron") controls which salary columns are displayed
+- Reconciliation block sums rows and compares to team_salary_warehouse totals (mode-aware)
 - Conditional formatting highlights deltas ≠ 0
 - Two-way counting respects policy toggles: CountTwoWayInRoster, CountTwoWayInTotals
 """
@@ -102,6 +103,17 @@ COLUMN_WIDTHS = {
 # =============================================================================
 
 
+def _mode_prefix_expr() -> str:
+    """Return an Excel expression that maps SelectedMode to a column prefix.
+
+    SelectedMode is one of: "Cap", "Tax", "Apron"
+    This returns "cap", "tax", or "apron" for use in dynamic column references.
+
+    Returns an expression (no leading '=') suitable for embedding in formulas.
+    """
+    return 'LOWER(SelectedMode)'
+
+
 def _salary_book_choose(col_base: str) -> str:
     """Return an Excel CHOOSE() expression selecting the correct *_y{0..5} column.
 
@@ -110,6 +122,9 @@ def _salary_book_choose(col_base: str) -> str:
 
     SelectedYear is an absolute salary_year; we map it to a relative offset:
         idx = (SelectedYear - MetaBaseYear) + 1
+
+    Args:
+        col_base: Column prefix ("cap", "tax", "apron", or dynamic expression)
 
     Returns an expression (no leading '=') suitable for embedding in formulas.
     """
@@ -120,8 +135,35 @@ def _salary_book_choose(col_base: str) -> str:
     return f"CHOOSE(SelectedYear-MetaBaseYear+1,{cols})"
 
 
+def _salary_book_choose_mode_aware() -> str:
+    """Return an Excel expression selecting the correct mode-aware column for SelectedYear.
+
+    Uses SelectedMode ("Cap"/"Tax"/"Apron") to pick between cap_y*, tax_y*, apron_y* columns,
+    then uses SelectedYear to pick the correct relative year offset.
+
+    Returns an expression (no leading '=') suitable for embedding in formulas.
+    """
+    # We need to nest CHOOSE: outer for mode, inner for year
+    # Mode: Cap=1, Tax=2, Apron=3
+    # Year offset: (SelectedYear - MetaBaseYear) + 1 gives 1..6
+
+    cap_cols = ",".join(f"tbl_salary_book_warehouse[cap_y{i}]" for i in range(6))
+    tax_cols = ",".join(f"tbl_salary_book_warehouse[tax_y{i}]" for i in range(6))
+    apron_cols = ",".join(f"tbl_salary_book_warehouse[apron_y{i}]" for i in range(6))
+
+    year_idx = "SelectedYear-MetaBaseYear+1"
+
+    return (
+        f'IF(SelectedMode="Cap",CHOOSE({year_idx},{cap_cols}),'
+        f'IF(SelectedMode="Tax",CHOOSE({year_idx},{tax_cols}),'
+        f'CHOOSE({year_idx},{apron_cols})))'
+    )
+
+
 def _salary_book_sumproduct(is_two_way: str | None = None) -> str:
-    """SUMPRODUCT of selected-year cap amounts from tbl_salary_book_warehouse.
+    """SUMPRODUCT of selected-year, mode-aware amounts from tbl_salary_book_warehouse.
+
+    Uses SelectedMode to pick between cap/tax/apron columns.
 
     Args:
         is_two_way: "TRUE" / "FALSE" to filter, or None for all rows.
@@ -129,21 +171,80 @@ def _salary_book_sumproduct(is_two_way: str | None = None) -> str:
     Returns expression (no leading '=')
     """
 
-    cap_sel = _salary_book_choose("cap")
+    amount_sel = _salary_book_choose_mode_aware()
     base = f"(tbl_salary_book_warehouse[team_code]=SelectedTeam)"
     if is_two_way is not None:
         base += f"*(tbl_salary_book_warehouse[is_two_way]={is_two_way})"
-    return f"SUMPRODUCT({base}*{cap_sel})"
+    return f"SUMPRODUCT({base}*{amount_sel})"
 
 
 def _salary_book_countproduct(is_two_way: str) -> str:
-    """Count rows with selected-year cap amount > 0 via SUMPRODUCT."""
+    """Count rows with selected-year, mode-aware amount > 0 via SUMPRODUCT."""
 
-    cap_sel = _salary_book_choose("cap")
+    amount_sel = _salary_book_choose_mode_aware()
     return (
         "SUMPRODUCT(--(tbl_salary_book_warehouse[team_code]=SelectedTeam),"
         f"--(tbl_salary_book_warehouse[is_two_way]={is_two_way}),"
-        f"--({cap_sel}>0))"
+        f"--({amount_sel}>0))"
+    )
+
+
+def _cap_holds_amount_col() -> str:
+    """Return mode-aware amount column name for cap holds warehouse.
+
+    tbl_cap_holds_warehouse has: cap_amount, tax_amount, apron_amount
+    """
+    return (
+        'IF(SelectedMode="Cap",tbl_cap_holds_warehouse[cap_amount],'
+        'IF(SelectedMode="Tax",tbl_cap_holds_warehouse[tax_amount],'
+        'tbl_cap_holds_warehouse[apron_amount]))'
+    )
+
+
+def _dead_money_amount_col() -> str:
+    """Return mode-aware amount column name for dead money warehouse.
+
+    tbl_dead_money_warehouse has: cap_value, tax_value, apron_value
+    """
+    return (
+        'IF(SelectedMode="Cap",tbl_dead_money_warehouse[cap_value],'
+        'IF(SelectedMode="Tax",tbl_dead_money_warehouse[tax_value],'
+        'tbl_dead_money_warehouse[apron_value]))'
+    )
+
+
+def _mode_year_label(year_offset: int) -> str:
+    """Return a formula for a year column header showing mode + year.
+
+    E.g., for year_offset=0: displays "Cap 2025" when SelectedMode="Cap" and base_year=2025
+
+    Returns formula string with leading '='.
+    """
+    return f'=SelectedMode&\" \"&(MetaBaseYear+{year_offset})'
+
+
+def _warehouse_bucket_col(bucket: str) -> str:
+    """Return mode-aware warehouse column name for a bucket.
+
+    Maps bucket (rost/fa/term/2way) to mode-appropriate column in team_salary_warehouse.
+    E.g., bucket="rost" with SelectedMode="Cap" → "cap_rost"
+    """
+    return (
+        f'IF(SelectedMode="Cap","cap_{bucket}",'
+        f'IF(SelectedMode="Tax","tax_{bucket}",'
+        f'"apron_{bucket}"))'
+    )
+
+
+def _warehouse_total_col() -> str:
+    """Return mode-aware total column name for team_salary_warehouse.
+
+    Maps SelectedMode to cap_total, tax_total, or apron_total.
+    """
+    return (
+        'IF(SelectedMode="Cap","cap_total",'
+        'IF(SelectedMode="Tax","tax_total",'
+        '"apron_total"))'
     )
 
 
@@ -384,14 +485,14 @@ def _write_roster_section(
     row += 1
 
     # Column headers
-    # Year labels: show absolute years from MetaBaseYear
+    # Year labels: show mode + absolute year (e.g., "Cap 2025", "Tax 2025")
     year_labels = [
-        "=MetaBaseYear+0",
-        "=MetaBaseYear+1",
-        "=MetaBaseYear+2",
-        "=MetaBaseYear+3",
-        "=MetaBaseYear+4",
-        "=MetaBaseYear+5",
+        _mode_year_label(0),
+        _mode_year_label(1),
+        _mode_year_label(2),
+        _mode_year_label(3),
+        _mode_year_label(4),
+        _mode_year_label(5),
     ]
     row = _write_column_headers(worksheet, row, roster_formats, year_labels)
 
@@ -402,11 +503,12 @@ def _write_roster_section(
     # that return blank if no matching player exists.
 
     # For MVP: use formulas that pull from the table based on row position
-    # This approach uses AGGREGATE + SMALL to get unique players sorted by cap_y0
+    # This approach uses AGGREGATE + SMALL to get unique players sorted by mode-aware amount
 
     num_roster_rows = 40  # Fixed allocation for roster rows
 
-    cap_sel = _salary_book_choose("cap")
+    # Use mode-aware amount for sorting (largest first)
+    amount_sel = _salary_book_choose_mode_aware()
     option_sel = _salary_book_choose("option")
     gtd_full_sel = _salary_book_choose("is_fully_guaranteed")
     gtd_part_sel = _salary_book_choose("is_partially_guaranteed")
@@ -415,9 +517,9 @@ def _write_roster_section(
     criteria = "((tbl_salary_book_warehouse[team_code]=SelectedTeam)*(tbl_salary_book_warehouse[is_two_way]=FALSE))"
 
     for i in range(1, num_roster_rows + 1):
-        # Nth largest selected-year cap amount for SelectedTeam (non-two-way)
-        cap_value_expr = f"AGGREGATE(14,6,({cap_sel})/({criteria}),{i})"
-        match_expr = f"MATCH({cap_value_expr},({cap_sel})/({criteria}),0)"
+        # Nth largest selected-year, mode-aware amount for SelectedTeam (non-two-way)
+        amount_value_expr = f"AGGREGATE(14,6,({amount_sel})/({criteria}),{i})"
+        match_expr = f"MATCH({amount_value_expr},({amount_sel})/({criteria}),0)"
 
         name_expr = f'IFERROR(INDEX(tbl_salary_book_warehouse[player_name],{match_expr}),"" )'
 
@@ -481,18 +583,24 @@ def _write_roster_section(
         )
         worksheet.write_formula(row, COL_MIN_LABEL, f"={min_expr}", roster_formats["min_label"])
 
-        # Salary columns (cap_y0..cap_y5)
+        # Salary columns - mode-aware (cap_y*/tax_y*/apron_y* based on SelectedMode)
         for yi in range(6):
+            # Build mode-aware column lookup expression
+            mode_col_expr = (
+                f'IF(SelectedMode="Cap",INDEX(tbl_salary_book_warehouse[cap_y{yi}],{match_expr}),'
+                f'IF(SelectedMode="Tax",INDEX(tbl_salary_book_warehouse[tax_y{yi}],{match_expr}),'
+                f'INDEX(tbl_salary_book_warehouse[apron_y{yi}],{match_expr})))'
+            )
             worksheet.write_formula(
                 row,
                 COL_CAP_Y0 + yi,
-                f"={_lookup_expr(f'cap_y{yi}')}" ,
+                f'=IFERROR({mode_col_expr},"")',
                 roster_formats["money"],
             )
 
-        # % of cap (selected-year cap amount / salary cap for SelectedYear)
+        # % of cap (selected-year mode-aware amount / salary cap for SelectedYear)
         pct_expr = (
-            f'IFERROR({cap_value_expr}/'
+            f'IFERROR({amount_value_expr}/'
             f'SUMIFS(tbl_system_values[salary_cap_amount],tbl_system_values[salary_year],SelectedYear),"" )'
         )
         worksheet.write_formula(row, COL_PCT_CAP, f"={pct_expr}", roster_formats["percent"])
@@ -541,31 +649,29 @@ def _write_twoway_section(
     worksheet.merge_range(row, COL_BUCKET, row, COL_PCT_CAP, "TWO-WAY CONTRACTS", section_fmt)
     row += 1
 
-    # Column headers
+    # Column headers - mode-aware year labels
     year_labels = [
-        "=MetaBaseYear+0",
-        "=MetaBaseYear+1",
-        "=MetaBaseYear+2",
-        "=MetaBaseYear+3",
-        "=MetaBaseYear+4",
-        "=MetaBaseYear+5",
+        _mode_year_label(0),
+        _mode_year_label(1),
+        _mode_year_label(2),
+        _mode_year_label(3),
+        _mode_year_label(4),
+        _mode_year_label(5),
     ]
     row = _write_column_headers(worksheet, row, roster_formats, year_labels)
 
     # Two-way rows (fewer slots - typically max 3 per team)
     num_twoway_rows = 6
 
-    cap_sel = _salary_book_choose("cap")
+    # Use mode-aware amount for sorting
+    amount_sel = _salary_book_choose_mode_aware()
     criteria = "((tbl_salary_book_warehouse[team_code]=SelectedTeam)*(tbl_salary_book_warehouse[is_two_way]=TRUE))"
 
     for i in range(1, num_twoway_rows + 1):
-        cap_value_expr = f"AGGREGATE(14,6,({cap_sel})/({criteria}),{i})"
-        match_expr = f"MATCH({cap_value_expr},({cap_sel})/({criteria}),0)"
+        amount_value_expr = f"AGGREGATE(14,6,({amount_sel})/({criteria}),{i})"
+        match_expr = f"MATCH({amount_value_expr},({amount_sel})/({criteria}),0)"
 
         name_expr = f'IFERROR(INDEX(tbl_salary_book_warehouse[player_name],{match_expr}),"" )'
-
-        def _lookup_expr(col: str) -> str:
-            return f'IFERROR(INDEX(tbl_salary_book_warehouse[{col}],{match_expr}),"" )'
 
         # Bucket (2WAY)
         worksheet.write_formula(
@@ -589,17 +695,23 @@ def _write_twoway_section(
         worksheet.write(row, COL_TRADE, "")
         worksheet.write(row, COL_MIN_LABEL, "")
 
+        # Salary columns - mode-aware
         for yi in range(6):
+            mode_col_expr = (
+                f'IF(SelectedMode="Cap",INDEX(tbl_salary_book_warehouse[cap_y{yi}],{match_expr}),'
+                f'IF(SelectedMode="Tax",INDEX(tbl_salary_book_warehouse[tax_y{yi}],{match_expr}),'
+                f'INDEX(tbl_salary_book_warehouse[apron_y{yi}],{match_expr})))'
+            )
             worksheet.write_formula(
                 row,
                 COL_CAP_Y0 + yi,
-                f"={_lookup_expr(f'cap_y{yi}')}" ,
+                f'=IFERROR({mode_col_expr},"")',
                 roster_formats["money"],
             )
 
         row += 1
 
-    # Subtotal for two-way (selected year)
+    # Subtotal for two-way (selected year, mode-aware)
     worksheet.write(row, COL_NAME, "Two-Way Subtotal:", roster_formats["subtotal_label"])
     worksheet.write_formula(
         row,
@@ -637,7 +749,7 @@ def _write_cap_holds_section(
     worksheet.merge_range(row, COL_BUCKET, row, COL_PCT_CAP, "CAP HOLDS (Free Agent Rights)", section_fmt)
     row += 1
 
-    # Simplified column headers for holds
+    # Simplified column headers for holds - mode-aware amount header
     fmt = roster_formats["col_header"]
     worksheet.write(row, COL_BUCKET, "Bucket", fmt)
     worksheet.write(row, COL_COUNTS_TOTAL, "Ct$", fmt)
@@ -647,7 +759,8 @@ def _write_cap_holds_section(
     worksheet.write(row, COL_GUARANTEE, "", fmt)
     worksheet.write(row, COL_TRADE, "Status", fmt)
     worksheet.write(row, COL_MIN_LABEL, "", fmt)
-    worksheet.write(row, COL_CAP_Y0, "Amount", fmt)
+    # Mode-aware Amount header
+    worksheet.write_formula(row, COL_CAP_Y0, '=SelectedMode&" Amount"', fmt)
     for yi in range(1, 6):
         worksheet.write(row, COL_CAP_Y0 + yi, "", fmt)
     worksheet.write(row, COL_PCT_CAP, "% Cap", fmt)
@@ -656,10 +769,14 @@ def _write_cap_holds_section(
     # Cap hold rows
     num_hold_rows = 15
 
+    # Mode-aware amount column expression for cap holds
+    amount_col_expr = _cap_holds_amount_col()
+
     for i in range(1, num_hold_rows + 1):
         criteria = "((tbl_cap_holds_warehouse[team_code]=SelectedTeam)*(tbl_cap_holds_warehouse[salary_year]=SelectedYear))"
-        cap_value_expr = f"AGGREGATE(14,6,(tbl_cap_holds_warehouse[cap_amount])/({criteria}),{i})"
-        match_expr = f"MATCH({cap_value_expr},(tbl_cap_holds_warehouse[cap_amount])/({criteria}),0)"
+        # Use mode-aware amount for sorting
+        amount_value_expr = f"AGGREGATE(14,6,({amount_col_expr})/({criteria}),{i})"
+        match_expr = f"MATCH({amount_value_expr},({amount_col_expr})/({criteria}),0)"
 
         name_expr = f'IFERROR(INDEX(tbl_cap_holds_warehouse[player_name],{match_expr}),"" )'
 
@@ -700,25 +817,31 @@ def _write_cap_holds_section(
         worksheet.write_formula(row, COL_TRADE, f"={_lookup_expr('free_agent_status_lk')}")
         worksheet.write(row, COL_MIN_LABEL, "")
 
-        # Amount
-        cap_amount_expr = _lookup_expr("cap_amount")
-        worksheet.write_formula(row, COL_CAP_Y0, f"={cap_amount_expr}", roster_formats["money"])
+        # Amount - mode-aware
+        mode_amount_expr = (
+            f'IF(SelectedMode="Cap",INDEX(tbl_cap_holds_warehouse[cap_amount],{match_expr}),'
+            f'IF(SelectedMode="Tax",INDEX(tbl_cap_holds_warehouse[tax_amount],{match_expr}),'
+            f'INDEX(tbl_cap_holds_warehouse[apron_amount],{match_expr})))'
+        )
+        worksheet.write_formula(row, COL_CAP_Y0, f'=IFERROR({mode_amount_expr},"")', roster_formats["money"])
 
         # % of cap
         pct_expr = (
-            f'IFERROR({cap_amount_expr}/'
+            f'IFERROR({amount_value_expr}/'
             f'SUMIFS(tbl_system_values[salary_cap_amount],tbl_system_values[salary_year],SelectedYear),"" )'
         )
         worksheet.write_formula(row, COL_PCT_CAP, f"={pct_expr}", roster_formats["percent"])
 
         row += 1
 
-    # Subtotal for holds
+    # Subtotal for holds - mode-aware
     worksheet.write(row, COL_NAME, "Holds Subtotal:", roster_formats["subtotal_label"])
     subtotal_formula = (
-        "=SUMIFS(tbl_cap_holds_warehouse[cap_amount],"
-        "tbl_cap_holds_warehouse[team_code],SelectedTeam,"
-        "tbl_cap_holds_warehouse[salary_year],SelectedYear)"
+        '=IF(SelectedMode="Cap",'
+        'SUMIFS(tbl_cap_holds_warehouse[cap_amount],tbl_cap_holds_warehouse[team_code],SelectedTeam,tbl_cap_holds_warehouse[salary_year],SelectedYear),'
+        'IF(SelectedMode="Tax",'
+        'SUMIFS(tbl_cap_holds_warehouse[tax_amount],tbl_cap_holds_warehouse[team_code],SelectedTeam,tbl_cap_holds_warehouse[salary_year],SelectedYear),'
+        'SUMIFS(tbl_cap_holds_warehouse[apron_amount],tbl_cap_holds_warehouse[team_code],SelectedTeam,tbl_cap_holds_warehouse[salary_year],SelectedYear)))'
     )
     worksheet.write_formula(row, COL_CAP_Y0, subtotal_formula, roster_formats["subtotal"])
 
@@ -751,7 +874,7 @@ def _write_dead_money_section(
     worksheet.merge_range(row, COL_BUCKET, row, COL_PCT_CAP, "DEAD MONEY (Terminated Contracts)", section_fmt)
     row += 1
 
-    # Column headers
+    # Column headers - mode-aware amount header
     fmt = roster_formats["col_header"]
     worksheet.write(row, COL_BUCKET, "Bucket", fmt)
     worksheet.write(row, COL_COUNTS_TOTAL, "Ct$", fmt)
@@ -761,7 +884,8 @@ def _write_dead_money_section(
     worksheet.write(row, COL_GUARANTEE, "", fmt)
     worksheet.write(row, COL_TRADE, "Waive Date", fmt)
     worksheet.write(row, COL_MIN_LABEL, "", fmt)
-    worksheet.write(row, COL_CAP_Y0, "Amount", fmt)
+    # Mode-aware Amount header
+    worksheet.write_formula(row, COL_CAP_Y0, '=SelectedMode&" Amount"', fmt)
     for yi in range(1, 6):
         worksheet.write(row, COL_CAP_Y0 + yi, "", fmt)
     worksheet.write(row, COL_PCT_CAP, "% Cap", fmt)
@@ -770,10 +894,14 @@ def _write_dead_money_section(
     # Dead money rows
     num_dead_rows = 10
 
+    # Mode-aware amount column expression for dead money
+    amount_col_expr = _dead_money_amount_col()
+
     for i in range(1, num_dead_rows + 1):
         criteria = "((tbl_dead_money_warehouse[team_code]=SelectedTeam)*(tbl_dead_money_warehouse[salary_year]=SelectedYear))"
-        cap_value_expr = f"AGGREGATE(14,6,(tbl_dead_money_warehouse[cap_value])/({criteria}),{i})"
-        match_expr = f"MATCH({cap_value_expr},(tbl_dead_money_warehouse[cap_value])/({criteria}),0)"
+        # Use mode-aware amount for sorting
+        amount_value_expr = f"AGGREGATE(14,6,({amount_col_expr})/({criteria}),{i})"
+        match_expr = f"MATCH({amount_value_expr},({amount_col_expr})/({criteria}),0)"
 
         name_expr = f'IFERROR(INDEX(tbl_dead_money_warehouse[player_name],{match_expr}),"" )'
 
@@ -812,25 +940,31 @@ def _write_dead_money_section(
         worksheet.write_formula(row, COL_TRADE, f"={_lookup_expr('waive_date')}")
         worksheet.write(row, COL_MIN_LABEL, "")
 
-        # Amount
-        cap_amount_expr = _lookup_expr("cap_value")
-        worksheet.write_formula(row, COL_CAP_Y0, f"={cap_amount_expr}", roster_formats["money"])
+        # Amount - mode-aware
+        mode_amount_expr = (
+            f'IF(SelectedMode="Cap",INDEX(tbl_dead_money_warehouse[cap_value],{match_expr}),'
+            f'IF(SelectedMode="Tax",INDEX(tbl_dead_money_warehouse[tax_value],{match_expr}),'
+            f'INDEX(tbl_dead_money_warehouse[apron_value],{match_expr})))'
+        )
+        worksheet.write_formula(row, COL_CAP_Y0, f'=IFERROR({mode_amount_expr},"")', roster_formats["money"])
 
         # % of cap
         pct_expr = (
-            f'IFERROR({cap_amount_expr}/'
+            f'IFERROR({amount_value_expr}/'
             f'SUMIFS(tbl_system_values[salary_cap_amount],tbl_system_values[salary_year],SelectedYear),"" )'
         )
         worksheet.write_formula(row, COL_PCT_CAP, f"={pct_expr}", roster_formats["percent"])
 
         row += 1
 
-    # Subtotal for dead money
+    # Subtotal for dead money - mode-aware
     worksheet.write(row, COL_NAME, "Dead Money Subtotal:", roster_formats["subtotal_label"])
     subtotal_formula = (
-        "=SUMIFS(tbl_dead_money_warehouse[cap_value],"
-        "tbl_dead_money_warehouse[team_code],SelectedTeam,"
-        "tbl_dead_money_warehouse[salary_year],SelectedYear)"
+        '=IF(SelectedMode="Cap",'
+        'SUMIFS(tbl_dead_money_warehouse[cap_value],tbl_dead_money_warehouse[team_code],SelectedTeam,tbl_dead_money_warehouse[salary_year],SelectedYear),'
+        'IF(SelectedMode="Tax",'
+        'SUMIFS(tbl_dead_money_warehouse[tax_value],tbl_dead_money_warehouse[team_code],SelectedTeam,tbl_dead_money_warehouse[salary_year],SelectedYear),'
+        'SUMIFS(tbl_dead_money_warehouse[apron_value],tbl_dead_money_warehouse[team_code],SelectedTeam,tbl_dead_money_warehouse[salary_year],SelectedYear)))'
     )
     worksheet.write_formula(row, COL_CAP_Y0, subtotal_formula, roster_formats["subtotal"])
 
@@ -856,6 +990,7 @@ def _write_reconciliation_block(
     """Write the reconciliation block comparing grid sums to warehouse totals.
 
     This is the critical section that proves the ledger is trustworthy.
+    Reconciliation is mode-aware: compares cap/tax/apron based on SelectedMode.
 
     Returns next row.
     """
@@ -863,8 +998,13 @@ def _write_reconciliation_block(
     label_fmt = roster_formats["reconcile_label"]
     value_fmt = roster_formats["reconcile_value"]
 
-    # Section header
-    worksheet.merge_range(row, COL_BUCKET, row, COL_PCT_CAP, "RECONCILIATION (vs DATA_team_salary_warehouse)", reconcile_header)
+    # Section header - mode-aware
+    worksheet.merge_range(row, COL_BUCKET, row, COL_PCT_CAP, "", reconcile_header)
+    worksheet.write_formula(
+        row, COL_BUCKET,
+        '="RECONCILIATION ("&SelectedMode&" mode vs DATA_team_salary_warehouse)"',
+        reconcile_header
+    )
     row += 1
     row += 1  # Blank row
 
@@ -875,43 +1015,72 @@ def _write_reconciliation_block(
     worksheet.write(row, COL_CAP_Y2, "Delta", roster_formats["col_header"])
     row += 1
 
-    # Define the bucket comparisons
+    # Define the bucket comparisons - mode-aware
+    # Grid formulas use _salary_book_sumproduct which is already mode-aware
+    # Warehouse lookups need to use the mode-appropriate column
+
+    # Mode-aware SUMIFS helper for cap_holds
+    cap_holds_mode_sumif = (
+        'IF(SelectedMode="Cap",'
+        'SUMIFS(tbl_cap_holds_warehouse[cap_amount],tbl_cap_holds_warehouse[team_code],SelectedTeam,tbl_cap_holds_warehouse[salary_year],SelectedYear),'
+        'IF(SelectedMode="Tax",'
+        'SUMIFS(tbl_cap_holds_warehouse[tax_amount],tbl_cap_holds_warehouse[team_code],SelectedTeam,tbl_cap_holds_warehouse[salary_year],SelectedYear),'
+        'SUMIFS(tbl_cap_holds_warehouse[apron_amount],tbl_cap_holds_warehouse[team_code],SelectedTeam,tbl_cap_holds_warehouse[salary_year],SelectedYear)))'
+    )
+
+    # Mode-aware SUMIFS helper for dead_money
+    dead_money_mode_sumif = (
+        'IF(SelectedMode="Cap",'
+        'SUMIFS(tbl_dead_money_warehouse[cap_value],tbl_dead_money_warehouse[team_code],SelectedTeam,tbl_dead_money_warehouse[salary_year],SelectedYear),'
+        'IF(SelectedMode="Tax",'
+        'SUMIFS(tbl_dead_money_warehouse[tax_value],tbl_dead_money_warehouse[team_code],SelectedTeam,tbl_dead_money_warehouse[salary_year],SelectedYear),'
+        'SUMIFS(tbl_dead_money_warehouse[apron_value],tbl_dead_money_warehouse[team_code],SelectedTeam,tbl_dead_money_warehouse[salary_year],SelectedYear)))'
+    )
+
+    # Mode-aware warehouse bucket column lookup
+    # For each bucket, we pick cap_*/tax_*/apron_* based on SelectedMode
+    def warehouse_bucket_formula(bucket: str) -> str:
+        """Generate mode-aware SUMIFS for a warehouse bucket."""
+        return (
+            f'IF(SelectedMode="Cap",'
+            f'SUMIFS(tbl_team_salary_warehouse[cap_{bucket}],tbl_team_salary_warehouse[team_code],SelectedTeam,tbl_team_salary_warehouse[salary_year],SelectedYear),'
+            f'IF(SelectedMode="Tax",'
+            f'SUMIFS(tbl_team_salary_warehouse[tax_{bucket}],tbl_team_salary_warehouse[team_code],SelectedTeam,tbl_team_salary_warehouse[salary_year],SelectedYear),'
+            f'SUMIFS(tbl_team_salary_warehouse[apron_{bucket}],tbl_team_salary_warehouse[team_code],SelectedTeam,tbl_team_salary_warehouse[salary_year],SelectedYear)))'
+        )
+
     buckets = [
         (
             "Roster (ROST)",
-            "cap_rost",
+            "rost",
             _salary_book_sumproduct(is_two_way="FALSE"),
         ),
         (
             "Two-Way (2WAY)",
-            "cap_2way",
+            "2way",
             _salary_book_sumproduct(is_two_way="TRUE"),
         ),
         (
             "Holds (FA)",
-            "cap_fa",
-            "SUMIFS(tbl_cap_holds_warehouse[cap_amount],tbl_cap_holds_warehouse[team_code],SelectedTeam,tbl_cap_holds_warehouse[salary_year],SelectedYear)",
+            "fa",
+            cap_holds_mode_sumif,
         ),
         (
             "Dead Money (TERM)",
-            "cap_term",
-            "SUMIFS(tbl_dead_money_warehouse[cap_value],tbl_dead_money_warehouse[team_code],SelectedTeam,tbl_dead_money_warehouse[salary_year],SelectedYear)",
+            "term",
+            dead_money_mode_sumif,
         ),
     ]
 
-    for label, warehouse_col, grid_formula in buckets:
+    for label, bucket_suffix, grid_formula in buckets:
         worksheet.write(row, COL_NAME, label, label_fmt)
 
-        # Grid sum (from our formulas above)
+        # Grid sum (from our formulas above - already mode-aware)
         grid_cell = f"={grid_formula}"
         worksheet.write_formula(row, COL_CAP_Y0, grid_cell, value_fmt)
 
-        # Warehouse value
-        warehouse_formula = (
-            f"=SUMIFS(tbl_team_salary_warehouse[{warehouse_col}],"
-            f"tbl_team_salary_warehouse[team_code],SelectedTeam,"
-            f"tbl_team_salary_warehouse[salary_year],SelectedYear)"
-        )
+        # Warehouse value - mode-aware bucket lookup
+        warehouse_formula = f"={warehouse_bucket_formula(bucket_suffix)}"
         worksheet.write_formula(row, COL_CAP_Y1, warehouse_formula, value_fmt)
 
         # Delta (grid - warehouse)
@@ -936,23 +1105,26 @@ def _write_reconciliation_block(
 
         row += 1
 
-    # Total row
+    # Total row - mode-aware
     row += 1
-    worksheet.write(row, COL_NAME, "TOTAL (cap_total)", roster_formats["subtotal_label"])
+    # Dynamic label showing mode
+    worksheet.write_formula(row, COL_NAME, '="TOTAL ("&LOWER(SelectedMode)&"_total)"', roster_formats["subtotal_label"])
 
-    # Total grid sum (sum all buckets)
+    # Total grid sum (sum all buckets) - mode-aware
     total_grid_formula = (
         f"={_salary_book_sumproduct()}"
-        "+SUMIFS(tbl_cap_holds_warehouse[cap_amount],tbl_cap_holds_warehouse[team_code],SelectedTeam,tbl_cap_holds_warehouse[salary_year],SelectedYear)"
-        "+SUMIFS(tbl_dead_money_warehouse[cap_value],tbl_dead_money_warehouse[team_code],SelectedTeam,tbl_dead_money_warehouse[salary_year],SelectedYear)"
+        f"+{cap_holds_mode_sumif}"
+        f"+{dead_money_mode_sumif}"
     )
     worksheet.write_formula(row, COL_CAP_Y0, total_grid_formula, roster_formats["subtotal"])
 
-    # Warehouse cap_total
+    # Warehouse total - mode-aware (cap_total / tax_total / apron_total)
     total_warehouse_formula = (
-        "=SUMIFS(tbl_team_salary_warehouse[cap_total],"
-        "tbl_team_salary_warehouse[team_code],SelectedTeam,"
-        "tbl_team_salary_warehouse[salary_year],SelectedYear)"
+        '=IF(SelectedMode="Cap",'
+        'SUMIFS(tbl_team_salary_warehouse[cap_total],tbl_team_salary_warehouse[team_code],SelectedTeam,tbl_team_salary_warehouse[salary_year],SelectedYear),'
+        'IF(SelectedMode="Tax",'
+        'SUMIFS(tbl_team_salary_warehouse[tax_total],tbl_team_salary_warehouse[team_code],SelectedTeam,tbl_team_salary_warehouse[salary_year],SelectedYear),'
+        'SUMIFS(tbl_team_salary_warehouse[apron_total],tbl_team_salary_warehouse[team_code],SelectedTeam,tbl_team_salary_warehouse[salary_year],SelectedYear)))'
     )
     worksheet.write_formula(row, COL_CAP_Y1, total_warehouse_formula, roster_formats["subtotal"])
 
@@ -979,8 +1151,8 @@ def _write_reconciliation_block(
     # Reconciliation status message
     status_formula = (
         f"=IF({total_delta_grid}-{total_delta_warehouse}=0,"
-        f"\"✓ Reconciled - grid sums match warehouse totals\","
-        f"\"⚠ MISMATCH - grid sums differ from warehouse totals\")"
+        f"\"✓ Reconciled - \"&SelectedMode&\" grid sums match warehouse totals\","
+        f"\"⚠ MISMATCH - \"&SelectedMode&\" grid sums differ from warehouse totals\")"
     )
     worksheet.write_formula(row, COL_NAME, status_formula)
     worksheet.merge_range(row, COL_NAME, row, COL_CAP_Y2, "", roster_formats["reconcile_label"])

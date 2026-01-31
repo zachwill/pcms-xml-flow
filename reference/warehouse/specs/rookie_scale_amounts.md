@@ -138,40 +138,21 @@ Cap hold = `MAX(FA Amount, QO)`.
 
 | Sean Concept | Our Table | Notes |
 |--------------|-----------|-------|
-| Pick + Season → Year 1–4 salaries | `pcms.rookie_scale_amounts` | Table mentioned in AGENTS.md but may not exist yet |
-| Salary Cap by season | `pcms.league_system_values` | ✅ Exists |
-| QO / Cap Hold amounts | — | May need to add if contract planning tools require |
-
-### Schema Gap
-The `pcms.rookie_scale_amounts` table is referenced in `AGENTS.md` mapping section but may not be implemented. If needed, structure would be:
-
-```sql
-CREATE TABLE pcms.rookie_scale_amounts (
-  pick_number INT NOT NULL,          -- 1-30
-  draft_year INT NOT NULL,           -- 2025-2031+
-  year_1_salary BIGINT,
-  year_2_salary BIGINT,
-  year_3_salary BIGINT,
-  year_4_salary BIGINT,              -- team option
-  year_1_pct_cap NUMERIC(8,6),       -- e.g. 0.074502
-  year_4_escalator NUMERIC(5,3),     -- e.g. 1.261
-  qo_increase NUMERIC(5,3),          -- e.g. 0.40
-  starter_criteria BOOLEAN,
-  fa_amount BIGINT,
-  qualifying_offer BIGINT,
-  cap_hold BIGINT,
-  PRIMARY KEY (pick_number, draft_year)
-);
-```
+| Pick + Season → Year 1–4 salaries | `pcms.rookie_scale_amounts` | ✅ Exists; imported from PCMS (`salary_year_1..4`, plus option amounts/percentages). |
+| Salary Cap / avg salary by season | `pcms.league_system_values` | Used for max / projection context (Sean derives many values from cap + avg salary). |
+| “120% of scale” amounts | (derived) | Sean’s sheet explicitly multiplies by a **scale factor** (`80–120%`, currently 1.2). PCMS tables may represent the baseline scale; tooling may need to apply the chosen factor. |
+| QO / cap hold / FA amount | `pcms.non_contract_amounts` (sometimes) | PCMS has QO/FA fields on non-contract amounts, but Sean’s sheet computes pick-based QO/cap-hold logic directly. We may need explicit derived calcs for pick planning tools. |
 
 ---
 
 ## 8. Open Questions / TODO
 
-1. **Table existence**: Verify if `pcms.rookie_scale_amounts` exists or needs creation.
+1. **PCMS vs Sean scale factor**: confirm whether `pcms.rookie_scale_amounts.salary_year_1..4` are baseline (100%) or already “maxed” (120%).
 
-2. **Future years**: Rows show formulas for 2027–2031 but computed values depend on projected salary caps. Sean has these projected in SystemValues. Do we need to store projected scales or compute on-demand?
+2. **Future years**: Sean projects 2027–2031 from projected caps. Decide whether tooling should:
+   - store projected rookie scales in DB, or
+   - compute on-demand from `league_salary_cap_projections`.
 
-3. **Second-round picks**: This sheet only covers picks 1–30 (first round). Second-round picks aren't on the rookie scale—they negotiate freely. No gap.
+3. **QO / cap hold parity**: if we need pick-based cap holds for a “draft pick planner”, define whether to source from PCMS (if available) vs replicate Sean’s computed logic.
 
-4. **Scale factor 120%**: All rows show `G = 1.2` (120% of scale). This is the standard "max" for rookie scale contracts. The 80–120% column name suggests flexibility, but all current data uses 120%.
+4. **Scale factor flexibility**: The column name suggests 80–120% flexibility, but current data uses 120%. Decide if tools need the ability to choose a different factor.

@@ -141,33 +141,18 @@ G42: =ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)  -- Year 5: +4.3% over Y4
 
 ## 8. Mapping to Our Postgres Model
 
-| Sean Concept | Our Table/Column | Status |
-|--------------|------------------|--------|
-| Minimum by YOS/Year | **TODO** | Not currently modeled |
-| Year 1 % of cap | **TODO** | Not currently modeled |
-| CBA raise rates (5%, 4.7%, etc.) | **TODO** | Not modeled (hardcoded in formulas) |
-
-### Recommended schema
-
-```sql
-CREATE TABLE pcms.minimum_salary_scale (
-  season INT NOT NULL,           -- 2025, 2026, ...
-  years_of_service INT NOT NULL, -- 0–10
-  year_1_amount INT,
-  year_2_amount INT,
-  year_3_amount INT,
-  year_4_amount INT,
-  year_5_amount INT,
-  year_1_pct_cap NUMERIC(10,8),  -- fixed CBA % per YOS
-  PRIMARY KEY (season, years_of_service)
-);
-```
+| Sean Concept | Our Table/Column | Notes |
+|--------------|------------------|-------|
+| Minimum salary (Year 1) by YOS/season | `pcms.league_salary_scales.minimum_salary_amount` | Keyed by `(salary_year, league_lk, years_of_service)`; this matches the sheet’s Year 1 values. |
+| Multi-year minimum scale (Years 2–5) | (derived) | We do **not** currently store Years 2–5 in a table; Sean derives them via fixed escalators (5%, 4.7%, etc.). We can compute these on demand from Year 1. |
+| Salary cap for % calculations | `pcms.league_system_values.salary_cap_amount` (naming varies) | The workbook uses cap to project/validate % of cap. |
+| Future cap projections (if needed) | `pcms.league_salary_cap_projections` | PCMS provides projections; Sean also projects forward via GrowthRate. |
 
 ---
 
 ## 9. Open Questions / TODO
 
-- [ ] Create `pcms.minimum_salary_scale` table
-- [ ] Ingest scale data from PCMS or hardcode from CBA (check if PCMS provides this)
-- [ ] Expose function `pcms.fn_minimum_salary(season, yos, contract_year)` for contract calculators
-- [ ] The 2025–2026 data is hardcoded; 2027+ is formula-projected. Confirm if PCMS provides official future projections.
+- [ ] Confirm `pcms.league_salary_scales` is always populated for all seasons we need (2025–2031).
+- [ ] Decide whether we need a helper function/view, e.g. `pcms.fn_minimum_scale_amount(salary_year, years_of_service, contract_year)` to reproduce Sean’s Years 2–5 logic.
+- [ ] Validate Sean’s escalator constants vs PCMS / CBA (5%, 4.7%, 4.5%, 4.3% vary by YOS/year).
+- [ ] For “projected” future seasons: decide whether tooling should use PCMS projections (`league_salary_cap_projections`) or a fixed GrowthRate model.

@@ -26,15 +26,15 @@ Sean's workbook is the canonical analyst reference for NBA salary cap modeling. 
 | Dynamic Contracts | `dynamic_contracts.json` | Detailed contract rows with all year/salary permutations | [dynamic_contracts.md](dynamic_contracts.md) |
 | Contract Protections | `contract_protections.json` | Guarantee/protection lookup by contract+year | [contract_protections.md](contract_protections.md) |
 | System Values | `system_values.json` | CBA constants: cap, tax, aprons, mins by season | [system_values.md](system_values.md) |
-| Minimum Salary Scale | `minimum_salary_scale.json` | Minimum salary by years of service | TODO |
-| Rookie Scale Amounts | `rookie_scale_amounts.json` | Rookie scale salary by pick + year | TODO |
+| Minimum Salary Scale | `minimum_salary_scale.json` | Minimum salary by years of service | [minimum_salary_scale.md](minimum_salary_scale.md) |
+| Rookie Scale Amounts | `rookie_scale_amounts.json` | Rookie scale salary by pick + year | [rookie_scale_amounts.md](rookie_scale_amounts.md) |
 | Playground | `playground.json` | Interactive team salary book view | [playground.md](playground.md) |
 | POR | `por.json` | Portland-specific playground snapshot | TODO |
 | 2025 | `2025.json` | 2025 season snapshot view | TODO |
 | Team | `team.json` | Team roster with contract calculator blocks | [team.md](team.md) |
 | Team Summary | `team_summary.json` | Team salary totals dashboard (vs cap/tax/apron) | [team_summary.md](team_summary.md) |
 | Finance | `finance.json` | Team financial data | [finance.md](finance.md) |
-| GA | `ga.json` | G-League affiliate / two-way data | TODO |
+| GA | `ga.json` | G-League affiliate / two-way data | [ga.md](ga.md) |
 | Machine | `machine.json` | Trade machine logic | [machine.md](machine.md) |
 | Exceptions | `exceptions.json` | Active trade exceptions by team | [exceptions.md](exceptions.md) |
 | Trade Bonus Amounts | `trade_bonus_amounts.json` | Trade bonus / kicker calculations | [trade_bonus_amounts.md](trade_bonus_amounts.md) |
@@ -42,7 +42,7 @@ Sean's workbook is the canonical analyst reference for NBA salary cap modeling. 
 | Pick Database | `pick_database.json` | Pick reference database | [pick_database.md](pick_database.md) |
 | The Matrix | `the_matrix.json` | Multi-team trade scenario tool | [the_matrix.md](the_matrix.md) |
 | High Low | `high_low.json` | Player salary ranking / band search tool | [high_low.md](high_low.md) |
-| Tax Array | `tax_array.json` | Luxury tax bracket calculations | TODO |
+| Tax Array | `tax_array.json` | Luxury tax bracket calculations | [tax_array.md](tax_array.md) |
 | Buyout Calculator | `buyout_calculator.json` | Buyout scenario calculator | TODO |
 | Kuzma Buyout | `kuzma_buyout.json` | Specific buyout example | TODO |
 | Set-Off | `set-off.json` | Waiver set-off calculations | TODO |
@@ -147,6 +147,7 @@ The workbook has a layered architecture:
 ### Trade Tooling
 
 - **Machine** (`machine.json`) — trade machine: salary matching, exception usage
+- **The Matrix** (`the_matrix.json`) — multi-team trade scenario calculator (salary matching + apron constraints)
 - **Exceptions** (`exceptions.json`) — active trade exceptions by team
 - **Trade Bonus Amounts** (`trade_bonus_amounts.json`) — trade kicker lookup
 
@@ -155,9 +156,8 @@ The workbook has a layered architecture:
 - **Draft Picks** (`draft_picks.json`) — pick ownership/trades
 - **Pick Database** (`pick_database.json`) — historical pick reference
 
-### Calculators
+### Calculators / Scenarios
 
-- **The Matrix** (`the_matrix.json`) — contract extension calculator
 - **High Low** (`high_low.json`) — high/low salary projections
 - **Buyout Calculator** (`buyout_calculator.json`) — buyout scenarios
 - **Kuzma Buyout** (`kuzma_buyout.json`) — specific buyout example
@@ -177,8 +177,8 @@ The workbook has a layered architecture:
 | Rookie scale | `rookie_scale_amounts.json` | `pcms.rookie_scale_amounts` |
 | Draft picks | `draft_picks.json`, `pick_database.json` | `pcms.draft_picks` / `pcms.draft_picks_warehouse` |
 | Trade kickers | `trade_bonus_amounts.json` | `pcms.contract_versions.trade_bonus_percent` |
-| Minimum salary scale (by YOS) | `minimum_salary_scale.json` | TODO (not currently modeled; would need a scale table) |
-| Luxury tax brackets | `tax_array.json` | TODO (not currently modeled; would need a bracket table or function) |
+| Minimum salary scale (by YOS) | `minimum_salary_scale.json` | `pcms.league_salary_scales` (min year-1 by YOS) + derived multi-year mins |
+| Luxury tax brackets / rates | `tax_array.json` | `pcms.league_tax_rates` (+ repeater flag from `pcms.tax_team_status`) |
 
 ---
 
@@ -222,13 +222,17 @@ Presentation sheets like `playground.json` use a team dropdown (e.g., cell `D1 =
 
 ## Next Steps
 
-Create remaining spec files for each sheet following the template in `.ralph/SEAN.md`.
+Remaining specs are mostly **snapshots / single-purpose calculators** (lower dependency risk):
 
-Suggested priority order (dependency-first):
-
-1. `tax_array.md` — required for consistent luxury-tax payment math (many sheets SUMPRODUCT into Tax Array)
-2. `minimum_salary_scale.md` — used for roster-fill math (rookie/vet mins)
-3. `rookie_scale_amounts.md` — feeds rookie-contract modeling in Y (and downstream tools)
-4. `ga.md`, `2025.md`, `por.md` — presentation/snapshot sheets that reuse Playground/Team patterns
-5. `buyout_calculator.md`, `kuzma_buyout.md`, `set-off.md` — scenario calculators
+1. `2025.md` — 2025 snapshot sheet (mostly a frozen Playground/Team view)
+2. `por.md` — team-specific Playground snapshot
+3. `buyout_calculator.md` — buyout scenario calculator
+4. `kuzma_buyout.md` — worked buyout example
+5. `set-off.md` — waiver set-off calculator
 6. `cover.md` — metadata only
+
+Follow-up investigations (not specs, but correctness blockers for tooling parity):
+
+- **External sheet refs:** resolve what `X!` and `[2]Exceptions Warehouse - 2024` should map to in our repo/DB.
+- **Luxury tax parity:** confirm `Tax Array` SUMPRODUCT math matches `pcms.league_tax_rates` + `pcms.tax_team_status`.
+- **Minimum scale parity:** confirm Sean’s multi-year minimum escalators vs what PCMS provides in `pcms.league_salary_scales`.

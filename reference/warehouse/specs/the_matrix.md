@@ -150,6 +150,7 @@ For each team buildup block:
 | **Y** (y.json) | Player salary lookups | `=INDEX(Y!$D:$J, MATCH(...), ...)` |
 | **SystemValues** | CBA constants | `=XLOOKUP($AI$3, SystemValues[[Season]], SystemValues[[Salary Cap]])` |
 | **Pick Database** | Draft pick ownership | `=XLOOKUP(A$1,'Pick Database'!$B$4:$B$33,...)` |
+| **Exceptions** | Team TPE availability (display/selection) | `=FILTER(Exceptions!$B:$F, Exceptions!$B:$B=A$1)` |
 | **Tax Array** | Tax calculations | (Referenced but not heavily used here) |
 
 ### Roster Population Formula (Row 3, Column A):

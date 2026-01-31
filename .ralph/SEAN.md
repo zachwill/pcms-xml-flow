@@ -101,3 +101,12 @@ grep -nE "'<Sheet Name>'!" reference/warehouse/*.json
 - [ ] Spec: `kuzma_buyout.json`
 - [ ] Spec: `set-off.json`
 - [ ] Spec: `cover.json`
+
+---
+
+## Follow-ups (post-spec / tooling parity)
+
+- [ ] Resolve **external workbook references** in formulas (e.g. `X!` and `[2]Exceptions Warehouse - 2024`) and map them to our in-repo sheets and/or `pcms.*` tables.
+- [ ] Validate **luxury tax parity**: Sean’s `Tax Array` SUMPRODUCT vs `pcms.league_tax_rates` (and repeater flags from `pcms.tax_team_status`).
+- [ ] Validate **minimum salary parity**: Sean’s multi-year minimum escalators vs what PCMS provides (`pcms.league_salary_scales` is year-1 only).
+- [ ] Decide whether our tool-facing warehouses should extend to **2031** (Sean’s Y goes to 2031; ours is typically 2025–2030).

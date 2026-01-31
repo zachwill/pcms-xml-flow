@@ -148,28 +148,29 @@ This sums `(amount_over_bracket) * (marginal_increment)` across all applicable b
 
 ## 7. Mapping to Our Postgres Model
 
-| Sean Concept | Postgres Equivalent |
-|--------------|---------------------|
-| Tax bracket increment by season | `pcms.league_system_values.tax_bracket_increment` (if exists) |
-| Tax rate tiers | Not currently modeled — would need a function or table |
-| Repeat taxpayer flag | Not modeled — need team history |
+| Sean Concept | Postgres Equivalent | Notes |
+|--------------|---------------------|-------|
+| Progressive tax brackets + rates | `pcms.league_tax_rates` | PCMS already provides tax brackets per `(league_lk, salary_year)` with `lower_limit`, `upper_limit`, per-tier rates, and precomputed `base_charge_*` values. |
+| Repeat taxpayer flag | `pcms.tax_team_status.is_repeater_taxpayer` (and surfaced in `pcms.team_salary_warehouse`) | Sean hard-codes repeaters in some sheets; we can source this from PCMS. |
+| Tax level threshold | `pcms.league_system_values.luxury_tax_amount` (naming varies) | Needed to convert “team tax salary” → “amount over tax line”. |
 
-### Potential implementation
+### How this maps to Sean’s SUMPRODUCT
 
-A Postgres function `pcms.fn_calculate_luxury_tax(team_tax_salary, season, is_repeat)`:
-1. Get bracket increment from `league_system_values`
-2. Calculate amount over tax level
-3. Apply progressive bracket math (could be done with a loop or GENERATE_SERIES)
-4. Return total tax owed
+Sean’s SUMPRODUCT effectively computes a piecewise function over the “amount over the tax line”.
 
-Alternatively, a static `pcms.tax_brackets` table with:
-- `season`, `bracket_index`, `threshold`, `first_time_rate`, `repeat_rate`
+In PCMS terms you can compute luxury tax as:
+
+1. `over_tax = GREATEST(0, team_tax_salary - luxury_tax_amount)`
+2. Find the bracket row in `pcms.league_tax_rates` where `over_tax` falls (`lower_limit <= over_tax < upper_limit`)
+3. `tax_owed = base_charge_(repeater/non) + (over_tax - lower_limit) * tax_rate_(repeater/non)`
+
+This is more efficient (and less error-prone) than reproducing the bracket array + SUMPRODUCT trick.
 
 ---
 
 ## 8. Open Questions / TODO
 
-- [ ] Confirm bracket increments match `pcms.league_system_values.tax_bracket_increment` (col L in System Values)
-- [ ] Decide if we need a `tax_brackets` lookup table or just a calculation function
-- [ ] Confirm repeat taxpayer definition (3 out of last 4 years paying tax?)
-- [ ] Currently `league_system_values` has `tax_bracket` column but it may not be populated from PCMS
+- [ ] Confirm `pcms.league_tax_rates.lower_limit/upper_limit` are defined in terms of **amount over the tax line** (vs absolute payroll).
+- [ ] Add a small SQL helper function (or view) for tool parity, e.g. `pcms.fn_luxury_tax_amount(salary_year, team_tax_salary, is_repeater)`.
+- [ ] Reconcile workbook “Tax Bracket” increment (`System Values` col L) vs PCMS bracket definitions (should match when converting to `league_tax_rates`).
+- [ ] Confirm repeat taxpayer definition used by PCMS matches Sean’s workbook assumptions.

@@ -216,8 +216,8 @@ No other sheets reference `GA`.
 | Player salaries by year | `pcms.salary_book_warehouse` |
 | CBA constants | `pcms.league_system_values` |
 | Draft picks | `pcms.draft_picks_warehouse` |
-| Luxury tax calculations | Not modeled (would need `Tax Array` spec + function) |
-| Repeater status | Not modeled |
+| Luxury tax calculations | `pcms.league_tax_rates` + `pcms.league_system_values` | We can compute tax owed from team tax salary using PCMS brackets/rates (see `tax_array.md`). |
+| Repeater status | `pcms.tax_team_status` / `pcms.team_salary_warehouse.is_repeater_taxpayer` | Sean hard-codes a list; PCMS provides a flag by team/year. |
 
 ---
 
@@ -235,5 +235,5 @@ Both sheets are nearly identical in structure. Possible differences:
 
 - [ ] Clarify naming: "GA" = G-League Affiliate? General Assistant? Or something else?
 - [ ] Consider consolidating logic with `team.json` spec since they're nearly identical
-- [ ] Model repeater status in DB
-- [ ] Add luxury tax payment function (see `Tax Array` spec)
+- [ ] Replace the hard-coded repeater-team IF chain with `pcms.tax_team_status` parity (team/year driven).
+- [ ] Add a luxury-tax payment helper (`pcms.league_tax_rates`-based) if tooling needs an exact “Tax Payment” number like the sheet.

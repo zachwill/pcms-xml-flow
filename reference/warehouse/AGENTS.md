@@ -88,7 +88,7 @@ Example from `dynamic_contracts.json`:
 
 | File | Size | Purpose |
 |------|------|---------|
-| `the_matrix.json` | 158KB | Contract extension calculator (the "Matrix"). |
+| `the_matrix.json` | 158KB | Multi-team trade scenario calculator (salary matching + apron constraints). |
 | `high_low.json` | 1.2MB | High/low salary projections per contract. |
 | `tax_array.json` | 71KB | Luxury tax bracket calculations. |
 
@@ -134,8 +134,8 @@ The Excel workbook has cross-sheet dependencies. Key patterns:
 | Team totals | `team_summary.json` | `pcms.team_salary_warehouse`, `pcms.team_budget_snapshots` |
 | Contract protections | `contract_protections.json` | `pcms.contract_amounts` (guarantee fields) |
 | Rookie scale | `rookie_scale_amounts.json` | `pcms.rookie_scale_amounts` |
-| Minimum salary scale (by YOS) | `minimum_salary_scale.json` | TODO (not currently modeled; would need a scale table) |
-| Luxury tax brackets | `tax_array.json` | TODO (not currently modeled; would need a bracket table or function) |
+| Minimum salary scale (by YOS) | `minimum_salary_scale.json` | `pcms.league_salary_scales` (minimum_salary_amount by YOS/year) |
+| Luxury tax brackets / rates | `tax_array.json` | `pcms.league_tax_rates` (rates + base charges) + `pcms.tax_team_status` (repeater flag) |
 | Draft picks | `draft_picks.json`, `pick_database.json` | `pcms.draft_picks` / `pcms.draft_picks_warehouse` |
 
 ---

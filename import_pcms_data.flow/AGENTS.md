@@ -56,6 +56,14 @@ Runs after base table imports and calls the DB refresh functions:
 - `pcms.refresh_draft_picks_warehouse()`
 - `pcms.refresh_draft_assets_warehouse()`
 
+### I) `export_capbook.inline_script.py`
+Runs after warehouses are refreshed:
+- Builds a self-contained Excel cap workbook (`./shared/capbook.xlsx`)
+- Uses `base_year` from flow input (default: current year)
+- Uses today's date as `as_of`
+- Validates against the data contract
+- See `excel/AGENTS.md` for workbook details
+
 **Windmill note:** `flow.yaml` sets `same_worker: true`, so `./shared/` is shared across steps.
 
 ---

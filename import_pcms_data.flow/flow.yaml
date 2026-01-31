@@ -113,6 +113,21 @@ value:
         lock: '!inline refresh_caches.inline_script.lock'
         language: python3
 
+    - id: i
+      summary: Export cap workbook
+      value:
+        type: rawscript
+        content: '!inline export_capbook.inline_script.py'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: flow_input.dry_run
+          base_year:
+            type: javascript
+            expr: flow_input.base_year
+        lock: '!inline export_capbook.inline_script.lock'
+        language: python3
+
   same_worker: true
 schema:
   $schema: 'https://json-schema.org/draft/2020-12/schema'
@@ -120,6 +135,7 @@ schema:
   order:
     - dry_run
     - s3_key
+    - base_year
   properties:
     dry_run:
       type: boolean
@@ -129,3 +145,7 @@ schema:
       type: string
       description: S3 key for PCMS extract ZIP
       default: pcms/nba_pcms_full_extract.zip
+    base_year:
+      type: integer
+      description: Base salary year for Excel workbook export (default = current year)
+      default: null

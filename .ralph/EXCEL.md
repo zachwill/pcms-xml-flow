@@ -101,6 +101,6 @@ Build a new, self-contained Sean-style Excel cap workbook **generated from code*
   - Apron gate / hard-cap trigger notes (static)
 
 ### Phase 10 - Docs + integration
-- [ ] Documentation + workflow integration
+- [x] Documentation + workflow integration
   - Update `excel/AGENTS.md` with current CLI usage + dataset list
   - Add Windmill step to build workbook after PCMS refresh (import flow)

@@ -234,7 +234,7 @@ Computes expanded trade matching salary (125% + $250K rules).
 ## 8. Open Questions / TODO
 
 - [x] Confirmed: `por.json` is byte-for-byte identical to `playground.json` (both exports have `D1="POR"`).
-- [ ] Repeater status (J1/N1) is hardcoded — should come from `pcms.teams` or computed from 3-year tax history.
+- [x] Repeater status (J1/N1) is hardcoded — should come from `pcms.team_salary_warehouse.is_repeater_taxpayer`. → See `repeater-flag-parameterization.md`.
 - [ ] Contract Calculator blocks (Y–AK) are standalone scenario tools — may warrant separate utility functions.
 - [ ] Tax Array integration: verify our luxury tax calculation matches Sean's SUMPRODUCT pattern.
 - [ ] Baseline Cost (row 63) appears to be user-input for scenario comparison — not populated by formula.

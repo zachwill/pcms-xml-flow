@@ -166,7 +166,7 @@ No direct `'Team'!` references were found in other JSON exports; this appears to
 
 ## 7. Open Questions / TODO
 
-- [ ] Repeater status is hard-coded to specific teams; for tooling we should derive from tax history (or store in a table).
+- [x] Repeater status is hard-coded to specific teams; for tooling we should use `pcms.team_salary_warehouse.is_repeater_taxpayer`. → See `repeater-flag-parameterization.md`.
 - [ ] The tax bracket logic depends on `tax_array.json`; we still need a dedicated spec + schema mapping for tax brackets.
 - [ ] Dead money is pulled from Y using a "{TEAM} Dead Money" naming convention; confirm that maps 1:1 to our `pcms.dead_money_warehouse` aggregation.
 - [ ] There are stray `#REF!` formulas near rows 87–90; determine if these are harmless artifacts.

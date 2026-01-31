@@ -1,6 +1,7 @@
 # Excel Workbook Data Contract (Postgres → `DATA_*` tables)
 
 **Updated:** 2026-01-31
+**Version:** v2-2026-01-31
 
 This document defines the **stable data interface** between:
 
@@ -10,7 +11,7 @@ This document defines the **stable data interface** between:
 It exists to prevent the two classic failure modes:
 
 1) the workbook silently drifting from the database model
-2) “refresh scripts” becoming a pile of ad-hoc queries no one can reason about
+2) "refresh scripts" becoming a pile of ad-hoc queries no one can reason about
 
 This is a *contract*: if we change a column name/type/meaning, we must update this doc and the exporter/workbook generator together.
 
@@ -26,7 +27,7 @@ This is a *contract*: if we change a column name/type/meaning, we must update th
 
 ### Out of scope (for now)
 - the full scenario engine implementation (journal evaluation)
-- any “live DB connection” Excel approach (ODBC/PowerQuery as a default)
+- any "live DB connection" Excel approach (ODBC/PowerQuery as a default)
 - formatting / workbook UX layout (see `excel-cap-book-blueprint.md`)
 
 ---
@@ -39,7 +40,7 @@ The workbook should be portable/offline.
 All DB access happens in an **exporter** (local `uv run` or Windmill step) which writes data into `DATA_*` sheets.
 
 ### 2) Prefer warehouses for Excel extracts
-Unless there’s a strong reason, extract from:
+Unless there's a strong reason, extract from:
 - `pcms.*_warehouse` tables
 - stable `pcms.*` views (e.g. `pcms.salary_book_yearly`)
 
@@ -48,7 +49,7 @@ Avoid raw joins over `pcms.salaries`, `pcms.contract_versions`, etc.
 ### 3) Amount units
 All money amounts are **dollars** (integer) unless explicitly documented otherwise.
 
-Excel can format as `$#,##0` and can divide by 1,000,000 for “$M” displays.
+Excel can format as `$#,##0` and can divide by 1,000,000 for "$M" displays.
 
 ### 4) Keys > names
 UI sheets may display names, but all joins should be possible via stable keys:
@@ -62,7 +63,7 @@ UI sheets may display names, but all joins should be possible via stable keys:
 The workbook should operate over a fixed horizon:
 - `base_year` through `base_year + 5` (6 seasons)
 
-Any “wide” salary exports should be relative to `base_year` (see below).
+Any "wide" salary exports should be relative to `base_year` (see below).
 
 ### 6) Relative-year wide columns (recommended)
 To avoid changing workbook formulas/references every season, export wide salary columns as **relative-year columns**.
@@ -77,12 +78,14 @@ Do the same for tax/apron/options/guarantees if included.
 
 ---
 
-## Required datasets (v1)
+## Required datasets (v2)
 
 | Dataset | Postgres source | Excel sheet | Excel table | Primary key | Used by |
 |---|---|---|---|---|---|
-| System values | `pcms.league_system_values` | `DATA_system_values` | `tbl_system_values` | `(league_lk, salary_year)` | cockpit thresholds, % of cap |
+| System values | `pcms.league_system_values` | `DATA_system_values` | `tbl_system_values` | `(league_lk, salary_year)` | cockpit thresholds, % of cap, exception amounts |
 | Tax rates | `pcms.league_tax_rates` | `DATA_tax_rates` | `tbl_tax_rates` | `(league_lk, salary_year, bracket_number)` | tax calc + audit |
+| Rookie scale | `pcms.rookie_scale_amounts` | `DATA_rookie_scale` | `tbl_rookie_scale` | `(salary_year, pick_number)` | RULES_REFERENCE, fill row generation |
+| Minimum scale | `pcms.league_salary_scales` | `DATA_minimum_scale` | `tbl_minimum_scale` | `(salary_year, years_of_service)` | RULES_REFERENCE, min contract identification |
 | Team totals (authoritative) | `pcms.team_salary_warehouse` | `DATA_team_salary_warehouse` | `tbl_team_salary_warehouse` | `(team_code, salary_year)` | cockpit readouts + ledger |
 | Salary book (wide) | `pcms.salary_book_warehouse` (exported as relative-year columns) | `DATA_salary_book_warehouse` | `tbl_salary_book_warehouse` | `player_id` | roster grid + UI |
 | Salary book (yearly) | `pcms.salary_book_yearly` | `DATA_salary_book_yearly` | `tbl_salary_book_yearly` | `(player_id, salary_year)` | trade math + per-year logic |
@@ -105,20 +108,39 @@ Do the same for tax/apron/options/guarantees if included.
 
 **Primary key:** `(league_lk, salary_year)`
 
-**Required columns (v1):**
+**Required columns (v2):**
 - `league_lk`
 - `salary_year`
-- `salary_cap_amount`
-- `tax_level_amount`
-- `tax_apron_amount`
-- `tax_apron2_amount`
-- `minimum_team_salary_amount`
-- `days_in_season`
-- (optional but useful) `tpe_dollar_allowance`, `mid_level_amount`, `bi_annual_amount`, etc.
+- Thresholds:
+  - `salary_cap_amount`
+  - `tax_level_amount`
+  - `tax_apron_amount`
+  - `tax_apron2_amount`
+  - `minimum_team_salary_amount`
+- Exception amounts:
+  - `non_taxpayer_mid_level_amount` (full MLE)
+  - `taxpayer_mid_level_amount` (taxpayer MLE)
+  - `room_mid_level_amount` (room MLE)
+  - `bi_annual_amount` (BAE)
+  - `tpe_dollar_allowance`
+- Two-way amounts:
+  - `two_way_salary_amount`
+  - `two_way_dlg_salary_amount`
+- Salary limits:
+  - `maximum_salary_25_pct`
+  - `maximum_salary_30_pct`
+  - `maximum_salary_35_pct`
+  - `average_salary_amount`
+  - `max_trade_cash_amount`
+- Season calendar:
+  - `days_in_season`
+  - `season_start_at`
+  - `season_end_at`
 
 **Used by:**
-- cockpit thresholds + “room under X” readouts
+- cockpit thresholds + "room under X" readouts
 - % of cap calculations
+- exception/signing tooling
 
 ---
 
@@ -152,7 +174,59 @@ For the workbook export, derive it deterministically as:
 
 ---
 
-### C) `tbl_team_salary_warehouse` (authoritative totals)
+### C) `tbl_rookie_scale`
+
+**Source:** `pcms.rookie_scale_amounts`
+
+**Filters:**
+- `league_lk = 'NBA'`
+- `salary_year BETWEEN base_year AND base_year + 5`
+- `is_active = TRUE`
+
+**Primary key:** `(salary_year, pick_number)`
+
+**Required columns:**
+- `salary_year`
+- `league_lk`
+- `pick_number`
+- `salary_year_1` (year 1 salary)
+- `salary_year_2` (year 2 salary)
+- `salary_year_3` (year 3 salary / option)
+- `salary_year_4` (year 4 salary / option)
+- `option_amount_year_3`
+- `option_amount_year_4`
+- `is_baseline_scale`
+
+**Used by:**
+- RULES_REFERENCE rookie scale table
+- fill row generation (when filling with rookie minimums)
+
+---
+
+### D) `tbl_minimum_scale`
+
+**Source:** `pcms.league_salary_scales`
+
+**Filters:**
+- `league_lk = 'NBA'`
+- `salary_year BETWEEN base_year AND base_year + 5`
+
+**Primary key:** `(salary_year, years_of_service)`
+
+**Required columns:**
+- `salary_year`
+- `league_lk`
+- `years_of_service` (0-10+)
+- `minimum_salary_amount`
+
+**Used by:**
+- RULES_REFERENCE minimum salary table
+- minimum contract identification
+- fill row generation (when filling with veteran minimums)
+
+---
+
+### E) `tbl_team_salary_warehouse` (authoritative totals)
 
 **Source:** `pcms.team_salary_warehouse`
 
@@ -175,11 +249,11 @@ For the workbook export, derive it deterministically as:
 - authoritative ledger totals
 
 **Reconciliation expectation:**
-- Any workbook “counting totals” should match this table’s totals for the selected team/year/mode.
+- Any workbook "counting totals" should match this table's totals for the selected team/year/mode.
 
 ---
 
-### D) `tbl_salary_book_warehouse` (wide, UI-friendly)
+### F) `tbl_salary_book_warehouse` (wide, UI-friendly)
 
 **Source:** `pcms.salary_book_warehouse`
 
@@ -219,7 +293,7 @@ For the workbook export, derive it deterministically as:
 
 ---
 
-### E) `tbl_salary_book_yearly` (tall, calculation-friendly)
+### G) `tbl_salary_book_yearly` (tall, calculation-friendly)
 
 **Source:** `pcms.salary_book_yearly` (view)
 
@@ -250,7 +324,7 @@ For the workbook export, derive it deterministically as:
 
 ---
 
-### F) `tbl_cap_holds_warehouse`
+### H) `tbl_cap_holds_warehouse`
 
 **Source:** `pcms.cap_holds_warehouse`
 
@@ -268,11 +342,11 @@ For the workbook export, derive it deterministically as:
 - designation/status: `free_agent_designation_lk`, `free_agent_status_lk`
 
 **Used by:**
-- roster/ledger drilldowns for “FA/holds that count”
+- roster/ledger drilldowns for "FA/holds that count"
 
 ---
 
-### G) `tbl_dead_money_warehouse`
+### I) `tbl_dead_money_warehouse`
 
 **Source:** `pcms.dead_money_warehouse`
 
@@ -295,7 +369,7 @@ For the workbook export, derive it deterministically as:
 
 ---
 
-### H) `tbl_exceptions_warehouse`
+### J) `tbl_exceptions_warehouse`
 
 **Source:** `pcms.exceptions_warehouse`
 
@@ -319,7 +393,7 @@ For the workbook export, derive it deterministically as:
 
 ---
 
-### I) `tbl_draft_picks_warehouse`
+### K) `tbl_draft_picks_warehouse`
 
 **Source:** `pcms.draft_picks_warehouse`
 
@@ -354,10 +428,10 @@ The workbook `META` sheet should include:
 
 ---
 
-## Next refinement (when we’re ready)
+## Next refinement (when we're ready)
 
 Once the workbook generator stabilizes, we should tighten this contract by adding:
-- exact column lists (not “recommended”)
+- exact column lists (not "recommended")
 - explicit nullability rules
 - reconciliation queries for each dataset
 

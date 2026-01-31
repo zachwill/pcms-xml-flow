@@ -40,29 +40,71 @@ class DatasetExtractError(Exception):
 def extract_system_values(
     base_year: int, league: str = "NBA"
 ) -> tuple[list[str], list[dict[str, Any]]]:
-    """Extract tbl_system_values dataset (DATA_system_values)."""
+    """Extract tbl_system_values dataset (DATA_system_values).
+
+    Includes CBA thresholds and key exception amounts (MLE, BAE, TPE, etc.)
+    per the data contract.
+    """
 
     columns = [
         "league_lk",
         "salary_year",
+        # Thresholds
         "salary_cap_amount",
         "tax_level_amount",
         "tax_apron_amount",
         "tax_apron2_amount",
         "minimum_team_salary_amount",
+        # Exception amounts
+        "non_taxpayer_mid_level_amount",
+        "taxpayer_mid_level_amount",
+        "room_mid_level_amount",
+        "bi_annual_amount",
+        "tpe_dollar_allowance",
+        # Two-way amounts
+        "two_way_salary_amount",
+        "two_way_dlg_salary_amount",
+        # Salary limits
+        "maximum_salary_25_pct",
+        "maximum_salary_30_pct",
+        "maximum_salary_35_pct",
+        "average_salary_amount",
+        "max_trade_cash_amount",
+        # Season calendar
         "days_in_season",
+        "season_start_at",
+        "season_end_at",
     ]
 
     sql = """
         SELECT
             league_lk,
             salary_year,
+            -- Thresholds
             salary_cap_amount,
             tax_level_amount,
             tax_apron_amount,
             tax_apron2_amount,
             minimum_team_salary_amount,
-            days_in_season
+            -- Exception amounts
+            non_taxpayer_mid_level_amount,
+            taxpayer_mid_level_amount,
+            room_mid_level_amount,
+            bi_annual_amount,
+            tpe_dollar_allowance,
+            -- Two-way amounts
+            two_way_salary_amount,
+            two_way_dlg_salary_amount,
+            -- Salary limits
+            maximum_salary_25_pct,
+            maximum_salary_30_pct,
+            maximum_salary_35_pct,
+            average_salary_amount,
+            max_trade_cash_amount,
+            -- Season calendar
+            days_in_season,
+            season_start_at,
+            season_end_at
         FROM pcms.league_system_values
         WHERE league_lk = %(league)s
           AND salary_year BETWEEN %(base_year)s AND %(base_year)s + 5
@@ -626,5 +668,90 @@ def extract_draft_picks_warehouse(
         rows = fetch_all(sql, {"base_year": base_year})
     except Exception as e:  # noqa: BLE001
         raise DatasetExtractError("draft_picks_warehouse", columns, e) from e
+
+    return columns, rows
+
+
+def extract_rookie_scale(
+    base_year: int, league: str = "NBA"
+) -> tuple[list[str], list[dict[str, Any]]]:
+    """Extract tbl_rookie_scale dataset (DATA_rookie_scale).
+
+    Rookie scale amounts by pick number and contract year (1-4).
+    The DB stores salary_year_1..salary_year_4 and option amounts.
+    We export one row per pick with all 4 contract year amounts.
+    """
+
+    columns = [
+        "salary_year",
+        "league_lk",
+        "pick_number",
+        "salary_year_1",
+        "salary_year_2",
+        "salary_year_3",
+        "salary_year_4",
+        "option_amount_year_3",
+        "option_amount_year_4",
+        "is_baseline_scale",
+    ]
+
+    sql = """
+        SELECT
+            salary_year,
+            league_lk,
+            pick_number,
+            salary_year_1,
+            salary_year_2,
+            salary_year_3,
+            salary_year_4,
+            option_amount_year_3,
+            option_amount_year_4,
+            is_baseline_scale
+        FROM pcms.rookie_scale_amounts
+        WHERE league_lk = %(league)s
+          AND salary_year BETWEEN %(base_year)s AND %(base_year)s + 5
+          AND is_active = TRUE
+        ORDER BY salary_year, pick_number
+    """
+
+    try:
+        rows = fetch_all(sql, {"league": league, "base_year": base_year})
+    except Exception as e:  # noqa: BLE001
+        raise DatasetExtractError("rookie_scale", columns, e) from e
+
+    return columns, rows
+
+
+def extract_minimum_scale(
+    base_year: int, league: str = "NBA"
+) -> tuple[list[str], list[dict[str, Any]]]:
+    """Extract tbl_minimum_scale dataset (DATA_minimum_scale).
+
+    Minimum salary by years of service.
+    """
+
+    columns = [
+        "salary_year",
+        "league_lk",
+        "years_of_service",
+        "minimum_salary_amount",
+    ]
+
+    sql = """
+        SELECT
+            salary_year,
+            league_lk,
+            years_of_service,
+            minimum_salary_amount
+        FROM pcms.league_salary_scales
+        WHERE league_lk = %(league)s
+          AND salary_year BETWEEN %(base_year)s AND %(base_year)s + 5
+        ORDER BY salary_year, years_of_service
+    """
+
+    try:
+        rows = fetch_all(sql, {"league": league, "base_year": base_year})
+    except Exception as e:  # noqa: BLE001
+        raise DatasetExtractError("minimum_scale", columns, e) from e
 
     return columns, rows

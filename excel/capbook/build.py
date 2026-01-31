@@ -28,6 +28,8 @@ from .extract import (
     DatasetExtractError,
     extract_system_values,
     extract_tax_rates,
+    extract_rookie_scale,
+    extract_minimum_scale,
     extract_team_salary_warehouse,
     extract_salary_book_warehouse,
     extract_salary_book_yearly,
@@ -67,6 +69,8 @@ UI_SHEETS = [
 DATA_SHEETS = [
     "DATA_system_values",
     "DATA_tax_rates",
+    "DATA_rookie_scale",
+    "DATA_minimum_scale",
     "DATA_team_salary_warehouse",
     "DATA_salary_book_warehouse",
     "DATA_salary_book_yearly",
@@ -77,7 +81,7 @@ DATA_SHEETS = [
 ]
 
 # See: reference/blueprints/excel-workbook-data-contract.md
-DATA_CONTRACT_VERSION = "v1-2026-01-31"
+DATA_CONTRACT_VERSION = "v2-2026-01-31"
 
 
 def get_git_sha() -> str:
@@ -176,6 +180,18 @@ def build_capbook(
                 "sheet": "DATA_tax_rates",
                 "table": "tbl_tax_rates",
                 "extract": lambda: extract_tax_rates(base_year, league),
+            },
+            {
+                "key": "rookie_scale",
+                "sheet": "DATA_rookie_scale",
+                "table": "tbl_rookie_scale",
+                "extract": lambda: extract_rookie_scale(base_year, league),
+            },
+            {
+                "key": "minimum_scale",
+                "sheet": "DATA_minimum_scale",
+                "table": "tbl_minimum_scale",
+                "extract": lambda: extract_minimum_scale(base_year, league),
             },
             {
                 "key": "team_salary_warehouse",

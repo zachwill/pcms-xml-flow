@@ -33,12 +33,12 @@ Build a new, self-contained Sean-style Excel cap workbook **generated from code*
   - XlsxWriter helpers + badge color mapping
 
 ### Phase 1 — Data contract expansion (tables first)
-- [ ] Expand core `DATA_*` tables + contract
+- [x] Expand core `DATA_*` tables + contract
   - Add `DATA_rookie_scale` (from `pcms.rookie_scale_amounts`, base_year..+5, league)
-  - Add `DATA_minimum_scale` (from `pcms.league_salary_scales` or equivalent)
-  - Expand `DATA_system_values` with key constants (MLE, BAE, TPE allowance, etc.; verify in `SCHEMA.md`)
+  - Add `DATA_minimum_scale` (from `pcms.league_salary_scales`)
+  - Expand `DATA_system_values` with key constants (MLE, BAE, TPE allowance, etc.)
   - Update `DATA_SHEETS`, `dataset_specs`, and data contract doc
-  - Bump `DATA_CONTRACT_VERSION`
+  - Bump `DATA_CONTRACT_VERSION` to v2-2026-01-31
 
 ### Phase 2 — Shared command bar + named ranges
 - [ ] Implement shared command bar across **all UI sheets**

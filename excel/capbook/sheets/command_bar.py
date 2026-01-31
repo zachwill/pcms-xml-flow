@@ -119,6 +119,17 @@ NAMED_RANGES = {
     "ComparePlanD": (ROW_COMPARE_D, COL_INPUT_3),
 }
 
+# Formula-based named ranges (defined as formulas, not cell references)
+# These derive values from other tables/ranges
+FORMULA_NAMED_RANGES = {
+    # ActivePlanId: looks up plan_id from tbl_plan_manager where plan_name = ActivePlan
+    # Returns #N/A if ActivePlan is not found or blank; use IFERROR in consuming formulas
+    "ActivePlanId": (
+        '=IFERROR(INDEX(tbl_plan_manager[plan_id],'
+        'MATCH(ActivePlan,tbl_plan_manager[plan_name],0)),"")'
+    ),
+}
+
 
 def get_command_bar_height() -> int:
     """Return the number of rows the command bar occupies (for layout purposes)."""
@@ -434,8 +445,13 @@ def write_command_bar_editable(
     # Define Named Ranges (workbook-scoped)
     # =========================================================================
     
+    # Cell-based named ranges (reference specific cells on TEAM_COCKPIT)
     for name, (row, col) in NAMED_RANGES.items():
         define_named_cell(workbook, name, COCKPIT_SHEET_NAME, row, col)
+    
+    # Formula-based named ranges (computed from other ranges/tables)
+    for name, formula in FORMULA_NAMED_RANGES.items():
+        workbook.define_name(name, formula)
 
 
 def define_meta_named_ranges(

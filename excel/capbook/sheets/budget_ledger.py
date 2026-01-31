@@ -320,7 +320,11 @@ def _write_plan_delta_section(
     
     This section summarizes journal actions for the active plan.
     It uses SUMIFS to aggregate deltas from enabled journal entries
-    where plan_id matches the selected active plan.
+    where plan_id matches the ActivePlanId (derived from ActivePlan name).
+    
+    Fallback behavior:
+    - If ActivePlanId is blank/error (e.g., plan not found), deltas are 0
+    - The "Baseline" plan has plan_id=1 but no journal entries by default
     
     Returns (next_row, delta_total_row).
     """
@@ -344,15 +348,23 @@ def _write_plan_delta_section(
     worksheet.write(row, COL_NOTES, "See PLAN_JOURNAL tab for details", budget_formats["note"])
     row += 1
     
-    # Helper: SUMIFS for plan journal filtered by ActivePlan and enabled="Yes"
-    # Note: We need to match plan_id to the plan_id from tbl_plan_manager where plan_name=ActivePlan
-    # For simplicity in v1, we use a SUMIF that checks enabled only (plan_id filtering comes later)
-    # This is because XLOOKUP for plan_id matching is complex in Excel without dynamic arrays
+    # Helper: SUMIFS for plan journal filtered by ActivePlanId and enabled="Yes"
+    # Uses IFERROR to handle case where ActivePlanId is blank or not found
+    # When ActivePlanId is blank (e.g., no plan selected), returns 0
     
-    def _journal_sumifs_enabled(delta_col: str) -> str:
-        """Sum journal deltas for enabled rows only (v1 simplification)."""
+    def _journal_sumifs_by_plan(delta_col: str, action_type: str) -> str:
+        """
+        Sum journal deltas for a specific action type, filtered by:
+        - enabled = "Yes"
+        - plan_id = ActivePlanId
+        
+        Uses IFERROR to gracefully handle blank/missing ActivePlanId.
+        """
         return (
-            f'SUMIF(tbl_plan_journal[enabled],"Yes",tbl_plan_journal[{delta_col}])'
+            f'=IFERROR(SUMIFS(tbl_plan_journal[{delta_col}],'
+            f'tbl_plan_journal[enabled],"Yes",'
+            f'tbl_plan_journal[plan_id],ActivePlanId,'
+            f'tbl_plan_journal[action_type],"{action_type}"),0)'
         )
     
     # Action type breakdown with SUMIFS
@@ -373,22 +385,10 @@ def _write_plan_delta_section(
     for action_type, note in action_categories:
         worksheet.write(row, COL_LABEL, f"  {action_type}", budget_formats["label_indent"])
         
-        # SUMIFS: sum delta where enabled="Yes" AND action_type matches
-        cap_formula = (
-            f'=SUMIFS(tbl_plan_journal[delta_cap],'
-            f'tbl_plan_journal[enabled],"Yes",'
-            f'tbl_plan_journal[action_type],"{action_type}")'
-        )
-        tax_formula = (
-            f'=SUMIFS(tbl_plan_journal[delta_tax],'
-            f'tbl_plan_journal[enabled],"Yes",'
-            f'tbl_plan_journal[action_type],"{action_type}")'
-        )
-        apron_formula = (
-            f'=SUMIFS(tbl_plan_journal[delta_apron],'
-            f'tbl_plan_journal[enabled],"Yes",'
-            f'tbl_plan_journal[action_type],"{action_type}")'
-        )
+        # SUMIFS: sum delta where enabled="Yes" AND plan_id=ActivePlanId AND action_type matches
+        cap_formula = _journal_sumifs_by_plan("delta_cap", action_type)
+        tax_formula = _journal_sumifs_by_plan("delta_tax", action_type)
+        apron_formula = _journal_sumifs_by_plan("delta_apron", action_type)
         
         worksheet.write_formula(row, COL_CAP, cap_formula, budget_formats["delta_zero"])
         worksheet.write_formula(row, COL_TAX, tax_formula, budget_formats["delta_zero"])
@@ -398,19 +398,32 @@ def _write_plan_delta_section(
     
     delta_row_end = row - 1  # Last data row
     
-    # Delta total row - sum all enabled journal entries (simpler than summing categories)
+    # Delta total row - sum all enabled journal entries for ActivePlanId
     row += 1
     worksheet.write(row, COL_LABEL, "PLAN DELTA TOTAL", budget_formats["label_bold"])
     
-    # Total formula: sum all enabled deltas
-    total_cap_formula = f'=SUMIF(tbl_plan_journal[enabled],"Yes",tbl_plan_journal[delta_cap])'
-    total_tax_formula = f'=SUMIF(tbl_plan_journal[enabled],"Yes",tbl_plan_journal[delta_tax])'
-    total_apron_formula = f'=SUMIF(tbl_plan_journal[enabled],"Yes",tbl_plan_journal[delta_apron])'
+    # Total formula: sum all enabled deltas for ActivePlanId
+    # Uses IFERROR for robustness when ActivePlanId is blank
+    total_cap_formula = (
+        '=IFERROR(SUMIFS(tbl_plan_journal[delta_cap],'
+        'tbl_plan_journal[enabled],"Yes",'
+        'tbl_plan_journal[plan_id],ActivePlanId),0)'
+    )
+    total_tax_formula = (
+        '=IFERROR(SUMIFS(tbl_plan_journal[delta_tax],'
+        'tbl_plan_journal[enabled],"Yes",'
+        'tbl_plan_journal[plan_id],ActivePlanId),0)'
+    )
+    total_apron_formula = (
+        '=IFERROR(SUMIFS(tbl_plan_journal[delta_apron],'
+        'tbl_plan_journal[enabled],"Yes",'
+        'tbl_plan_journal[plan_id],ActivePlanId),0)'
+    )
     
     worksheet.write_formula(row, COL_CAP, total_cap_formula, budget_formats["money_total"])
     worksheet.write_formula(row, COL_TAX, total_tax_formula, budget_formats["money_total"])
     worksheet.write_formula(row, COL_APRON, total_apron_formula, budget_formats["money_total"])
-    worksheet.write(row, COL_NOTES, "Sum of all enabled plan adjustments", budget_formats["note"])
+    worksheet.write(row, COL_NOTES, "Sum of all enabled plan adjustments for ActivePlan", budget_formats["note"])
     
     delta_total_row = row
     row += 2

@@ -33,7 +33,7 @@ This backlog reflects the post‑v2 audit. Core sheets exist; remaining work foc
   - Add a quick note in each sheet explaining editable zones
 
 ### 2) Wire ActivePlan filtering for plan deltas
-- [ ] Budget ledger plan deltas must respect `ActivePlan`
+- [x] Budget ledger plan deltas must respect `ActivePlan`
   - Add named range `ActivePlanId` (lookup plan_id from `tbl_plan_manager[plan_name]=ActivePlan`)
   - Update plan delta SUMIFS to filter by `plan_id = ActivePlanId`
   - Add fallback behavior if ActivePlanId is blank

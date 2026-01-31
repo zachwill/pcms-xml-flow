@@ -109,10 +109,20 @@ export function PickDetail({ entity, className }: PickDetailProps) {
         isSwap={pick.is_swap}
       />
 
-      {pick.asset_type && (
-        <div className="flex items-center gap-2">
+      {(pick.asset_type || pick.is_conditional || pick.missing_endnote_refs.length > 0) && (
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground">Status:</span>
-          <AssetTypeBadge assetType={pick.asset_type} />
+          {pick.asset_type && <AssetTypeBadge assetType={pick.asset_type} />}
+          {pick.is_conditional && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
+              Conditional
+            </span>
+          )}
+          {pick.missing_endnote_refs.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200">
+              Needs Review
+            </span>
+          )}
         </div>
       )}
 
@@ -127,7 +137,12 @@ export function PickDetail({ entity, className }: PickDetailProps) {
 
       {pick.description && <PickDescription description={pick.description} />}
 
-      <ConveyanceHistory />
+      <ConveyanceHistory
+        endnotes={pick.endnotes}
+        tradeClaims={pick.trade_claims}
+        missingEndnoteRefs={pick.missing_endnote_refs}
+        draftYear={pick.year}
+      />
     </div>
   );
 }

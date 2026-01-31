@@ -34,12 +34,24 @@ export {
   type AgentDetail,
   type AgentClientPlayer,
 } from "./useAgent";
-export { usePlayer, type UsePlayerReturn, type PlayerDetailResponse } from "./usePlayer";
+export {
+  usePlayer,
+  type UsePlayerReturn,
+  type PlayerDetailResponse,
+  type PlayerContractProtection,
+  type PlayerContractBonus,
+  type PlayerProtectionCondition,
+} from "./usePlayer";
 export {
   usePickDetail,
   type UsePickDetailReturn,
   type PickDetailParams,
   type PickDetailResponse,
+  type PickDetailAsset,
+  type PickDetailEndnote,
+  type PickDetailTradeClaim,
+  type PickDetailTradeClaims,
+  type PickTeamInfo,
 } from "./usePickDetail";
 export {
   useTwoWayCapacity,

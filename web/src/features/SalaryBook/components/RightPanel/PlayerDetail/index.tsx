@@ -17,6 +17,8 @@ import { usePlayer, useTeams } from "../../../hooks";
 import { PlayerHeader } from "./PlayerHeader";
 import { ContractSummary } from "./ContractSummary";
 import { YearByYearBreakdown, type YearData } from "./YearByYearBreakdown";
+import { ContractGuarantees } from "./ContractGuarantees";
+import { ContractBonuses } from "./ContractBonuses";
 import { TradeRestrictions } from "./TradeRestrictions";
 import { PlayerDetailSkeleton } from "./PlayerDetailSkeleton";
 
@@ -34,6 +36,17 @@ export interface PlayerDetailProps {
 // ============================================================================
 // Main Component
 // ============================================================================
+
+function resolveGuaranteeStatus(
+  isFull: boolean | null | undefined,
+  isPartial: boolean | null | undefined,
+  isNone: boolean | null | undefined
+): YearData["guaranteeStatus"] {
+  if (isFull) return "FULL";
+  if (isPartial) return "PARTIAL";
+  if (isNone) return "NONE";
+  return null;
+}
 
 /**
  * PlayerDetail — Full player contract view for sidebar
@@ -81,12 +94,84 @@ export function PlayerDetail({ entity, className }: PlayerDetailProps) {
   }
 
   const years: YearData[] = [
-    { year: 2025, salary: player.cap_2025, option: player.option_2025 },
-    { year: 2026, salary: player.cap_2026, option: player.option_2026 },
-    { year: 2027, salary: player.cap_2027, option: player.option_2027 },
-    { year: 2028, salary: player.cap_2028, option: player.option_2028 },
-    { year: 2029, salary: player.cap_2029, option: player.option_2029 },
-    { year: 2030, salary: player.cap_2030, option: player.option_2030 },
+    {
+      year: 2025,
+      salary: player.cap_2025,
+      option: player.option_2025,
+      guaranteedAmount: player.guaranteed_amount_2025,
+      guaranteeStatus: resolveGuaranteeStatus(
+        player.is_fully_guaranteed_2025,
+        player.is_partially_guaranteed_2025,
+        player.is_non_guaranteed_2025
+      ),
+      likelyBonus: player.likely_bonus_2025,
+      unlikelyBonus: player.unlikely_bonus_2025,
+    },
+    {
+      year: 2026,
+      salary: player.cap_2026,
+      option: player.option_2026,
+      guaranteedAmount: player.guaranteed_amount_2026,
+      guaranteeStatus: resolveGuaranteeStatus(
+        player.is_fully_guaranteed_2026,
+        player.is_partially_guaranteed_2026,
+        player.is_non_guaranteed_2026
+      ),
+      likelyBonus: player.likely_bonus_2026,
+      unlikelyBonus: player.unlikely_bonus_2026,
+    },
+    {
+      year: 2027,
+      salary: player.cap_2027,
+      option: player.option_2027,
+      guaranteedAmount: player.guaranteed_amount_2027,
+      guaranteeStatus: resolveGuaranteeStatus(
+        player.is_fully_guaranteed_2027,
+        player.is_partially_guaranteed_2027,
+        player.is_non_guaranteed_2027
+      ),
+      likelyBonus: player.likely_bonus_2027,
+      unlikelyBonus: player.unlikely_bonus_2027,
+    },
+    {
+      year: 2028,
+      salary: player.cap_2028,
+      option: player.option_2028,
+      guaranteedAmount: player.guaranteed_amount_2028,
+      guaranteeStatus: resolveGuaranteeStatus(
+        player.is_fully_guaranteed_2028,
+        player.is_partially_guaranteed_2028,
+        player.is_non_guaranteed_2028
+      ),
+      likelyBonus: player.likely_bonus_2028,
+      unlikelyBonus: player.unlikely_bonus_2028,
+    },
+    {
+      year: 2029,
+      salary: player.cap_2029,
+      option: player.option_2029,
+      guaranteedAmount: player.guaranteed_amount_2029,
+      guaranteeStatus: resolveGuaranteeStatus(
+        player.is_fully_guaranteed_2029,
+        player.is_partially_guaranteed_2029,
+        player.is_non_guaranteed_2029
+      ),
+      likelyBonus: player.likely_bonus_2029,
+      unlikelyBonus: player.unlikely_bonus_2029,
+    },
+    {
+      year: 2030,
+      salary: player.cap_2030,
+      option: player.option_2030,
+      guaranteedAmount: player.guaranteed_amount_2030,
+      guaranteeStatus: resolveGuaranteeStatus(
+        player.is_fully_guaranteed_2030,
+        player.is_partially_guaranteed_2030,
+        player.is_non_guaranteed_2030
+      ),
+      likelyBonus: player.likely_bonus_2030,
+      unlikelyBonus: player.unlikely_bonus_2030,
+    },
   ];
 
   const totalValue = years.reduce((sum, y) => sum + Number(y.salary ?? 0), 0);
@@ -121,6 +206,10 @@ export function PlayerDetail({ entity, className }: PlayerDetailProps) {
       />
 
       <YearByYearBreakdown years={years} />
+
+      <ContractGuarantees protections={player.contract_protections} />
+
+      <ContractBonuses bonuses={player.contract_bonuses} />
 
       <TradeRestrictions
         isNoTrade={player.is_no_trade}

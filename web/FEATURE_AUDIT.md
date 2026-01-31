@@ -16,13 +16,13 @@ This is a **web UI audit** against what we already have in Postgres + the Sean w
 
 | Postgres object | Purpose | Web status |
 |---|---|---|
-| `pcms.salary_book_warehouse` | Player salary matrix (cap/tax/apron columns + trade flags + guarantees + incentives) | **Wired** (players list) — **cap amounts only**, partial metadata |
+| `pcms.salary_book_warehouse` | Player salary matrix (cap/tax/apron columns + trade flags + guarantees + incentives) | **Wired** (players list + player overlay guarantees/incentives detail) |
 | `pcms.team_salary_warehouse` | Team totals, rooms, apron/tax flags, roster counts | **Wired** (KPIs + totals footer + sidebar cap outlook) |
 | `pcms.exceptions_warehouse` | Trade exceptions by team/year | **Wired** (Exceptions row) |
 | `pcms.cap_holds_warehouse` | Cap hold drilldown (only holds that count) | **Wired** (Cap Holds section) |
 | `pcms.dead_money_warehouse` | Waiver/dead money drilldown | **Wired** (Dead Money section) |
-| `pcms.draft_assets_warehouse` | Draft assets/picks (parsed from PCMS text + endnote refs) | **Wired** (Draft Assets row + draft tab + pick detail) — **parsing still client-heavy** |
-| `pcms.draft_pick_trade_claims_warehouse` | Pick claim chain/rights (warehouse) | **Not shown** |
+| `pcms.draft_assets_warehouse` | Draft assets/picks (parsed from PCMS text + endnote refs) | **Wired** (Draft Assets row + draft tab + pick detail) — endnotes now server-side |
+| `pcms.draft_pick_trade_claims_warehouse` | Pick claim chain/rights (warehouse) | **Wired** (Pick detail conveyance history) |
 | `pcms.player_rights_warehouse` | Draft rights / D-League returning rights | **Wired** (TeamContext → Rights tab) |
 
 ### 1.2 Core primitives (functions)

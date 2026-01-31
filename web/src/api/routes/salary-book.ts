@@ -65,6 +65,14 @@ function normalizeIdArray(value: unknown): number[] {
     .filter((id) => Number.isFinite(id));
 }
 
+const PICK_PROTECTION_REGEX = /(Top\s+\d+|Lottery|Unprotected)[\s-]*(Protected)?/i;
+
+function parsePickProtections(fragment: string | null | undefined): string | null {
+  if (!fragment) return null;
+  const match = fragment.match(PICK_PROTECTION_REGEX);
+  return match ? match[0] : null;
+}
+
 // GET /api/salary-book/teams
 // Fetch all NBA teams from pcms.teams
 salaryBookRouter.get("/teams", async () => {
@@ -698,6 +706,8 @@ salaryBookRouter.get("/player/:playerId", async (req) => {
   const players = await sql`
     SELECT
       s.player_id,
+      s.contract_id,
+      s.version_number,
       COALESCE(
         NULLIF(TRIM(CONCAT_WS(' ', p.display_first_name, p.display_last_name)), ''),
         s.player_name
@@ -810,7 +820,88 @@ salaryBookRouter.get("/player/:playerId", async (req) => {
     return Response.json({ error: "Player not found" }, { status: 404 });
   }
 
-  return Response.json(players[0]);
+  const player = players[0] as any;
+  const contractId = Number(player.contract_id);
+  const versionNumber = Number(player.version_number);
+  const hasContract =
+    Number.isFinite(contractId) &&
+    contractId > 0 &&
+    Number.isFinite(versionNumber);
+
+  let protections: any[] = [];
+  let bonuses: any[] = [];
+
+  if (hasContract) {
+    protections = await sql`
+      SELECT
+        cp.protection_id,
+        cp.salary_year,
+        cp.protection_coverage_lk,
+        cp.protection_amount::numeric,
+        cp.effective_protection_amount::numeric,
+        cp.is_conditional_protection,
+        cp.protection_types_json,
+        cp.conditional_protection_comments,
+        COALESCE(
+          jsonb_agg(
+            jsonb_build_object(
+              'condition_id', cpc.condition_id,
+              'amount', cpc.amount,
+              'clause_name', cpc.clause_name,
+              'earned_date', cpc.earned_date,
+              'earned_type_lk', cpc.earned_type_lk,
+              'is_full_condition', cpc.is_full_condition,
+              'criteria_description', cpc.criteria_description,
+              'criteria_json', cpc.criteria_json
+            ) ORDER BY cpc.condition_id
+          ) FILTER (WHERE cpc.condition_id IS NOT NULL),
+          '[]'::jsonb
+        ) AS conditions
+      FROM pcms.contract_protections cp
+      LEFT JOIN pcms.contract_protection_conditions cpc
+        ON cp.contract_id = cpc.contract_id
+       AND cp.version_number = cpc.version_number
+       AND cp.protection_id = cpc.protection_id
+      WHERE cp.contract_id = ${contractId}
+        AND cp.version_number = ${versionNumber}
+      GROUP BY
+        cp.protection_id,
+        cp.salary_year,
+        cp.protection_coverage_lk,
+        cp.protection_amount,
+        cp.effective_protection_amount,
+        cp.is_conditional_protection,
+        cp.protection_types_json,
+        cp.conditional_protection_comments
+      ORDER BY cp.salary_year, cp.protection_id
+    `;
+
+    bonuses = await sql`
+      SELECT
+        bonus_id,
+        salary_year,
+        bonus_amount::numeric,
+        bonus_type_lk,
+        is_likely,
+        earned_lk,
+        paid_by_date,
+        clause_name,
+        criteria_description,
+        criteria_json
+      FROM pcms.contract_bonuses
+      WHERE contract_id = ${contractId}
+        AND version_number = ${versionNumber}
+      ORDER BY salary_year, bonus_id
+    `;
+  }
+
+  const { contract_id: _contractId, version_number: _versionNumber, ...playerData } = player;
+
+  return Response.json({
+    ...playerData,
+    contract_protections: protections,
+    contract_bonuses: bonuses,
+  });
 });
 
 // GET /api/salary-book/pick?team=:teamCode&year=:year&round=:round
@@ -840,96 +931,211 @@ salaryBookRouter.get("/pick", async (req) => {
 
   const sql = getSql();
 
-  // Fetch the pick details
-  const picks = await sql`
+  const assets = await sql`
     SELECT
       team_code,
       draft_year as year,
       draft_round as round,
       asset_slot,
+      sub_asset_slot,
       asset_type,
-      raw_fragment as description
-    FROM pcms.draft_picks_warehouse
+      is_conditional,
+      is_swap,
+      counterparty_team_code,
+      counterparty_team_codes,
+      via_team_codes,
+      raw_fragment,
+      raw_part,
+      endnote_refs,
+      primary_endnote_id,
+      endnote_trade_date,
+      endnote_explanation,
+      endnote_is_swap,
+      endnote_is_conditional,
+      endnote_depends_on,
+      needs_review
+    FROM pcms.draft_assets_warehouse
     WHERE team_code = ${teamCode}
       AND draft_year = ${year}
       AND draft_round = ${round}
-    ORDER BY asset_slot
+    ORDER BY asset_slot, sub_asset_slot
   `;
 
-  if (picks.length === 0) {
+  if (assets.length === 0) {
     return Response.json({ error: "Pick not found" }, { status: 404 });
   }
 
-  // Get team info for destination team
-  const teams = await sql`
-    SELECT team_code, team_name, team_nickname
-    FROM pcms.teams
-    WHERE team_code = ${teamCode}
-      AND league_lk = 'NBA'
-    LIMIT 1
-  `;
+  const primary = assets[0] as any;
+  const rawFragment = primary.raw_fragment || "";
+  const primaryCounterpartyCodes = Array.isArray(primary.counterparty_team_codes)
+    ? primary.counterparty_team_codes
+    : [];
+  const primaryCounterparty =
+    primary.counterparty_team_code ?? primaryCounterpartyCodes[0] ?? null;
 
-  const destinationTeam = teams.length > 0 ? teams[0] : null;
-
-  // Parse the raw_fragment for origin team info
-  // The raw_fragment often contains the origin team code
-  const pick = picks[0];
-  const rawFragment = pick.description || "";
-
-  // Try to extract origin team from description
-  // Common patterns: "LAL 1st", "Own 1st", "From LAL"
-  let originTeamCode = teamCode; // Default to same team
-  const fromMatch = rawFragment.match(/(?:From|from)\s+([A-Z]{3})/);
-  const prefixMatch = rawFragment.match(/^([A-Z]{3})\s+/);
-
-  if (fromMatch) {
-    originTeamCode = fromMatch[1];
-  } else if (prefixMatch && prefixMatch[1] !== "Own") {
-    originTeamCode = prefixMatch[1];
+  let originTeamCode = teamCode;
+  if (["HAS", "MAY_HAVE", "OTHER"].includes(primary.asset_type) && primaryCounterparty) {
+    originTeamCode = primaryCounterparty;
   }
 
-  // Get origin team info if different
-  let originTeam = null;
-  if (originTeamCode !== teamCode) {
-    const originTeams = await sql`
-      SELECT team_code, team_name, team_nickname
-      FROM pcms.teams
-      WHERE team_code = ${originTeamCode}
-        AND league_lk = 'NBA'
-      LIMIT 1
-    `;
-    if (originTeams.length > 0) {
-      originTeam = originTeams[0];
+  const endnoteRefs = Array.from(
+    new Set(
+      assets
+        .flatMap((row: any) => (Array.isArray(row.endnote_refs) ? row.endnote_refs : []))
+        .map((id: any) => Number(id))
+        .filter((id: number) => Number.isFinite(id))
+    )
+  ).sort((a, b) => Number(a) - Number(b));
+
+  const endnotes = endnoteRefs.length > 0
+    ? await sql`
+        SELECT
+          endnote_id,
+          trade_id,
+          trade_date,
+          is_swap,
+          is_conditional,
+          explanation,
+          conditions_json,
+          note_type,
+          status_lk,
+          resolution_lk,
+          resolved_at,
+          draft_years,
+          draft_rounds,
+          draft_year_start,
+          draft_year_end,
+          has_rollover,
+          is_frozen_pick,
+          teams_mentioned,
+          from_team_codes,
+          to_team_codes,
+          trade_ids,
+          depends_on_endnotes,
+          trade_summary,
+          conveyance_text,
+          protections_text,
+          contingency_text,
+          exercise_text
+        FROM pcms.endnotes
+        WHERE endnote_id = ANY(${sql.array(endnoteRefs, "INT")})
+        ORDER BY trade_date DESC NULLS LAST, endnote_id DESC
+      `
+    : [];
+
+  const endnoteIdSet = new Set(
+    endnotes.map((note: any) => Number(note.endnote_id)).filter(Number.isFinite)
+  );
+  const missingEndnoteRefs = endnoteRefs.filter((id) => !endnoteIdSet.has(id));
+
+  const tradeClaimsRows = originTeamCode
+    ? await sql`
+        SELECT
+          draft_year,
+          draft_round,
+          original_team_code,
+          trade_claims_json,
+          claims_count,
+          distinct_to_teams_count,
+          has_conditional_claims,
+          has_swap_claims,
+          latest_trade_id,
+          latest_trade_date,
+          needs_review
+        FROM pcms.draft_pick_trade_claims_warehouse
+        WHERE original_team_code = ${originTeamCode}
+          AND draft_year = ${year}
+          AND draft_round = ${round}
+        LIMIT 1
+      `
+    : [];
+
+  const tradeClaimsRow = tradeClaimsRows[0] as any | undefined;
+  const tradeClaimsPayload = tradeClaimsRow?.trade_claims_json;
+  let tradeClaimsArray: any[] = [];
+
+  if (Array.isArray(tradeClaimsPayload)) {
+    tradeClaimsArray = tradeClaimsPayload;
+  } else if (typeof tradeClaimsPayload === "string") {
+    try {
+      const parsed = JSON.parse(tradeClaimsPayload);
+      if (Array.isArray(parsed)) {
+        tradeClaimsArray = parsed;
+      }
+    } catch {
+      tradeClaimsArray = [];
     }
   }
 
-  // Parse protections from description
-  // Common patterns: "Top 5 Protected", "Lottery Protected"
-  let protections = null;
-  const protectedMatch = rawFragment.match(/(Top\s+\d+|Lottery|Unprotected)[\s-]*(Protected)?/i);
-  if (protectedMatch) {
-    protections = protectedMatch[0];
-  }
+  const tradeClaims = tradeClaimsRow
+    ? {
+        draft_year: tradeClaimsRow.draft_year,
+        draft_round: tradeClaimsRow.draft_round,
+        original_team_code: tradeClaimsRow.original_team_code,
+        claims_count: tradeClaimsRow.claims_count,
+        distinct_to_teams_count: tradeClaimsRow.distinct_to_teams_count,
+        has_conditional_claims: tradeClaimsRow.has_conditional_claims,
+        has_swap_claims: tradeClaimsRow.has_swap_claims,
+        latest_trade_id: tradeClaimsRow.latest_trade_id,
+        latest_trade_date: tradeClaimsRow.latest_trade_date,
+        needs_review: tradeClaimsRow.needs_review,
+        trade_claims: tradeClaimsArray,
+      }
+    : null;
 
-  // Determine if it's a swap
-  const isSwap = rawFragment.toLowerCase().includes("swap");
+  const teams = await sql`
+    SELECT team_code, team_name, team_nickname
+    FROM pcms.teams
+    WHERE team_code IN (${teamCode}, ${originTeamCode})
+      AND league_lk = 'NBA'
+  `;
+
+  const destinationTeam = teams.find((t: any) => t.team_code === teamCode) ?? null;
+  const originTeam = teams.find((t: any) => t.team_code === originTeamCode) ?? null;
+
+  const protections =
+    endnotes.find((note: any) => note.protections_text)?.protections_text ??
+    parsePickProtections(rawFragment);
+
+  const isSwap = assets.some((row: any) => row.is_swap);
+  const isConditional = assets.some((row: any) => row.is_conditional);
 
   return Response.json({
     team_code: teamCode,
     year,
     round,
-    asset_type: pick.asset_type,
+    asset_type: primary.asset_type ?? null,
     description: rawFragment,
     origin_team_code: originTeamCode,
     origin_team: originTeam,
     destination_team: destinationTeam,
     protections,
     is_swap: isSwap,
-    // Collect all picks for this team/year/round (in case multiple)
-    all_slots: picks.map((p: any) => ({
-      asset_slot: p.asset_slot,
-      asset_type: p.asset_type,
-      description: p.description,
+    is_conditional: isConditional,
+    endnotes,
+    trade_claims: tradeClaims,
+    missing_endnote_refs: missingEndnoteRefs,
+    assets: assets.map((row: any) => ({
+      asset_slot: row.asset_slot,
+      sub_asset_slot: row.sub_asset_slot,
+      asset_type: row.asset_type,
+      is_conditional: row.is_conditional,
+      is_swap: row.is_swap,
+      counterparty_team_code: row.counterparty_team_code ?? null,
+      counterparty_team_codes: Array.isArray(row.counterparty_team_codes)
+        ? row.counterparty_team_codes
+        : [],
+      via_team_codes: Array.isArray(row.via_team_codes) ? row.via_team_codes : [],
+      raw_fragment: row.raw_fragment,
+      raw_part: row.raw_part,
+      endnote_refs: normalizeIdArray(row.endnote_refs),
+      primary_endnote_id: row.primary_endnote_id ?? null,
+      endnote_trade_date: row.endnote_trade_date ?? null,
+      endnote_explanation: row.endnote_explanation ?? null,
+      endnote_is_swap: row.endnote_is_swap ?? null,
+      endnote_is_conditional: row.endnote_is_conditional ?? null,
+      endnote_depends_on: normalizeIdArray(row.endnote_depends_on),
+      needs_review: row.needs_review ?? false,
     })),
   });
 });

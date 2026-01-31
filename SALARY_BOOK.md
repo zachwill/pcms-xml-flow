@@ -29,18 +29,18 @@ We have **near-complete parity** with Sean's Excel workbook for the core analyst
 | **Repeater Tax Status** | `pcms.team_salary_warehouse.is_repeater_taxpayer` | ✅ Complete |
 | **Apron Status** | `pcms.team_salary_warehouse.apron_level_lk` | ✅ Complete |
 | **Contract Protections** | `pcms.contract_protections` | ✅ Complete |
-| **Trade Kickers** | `salary_book_warehouse.trade_kicker_display` | ✅ Complete |
-| **Option Types** | `salary_book_warehouse.option_20xx` | ✅ Complete |
-| **Player Consent Flags** | `salary_book_warehouse.can_be_traded_*` | ✅ Complete |
-| **Min Contract Detection** | `salary_book_warehouse.is_min_contract_*` | ✅ Complete |
+| **Trade Kickers** | `pcms.salary_book_warehouse.trade_kicker_display` | ✅ Complete |
+| **Option Types** | `pcms.salary_book_warehouse.option_20xx` | ✅ Complete |
+| **Player Consent / Trade Restrictions** | `pcms.salary_book_warehouse.player_consent_lk` + `trade_restriction_*` | ✅ Complete |
+| **Min Contract Detection** | `pcms.salary_book_warehouse.is_min_contract` (+ `min_contract_*`) | ✅ Complete |
 
-### 🔧 Three Primitives Remaining (specs complete, ready to implement)
+### ✅ Three Sean primitives we’ve added (now implemented)
 
-| Sean Concept | Primitive Needed | Spec |
-|--------------|------------------|------|
-| **Can Bring Back** (inverse trade matching) | `fn_can_bring_back()` | `specs/fn_can_bring_back.md` |
-| **Multi-Year Minimums** (Years 2-5 escalators) | `fn_minimum_salary()` | `specs/minimum-salary-parity.md` |
-| **Buyout Calculator** (stretch/set-off) | `fn_buyout_scenario()` | `specs/buyout-waiver-math.md` |
+| Sean Concept | Primitive | Implementation |
+|--------------|----------|----------------|
+| **Can Bring Back** (inverse trade matching) | `pcms.fn_can_bring_back()` / `pcms.fn_trade_salary_range()` | `migrations/058_fn_can_bring_back.sql` |
+| **Multi-Year Minimums** (Years 2-5 escalators) | `pcms.fn_minimum_salary()` | `migrations/059_fn_minimum_salary.sql` |
+| **Buyout / Waiver / Stretch / Set-Off** | `pcms.fn_buyout_scenario()` + helpers | `migrations/060_fn_buyout_primitives.sql` |
 
 ### ⏳ Lower Priority (not blocking core use cases)
 
@@ -68,12 +68,25 @@ The warehouse tables are pre-aggregated for fast queries. The primitives compose
 
 ## Canonical Tables for Tooling
 
+### What counts vs. drilldown detail (important)
+
+Sean’s mental model distinguishes **what exists** from **what counts**.
+
+- **Authoritative team-year amounts that count** toward cap/tax/aprons: `pcms.team_budget_snapshots` → exposed via `pcms.team_salary_warehouse`.
+- **Tool-facing drilldowns** should prefer the `*_warehouse` tables first.
+  - `pcms.cap_holds_warehouse` is already filtered to only holds that actually count (it’s scoped to the FA buckets in `team_budget_snapshots`).
+  - `pcms.dead_money_warehouse` is the drilldown for termination / waiver charges.
+
 ### Player-Level: `pcms.salary_book_warehouse`
 
-One row per active player. The primary source for Salary Book / Playground queries.
+One row per player with an **active contract** (`APPR`/`FUTR`) and a resolved `team_code`.
+
+- Amounts are stored in **dollars** (`bigint`).
+- 2025 is the current “base” year in the warehouse (2025–2030 columns).
+- If a player has multiple overlapping contracts (rookie + extension), we pick the **most recently signed** `APPR/FUTR` contract as the “primary” contract identity.
 
 ```sql
-SELECT player_name, team_code, 
+SELECT player_name, team_code,
        cap_2025, cap_2026, cap_2027,
        option_2025, option_2026,
        trade_kicker_display, agent_name
@@ -82,20 +95,29 @@ WHERE team_code = 'BOS'
 ORDER BY cap_2025 DESC NULLS LAST;
 ```
 
-Key columns:
-- `cap_20xx`, `tax_20xx`, `apron_20xx` — salary grids (2025–2030)
-- `pct_cap_20xx` — salary as % of salary cap (percentile ranking)
-- `option_20xx` — option types (TO, PO, NULL for none)
-- `option_decision_20xx` — option decisions (picked up/declined/pending)
-- `is_two_way`, `is_no_trade`, `is_trade_bonus`, `trade_bonus_percent`
-- `trade_kicker_display` — human-readable trade kicker status
-- `can_be_traded`, `veto_type`, `consent_type` — trade eligibility
-- `is_min_contract`, `is_min_contract_20xx` — minimum salary detection
-- `contract_type_lk`, `contract_type_display` — contract classification
+Key columns (high-signal for tools):
+- `cap_20xx`, `tax_20xx`, `apron_20xx` — Salary Book grids (2025–2030)
+- `pct_cap_20xx` — `cap_20xx / salary_cap_amount` for that year
+- `pct_cap_percentile_20xx` — league percentile (0–1) for that year’s `% of cap`
+- `likely_bonus_20xx`, `unlikely_bonus_20xx` — incentive detail
+- `guaranteed_amount_20xx` + `is_fully_guaranteed_20xx` / `is_partially_guaranteed_20xx` / `is_non_guaranteed_20xx`
+  - Derived from `pcms.contract_protections`
+- `option_20xx`, `option_decision_20xx` — option types/decisions (normalized, `NULL` means no option)
+- Trade math primitives (base-year): `outgoing_buildup_2025`, `incoming_salary_2025`, `incoming_tax_2025`, `incoming_apron_2025`
+- Trade add-ons: `is_poison_pill`, `poison_pill_amount`, `is_trade_bonus`, `trade_bonus_percent`, `trade_kicker_display`
+- Trade restrictions & consent:
+  - `is_no_trade`
+  - `player_consent_lk`, `player_consent_end_date`, `is_trade_consent_required_now`, `is_trade_preconsented`
+  - `trade_restriction_lookup_value`, `trade_restriction_end_date`, `is_trade_restricted_now`
+- Contract classification / signing metadata:
+  - `contract_type_lookup_value` (rookie scale, vet min, extension, etc.)
+  - `signed_method_lookup_value` (Bird, MLE, BAE, minimum, etc.)
+  - `exception_type_lookup_value` (if signed via a team exception)
+  - `min_contract_lookup_value` + `is_min_contract`
 
 ### Player-Level (Yearly): `pcms.salary_book_yearly`
 
-One row per (player, year). For trade math that needs consistent per-year shape.
+One row per (player, year). This is the most convenient shape for trade math, because every contract becomes a consistent per-year series.
 
 ```sql
 SELECT salary_year, team_code, cap_amount, tax_amount, apron_amount
@@ -106,10 +128,12 @@ ORDER BY salary_year;
 
 ### Team-Level: `pcms.team_salary_warehouse`
 
-One row per (team, year). Team totals with cap/tax/apron room calculations.
+One row per (team, year). Team totals + cap/tax/apron room.
+
+This table is derived from `pcms.team_budget_snapshots` (the authoritative “what counts” ledger).
 
 ```sql
-SELECT team_code, 
+SELECT team_code,
        cap_total, tax_total, apron_total,
        salary_cap_amount, tax_level_amount,
        over_cap, room_under_tax, room_under_apron1,
@@ -119,17 +143,45 @@ WHERE salary_year = 2025
 ORDER BY tax_total DESC;
 ```
 
+Tip: component columns like `cap_rost`, `cap_fa`, `cap_term`, `cap_2way` mirror Sean’s “ROST/FA/TERM/2WAY” breakdown.
+
 ### Exceptions: `pcms.exceptions_warehouse`
 
-Trade exceptions by team with proration and usability info.
+Trade exceptions by team with proration + remaining amounts.
 
 ```sql
-SELECT team_code, exception_type_lk, exception_name,
-       remaining_amount, prorated_amount,
-       expiration_date, can_acquire_player
+SELECT team_code, exception_type_lk, exception_type_name,
+       trade_exception_player_name,
+       remaining_amount, prorated_remaining_amount,
+       expiration_date, is_expired
 FROM pcms.exceptions_warehouse
 WHERE team_code = 'CLE' AND salary_year = 2025
 ORDER BY remaining_amount DESC;
+```
+
+### Dead Money: `pcms.dead_money_warehouse`
+
+Waiver/buyout termination charges by team.
+
+```sql
+SELECT team_code, player_name, waive_date,
+       cap_value, tax_value, apron_value
+FROM pcms.dead_money_warehouse
+WHERE team_code = 'BOS' AND salary_year = 2025
+ORDER BY cap_value DESC;
+```
+
+### Cap Holds: `pcms.cap_holds_warehouse`
+
+FA holds / rights amounts that actually count in team totals.
+
+```sql
+SELECT team_code, player_name,
+       free_agent_designation_lk, free_agent_status_lk,
+       cap_amount, tax_amount, apron_amount
+FROM pcms.cap_holds_warehouse
+WHERE team_code = 'BOS' AND salary_year = 2025
+ORDER BY cap_amount DESC;
 ```
 
 ---
@@ -163,16 +215,20 @@ SELECT pcms.fn_trade_plan_tpe(
 );
 ```
 
+---
+
+## Luxury Tax
+
 ### Luxury Tax: `fn_luxury_tax_amount()`
 
-Calculate luxury tax owed given amount over tax line.
+Calculate luxury tax owed given amount over the tax line.
 
 ```sql
 -- For a specific team
 SELECT * FROM pcms.fn_team_luxury_tax('BOS', 2025);
 
 -- All taxpayers
-SELECT * FROM pcms.fn_all_teams_luxury_tax(2025) 
+SELECT * FROM pcms.fn_all_teams_luxury_tax(2025)
 WHERE luxury_tax_owed > 0;
 ```
 
@@ -199,27 +255,36 @@ WHERE luxury_tax_owed > 0;
 
 ## Refresh Functions
 
-Warehouse tables are materialized and need refresh after PCMS imports:
+Warehouse tables are materialized and need refresh after PCMS imports.
+
+These are run automatically in Windmill step H (`import_pcms_data.flow/refresh_caches.inline_script.py`).
 
 ```sql
--- Refresh all caches (run after import)
 SELECT pcms.refresh_salary_book_warehouse();
 SELECT pcms.refresh_team_salary_warehouse();
 SELECT pcms.refresh_exceptions_warehouse();
+SELECT pcms.refresh_dead_money_warehouse();
+SELECT pcms.refresh_cap_holds_warehouse();
+SELECT pcms.refresh_player_rights_warehouse();
+SELECT pcms.refresh_draft_pick_trade_claims_warehouse();
+SELECT pcms.refresh_draft_picks_warehouse();
+SELECT pcms.refresh_draft_assets_warehouse();
 ```
-
-The Windmill flow runs these automatically in step H (`refresh_caches`).
 
 ---
 
 ## Raw Model (for debugging)
 
-If you need to trace a number back to source:
+If you need to trace a number back to source, these are the core PCMS base tables:
 
 ```
 pcms.contracts (1 per contract)
   └── pcms.contract_versions (1+ per contract, amendments)
         └── pcms.salaries (1 per version per year)
+pcms.contract_protections (guarantees by contract/version/year)
+pcms.team_budget_snapshots (authoritative team-year "what counts" ledger)
+pcms.non_contract_amounts (raw FA holds / rights; filtered into cap_holds_warehouse)
+pcms.transaction_waiver_amounts (raw waiver detail; filtered into dead_money_warehouse)
 pcms.people (player identity)
 pcms.agents (agent identity)
 pcms.league_system_values (cap/tax constants by year)
@@ -248,6 +313,7 @@ psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -f queries/sql/run_all.sql
 ```
 
 Compare spot-checks to Sean's data:
+
 ```bash
 # Find a player in Sean's Y warehouse
 jq 'to_entries[] | select(.value.B | test("James.*LeBron"; "i"))' reference/warehouse/y.json
@@ -268,6 +334,7 @@ psql "$POSTGRES_URL" -c "
 |-----|---------|
 | `TODO.md` | Next implementation priorities |
 | `AGENTS.md` | Pipeline architecture + "what counts" rules |
+| `DRAFT_PICKS.md` | Draft pick model + warehouse guidance |
 | `reference/warehouse/AGENTS.md` | Sean workbook file guide |
-| `reference/warehouse/specs/` | 36 detailed specs for Sean's sheets |
+| `reference/warehouse/specs/` | Detailed specs for Sean's sheets |
 | `queries/README.md` | How we structure SQL assertion tests |

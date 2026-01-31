@@ -11,6 +11,13 @@
 
 -- Trade primitives invariants
 \ir 030_trade_primitives_assertions.sql
+\ir 056_can_bring_back_assertions.sql
+
+-- Minimum salary primitives
+\ir 057_minimum_salary_assertions.sql
+
+-- Buyout / waiver primitives
+\ir 058_buyout_primitives_assertions.sql
 
 -- Trade planner MVP (TPE-only)
 \ir 040_trade_planner_tpe_assertions.sql

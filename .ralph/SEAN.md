@@ -119,10 +119,11 @@ grep -nE "'<Sheet Name>'!" reference/warehouse/*.json
 
 ### Scenario math
 
-- [ ] Reverse-engineer **buyout / waiver scenario math** from `buyout_calculator` + `kuzma_buyout`:
-  - confirm the `174` day constant + `waived_date + 2` clearance assumption
-  - explain the **$600,000 subtraction** in `kuzma_buyout` (guarantee protection?)
-  - codify **stretch provision years** rule (typically `2 × years_remaining + 1`)
+- [x] Reverse-engineer **buyout / waiver scenario math** from `buyout_calculator` + `kuzma_buyout`:
+  - ✅ Confirmed `174` day constant + `waived_date + 2` clearance assumption
+  - ⚠️ $600,000 subtraction appears contract-specific (protection threshold) — needs further validation
+  - ✅ Codified **stretch provision years** rule: `2 × years_remaining + 1`
+  - → See `reference/warehouse/specs/buyout-waiver-math.md`
 
 ### Hygiene
 

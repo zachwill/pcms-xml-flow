@@ -70,11 +70,14 @@ Build a new, self-contained Sean-style Excel cap workbook **generated from code*
   - Derived totals + delta vs snapshot
 
 ### Phase 6 - AUDIT_AND_RECONCILE (minimal explainability)
-- [ ] Implement audit + reconciliation section
+- [x] Implement audit + reconciliation section
   - Totals from `DATA_team_salary_warehouse`
-  - Sums from roster/holds/dead money
-  - Visible deltas + conditional formatting
+  - Sums from roster/holds/dead money (salary_book, cap_holds, dead_money warehouses)
+  - Visible deltas + conditional formatting (green=OK, red=mismatch)
   - Row counts + counts-vs-exists summary
+  - Summary banner with at-a-glance reconciliation status
+  - Policy assumptions section showing current toggle values
+  - Shared command bar (consistent with other UI sheets)
 
 ### Phase 7 - Scenario engine baseline
 - [ ] Implement PLAN tables + wiring

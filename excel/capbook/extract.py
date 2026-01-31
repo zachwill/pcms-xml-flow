@@ -416,7 +416,79 @@ def extract_cap_holds_warehouse(
     return columns, rows
 
 
+def extract_dead_money_warehouse(
+    base_year: int,
+) -> tuple[list[str], list[dict[str, Any]]]:
+    """
+    Extract tbl_dead_money_warehouse dataset.
+
+    Returns (columns, rows) for DATA_dead_money_warehouse sheet.
+
+    Per the data contract:
+    - Primary key: transaction_waiver_amount_id
+    - Filters: salary_year BETWEEN base_year AND base_year + 5
+    - Used by: roster/ledger drilldowns for termination rows, buyout/waive modeling
+    """
+    sql = """
+        SELECT
+            transaction_waiver_amount_id,
+            team_code,
+            salary_year,
+            player_id,
+            player_name,
+            contract_id,
+            version_number,
+            transaction_id,
+            waive_date,
+            cap_value,
+            cap_change_value,
+            is_cap_calculated,
+            tax_value,
+            tax_change_value,
+            is_tax_calculated,
+            apron_value,
+            apron_change_value,
+            is_apron_calculated,
+            mts_value,
+            mts_change_value,
+            two_way_salary,
+            two_way_nba_salary,
+            two_way_dlg_salary,
+            option_decision_lk
+        FROM pcms.dead_money_warehouse
+        WHERE salary_year BETWEEN %(base_year)s AND %(base_year)s + 5
+        ORDER BY team_code, salary_year, player_name
+    """
+    rows = fetch_all(sql, {"base_year": base_year})
+    columns = [
+        "transaction_waiver_amount_id",
+        "team_code",
+        "salary_year",
+        "player_id",
+        "player_name",
+        "contract_id",
+        "version_number",
+        "transaction_id",
+        "waive_date",
+        "cap_value",
+        "cap_change_value",
+        "is_cap_calculated",
+        "tax_value",
+        "tax_change_value",
+        "is_tax_calculated",
+        "apron_value",
+        "apron_change_value",
+        "is_apron_calculated",
+        "mts_value",
+        "mts_change_value",
+        "two_way_salary",
+        "two_way_nba_salary",
+        "two_way_dlg_salary",
+        "option_decision_lk",
+    ]
+    return columns, rows
+
+
 # TODO: Implement remaining extract functions per data contract:
-# - extract_dead_money_warehouse
 # - extract_exceptions_warehouse
 # - extract_draft_picks_warehouse

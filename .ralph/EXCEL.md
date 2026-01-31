@@ -30,7 +30,7 @@ This backlog is intentionally concrete. The Excel agent should do **one task per
   - accepts `--out`, `--base-year`, `--as-of` (and optional `--league` default NBA)
   - calls `capbook.build.build_capbook(...)`
 
-- [ ] Implement helper: `get_git_sha()` (used by workbook `META`)
+- [x] Implement helper: `get_git_sha()` (used by workbook `META`)
 
 - [ ] Implement `META` sheet writer:
   - fields: refreshed_at, base_year, as_of_date, exporter_git_sha, validation_status

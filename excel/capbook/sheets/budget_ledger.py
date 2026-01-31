@@ -641,6 +641,65 @@ def _write_verification_section(
     return row
 
 
+def _write_policy_warnings(
+    workbook: Workbook,
+    worksheet: Worksheet,
+    row: int,
+    budget_formats: dict[str, Any],
+) -> int:
+    """Write policy warnings for features that are not yet implemented.
+    
+    Per backlog item 4: When RosterFillTarget > 0, show a loud warning that
+    no generated fill rows are currently being applied.
+    
+    Returns next row.
+    """
+    # Create a bold alert format for warnings
+    warning_fmt = workbook.add_format({
+        "bold": True,
+        "bg_color": "#FEE2E2",  # red-100
+        "font_color": "#991B1B",  # red-800
+        "font_size": 10,
+    })
+    
+    # RosterFillTarget NOT YET IMPLEMENTED warning
+    # Uses IF formula to only show when RosterFillTarget > 0
+    worksheet.write_formula(
+        row, COL_LABEL,
+        '=IF(RosterFillTarget>0,"🚧 ROSTER FILL NOT YET IMPLEMENTED","")',
+        warning_fmt
+    )
+    worksheet.write_formula(
+        row, COL_CAP,
+        '=IF(RosterFillTarget>0,"RosterFillTarget="&RosterFillTarget&" has no effect","")',
+        warning_fmt
+    )
+    worksheet.write_formula(
+        row, COL_NOTES,
+        '=IF(RosterFillTarget>0,"No generated fill rows are applied — set to 0 to hide this warning","")',
+        workbook.add_format({
+            "bg_color": "#FEE2E2",
+            "font_color": "#991B1B",
+            "font_size": 9,
+            "italic": True,
+        })
+    )
+    
+    # Conditional formatting to highlight the entire row when warning is active
+    worksheet.conditional_format(row, COL_LABEL, row, COL_NOTES, {
+        "type": "formula",
+        "criteria": "=RosterFillTarget>0",
+        "format": warning_fmt,
+    })
+    
+    row += 1
+    
+    # Blank row for spacing (only shows if warning is active, otherwise row is empty)
+    row += 1
+    
+    return row
+
+
 # =============================================================================
 # Main Writer
 # =============================================================================
@@ -687,6 +746,11 @@ def write_budget_ledger(
     
     # Content starts after command bar
     content_row = get_content_start_row()
+    
+    # 0. Policy warnings (NOT YET IMPLEMENTED alerts)
+    content_row = _write_policy_warnings(
+        workbook, worksheet, content_row, budget_formats
+    )
     
     # 1. Snapshot totals section
     content_row, snapshot_total_row = _write_snapshot_section(

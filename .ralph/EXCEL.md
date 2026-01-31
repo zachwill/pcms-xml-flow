@@ -1,4 +1,4 @@
-# Excel Cap Workbook — Backlog
+# Excel Cap Workbook - Backlog
 
 Build a new, self-contained Sean-style Excel cap workbook **generated from code** (Python + XlsxWriter) and powered by Postgres (`pcms.*`).
 
@@ -43,28 +43,28 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
 
 ### 3) TEAM_COCKPIT: surface a reconciliation delta alert (mode-aware)
 - [x] Add a cockpit alert row: `Unreconciled drilldowns vs warehouse: $X (SelectedMode)`
-  - Compute delta as: (salary_book for SelectedTeam + holds + dead_money) − warehouse total for SelectedMode/SelectedYear
+  - Compute delta as: (salary_book for SelectedTeam + holds + dead_money) - warehouse total for SelectedMode/SelectedYear
   - Conditional formatting: non-zero delta shows red and points to `AUDIT_AND_RECONCILE`
   - Keep headline totals authoritative (still sourced from `tbl_team_salary_warehouse`)
 
-### 4) Policy toggles: make “not implemented yet” explicit (no silent defaults)
-- [ ] When `RosterFillTarget > 0`, show a **loud** “NOT YET IMPLEMENTED” warning
+### 4) Policy toggles: make "not implemented yet" explicit (no silent defaults)
+- [x] When `RosterFillTarget > 0`, show a **loud** "NOT YET IMPLEMENTED" warning
   - Display in both `TEAM_COCKPIT` and `BUDGET_LEDGER`
   - Explicitly state that no generated fill rows are currently being applied
-- [ ] When `ShowExistsOnlyRows = "Yes"`, show a “NOT YET IMPLEMENTED” warning
-  - Until EXISTS_ONLY rows actually exist, don’t imply the toggle does anything
+- [ ] When `ShowExistsOnlyRows = "Yes"`, show a "NOT YET IMPLEMENTED" warning
+  - Until EXISTS_ONLY rows actually exist, don't imply the toggle does anything
 
 ### 5) ROSTER_GRID: implement EXISTS_ONLY rows + wire `ShowExistsOnlyRows`
 - [ ] Add an `EXISTS_ONLY` section (non-counting rows) for analyst reference
   - Suggested MVP definition: players with `team_code=SelectedTeam` who have 0 in SelectedYear (all modes) but non-zero in a future year column
   - When `ShowExistsOnlyRows="No"`, hide/suppress this section
-  - Label clearly as “exists but does not count”
+  - Label clearly as "exists but does not count"
 
 ### 6) Two-way toggles: clarify semantics and avoid breaking reconciliation trust
 - [ ] Decide + implement (and label) what `CountTwoWayInTotals` means
   - Either:
     - (A) treat it as **display-only** (Ct$ labels only) and **label it that way**, OR
-    - (B) compute a separate “policy-adjusted total (excluding 2-way)” that is explicitly *not* the authoritative total
+    - (B) compute a separate "policy-adjusted total (excluding 2-way)" that is explicitly *not* the authoritative total
   - In either case, keep the authoritative reconciliation path intact vs `tbl_team_salary_warehouse`
 
 ### 7) Roster fill (generated rows): implement minimal, explicit, toggleable generation

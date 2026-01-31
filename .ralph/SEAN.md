@@ -74,7 +74,7 @@ rg -n "'<Sheet Name>'!" reference/warehouse/*.json
 - [x] Spec: `playground.json`
 - [x] Spec: `team.json`
 - [x] Spec: `team_summary.json`
-- [ ] Spec: `finance.json`
+- [x] Spec: `finance.json`
 - [x] Spec: `ga.json`
 
 ### Trade tooling

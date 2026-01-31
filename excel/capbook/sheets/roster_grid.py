@@ -9,6 +9,7 @@ This module implements:
    - Bucket classification (ROST/2WAY)
    - Explicit CountsTowardTotal (Ct$) and CountsTowardRoster (CtR) columns
    - MINIMUM label display when is_min_contract=TRUE
+   - Conditional formatting for badges (colors cells based on PO/TO/ETO, GTD/PRT/NG, NTC/Kicker)
 3. Two-way section (bucket = 2WAY)
    - Respects CountTwoWayInRoster and CountTwoWayInTotals policy toggles
 4. Cap holds section (bucket = FA, from tbl_cap_holds_warehouse)
@@ -27,6 +28,11 @@ Design notes:
 - Reconciliation block sums rows and compares to team_salary_warehouse totals (mode-aware)
 - Conditional formatting highlights deltas ≠ 0
 - Two-way counting respects policy toggles: CountTwoWayInRoster, CountTwoWayInTotals
+
+Badge formatting (aligned to web UI conventions from web/src/features/SalaryBook/):
+- Option: PO/PLYR (blue), TO/TEAM (purple), ETO/PLYTF (orange)
+- Guarantee: GTD (green text), PRT (amber bg), NG (red bg)
+- Trade: NTC (red), Kicker (orange), Restricted (amber)
 """
 
 from __future__ import annotations
@@ -1183,6 +1189,94 @@ import xlsxwriter.utility
 
 
 # =============================================================================
+# Badge Conditional Formatting
+# =============================================================================
+
+def _apply_badge_conditional_formatting(
+    worksheet: Worksheet,
+    roster_formats: dict[str, Any],
+    roster_start_row: int,
+    roster_end_row: int,
+) -> None:
+    """Apply conditional formatting to option/guarantee/trade badge columns.
+
+    Colors cell backgrounds based on text values, matching web UI conventions:
+    - Option badges: PO (blue), TO (purple), ETO (orange)
+    - Guarantee badges: GTD (green text), PRT (amber), NG (red)
+    - Trade restriction badges: NTC (red), Kicker (orange), Restricted (amber)
+
+    Args:
+        worksheet: The ROSTER_GRID worksheet
+        roster_formats: Dict containing badge formats
+        roster_start_row: First data row (0-indexed)
+        roster_end_row: Last data row (0-indexed)
+    """
+    # Option column (COL_OPTION = 4)
+    # Values: PO, TO, ETO (also handles raw DB values: PLYR, TEAM, PLYTF)
+    option_rules = [
+        # Player Option (blue)
+        ("PO", roster_formats["badge_po"]),
+        ("PLYR", roster_formats["badge_po"]),
+        ("PLAYER", roster_formats["badge_po"]),
+        # Team Option (purple)
+        ("TO", roster_formats["badge_to"]),
+        ("TEAM", roster_formats["badge_to"]),
+        # Early Termination Option (orange)
+        ("ETO", roster_formats["badge_eto"]),
+        ("PLYTF", roster_formats["badge_eto"]),
+    ]
+
+    for value, fmt in option_rules:
+        worksheet.conditional_format(
+            roster_start_row, COL_OPTION, roster_end_row, COL_OPTION,
+            {
+                "type": "cell",
+                "criteria": "==",
+                "value": f'"{value}"',
+                "format": fmt,
+            }
+        )
+
+    # Guarantee column (COL_GUARANTEE = 5)
+    # Values: GTD, PRT, NG
+    guarantee_rules = [
+        ("GTD", roster_formats["badge_gtd"]),
+        ("PRT", roster_formats["badge_prt"]),
+        ("NG", roster_formats["badge_ng"]),
+    ]
+
+    for value, fmt in guarantee_rules:
+        worksheet.conditional_format(
+            roster_start_row, COL_GUARANTEE, roster_end_row, COL_GUARANTEE,
+            {
+                "type": "cell",
+                "criteria": "==",
+                "value": f'"{value}"',
+                "format": fmt,
+            }
+        )
+
+    # Trade restriction column (COL_TRADE = 6)
+    # Values: NTC, Kicker, Restricted
+    trade_rules = [
+        ("NTC", roster_formats["badge_no_trade"]),
+        ("Kicker", roster_formats["badge_kicker"]),
+        ("Restricted", roster_formats["badge_consent"]),
+    ]
+
+    for value, fmt in trade_rules:
+        worksheet.conditional_format(
+            roster_start_row, COL_TRADE, roster_end_row, COL_TRADE,
+            {
+                "type": "cell",
+                "criteria": "==",
+                "value": f'"{value}"',
+                "format": fmt,
+            }
+        )
+
+
+# =============================================================================
 # Main Writer
 # =============================================================================
 
@@ -1232,6 +1326,10 @@ def write_roster_grid(
     # 1. Roster section (active contracts)
     content_row, roster_data_start = _write_roster_section(workbook, worksheet, content_row, formats, roster_formats)
 
+    # Calculate roster data end row for conditional formatting
+    # _write_roster_section writes 40 data rows (num_roster_rows = 40)
+    roster_data_end = roster_data_start + 40 - 1
+
     # 2. Two-way section
     content_row = _write_twoway_section(workbook, worksheet, content_row, formats, roster_formats)
 
@@ -1243,6 +1341,12 @@ def write_roster_grid(
 
     # 5. Reconciliation block
     content_row = _write_reconciliation_block(workbook, worksheet, content_row, formats, roster_formats)
+
+    # 6. Apply badge conditional formatting to roster section
+    # Colors option/guarantee/trade columns based on cell values
+    _apply_badge_conditional_formatting(
+        worksheet, roster_formats, roster_data_start, roster_data_end
+    )
 
     # Sheet protection
     worksheet.protect(options={

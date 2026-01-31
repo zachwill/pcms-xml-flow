@@ -55,7 +55,7 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Formulas remain compatible with relative-year columns (cap_y0..cap_y5, tax_y0..tax_y5, etc.)
 
 ### 5) Apply badge formatting in ROSTER_GRID
-- [ ] Map option/guarantee/trade restriction text → colored badges
+- [x] Map option/guarantee/trade restriction text → colored badges
   - Use XlsxWriter formats aligned to web UI colors
   - Apply conditional formatting by cell value (PO/TO/ETO, GTD/PRT/NG, NTC/Kicker/Restricted)
 

@@ -48,6 +48,8 @@ from .sheets import (
     write_meta_sheet,
     write_team_cockpit_with_command_bar,
     write_roster_grid,
+    write_plan_manager,
+    write_plan_journal,
     define_meta_named_ranges,
 )
 
@@ -347,11 +349,31 @@ def build_capbook(
         except Exception as e:  # noqa: BLE001
             _mark_failed(build_meta, f"BUDGET_LEDGER writer crashed: {e}\n{traceback.format_exc()}")
 
+        # PLAN_MANAGER - plan definitions table that feeds ActivePlan dropdown
+        try:
+            write_plan_manager(
+                workbook,
+                ui_worksheets["PLAN_MANAGER"],
+                formats,
+            )
+        except Exception as e:  # noqa: BLE001
+            _mark_failed(build_meta, f"PLAN_MANAGER writer crashed: {e}\n{traceback.format_exc()}")
+
+        # PLAN_JOURNAL - ordered action journal for scenario modeling
+        try:
+            write_plan_journal(
+                workbook,
+                ui_worksheets["PLAN_JOURNAL"],
+                formats,
+            )
+        except Exception as e:  # noqa: BLE001
+            _mark_failed(build_meta, f"PLAN_JOURNAL writer crashed: {e}\n{traceback.format_exc()}")
+
         # Write remaining UI sheet stubs (skip sheets we've already handled)
         # NOTE: UI stub writers now require (workbook, worksheet, formats) signature
         # because they include the shared command bar.
         for sheet_name, writer_fn in UI_STUB_WRITERS.items():
-            if sheet_name in ("TEAM_COCKPIT", "AUDIT_AND_RECONCILE", "ROSTER_GRID", "BUDGET_LEDGER"):
+            if sheet_name in ("TEAM_COCKPIT", "AUDIT_AND_RECONCILE", "ROSTER_GRID", "BUDGET_LEDGER", "PLAN_MANAGER", "PLAN_JOURNAL"):
                 continue  # Already handled above
             if sheet_name in ui_worksheets:
                 try:

@@ -80,7 +80,7 @@ Build a new, self-contained Sean-style Excel cap workbook **generated from code*
   - Shared command bar (consistent with other UI sheets)
 
 ### Phase 7 - Scenario engine baseline
-- [ ] Implement PLAN tables + wiring
+- [x] Implement PLAN tables + wiring
   - `PLAN_MANAGER` table (Plan ID, name, notes, created_at)
   - `PLAN_JOURNAL` input table with validation for Action Type
   - Wire `ActivePlan` validation list from `PLAN_MANAGER`

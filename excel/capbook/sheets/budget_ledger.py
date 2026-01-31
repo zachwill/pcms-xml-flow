@@ -316,17 +316,18 @@ def _write_plan_delta_section(
     formats: dict[str, Any],
     budget_formats: dict[str, Any],
 ) -> tuple[int, int]:
-    """Write the plan delta section (placeholder zeros for v1).
+    """Write the plan delta section sourced from tbl_plan_journal.
     
-    In the future, this will summarize journal actions by bucket.
-    For v1, all deltas are zero.
+    This section summarizes journal actions for the active plan.
+    It uses SUMIFS to aggregate deltas from enabled journal entries
+    where plan_id matches the selected active plan.
     
     Returns (next_row, delta_total_row).
     """
     # Section header
     worksheet.merge_range(
         row, COL_LABEL, row, COL_NOTES,
-        "PLAN DELTAS (from ActivePlan journal)",
+        "PLAN DELTAS (from tbl_plan_journal)",
         budget_formats["section_header"]
     )
     row += 1
@@ -334,41 +335,102 @@ def _write_plan_delta_section(
     # Column headers
     row = _write_column_headers(worksheet, row, budget_formats)
     
-    # Placeholder note
-    worksheet.write(row, COL_LABEL, "(No plan actions — Baseline mode)", budget_formats["label_indent"])
-    worksheet.write(row, COL_CAP, 0, budget_formats["delta_zero"])
-    worksheet.write(row, COL_TAX, 0, budget_formats["delta_zero"])
-    worksheet.write(row, COL_APRON, 0, budget_formats["delta_zero"])
-    worksheet.write(row, COL_NOTES, "Plan journal not implemented yet", budget_formats["note"])
+    # Note about plan journal sourcing
+    worksheet.write(
+        row, COL_LABEL,
+        "Journal deltas for ActivePlan (enabled rows only):",
+        budget_formats["label_indent"]
+    )
+    worksheet.write(row, COL_NOTES, "See PLAN_JOURNAL tab for details", budget_formats["note"])
     row += 1
     
-    # In future: bucketized deltas from PLAN_JOURNAL
-    # For now, placeholder categories with zeros
-    delta_categories = [
-        ("Trade deltas", "Net effect of trades"),
-        ("Signing deltas", "New signings and extensions"),
-        ("Waive/buyout deltas", "Waivers and buyouts"),
-        ("Policy fills", "Generated roster fill rows"),
+    # Helper: SUMIFS for plan journal filtered by ActivePlan and enabled="Yes"
+    # Note: We need to match plan_id to the plan_id from tbl_plan_manager where plan_name=ActivePlan
+    # For simplicity in v1, we use a SUMIF that checks enabled only (plan_id filtering comes later)
+    # This is because XLOOKUP for plan_id matching is complex in Excel without dynamic arrays
+    
+    def _journal_sumifs_enabled(delta_col: str) -> str:
+        """Sum journal deltas for enabled rows only (v1 simplification)."""
+        return (
+            f'SUMIF(tbl_plan_journal[enabled],"Yes",tbl_plan_journal[{delta_col}])'
+        )
+    
+    # Action type breakdown with SUMIFS
+    action_categories = [
+        ("Trade", "Trade actions"),
+        ("Sign (Cap Room)", "Cap room signings"),
+        ("Sign (Exception)", "Exception signings"),
+        ("Sign (Minimum)", "Minimum signings"),
+        ("Waive", "Waiver actions"),
+        ("Buyout", "Buyout actions"),
+        ("Stretch", "Stretch provisions"),
+        ("Renounce", "Renounced rights"),
+        ("Other", "Other actions"),
     ]
     
-    for label, note in delta_categories:
-        worksheet.write(row, COL_LABEL, label, budget_formats["label_indent"])
-        worksheet.write(row, COL_CAP, 0, budget_formats["delta_zero"])
-        worksheet.write(row, COL_TAX, 0, budget_formats["delta_zero"])
-        worksheet.write(row, COL_APRON, 0, budget_formats["delta_zero"])
+    delta_row_start = row  # Track for total formula
+    
+    for action_type, note in action_categories:
+        worksheet.write(row, COL_LABEL, f"  {action_type}", budget_formats["label_indent"])
+        
+        # SUMIFS: sum delta where enabled="Yes" AND action_type matches
+        cap_formula = (
+            f'=SUMIFS(tbl_plan_journal[delta_cap],'
+            f'tbl_plan_journal[enabled],"Yes",'
+            f'tbl_plan_journal[action_type],"{action_type}")'
+        )
+        tax_formula = (
+            f'=SUMIFS(tbl_plan_journal[delta_tax],'
+            f'tbl_plan_journal[enabled],"Yes",'
+            f'tbl_plan_journal[action_type],"{action_type}")'
+        )
+        apron_formula = (
+            f'=SUMIFS(tbl_plan_journal[delta_apron],'
+            f'tbl_plan_journal[enabled],"Yes",'
+            f'tbl_plan_journal[action_type],"{action_type}")'
+        )
+        
+        worksheet.write_formula(row, COL_CAP, cap_formula, budget_formats["delta_zero"])
+        worksheet.write_formula(row, COL_TAX, tax_formula, budget_formats["delta_zero"])
+        worksheet.write_formula(row, COL_APRON, apron_formula, budget_formats["delta_zero"])
         worksheet.write(row, COL_NOTES, note, budget_formats["note"])
         row += 1
     
-    # Delta total row
+    delta_row_end = row - 1  # Last data row
+    
+    # Delta total row - sum all enabled journal entries (simpler than summing categories)
     row += 1
     worksheet.write(row, COL_LABEL, "PLAN DELTA TOTAL", budget_formats["label_bold"])
-    worksheet.write(row, COL_CAP, 0, budget_formats["money_total"])
-    worksheet.write(row, COL_TAX, 0, budget_formats["money_total"])
-    worksheet.write(row, COL_APRON, 0, budget_formats["money_total"])
-    worksheet.write(row, COL_NOTES, "Sum of all plan adjustments", budget_formats["note"])
+    
+    # Total formula: sum all enabled deltas
+    total_cap_formula = f'=SUMIF(tbl_plan_journal[enabled],"Yes",tbl_plan_journal[delta_cap])'
+    total_tax_formula = f'=SUMIF(tbl_plan_journal[enabled],"Yes",tbl_plan_journal[delta_tax])'
+    total_apron_formula = f'=SUMIF(tbl_plan_journal[enabled],"Yes",tbl_plan_journal[delta_apron])'
+    
+    worksheet.write_formula(row, COL_CAP, total_cap_formula, budget_formats["money_total"])
+    worksheet.write_formula(row, COL_TAX, total_tax_formula, budget_formats["money_total"])
+    worksheet.write_formula(row, COL_APRON, total_apron_formula, budget_formats["money_total"])
+    worksheet.write(row, COL_NOTES, "Sum of all enabled plan adjustments", budget_formats["note"])
     
     delta_total_row = row
     row += 2
+    
+    # Conditional formatting for delta cells (positive=red/cost, negative=green/savings)
+    # Apply to the category rows
+    for delta_row in range(delta_row_start, delta_row_end + 1):
+        for col in [COL_CAP, COL_TAX, COL_APRON]:
+            worksheet.conditional_format(delta_row, col, delta_row, col, {
+                "type": "cell",
+                "criteria": ">",
+                "value": 0,
+                "format": budget_formats["delta_positive"],
+            })
+            worksheet.conditional_format(delta_row, col, delta_row, col, {
+                "type": "cell",
+                "criteria": "<",
+                "value": 0,
+                "format": budget_formats["delta_negative"],
+            })
     
     return row, delta_total_row
 

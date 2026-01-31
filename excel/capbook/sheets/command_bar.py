@@ -200,7 +200,7 @@ def write_command_bar_editable(
     build_meta: dict[str, Any],
     *,
     team_codes: list[str] | None = None,
-    plan_names: list[str] | None = None,
+    plan_names: list[str] | None = None,  # Deprecated: now sourced from tbl_plan_manager
 ) -> None:
     """
     Write the editable command bar on TEAM_COCKPIT.
@@ -214,7 +214,7 @@ def write_command_bar_editable(
         formats: Standard format dict from create_standard_formats
         build_meta: Build metadata (base_year, as_of_date, etc.)
         team_codes: Optional list of team codes for validation dropdown
-        plan_names: Optional list of plan names for validation dropdown
+        plan_names: DEPRECATED - now dynamically sourced from tbl_plan_manager[plan_name]
     """
     # Create input formats
     input_fmt = create_input_format(workbook)
@@ -392,28 +392,27 @@ def write_command_bar_editable(
     # Group 3: Plan Selectors (cols 4-5)
     # =========================================================================
     
-    # Default plan list
-    if plan_names is None:
-        plan_names = ["Baseline"]
-    
-    # Add empty option for compare slots
-    compare_options = [""] + plan_names
+    # ActivePlan validation is wired to tbl_plan_manager[plan_name]
+    # This allows dynamic plan lists based on what users add to PLAN_MANAGER
+    # Note: XlsxWriter requires formula source to be a string starting with '='
     
     # Active Plan
     worksheet.write(ROW_ACTIVE_PLAN, COL_LABEL_3, "Active Plan:", label_fmt)
     worksheet.write(ROW_ACTIVE_PLAN, COL_INPUT_3, DEFAULT_ACTIVE_PLAN, input_fmt)
     
+    # Use INDIRECT to reference the plan_name column from tbl_plan_manager
+    # This creates a dynamic dropdown that updates when plans are added
     worksheet.data_validation(
         ROW_ACTIVE_PLAN, COL_INPUT_3, ROW_ACTIVE_PLAN, COL_INPUT_3,
         {
             "validate": "list",
-            "source": plan_names,
+            "source": "=tbl_plan_manager[plan_name]",
             "input_title": "Active Plan",
-            "input_message": "Select the active scenario",
+            "input_message": "Select a plan from PLAN_MANAGER",
         },
     )
     
-    # Compare Plans A-D
+    # Compare Plans A-D - also use tbl_plan_manager
     compare_labels = ["Compare A:", "Compare B:", "Compare C:", "Compare D:"]
     compare_rows = [ROW_COMPARE_A, ROW_COMPARE_B, ROW_COMPARE_C, ROW_COMPARE_D]
     
@@ -425,7 +424,7 @@ def write_command_bar_editable(
             row, COL_INPUT_3, row, COL_INPUT_3,
             {
                 "validate": "list",
-                "source": compare_options,
+                "source": "=tbl_plan_manager[plan_name]",
                 "input_title": label.replace(":", ""),
                 "input_message": "Optional: select a plan to compare",
             },

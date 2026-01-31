@@ -24,6 +24,12 @@ from .command_bar import (
     COCKPIT_SHEET_NAME,
 )
 from .meta import write_meta_sheet
+from .plan import (
+    write_plan_manager,
+    write_plan_journal,
+    get_plan_manager_table_ref,
+    ACTION_TYPES,
+)
 from .roster_grid import write_roster_grid
 from .ui_stubs import (
     UI_STUB_WRITERS,
@@ -59,6 +65,11 @@ __all__ = [
     "COCKPIT_SHEET_NAME",
     # Meta
     "write_meta_sheet",
+    # Plan
+    "write_plan_manager",
+    "write_plan_journal",
+    "get_plan_manager_table_ref",
+    "ACTION_TYPES",
     # Roster grid
     "write_roster_grid",
     # UI stubs

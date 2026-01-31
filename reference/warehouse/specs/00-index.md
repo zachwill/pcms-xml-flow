@@ -21,31 +21,31 @@ Sean's workbook is the canonical analyst reference for NBA salary cap modeling. 
 
 | Sheet | File | Purpose | Spec |
 |-------|------|---------|------|
-| Cover | `cover.json` | Title page with date stamp | [cover.md](cover.md) |
+| Cover | `cover.json` | Title page with date stamp | TODO |
 | **Y Warehouse** | `y.json` | Multi-year salary matrix (1 row/player) | [y.md](y.md) |
 | Dynamic Contracts | `dynamic_contracts.json` | Detailed contract rows with all year/salary permutations | [dynamic_contracts.md](dynamic_contracts.md) |
 | Contract Protections | `contract_protections.json` | Guarantee/protection lookup by contract+year | [contract_protections.md](contract_protections.md) |
 | System Values | `system_values.json` | CBA constants: cap, tax, aprons, mins by season | [system_values.md](system_values.md) |
-| Minimum Salary Scale | `minimum_salary_scale.json` | Minimum salary by years of service | [minimum_salary_scale.md](minimum_salary_scale.md) |
-| Rookie Scale Amounts | `rookie_scale_amounts.json` | Rookie scale salary by pick + year | [rookie_scale_amounts.md](rookie_scale_amounts.md) |
+| Minimum Salary Scale | `minimum_salary_scale.json` | Minimum salary by years of service | TODO |
+| Rookie Scale Amounts | `rookie_scale_amounts.json` | Rookie scale salary by pick + year | TODO |
 | Playground | `playground.json` | Interactive team salary book view | [playground.md](playground.md) |
-| POR | `por.json` | Portland-specific playground snapshot | [por.md](por.md) |
-| 2025 | `2025.json` | 2025 season snapshot view | [2025.md](2025.md) |
+| POR | `por.json` | Portland-specific playground snapshot | TODO |
+| 2025 | `2025.json` | 2025 season snapshot view | TODO |
 | Team | `team.json` | Team roster with contract calculator blocks | [team.md](team.md) |
 | Team Summary | `team_summary.json` | Team salary totals dashboard (vs cap/tax/apron) | [team_summary.md](team_summary.md) |
 | Finance | `finance.json` | Team financial data | [finance.md](finance.md) |
-| GA | `ga.json` | G-League affiliate / two-way data | [ga.md](ga.md) |
+| GA | `ga.json` | G-League affiliate / two-way data | TODO |
 | Machine | `machine.json` | Trade machine logic | [machine.md](machine.md) |
 | Exceptions | `exceptions.json` | Active trade exceptions by team | [exceptions.md](exceptions.md) |
 | Trade Bonus Amounts | `trade_bonus_amounts.json` | Trade bonus / kicker calculations | [trade_bonus_amounts.md](trade_bonus_amounts.md) |
 | Draft Picks | `draft_picks.json` | Draft pick ownership/trades | [draft_picks.md](draft_picks.md) |
 | Pick Database | `pick_database.json` | Pick reference database | [pick_database.md](pick_database.md) |
-| The Matrix | `the_matrix.json` | Contract extension calculator | [the_matrix.md](the_matrix.md) |
-| High Low | `high_low.json` | High/low salary projections | [high_low.md](high_low.md) |
-| Tax Array | `tax_array.json` | Luxury tax bracket calculations | [tax_array.md](tax_array.md) |
-| Buyout Calculator | `buyout_calculator.json` | Buyout scenario calculator | [buyout_calculator.md](buyout_calculator.md) |
-| Kuzma Buyout | `kuzma_buyout.json` | Specific buyout example | [kuzma_buyout.md](kuzma_buyout.md) |
-| Set-Off | `set-off.json` | Waiver set-off calculations | [set-off.md](set-off.md) |
+| The Matrix | `the_matrix.json` | Multi-team trade scenario tool | [the_matrix.md](the_matrix.md) |
+| High Low | `high_low.json` | Player salary ranking / band search tool | [high_low.md](high_low.md) |
+| Tax Array | `tax_array.json` | Luxury tax bracket calculations | TODO |
+| Buyout Calculator | `buyout_calculator.json` | Buyout scenario calculator | TODO |
+| Kuzma Buyout | `kuzma_buyout.json` | Specific buyout example | TODO |
+| Set-Off | `set-off.json` | Waiver set-off calculations | TODO |
 
 ---
 
@@ -174,10 +174,11 @@ The workbook has a layered architecture:
 | Trade exceptions | `exceptions.json` | `pcms.exceptions_warehouse`, `pcms.team_exceptions` |
 | Team totals | `team_summary.json` | `pcms.team_salary_warehouse`, `pcms.team_budget_snapshots` |
 | Contract protections | `contract_protections.json` | `pcms.contract_amounts` (guarantee fields) |
-| Rookie scale | `rookie_scale_amounts.json` | `pcms.rookie_scale` |
-| Draft picks | `draft_picks.json`, `pick_database.json` | `pcms.draft_picks` |
+| Rookie scale | `rookie_scale_amounts.json` | `pcms.rookie_scale_amounts` |
+| Draft picks | `draft_picks.json`, `pick_database.json` | `pcms.draft_picks` / `pcms.draft_picks_warehouse` |
 | Trade kickers | `trade_bonus_amounts.json` | `pcms.contract_versions.trade_bonus_percent` |
-| Minimum salary | `minimum_salary_scale.json` | `pcms.minimum_salary_scale` |
+| Minimum salary scale (by YOS) | `minimum_salary_scale.json` | TODO (not currently modeled; would need a scale table) |
+| Luxury tax brackets | `tax_array.json` | TODO (not currently modeled; would need a bracket table or function) |
 
 ---
 
@@ -221,11 +222,13 @@ Presentation sheets like `playground.json` use a team dropdown (e.g., cell `D1 =
 
 ## Next Steps
 
-Create individual spec files for each sheet following the template in `.ralph/SEAN.md`. Priority order:
+Create remaining spec files for each sheet following the template in `.ralph/SEAN.md`.
 
-1. `y.md` — central warehouse (most dependencies)
-2. `system_values.md` — CBA constants
-3. `dynamic_contracts.md` — contract detail layer
-4. `playground.md` — team salary book view
-5. `machine.md` — trade machine logic
-6. `team_summary.md` — team dashboard
+Suggested priority order (dependency-first):
+
+1. `tax_array.md` — required for consistent luxury-tax payment math (many sheets SUMPRODUCT into Tax Array)
+2. `minimum_salary_scale.md` — used for roster-fill math (rookie/vet mins)
+3. `rookie_scale_amounts.md` — feeds rookie-contract modeling in Y (and downstream tools)
+4. `ga.md`, `2025.md`, `por.md` — presentation/snapshot sheets that reuse Playground/Team patterns
+5. `buyout_calculator.md`, `kuzma_buyout.md`, `set-off.md` — scenario calculators
+6. `cover.md` — metadata only

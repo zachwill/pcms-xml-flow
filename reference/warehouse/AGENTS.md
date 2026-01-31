@@ -133,8 +133,10 @@ The Excel workbook has cross-sheet dependencies. Key patterns:
 | Trade exceptions | `exceptions.json` | `pcms.exceptions_warehouse`, `pcms.team_exceptions` |
 | Team totals | `team_summary.json` | `pcms.team_salary_warehouse`, `pcms.team_budget_snapshots` |
 | Contract protections | `contract_protections.json` | `pcms.contract_amounts` (guarantee fields) |
-| Rookie scale | `rookie_scale_amounts.json` | `pcms.rookie_scale` |
-| Draft picks | `draft_picks.json`, `pick_database.json` | `pcms.draft_picks` |
+| Rookie scale | `rookie_scale_amounts.json` | `pcms.rookie_scale_amounts` |
+| Minimum salary scale (by YOS) | `minimum_salary_scale.json` | TODO (not currently modeled; would need a scale table) |
+| Luxury tax brackets | `tax_array.json` | TODO (not currently modeled; would need a bracket table or function) |
+| Draft picks | `draft_picks.json`, `pick_database.json` | `pcms.draft_picks` / `pcms.draft_picks_warehouse` |
 
 ---
 

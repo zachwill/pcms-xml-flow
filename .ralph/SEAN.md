@@ -45,10 +45,13 @@ jq 'to_entries | sort_by(.key|tonumber) | .[0:15]' reference/warehouse/<sheet>.j
 jq '."10"' reference/warehouse/<sheet>.json
 
 # Find formulas referencing another sheet
-rg -n "='[^']+'!" reference/warehouse/<sheet>.json
+# (Use rg if installed; otherwise use grep -E)
+rg -n "='[^']+'!" reference/warehouse/<sheet>.json 2>/dev/null || true
+grep -nE "='[^']+'!" reference/warehouse/<sheet>.json
 
 # Find where a specific sheet is referenced (cross-sheet dependency)
-rg -n "'<Sheet Name>'!" reference/warehouse/*.json
+rg -n "'<Sheet Name>'!" reference/warehouse/*.json 2>/dev/null || true
+grep -nE "'<Sheet Name>'!" reference/warehouse/*.json
 ```
 
 **Rules:**
@@ -67,15 +70,15 @@ rg -n "'<Sheet Name>'!" reference/warehouse/*.json
 - [x] Spec: `dynamic_contracts.json`
 - [x] Spec: `contract_protections.json`
 - [x] Spec: `system_values.json`
-- [x] Spec: `minimum_salary_scale.json`
-- [x] Spec: `rookie_scale_amounts.json`
+- [ ] Spec: `minimum_salary_scale.json`
+- [ ] Spec: `rookie_scale_amounts.json`
 
 ### Team + salary book views
 - [x] Spec: `playground.json`
 - [x] Spec: `team.json`
 - [x] Spec: `team_summary.json`
 - [x] Spec: `finance.json`
-- [x] Spec: `ga.json`
+- [ ] Spec: `ga.json`
 
 ### Trade tooling
 - [x] Spec: `machine.json` (trade machine)
@@ -92,9 +95,9 @@ rg -n "'<Sheet Name>'!" reference/warehouse/*.json
 - [ ] Spec: `tax_array.json`
 
 ### Snapshots / examples / misc
-- [x] Spec: `2025.json`
+- [ ] Spec: `2025.json`
 - [ ] Spec: `por.json`
-- [x] Spec: `buyout_calculator.json`
-- [x] Spec: `kuzma_buyout.json`
+- [ ] Spec: `buyout_calculator.json`
+- [ ] Spec: `kuzma_buyout.json`
 - [ ] Spec: `set-off.json`
-- [x] Spec: `cover.json`
+- [ ] Spec: `cover.json`

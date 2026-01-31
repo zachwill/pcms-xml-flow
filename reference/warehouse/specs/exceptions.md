@@ -79,14 +79,17 @@ Rows 98+ : Empty/placeholder
 
 ### Outbound (this sheet references)
 
-None — `exceptions.json` is self-contained data (no external lookups).
+None (no external sheets). The only formulas are **self-references** back into `Exceptions!$B:$F` for the team-filter panel.
 
 ### Inbound (other sheets reference this)
 
 | File | How |
 |------|-----|
-| `machine.json` | References `'Exceptions Warehouse - 2024'!` columns (external link to an older workbook) |
-| Self-reference | Row 4 col J uses `FILTER(Exceptions!$B:$F, Exceptions!$B:$B=$I$4)` for team lookup |
+| `the_matrix.json` | Displays each selected team’s top exceptions using `FILTER(Exceptions!$B:$F, Exceptions!$B:$B=<team>)` + `SORTBY` + `TAKE` |
+| `exceptions.json` (self) | Row 4 col J uses `FILTER(Exceptions!$B:$F, Exceptions!$B:$B=$I$4)` for team lookup |
+
+Related but **not this sheet**:
+- `machine.json` references an external workbook range `'[2]Exceptions Warehouse - 2024'!…`.
 
 ---
 

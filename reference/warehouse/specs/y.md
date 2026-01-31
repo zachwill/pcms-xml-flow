@@ -208,7 +208,7 @@ Looks up Year 1 salary for pick 1 in 2025 season.
 ### Coverage gaps:
 
 - **Tier (AJ)**: Not in PCMS — would need derived logic based on salary tier buckets.
-- **Rookie Scale zone (rows 740+)**: We have `pcms.rookie_scale` but not pivoted into salary_book.
+- **Rookie Scale zone (rows 740+)**: We have `pcms.rookie_scale_amounts` but not pivoted into `salary_book_warehouse`.
 - **Trade Bonus add-on rows (615–740)**: These are computed kicker amounts — our warehouse includes kicker in `trade_kicker_display` but not as separate rows.
 
 ---

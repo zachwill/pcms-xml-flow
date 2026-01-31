@@ -27,7 +27,7 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
 ## Backlog (ordered)
 
 ### 1) AUDIT_AND_RECONCILE: add apron reconciliation section
-- [ ] Add an `APRON AMOUNT RECONCILIATION` block mirroring CAP/TAX
+- [x] Add an `APRON AMOUNT RECONCILIATION` block mirroring CAP/TAX
   - Warehouse columns: `apron_rost`, `apron_2way`, `apron_fa`, `apron_term`, `apron_total`
   - Drilldowns:
     - `tbl_salary_book_warehouse[apron_y*]` (SelectedYear via `CHOOSE`)

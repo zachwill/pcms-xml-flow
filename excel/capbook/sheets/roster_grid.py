@@ -14,13 +14,18 @@ This module implements:
    - Two-way policy toggles are not implemented yet (totals/counts remain authoritative)
 4. Cap holds section (bucket = FA, from tbl_cap_holds_warehouse)
 5. Dead money section (bucket = TERM, from tbl_dead_money_warehouse)
-6. Totals + reconciliation block vs DATA_team_salary_warehouse
-7. % of cap display helper
+6. EXISTS_ONLY section (non-counting rows for analyst reference)
+   - Shows players with $0 in SelectedYear but non-zero in future years
+   - Controlled by ShowExistsOnlyRows toggle ("Yes" to show, "No" to hide)
+   - Bucket = EXISTS, Ct$ = N, CtR = N (never counted in totals)
+7. Totals + reconciliation block vs DATA_team_salary_warehouse
+8. % of cap display helper
 
 Per the blueprint (excel-cap-book-blueprint.md):
 - Every headline total must be reconcilable to the authoritative ledger
 - Drilldown tables are labeled by bucket and scoped to the snapshot
 - CountsTowardTotal/CountsTowardRoster columns make counting logic explicit
+- EXISTS_ONLY rows are "visible artifacts that do not count (for reference only)"
 
 Design notes:
 - Uses Excel formulas filtered by SelectedTeam + SelectedYear + SelectedMode
@@ -270,6 +275,15 @@ def _create_roster_formats(workbook: Workbook) -> dict[str, Any]:
         "bottom": 1,
     })
 
+    # Exists-only section header (distinct purple color to indicate non-counting)
+    formats["section_header_exists_only"] = workbook.add_format({
+        "bold": True,
+        "font_size": 11,
+        "bg_color": "#EDE9FE",  # purple-100
+        "font_color": "#6B21A8",  # purple-800
+        "bottom": 1,
+    })
+
     # Column headers
     formats["col_header"] = workbook.add_format({
         "bold": True,
@@ -371,6 +385,12 @@ def _create_roster_formats(workbook: Workbook) -> dict[str, Any]:
         "font_size": 9,
         "align": "center",
         "font_color": "#6B7280",  # gray-500
+        "italic": True,
+    })
+    formats["bucket_exists_only"] = workbook.add_format({
+        "font_size": 9,
+        "align": "center",
+        "font_color": "#9333EA",  # purple-600
         "italic": True,
     })
 
@@ -986,6 +1006,282 @@ def _write_dead_money_section(
     return row
 
 
+def _write_exists_only_section(
+    workbook: Workbook,
+    worksheet: Worksheet,
+    row: int,
+    formats: dict[str, Any],
+    roster_formats: dict[str, Any],
+) -> int:
+    """Write the EXISTS_ONLY section (non-counting rows for analyst reference).
+
+    This section shows players who:
+    - Belong to SelectedTeam
+    - Have $0 in SelectedYear (across all modes: cap/tax/apron all zero)
+    - But have non-zero amounts in a future year
+
+    These rows "exist" in the salary book but do NOT count toward current year totals.
+    They're useful for planning context (e.g., future-year commitments, option years).
+
+    The section is controlled by ShowExistsOnlyRows toggle:
+    - When "No" (default): shows a collapsed message explaining the section is hidden
+    - When "Yes": shows the full listing of exists-only rows
+
+    Per the blueprint (mental-models-and-design-principles.md):
+    - EXISTS_ONLY rows are labeled as "visible artifacts that do not count (for reference only)"
+    - Ct$ = N, CtR = N (never counted)
+
+    Returns next row.
+    """
+    section_fmt = roster_formats["section_header_exists_only"]
+
+    # Section header with explanatory text
+    worksheet.merge_range(
+        row, COL_BUCKET, row, COL_PCT_CAP,
+        "EXISTS_ONLY (Future-Year Contracts — does NOT count in SelectedYear)",
+        section_fmt
+    )
+    row += 1
+
+    # Explanatory note
+    note_fmt = workbook.add_format({
+        "italic": True,
+        "font_size": 9,
+        "font_color": "#6B7280",  # gray-500
+    })
+    worksheet.write(
+        row, COL_BUCKET,
+        "Players with $0 this year but future-year amounts. For analyst reference only — excluded from totals.",
+        note_fmt
+    )
+    worksheet.merge_range(row, COL_BUCKET, row, COL_PCT_CAP, "", note_fmt)
+    worksheet.write(
+        row, COL_BUCKET,
+        "Players with $0 this year but future-year amounts. For analyst reference only — excluded from totals.",
+        note_fmt
+    )
+    row += 1
+
+    # When ShowExistsOnlyRows = "No", display a single collapsed message and return
+    # We write a formula-based display: if toggle is "No", show hidden message; if "Yes", show data
+    # The row allocation is still done, but values are hidden via IF() formulas
+
+    # Column headers (only shown when ShowExistsOnlyRows = "Yes")
+    fmt = roster_formats["col_header"]
+    hidden_text_fmt = workbook.add_format({
+        "italic": True,
+        "font_color": "#9CA3AF",  # gray-400
+        "font_size": 9,
+    })
+
+    # Write conditional header row
+    # When ShowExistsOnlyRows = "Yes", show column headers; otherwise show toggle hint
+    worksheet.write_formula(
+        row, COL_BUCKET,
+        '=IF(ShowExistsOnlyRows="Yes","Bucket","Set ShowExistsOnlyRows=Yes to display")',
+        fmt
+    )
+    worksheet.write_formula(row, COL_COUNTS_TOTAL, '=IF(ShowExistsOnlyRows="Yes","Ct$","")', fmt)
+    worksheet.write_formula(row, COL_COUNTS_ROSTER, '=IF(ShowExistsOnlyRows="Yes","CtR","")', fmt)
+    worksheet.write_formula(row, COL_NAME, '=IF(ShowExistsOnlyRows="Yes","Name","")', fmt)
+    worksheet.write_formula(row, COL_OPTION, '=IF(ShowExistsOnlyRows="Yes","Opt","")', fmt)
+    worksheet.write_formula(row, COL_GUARANTEE, '=IF(ShowExistsOnlyRows="Yes","GTD","")', fmt)
+    worksheet.write_formula(row, COL_TRADE, '=IF(ShowExistsOnlyRows="Yes","Trade","")', fmt)
+    worksheet.write_formula(row, COL_MIN_LABEL, '=IF(ShowExistsOnlyRows="Yes","Type","")', fmt)
+
+    # Year column headers (show year when active)
+    for yi in range(6):
+        worksheet.write_formula(
+            row, COL_CAP_Y0 + yi,
+            f'=IF(ShowExistsOnlyRows="Yes",SelectedMode&" "&(MetaBaseYear+{yi}),"")',
+            fmt
+        )
+    worksheet.write_formula(row, COL_PCT_CAP, '=IF(ShowExistsOnlyRows="Yes","Note","")', fmt)
+    row += 1
+
+    # Data rows for EXISTS_ONLY
+    # Criteria: team_code = SelectedTeam AND amount in SelectedYear = 0 AND has future-year amount > 0
+    #
+    # We need to identify players whose selected-year amount (all modes) is 0 but have a future amount.
+    # For the relative-year index: rel_year = SelectedYear - MetaBaseYear
+    # "Zero in selected year" = cap_y{rel_year} = 0 AND tax_y{rel_year} = 0 AND apron_y{rel_year} = 0
+    # "Has future amount" = SUM(cap_y{rel_year+1..5}) > 0 OR SUM(tax_y{rel_year+1..5}) > 0 OR SUM(apron_y{rel_year+1..5}) > 0
+    #
+    # This is complex to express in Excel formulas. We'll use a helper approach:
+    # - Compute a "max future amount" across all modes and future years
+    # - Filter for rows where selected-year mode-aware amount = 0 AND max_future > 0
+
+    num_exists_rows = 15  # Allocate slots for exists-only rows
+
+    # Build the criteria for exists-only:
+    # (1) Team matches
+    # (2) Selected year amount (mode-aware) = 0
+    # (3) Has at least one future-year amount > 0 (any mode)
+    #
+    # We'll use SUMPRODUCT with multiple conditions to get the Nth matching player
+
+    # Expression for "selected year mode-aware amount is zero"
+    # This checks the cap/tax/apron column for selected year based on mode
+    selected_year_amount = _salary_book_choose_mode_aware()
+
+    # Expression for "has future year amount" - any mode, any year after selected
+    # We check if the sum of future-year columns (relative to selected year) is > 0
+    # Since we have cap_y0..cap_y5, tax_y0..tax_y5, apron_y0..apron_y5,
+    # we need to sum columns from (SelectedYear - MetaBaseYear + 1) through 5
+    #
+    # For simplicity, we'll define a helper that sums "remaining years" for one mode
+    # and then check if any mode has positive future amount
+
+    # Build SUMPRODUCT criteria for exists-only rows
+    # The criteria is: team=SelectedTeam AND selected_year_amt=0 AND has_future>0
+    # has_future = (cap_y{rel+1}+..+cap_y5 + tax_y{rel+1}+..+tax_y5 + apron_y{rel+1}+..+apron_y5) > 0
+
+    # Simpler approach: assume "exists-only" = team match AND cap_y{rel}=0 AND tax_y{rel}=0 AND apron_y{rel}=0
+    # AND at least one of cap_y{rel+1..5} > 0 (we'll just check cap for MVP; future could check all modes)
+
+    # For MVP, we'll use a simpler criterion:
+    # - Selected year mode-aware amount = 0
+    # - Sum of future years (same mode) > 0
+    # This keeps formula complexity manageable
+
+    for i in range(1, num_exists_rows + 1):
+        # Build the AGGREGATE/MATCH pattern for exists-only rows
+        # Criteria: team match AND current year amount = 0 AND has future amount
+
+        # Future amount expression (sum of years after selected year in current mode)
+        # We use CHOOSE to pick the right future sum based on SelectedYear offset
+        # rel_year = SelectedYear - MetaBaseYear (0-based: 0, 1, 2, 3, 4, 5)
+        # future_sum for rel_year 0 = y1+y2+y3+y4+y5
+        # future_sum for rel_year 1 = y2+y3+y4+y5
+        # ... etc.
+
+        # For each mode, define the future sum formula
+        def future_sum_expr(prefix: str) -> str:
+            """Generate CHOOSE expression for sum of future years."""
+            # CHOOSE(rel_year+1, sum_for_0, sum_for_1, ...)
+            sums = []
+            for start_rel in range(6):
+                # Sum from start_rel+1 to 5
+                if start_rel >= 5:
+                    sums.append("0")  # No future years if we're at year 5
+                else:
+                    cols = "+".join(f"tbl_salary_book_warehouse[{prefix}_y{j}]" for j in range(start_rel + 1, 6))
+                    sums.append(f"({cols})")
+            return f"CHOOSE(SelectedYear-MetaBaseYear+1,{','.join(sums)})"
+
+        cap_future = future_sum_expr("cap")
+        tax_future = future_sum_expr("tax")
+        apron_future = future_sum_expr("apron")
+
+        # Combined future amount (any mode)
+        future_any_mode = f"({cap_future}+{tax_future}+{apron_future})"
+
+        # Selected year all-mode zero check
+        cap_curr = _salary_book_choose("cap")
+        tax_curr = _salary_book_choose("tax")
+        apron_curr = _salary_book_choose("apron")
+
+        # Criteria expression for exists-only:
+        # team = SelectedTeam AND cap_curr = 0 AND tax_curr = 0 AND apron_curr = 0 AND future_any > 0
+        criteria = (
+            "((tbl_salary_book_warehouse[team_code]=SelectedTeam)"
+            f"*({cap_curr}=0)"
+            f"*({tax_curr}=0)"
+            f"*({apron_curr}=0)"
+            f"*({future_any_mode}>0))"
+        )
+
+        # Use future amount (mode-aware) for sorting - largest future commitment first
+        future_mode_aware = (
+            f'IF(SelectedMode="Cap",{cap_future},'
+            f'IF(SelectedMode="Tax",{tax_future},'
+            f'{apron_future}))'
+        )
+
+        amount_value_expr = f"AGGREGATE(14,6,({future_mode_aware})/({criteria}),{i})"
+        match_expr = f"MATCH({amount_value_expr},({future_mode_aware})/({criteria}),0)"
+
+        name_expr = f'IFERROR(INDEX(tbl_salary_book_warehouse[player_name],{match_expr}),"")'
+
+        # Helper for column lookups
+        def _lookup_expr(col: str) -> str:
+            return f'IFERROR(INDEX(tbl_salary_book_warehouse[{col}],{match_expr}),"")'
+
+        # All formulas are wrapped in IF(ShowExistsOnlyRows="Yes", ..., "")
+        # to hide data when toggle is off
+
+        # Bucket (EXISTS_ONLY) - only show when toggle is Yes AND row has data
+        bucket_formula = (
+            f'=IF(AND(ShowExistsOnlyRows="Yes",{name_expr}<>""),"EXISTS","")'
+        )
+        worksheet.write_formula(row, COL_BUCKET, bucket_formula, roster_formats["bucket_exists_only"])
+
+        # CountsTowardTotal: EXISTS_ONLY rows NEVER count toward total (N)
+        counts_total_formula = (
+            f'=IF(AND(ShowExistsOnlyRows="Yes",{name_expr}<>""),"N","")'
+        )
+        worksheet.write_formula(row, COL_COUNTS_TOTAL, counts_total_formula, roster_formats["counts_no"])
+
+        # CountsTowardRoster: EXISTS_ONLY rows NEVER count toward roster (N)
+        counts_roster_formula = (
+            f'=IF(AND(ShowExistsOnlyRows="Yes",{name_expr}<>""),"N","")'
+        )
+        worksheet.write_formula(row, COL_COUNTS_ROSTER, counts_roster_formula, roster_formats["counts_no"])
+
+        # Player name
+        name_formula = f'=IF(ShowExistsOnlyRows="Yes",{name_expr},"")'
+        worksheet.write_formula(row, COL_NAME, name_formula)
+
+        # Option badge (look up from first future year with value)
+        # For simplicity, we'll skip option/guarantee for exists-only (they're future contracts)
+        worksheet.write_formula(row, COL_OPTION, '=IF(ShowExistsOnlyRows="Yes","","")')
+        worksheet.write_formula(row, COL_GUARANTEE, '=IF(ShowExistsOnlyRows="Yes","","")')
+        worksheet.write_formula(row, COL_TRADE, '=IF(ShowExistsOnlyRows="Yes","","")')
+        worksheet.write_formula(row, COL_MIN_LABEL, '=IF(ShowExistsOnlyRows="Yes","","")')
+
+        # Salary columns - show all years (mode-aware) so analyst can see where the future money is
+        for yi in range(6):
+            mode_col_expr = (
+                f'IF(SelectedMode="Cap",INDEX(tbl_salary_book_warehouse[cap_y{yi}],{match_expr}),'
+                f'IF(SelectedMode="Tax",INDEX(tbl_salary_book_warehouse[tax_y{yi}],{match_expr}),'
+                f'INDEX(tbl_salary_book_warehouse[apron_y{yi}],{match_expr})))'
+            )
+            salary_formula = f'=IF(ShowExistsOnlyRows="Yes",IFERROR({mode_col_expr},""),"")'
+            worksheet.write_formula(row, COL_CAP_Y0 + yi, salary_formula, roster_formats["money"])
+
+        # Note column - display "Future only"
+        note_formula = f'=IF(AND(ShowExistsOnlyRows="Yes",{name_expr}<>""),"Future $","")'
+        worksheet.write_formula(row, COL_PCT_CAP, note_formula, hidden_text_fmt)
+
+        row += 1
+
+    # Count of exists-only rows (informational only, not part of totals)
+    count_label_formula = '=IF(ShowExistsOnlyRows="Yes","Exists-Only Count:","")'
+    worksheet.write_formula(row, COL_NAME, count_label_formula, roster_formats["subtotal_label"])
+
+    # Count formula - count rows matching exists-only criteria
+    # We can use SUMPRODUCT to count matching rows
+    count_value_formula = (
+        '=IF(ShowExistsOnlyRows="Yes",'
+        'SUMPRODUCT((tbl_salary_book_warehouse[team_code]=SelectedTeam)'
+        f'*({_salary_book_choose("cap")}=0)'
+        f'*({_salary_book_choose("tax")}=0)'
+        f'*({_salary_book_choose("apron")}=0)'
+        '*((CHOOSE(SelectedYear-MetaBaseYear+1,'
+        'tbl_salary_book_warehouse[cap_y1]+tbl_salary_book_warehouse[cap_y2]+tbl_salary_book_warehouse[cap_y3]+tbl_salary_book_warehouse[cap_y4]+tbl_salary_book_warehouse[cap_y5],'
+        'tbl_salary_book_warehouse[cap_y2]+tbl_salary_book_warehouse[cap_y3]+tbl_salary_book_warehouse[cap_y4]+tbl_salary_book_warehouse[cap_y5],'
+        'tbl_salary_book_warehouse[cap_y3]+tbl_salary_book_warehouse[cap_y4]+tbl_salary_book_warehouse[cap_y5],'
+        'tbl_salary_book_warehouse[cap_y4]+tbl_salary_book_warehouse[cap_y5],'
+        'tbl_salary_book_warehouse[cap_y5],'
+        '0))>0)),"")'
+    )
+    worksheet.write_formula(row, COL_BUCKET, count_value_formula, roster_formats["subtotal_label"])
+
+    row += 2
+
+    return row
+
+
 def _write_reconciliation_block(
     workbook: Workbook,
     worksheet: Worksheet,
@@ -1293,6 +1589,7 @@ def write_roster_grid(
     - Two-way contracts (bucket = 2WAY)
     - Cap holds (bucket = FA)
     - Dead money (bucket = TERM)
+    - EXISTS_ONLY section (non-counting rows with future-year amounts)
     - Reconciliation block proving grid sums match warehouse totals
 
     Per the blueprint:
@@ -1300,6 +1597,7 @@ def write_roster_grid(
     - Detail tables are labeled by bucket
     - MINIMUM label appears for min contracts
     - % of cap displayed for context
+    - EXISTS_ONLY rows are clearly labeled as non-counting (Ct$=N, CtR=N)
 
     Args:
         workbook: The XlsxWriter Workbook
@@ -1339,7 +1637,12 @@ def write_roster_grid(
     # 4. Dead money section
     content_row = _write_dead_money_section(workbook, worksheet, content_row, formats, roster_formats)
 
-    # 5. Reconciliation block
+    # 5. EXISTS_ONLY section (non-counting rows for analyst reference)
+    # Shows players with $0 in SelectedYear but future-year amounts
+    # Controlled by ShowExistsOnlyRows toggle (hidden when "No")
+    content_row = _write_exists_only_section(workbook, worksheet, content_row, formats, roster_formats)
+
+    # 6. Reconciliation block
     content_row = _write_reconciliation_block(workbook, worksheet, content_row, formats, roster_formats)
 
     # 6. Apply badge conditional formatting to roster section

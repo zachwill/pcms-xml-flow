@@ -694,35 +694,39 @@ def _write_policy_warnings(
     
     row += 1
     
-    # ShowExistsOnlyRows NOT YET IMPLEMENTED warning
-    # Per backlog item 4: When ShowExistsOnlyRows = "Yes", show a loud warning that
-    # no EXISTS_ONLY rows are currently implemented
+    # ShowExistsOnlyRows info message (feature now implemented)
+    # The EXISTS_ONLY section is now available in ROSTER_GRID
+    info_fmt = workbook.add_format({
+        "bg_color": "#DBEAFE",  # blue-100
+        "font_color": "#1E40AF",  # blue-800
+        "font_size": 9,
+    })
     worksheet.write_formula(
         row, COL_LABEL,
-        '=IF(ShowExistsOnlyRows="Yes","🚧 EXISTS-ONLY ROWS NOT YET IMPLEMENTED","")',
-        warning_fmt
+        '=IF(ShowExistsOnlyRows="Yes","ℹ️ EXISTS_ONLY section active","")',
+        info_fmt
     )
     worksheet.write_formula(
         row, COL_CAP,
-        '=IF(ShowExistsOnlyRows="Yes","ShowExistsOnlyRows has no effect","")',
-        warning_fmt
+        '=IF(ShowExistsOnlyRows="Yes","See ROSTER_GRID","")',
+        info_fmt
     )
     worksheet.write_formula(
         row, COL_NOTES,
-        '=IF(ShowExistsOnlyRows="Yes","No exists-only section exists yet — set to No to hide this warning","")',
+        '=IF(ShowExistsOnlyRows="Yes","Non-counting rows with future-year amounts are displayed in ROSTER_GRID","")',
         workbook.add_format({
-            "bg_color": "#FEE2E2",
-            "font_color": "#991B1B",
+            "bg_color": "#DBEAFE",
+            "font_color": "#1E40AF",
             "font_size": 9,
             "italic": True,
         })
     )
     
-    # Conditional formatting to highlight the entire row when warning is active
+    # Conditional formatting to highlight the entire row when info is shown
     worksheet.conditional_format(row, COL_LABEL, row, COL_NOTES, {
         "type": "formula",
         "criteria": '=ShowExistsOnlyRows="Yes"',
-        "format": warning_fmt,
+        "format": info_fmt,
     })
     
     row += 1

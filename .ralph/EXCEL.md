@@ -27,10 +27,12 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
 ## Backlog (ordered)
 
 ### 1) ROSTER_GRID: implement EXISTS_ONLY rows + wire `ShowExistsOnlyRows`
-- [ ] Add an `EXISTS_ONLY` section (non-counting rows) for analyst reference
-  - Suggested MVP definition: players with `team_code=SelectedTeam` who have 0 in SelectedYear (all modes) but non-zero in a future year column
-  - When `ShowExistsOnlyRows="No"`, hide/suppress this section
-  - Label clearly as "exists but does not count"
+- [x] Add an `EXISTS_ONLY` section (non-counting rows) for analyst reference
+  - Implemented: shows players with `team_code=SelectedTeam` who have $0 in SelectedYear (all modes: cap/tax/apron = 0) but non-zero in a future year column
+  - When `ShowExistsOnlyRows="No"` (default), section displays a collapsed message; when `"Yes"`, full listing shown
+  - Labeled as "EXISTS" bucket with Ct$="N", CtR="N" (never counts)
+  - Purple styling to visually distinguish from counting sections
+  - Updated TEAM_COCKPIT + BUDGET_LEDGER to show info message instead of "NOT YET IMPLEMENTED" warning
 
 ### 2) Two-way toggles: decide + implement real semantics without breaking reconciliation trust
 - [ ] Decide what `CountTwoWayInTotals` / `CountTwoWayInRoster` mean, and implement accordingly

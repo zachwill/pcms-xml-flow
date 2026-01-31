@@ -405,18 +405,18 @@ def _write_alert_stack(
     })
     row += 1
     
-    # Alert 4: ShowExistsOnlyRows NOT YET IMPLEMENTED warning
-    # Per backlog item 4: When ShowExistsOnlyRows = "Yes", show a loud warning that
-    # no EXISTS_ONLY rows are currently implemented
+    # Alert 4: ShowExistsOnlyRows info message
+    # The EXISTS_ONLY section is now implemented in ROSTER_GRID.
+    # When toggle is "Yes", show an informational message pointing to ROSTER_GRID.
     worksheet.write_formula(
         row, COL_READOUT_LABEL,
-        '=IF(ShowExistsOnlyRows="Yes","🚧 EXISTS-ONLY ROWS NOT YET IMPLEMENTED — ShowExistsOnlyRows has no effect (no exists-only section exists yet)","")',
+        '=IF(ShowExistsOnlyRows="Yes","ℹ️ EXISTS_ONLY section visible in ROSTER_GRID — non-counting rows with future-year amounts","")',
         alert_row_fmt
     )
     worksheet.conditional_format(row, COL_READOUT_LABEL, row, COL_READOUT_DESC, {
         "type": "formula",
         "criteria": '=ShowExistsOnlyRows="Yes"',
-        "format": workbook.add_format({"bg_color": "#FEE2E2", "font_color": "#991B1B", "bold": True}),  # red-100 / red-800 + bold
+        "format": workbook.add_format({"bg_color": "#DBEAFE", "font_color": "#1E40AF"}),  # blue-100 / blue-800 (info)
     })
     row += 1
     

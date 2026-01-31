@@ -114,7 +114,7 @@ The workbook includes these UI sheets (per `excel-cap-book-blueprint.md`):
 | `HOME` | Workbook summary + navigation links |
 | `META` | Build metadata (timestamp, git SHA, validation status) |
 | `TEAM_COCKPIT` | Primary flight display: key readouts + alerts + quick drivers |
-| `ROSTER_GRID` | Full roster/ledger view with reconciliation |
+| `ROSTER_GRID` | Full roster/ledger view with reconciliation + EXISTS_ONLY section |
 | `BUDGET_LEDGER` | Authoritative totals + plan deltas |
 | `PLAN_MANAGER` | Scenario/plan definitions |
 | `PLAN_JOURNAL` | Ordered action journal for scenario modeling |
@@ -124,6 +124,20 @@ The workbook includes these UI sheets (per `excel-cap-book-blueprint.md`):
 | `ASSETS` | Exception/TPE + draft pick inventory |
 | `AUDIT_AND_RECONCILE` | Totals reconciliation + assumptions display |
 | `RULES_REFERENCE` | Quick reference tables (tax rates, minimums, rookie scale, matching tiers) |
+
+### ROSTER_GRID sections
+
+The `ROSTER_GRID` sheet includes these sections:
+
+1. **ROSTER (Active Contracts)** — bucket = ROST, Ct$=Y, CtR=Y
+2. **TWO-WAY CONTRACTS** — bucket = 2WAY, Ct$=Y, CtR=N
+3. **CAP HOLDS (Free Agent Rights)** — bucket = FA, Ct$=Y, CtR=N
+4. **DEAD MONEY (Terminated Contracts)** — bucket = TERM, Ct$=Y, CtR=N
+5. **EXISTS_ONLY (Future-Year Contracts)** — bucket = EXISTS, Ct$=N, CtR=N
+   - Shows players with $0 in SelectedYear but non-zero in future years
+   - Controlled by `ShowExistsOnlyRows` toggle ("Yes" to show, "No" to hide)
+   - For analyst reference only — excluded from totals
+6. **RECONCILIATION** — proves grid sums match warehouse totals
 
 ---
 

@@ -65,17 +65,17 @@ rg -n "'<Sheet Name>'!" reference/warehouse/*.json
 ### Core warehouses / constants
 - [x] Spec: `y.json` (Y Warehouse — multi-year salary matrix)
 - [ ] Spec: `dynamic_contracts.json`
-- [ ] Spec: `contract_protections.json`
-- [ ] Spec: `system_values.json`
-- [ ] Spec: `minimum_salary_scale.json`
-- [ ] Spec: `rookie_scale_amounts.json`
+- [x] Spec: `contract_protections.json`
+- [x] Spec: `system_values.json`
+- [x] Spec: `minimum_salary_scale.json`
+- [x] Spec: `rookie_scale_amounts.json`
 
 ### Team + salary book views
 - [ ] Spec: `playground.json`
-- [ ] Spec: `team.json`
+- [x] Spec: `team.json`
 - [ ] Spec: `team_summary.json`
 - [ ] Spec: `finance.json`
-- [ ] Spec: `ga.json`
+- [x] Spec: `ga.json`
 
 ### Trade tooling
 - [ ] Spec: `machine.json` (trade machine)
@@ -92,9 +92,9 @@ rg -n "'<Sheet Name>'!" reference/warehouse/*.json
 - [ ] Spec: `tax_array.json`
 
 ### Snapshots / examples / misc
-- [ ] Spec: `2025.json`
+- [x] Spec: `2025.json`
 - [ ] Spec: `por.json`
-- [ ] Spec: `buyout_calculator.json`
-- [ ] Spec: `kuzma_buyout.json`
+- [x] Spec: `buyout_calculator.json`
+- [x] Spec: `kuzma_buyout.json`
 - [ ] Spec: `set-off.json`
-- [ ] Spec: `cover.json`
+- [x] Spec: `cover.json`

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * core.ts — Dead simple autonomous loops.
+ * core.ts - Dead simple autonomous loops.
  *
  * Usage:
  *   import { loop, work, generate, halt, supervisor } from "./core";
@@ -16,17 +16,34 @@
  *   });
  *
  * RunOptions (for work, generate, supervisor):
- *   - model: Single model (e.g., "gpt-4o-mini")
+ *   - model: Single model (e.g., "gpt-5.2")
  *   - provider: Provider (e.g., "openai", "anthropic")
  *   - models: Limit cycling (e.g., "sonnet:high,haiku:low")
- *   - thinking: Starting level ("low" | "medium" | "high")
- *   - tools: Restrict tools (e.g., "read,grep,find,ls" for read-only)
+ *   - thinking: Starting level (off|minimal|low|medium|high|xhigh)
+ *   - tools: Restrict tools (e.g., "read" for strict read-only)
  *   - timeout: Per-run timeout (e.g., "5m")
  */
 
-import { $, spawn } from "bun";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
-import { dirname } from "path";
+import { $ } from "bun";
+import { mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
+
+import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
+import type { AssistantMessage, Model } from "@mariozechner/pi-ai";
+import {
+  AuthStorage,
+  DefaultResourceLoader,
+  ModelRegistry,
+  SessionManager,
+  SettingsManager,
+  createAgentSession,
+  createBashTool,
+  createEditTool,
+  createReadTool,
+  createWriteTool,
+  type AgentSessionEvent,
+  type Tool,
+} from "@mariozechner/pi-coding-agent";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -48,17 +65,20 @@ export interface RunOptions {
    */
   models?: string;
 
-  /** Starting thinking level: "low", "medium", or "high" */
-  thinking?: "low" | "medium" | "high";
+  /** Starting thinking level: off|minimal|low|medium|high|xhigh */
+  thinking?: ThinkingLevel;
 
   /**
    * Restrict available tools (comma-separated).
-   * Example: "read,grep,find,ls" for read-only mode
+   * Example: "read" for strict read-only mode
    */
   tools?: string;
 
   /** Timeout per run (seconds or string like "5m") */
   timeout?: number | string;
+
+  /** Internal: role for logging (set automatically) */
+  role?: "worker" | "supervisor";
 }
 
 export interface Action {
@@ -91,6 +111,12 @@ export interface LoopConfig {
 
   /** Max iterations before forced exit (default: 400) */
   maxIterations?: number;
+
+  /**
+   * If true, the loop never exits just because the task file is "done".
+   * When there are no remaining todos, your run(state) function should typically return generate().
+   */
+  continuous?: boolean;
 
   /** Optional supervisor */
   supervisor?: SupervisorConfig;
@@ -154,7 +180,7 @@ export function supervisor(
   return {
     every,
     async run() {
-      await runPi(prompt, runOptions);
+      await runPi(prompt, { ...runOptions, role: "supervisor" });
     },
   };
 }
@@ -163,89 +189,125 @@ export function supervisor(
 // Time Parsing
 // ─────────────────────────────────────────────────────────────
 
+const DEFAULT_TIMEOUT_MS = 300_000;
+
 function parseTimeout(value: number | string): number {
   if (typeof value === "number") return value * 1000;
 
   const match = value.match(/^(\d+(?:\.\d+)?)\s*(s|m|h)$/i);
   if (!match) {
-    throw new Error(`Invalid timeout: "${value}". Use "30s", "5m", "1h", or number (seconds)`);
+    throw new Error(
+      `Invalid timeout: "${value}". Use "30s", "5m", "1h", or number (seconds)`
+    );
   }
 
   const num = parseFloat(match[1]);
   const unit = match[2].toLowerCase();
 
-  switch (unit) {
-    case "s": return num * 1000;
-    case "m": return num * 60 * 1000;
-    case "h": return num * 60 * 60 * 1000;
-    default: throw new Error(`Unknown time unit: ${unit}`);
-  }
+  const multipliers: Record<string, number> = {
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+  };
+
+  const multiplier = multipliers[unit];
+  if (!multiplier) throw new Error(`Unknown time unit: ${unit}`);
+
+  return num * multiplier;
 }
 
 // ─────────────────────────────────────────────────────────────
 // CLI Helpers
 // ─────────────────────────────────────────────────────────────
 
-const hasFlag = (flag: string) => Bun.argv.includes(flag);
+type CliFlags = {
+  once: boolean;
+  dryRun: boolean;
+  context: string | null;
+};
 
-const getArgValue = (flag: string, ...aliases: string[]): string | null => {
+function hasFlag(flag: string, argv = Bun.argv): boolean {
+  return argv.includes(flag);
+}
+
+function getArgValue(flag: string, aliases: string[] = [], argv = Bun.argv): string | null {
   for (const f of [flag, ...aliases]) {
-    const idx = Bun.argv.indexOf(f);
+    const idx = argv.indexOf(f);
     if (idx === -1) continue;
-    const next = Bun.argv[idx + 1];
+    const next = argv[idx + 1];
     if (next && !next.startsWith("--")) return next;
   }
   return null;
-};
+}
+
+function parseCliFlags(argv = Bun.argv): CliFlags {
+  return {
+    once: hasFlag("--once", argv),
+    dryRun: hasFlag("--dry-run", argv),
+    context: getArgValue("--context", ["-c"], argv),
+  };
+}
+
+function exitDryRun(prompt: string, options?: RunOptions): never {
+  console.log("\n(dry-run) Prompt:\n");
+  console.log(prompt);
+  if (options?.model) {
+    console.log(`\nModel: ${options.model}`);
+  }
+  process.exit(0);
+}
 
 // ─────────────────────────────────────────────────────────────
 // Git Operations
 // ─────────────────────────────────────────────────────────────
 
-const getUncommittedChanges = async () =>
-  (await $`git status --porcelain`.text()).trim().length > 0;
+async function hasUncommittedChanges(): Promise<boolean> {
+  return (await $`git status --porcelain`.text()).trim().length > 0;
+}
 
-const recentCommit = async (withinMs = 15_000) => {
+async function hasRecentCommit(withinMs = 15_000): Promise<boolean> {
   try {
     const ts = parseInt(await $`git log -1 --format=%ct`.text()) * 1000;
     return Date.now() - ts < withinMs;
   } catch {
     return false;
   }
-};
+}
 
-const getCommitCount = async () => {
+async function getCommitCount(): Promise<number> {
   try {
     return parseInt(await $`git rev-list --count HEAD`.text()) || 0;
   } catch {
     return 0;
   }
-};
+}
 
 async function autoCommit(message: string): Promise<void> {
-  console.log("\n📦 Auto-committing...");
+  console.log("\n[Auto-commit]");
   await $`git add -A`.quiet();
   await $`git commit -m ${message}`.quiet();
 }
 
 async function push(): Promise<void> {
-  console.log("🚀 Pushing to remote...");
+  console.log("[Push]");
   try {
     await $`git push origin HEAD`;
-  } catch (e) {
-    console.log("⚠️  Push failed (non-fatal)");
+  } catch {
+    console.log("Push failed (non-fatal)");
   }
 }
 
 async function ensureCommit(fallbackMessage: string): Promise<boolean> {
-  if (await recentCommit()) {
-    console.log("✅ Committed");
+  if (await hasRecentCommit()) {
+    console.log("Committed");
     return true;
   }
-  if (await getUncommittedChanges()) {
+
+  if (await hasUncommittedChanges()) {
     await autoCommit(fallbackMessage);
     return true;
   }
+
   return false;
 }
 
@@ -253,19 +315,107 @@ async function ensureCommit(fallbackMessage: string): Promise<boolean> {
 // File Helpers
 // ─────────────────────────────────────────────────────────────
 
-const readFile = (path: string) =>
-  existsSync(path) ? readFileSync(path, "utf-8") : "";
+async function readTextFile(path: string): Promise<string> {
+  const file = Bun.file(path);
+  return (await file.exists()) ? file.text() : "";
+}
 
-const ensureFile = (path: string, defaultContent = "") => {
-  if (!existsSync(path)) {
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, defaultContent);
-  }
-};
+async function ensureFileExists(path: string, defaultContent = ""): Promise<void> {
+  const file = Bun.file(path);
+  if (await file.exists()) return;
+  await mkdir(dirname(path), { recursive: true });
+  await Bun.write(path, defaultContent);
+}
 
 function getUncheckedTodos(content: string): string[] {
   const matches = content.matchAll(/^\s*[-*+]\s*\[ \]\s+(.*)$/gm);
   return Array.from(matches, (m) => m[1].trim());
+}
+
+// ─────────────────────────────────────────────────────────────
+// Colors & Logging
+// ─────────────────────────────────────────────────────────────
+
+const colors = {
+  read: Bun.color("limegreen", "ansi") ?? "",
+  write: Bun.color("orangered", "ansi") ?? "",
+  edit: Bun.color("gold", "ansi") ?? "",
+  bash: Bun.color("dodgerblue", "ansi") ?? "",
+  worker: Bun.color("mediumspringgreen", "ansi") ?? "",
+  supervisor: Bun.color("darkorchid", "ansi") ?? "",
+  dim: Bun.color("lightslategray", "ansi") ?? "",
+  reset: "\x1b[0m",
+};
+
+const toolIcons: Record<string, string> = {
+  read: ">",
+  write: ">",
+  edit: ">",
+  bash: ">",
+};
+
+function getToolColor(tool: string): string {
+  return colors[tool as keyof typeof colors] ?? colors.dim;
+}
+
+function logToolCall(tool: string, detail: string): void {
+  const icon = toolIcons[tool] ?? ">";
+  const color = getToolColor(tool);
+  const label = tool.toUpperCase().padEnd(5);
+  const truncated = detail.length > 60 ? detail.slice(0, 57) + "..." : detail;
+  console.log(`  ${color}${icon} ${label}${colors.reset} ${colors.dim}${truncated}${colors.reset}`);
+}
+
+interface RunStats {
+  tools: Map<string, number>;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+function logRunSummary(stats: RunStats, role: "worker" | "supervisor"): void {
+  const roleColor = role === "supervisor" ? colors.supervisor : colors.worker;
+  const roleLabel = role.toUpperCase();
+
+  const toolSummary = Array.from(stats.tools.entries())
+    .map(([tool, count]) => `${tool}:${count}`)
+    .join(" ") || "no tools";
+
+  const tokens = stats.inputTokens + stats.outputTokens;
+  const tokenStr = tokens > 0 ? `${(tokens / 1000).toFixed(1)}k tokens` : "";
+
+  console.log(
+    `  ${roleColor}[${roleLabel}]${colors.reset} ${colors.dim}${tokenStr}${tokenStr && toolSummary ? ", " : ""}${toolSummary}${colors.reset}`
+  );
+}
+
+function extractToolDetail(input: unknown): string {
+  if (typeof input === "string") return input;
+  if (typeof input !== "object" || input === null) return "";
+
+  const obj = input as Record<string, unknown>;
+  if (obj.path) return String(obj.path);
+  if (obj.command) return String(obj.command);
+  if (obj.pattern) return String(obj.pattern);
+  return "";
+}
+
+function processEvent(event: AgentSessionEvent, stats: RunStats): void {
+  // tool_execution_start — pi's event when a tool starts running
+  if (event.type === "tool_execution_start") {
+    const name = event.toolName;
+
+    stats.tools.set(name, (stats.tools.get(name) ?? 0) + 1);
+    const detail = extractToolDetail(event.args);
+    logToolCall(name, detail);
+    return;
+  }
+
+  // message_end — extract usage stats from assistant messages
+  if (event.type === "message_end" && event.message.role === "assistant") {
+    const msg = event.message as AssistantMessage;
+    stats.inputTokens += msg.usage?.input ?? 0;
+    stats.outputTokens += msg.usage?.output ?? 0;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -281,7 +431,7 @@ function printBanner(name: string): void {
 }
 
 function printIteration(n: number, max: number): void {
-  console.log(`\n┌─ Iteration ${n}/${max} — ${timestamp()}`);
+  console.log(`\n┌─ Iteration ${n}/${max} - ${timestamp()}`);
   console.log("└──────────────────────────────────────\n");
 }
 
@@ -297,62 +447,254 @@ Run "git diff" to see the current state.
 Finish the in-progress work and commit.
 `.trim();
 
-function withResume(prompt: string, hasChanges: boolean): string {
-  return hasChanges ? `${prompt}\n\n${RESUME_SUFFIX}` : prompt;
+function withResume(prompt: string, include: boolean): string {
+  return include ? `${prompt}\n\n${RESUME_SUFFIX}` : prompt;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Timeout Helper
+// ─────────────────────────────────────────────────────────────
+
+function resolveTimeoutMs(timeout?: number | string): number {
+  return timeout ? parseTimeout(timeout) : DEFAULT_TIMEOUT_MS;
 }
 
 // ─────────────────────────────────────────────────────────────
 // Pi Runner (exported for supervisor use)
 // ─────────────────────────────────────────────────────────────
 
-let _piPath: string | null = null;
+type ScopedModelSpec = { model: Model<any>; thinkingLevel: ThinkingLevel };
 
-async function getPiPath(): Promise<string> {
-  if (!_piPath) {
-    _piPath = (await $`which pi`.text()).trim();
-    if (!_piPath) throw new Error("Could not find 'pi' in PATH");
-  }
-  return _piPath;
+type ResolvedRunModel = {
+  model?: Model<any>;
+  thinkingLevel?: ThinkingLevel;
+  scopedModels?: ScopedModelSpec[];
+};
+
+function parseCsvList(value?: string): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
-export async function runPi(
-  prompt: string,
-  options?: RunOptions
-): Promise<void> {
-  const piPath = await getPiPath();
-  const timeoutMs = options?.timeout ? parseTimeout(options.timeout) : 300_000;
+function buildToolsForRun(cwd: string, toolsCsv?: string): Tool[] | undefined {
+  if (!toolsCsv) return undefined;
 
-  // Build args from options
-  const args: string[] = [];
+  const requested = parseCsvList(toolsCsv);
+  if (requested.length === 0) return undefined;
+
+  const toolFactories: Record<string, (cwd: string) => Tool> = {
+    read: createReadTool,
+    bash: createBashTool,
+    edit: createEditTool,
+    write: createWriteTool,
+  };
+
+  const tools: Tool[] = [];
+  for (const name of requested) {
+    const factory = toolFactories[name];
+    if (!factory) {
+      console.log(`${colors.dim}Unknown tool: "${name}" (ignored)${colors.reset}`);
+      continue;
+    }
+    tools.push(factory(cwd));
+  }
+
+  return tools.length > 0 ? tools : undefined;
+}
+
+function resolveModelString(
+  modelRegistry: ModelRegistry,
+  model: string,
+  provider?: string
+): Model<any> | undefined {
+  // Support passing provider/model as a single string.
+  if (model.includes("/")) {
+    const [p, ...rest] = model.split("/");
+    return modelRegistry.find(p, rest.join("/"));
+  }
+
+  if (provider) return modelRegistry.find(provider, model);
+
+  // Best-effort fallback (exact id/name, then partial id/name).
+  const all = modelRegistry.getAll();
+  const exactId = all.find((m) => m.id === model);
+  if (exactId) return exactId;
+
+  const exactName = all.find((m) => m.name === model);
+  if (exactName) return exactName;
+
+  const needle = model.toLowerCase();
+  return all.find((m) => m.id.toLowerCase().includes(needle) || m.name.toLowerCase().includes(needle));
+}
+
+function parseModelToken(
+  token: string,
+  fallbackProvider: string | undefined,
+  fallbackThinking: ThinkingLevel | undefined
+): { provider?: string; modelId: string; thinkingLevel: ThinkingLevel } {
+  const [modelPartRaw, thinkingRaw] = token.split(":").map((s) => s.trim());
+  const thinkingLevel = (thinkingRaw as ThinkingLevel) || fallbackThinking || "off";
+
+  if (modelPartRaw.includes("/")) {
+    const [provider, ...rest] = modelPartRaw.split("/");
+    return { provider, modelId: rest.join("/"), thinkingLevel };
+  }
+
+  return { provider: fallbackProvider, modelId: modelPartRaw, thinkingLevel };
+}
+
+async function resolveRunModel(options: RunOptions | undefined, modelRegistry: ModelRegistry): Promise<ResolvedRunModel> {
+  const provider = options?.provider;
+  const thinkingLevel = options?.thinking;
 
   if (options?.model) {
-    args.push("--model", options.model);
-  }
-  if (options?.provider) {
-    args.push("--provider", options.provider);
-  }
-  if (options?.models) {
-    args.push("--models", options.models);
-  }
-  if (options?.thinking) {
-    args.push("--thinking", options.thinking);
-  }
-  if (options?.tools) {
-    args.push("--tools", options.tools);
+    const resolved = resolveModelString(modelRegistry, options.model, provider);
+    if (!resolved) {
+      throw new Error(
+        `Unknown model: ${provider ? `${provider}/` : ""}${options.model}. ` +
+          `Try provider/model (e.g. "anthropic/claude-sonnet-4-5") or pass { provider, model }.`
+      );
+    }
+    return { model: resolved, thinkingLevel };
   }
 
-  const proc = spawn([piPath, "-p", prompt, ...args], {
-    stdout: "inherit",
-    stderr: "inherit",
+  if (options?.models) {
+    const specs = parseCsvList(options.models);
+    const scopedModels: ScopedModelSpec[] = [];
+
+    for (const spec of specs) {
+      const parsed = parseModelToken(spec, provider, thinkingLevel);
+      const resolved = resolveModelString(modelRegistry, parsed.modelId, parsed.provider);
+      if (!resolved) {
+        throw new Error(`Unknown model in models list: "${spec}"`);
+      }
+      scopedModels.push({ model: resolved, thinkingLevel: parsed.thinkingLevel });
+    }
+
+    // Pick the first model with auth configured.
+    for (const spec of scopedModels) {
+      const key = await modelRegistry.getApiKey(spec.model);
+      if (key) return { model: spec.model, thinkingLevel: spec.thinkingLevel, scopedModels };
+    }
+
+    // No auth found; still return the first model so pi can surface a useful auth error.
+    if (scopedModels.length > 0) {
+      return { model: scopedModels[0].model, thinkingLevel: scopedModels[0].thinkingLevel, scopedModels };
+    }
+  }
+
+  // If only provider is given, pick the first available model for that provider.
+  if (provider) {
+    const available = modelRegistry.getAvailable();
+    const candidate = available.find((m) => m.provider === provider);
+    if (candidate) return { model: candidate, thinkingLevel };
+  }
+
+  // Let pi resolve defaults from settings and available models.
+  return { thinkingLevel };
+}
+
+function getLastAssistantMessage(messages: unknown[]): AssistantMessage | undefined {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i] as { role?: string };
+    if (m?.role === "assistant") return messages[i] as AssistantMessage;
+  }
+  return undefined;
+}
+
+export async function runPi(prompt: string, options?: RunOptions): Promise<void> {
+  const cwd = process.cwd();
+  const timeoutMs = resolveTimeoutMs(options?.timeout);
+  const role = options?.role ?? "worker";
+
+  const roleColor = role === "supervisor" ? colors.supervisor : colors.worker;
+  console.log(`${roleColor}[${role.toUpperCase()}]${colors.reset} Starting...\n`);
+
+  // Use the SDK directly (no subprocess JSONL parsing).
+  const authStorage = new AuthStorage();
+  const modelRegistry = new ModelRegistry(authStorage);
+
+  // Resource loader discovers AGENTS.md files and injects them into system prompt
+  const resourceLoader = new DefaultResourceLoader({
+    cwd,
+    settingsManager: SettingsManager.inMemory(),
+    noExtensions: true,
+    noSkills: true,
+    noPromptTemplates: true,
+  });
+  await resourceLoader.reload();
+
+  const resolvedModel = await resolveRunModel(options, modelRegistry);
+  const tools = buildToolsForRun(cwd, options?.tools);
+
+  const { session, modelFallbackMessage } = await createAgentSession({
+    cwd,
+    authStorage,
+    modelRegistry,
+    resourceLoader,
+    sessionManager: SessionManager.inMemory(),
+    tools,
+    model: resolvedModel.model,
+    thinkingLevel: resolvedModel.thinkingLevel,
+    scopedModels: resolvedModel.scopedModels,
   });
 
-  const timeout = setTimeout(() => {
-    console.log(`\n⏰ Timed out after ${timeoutMs / 1000}s`);
-    proc.kill();
+  if (modelFallbackMessage) {
+    console.log(`${colors.dim}${modelFallbackMessage}${colors.reset}\n`);
+  }
+
+  if (!session.model) {
+    session.dispose();
+    throw new Error(modelFallbackMessage ?? "No model available (check pi auth/settings)");
+  }
+
+  const stats: RunStats = { tools: new Map(), inputTokens: 0, outputTokens: 0 };
+  const unsubscribe = session.subscribe((event) => processEvent(event, stats));
+
+  let timedOut = false;
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    console.log(`\n[Timeout] ${timeoutMs / 1000}s`);
+    session.abort().catch(() => {});
   }, timeoutMs);
 
-  await proc.exited;
-  clearTimeout(timeout);
+  let runError: unknown;
+
+  try {
+    await session.prompt(prompt);
+  } catch (err) {
+    runError = err;
+  } finally {
+    clearTimeout(timeoutId);
+    unsubscribe();
+  }
+
+  const lastAssistant = getLastAssistantMessage(session.state.messages as unknown[]);
+  const stopReason = lastAssistant?.stopReason;
+
+  session.dispose();
+
+  console.log("");
+  logRunSummary(stats, role);
+
+  if (timedOut) {
+    throw new Error(`Timed out after ${timeoutMs / 1000}s`);
+  }
+
+  if (stopReason === "error") {
+    throw new Error(lastAssistant?.errorMessage ?? "pi: model error");
+  }
+
+  if (stopReason === "aborted") {
+    throw new Error("pi: aborted");
+  }
+
+  if (runError) {
+    throw runError;
+  }
 }
 
 /** Run an arbitrary command (for advanced supervisor use) */
@@ -360,45 +702,79 @@ export async function runCommand(
   command: string[],
   options?: { timeout?: number | string }
 ): Promise<void> {
-  const timeoutMs = options?.timeout ? parseTimeout(options.timeout) : 300_000;
+  const timeoutMs = resolveTimeoutMs(options?.timeout);
+  const cmd = command.map((c) => $.escape(c)).join(" ");
 
-  const proc = spawn(command, {
-    stdout: "inherit",
-    stderr: "inherit",
-  });
-
-  const timeout = setTimeout(() => {
-    console.log(`\n⏰ Timed out after ${timeoutMs / 1000}s`);
-    proc.kill();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    console.log(`\n[Timeout] ${timeoutMs / 1000}s`);
+    controller.abort();
   }, timeoutMs);
 
-  await proc.exited;
-  clearTimeout(timeout);
+  try {
+    await $`${{ raw: cmd }}`.nothrow();
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
 // The Main Loop
 // ─────────────────────────────────────────────────────────────
 
+type PiActionType = Extract<Action["_type"], "work" | "generate">;
+
+async function runPiAction(
+  type: PiActionType,
+  action: Action,
+  hasChanges: boolean,
+  defaultTimeout: number | string,
+  flags: CliFlags
+): Promise<void> {
+  const prompt = withResume(action._prompt!, hasChanges);
+
+  const runOptions: RunOptions = {
+    ...action._options,
+    timeout: action._options?.timeout ?? defaultTimeout,
+    role: "worker",
+  };
+
+  if (flags.dryRun) {
+    exitDryRun(prompt, action._options);
+  }
+
+  await runPi(prompt, runOptions);
+
+  if (type === "generate") {
+    await ensureCommit("chore: generate tasks");
+  } else {
+    // "work"
+    // Commit message includes iteration in caller (for consistency with previous behavior).
+  }
+}
+
+function shouldRunSupervisor(config: LoopConfig, commits: number): boolean {
+  return Boolean(config.supervisor && commits > 0 && commits % config.supervisor.every === 0);
+}
+
 export async function loop(config: LoopConfig): Promise<never> {
-  // Validate
-  if (!existsSync(".git")) {
-    console.error("❌ Not a git repository");
+  // Validate (use shell to check .git since Bun.file() only works for files)
+  const isGitRepo = await $`test -d .git`.nothrow().quiet();
+  if (isGitRepo.exitCode !== 0) {
+    console.error("Error: Not a git repository");
     process.exit(1);
   }
 
-  // Parse config
-  const defaultTimeoutMs = parseTimeout(config.timeout);
+  // Parse config defaults
   const pushEvery = config.pushEvery ?? 4;
   const maxIterations = config.maxIterations ?? 400;
+  const continuous = config.continuous ?? false;
 
   // CLI flags
-  const once = hasFlag("--once");
-  const dryRun = hasFlag("--dry-run");
-  const context = getArgValue("--context", "-c");
+  const flags = parseCliFlags();
 
   // Ensure task file exists
-  ensureFile(config.taskFile, "# Tasks\n\n");
+  await ensureFileExists(config.taskFile, "# Tasks\n\n");
 
   printBanner(config.name);
 
@@ -410,16 +786,16 @@ export async function loop(config: LoopConfig): Promise<never> {
     iteration++;
 
     if (iteration > maxIterations) {
-      console.log(`\n🛑 Max iterations (${maxIterations}) reached`);
+      console.log(`\n[Stop] Max iterations (${maxIterations}) reached`);
       process.exit(0);
     }
 
     printIteration(iteration, maxIterations);
 
     // Build state
-    const taskFileContent = readFile(config.taskFile);
+    const taskFileContent = await readTextFile(config.taskFile);
     const todos = getUncheckedTodos(taskFileContent);
-    const hasUncommittedChanges = await getUncommittedChanges();
+    const uncommittedChanges = await hasUncommittedChanges();
 
     const state: State = {
       iteration,
@@ -427,20 +803,20 @@ export async function loop(config: LoopConfig): Promise<never> {
       hasTodos: todos.length > 0,
       nextTodo: todos[0] ?? null,
       todos,
-      context,
-      hasUncommittedChanges,
+      context: flags.context,
+      hasUncommittedChanges: uncommittedChanges,
     };
 
-    // Check if supervisor should run
-    if (config.supervisor && commits > 0 && commits % config.supervisor.every === 0) {
-      console.log("🔮 Running supervisor...");
+    // Supervisor
+    if (shouldRunSupervisor(config, commits)) {
+      console.log("[Supervisor]");
 
-      if (dryRun) {
+      if (flags.dryRun) {
         console.log("(dry-run) Would run supervisor");
         process.exit(0);
       }
 
-      await config.supervisor.run(state);
+      await config.supervisor!.run(state);
       await ensureCommit("chore: supervisor");
 
       const currentCount = await getCommitCount();
@@ -451,55 +827,42 @@ export async function loop(config: LoopConfig): Promise<never> {
     // Get action from user's run function
     const action = config.run(state);
 
-    // Handle action
     switch (action._type) {
       case "halt": {
-        console.log(`\n✅ ${action._reason}`);
+        console.log(`\n[Done] ${action._reason}`);
         process.exit(0);
       }
 
       case "generate": {
-        console.log("🔍 Generating tasks...");
-        const prompt = withResume(action._prompt!, hasUncommittedChanges);
-        const timeoutMs = action._options?.timeout
-          ? parseTimeout(action._options.timeout)
-          : defaultTimeoutMs;
+        console.log("[Generate]");
 
-        if (dryRun) {
-          console.log("\n(dry-run) Prompt:\n");
-          console.log(prompt);
-          if (action._options?.model) {
-            console.log(`\nModel: ${action._options.model}`);
+        await runPiAction("generate", action, uncommittedChanges, config.timeout, flags);
+
+        // Guard: in continuous mode, prevent infinite generate→generate loops
+        // if task generation fails to produce any unchecked todos.
+        if (continuous) {
+          const generatedTodos = getUncheckedTodos(await readTextFile(config.taskFile));
+          if (generatedTodos.length === 0) {
+            console.log(
+              `\n[Stop] Continuous mode: task generation produced no unchecked todos in ${config.taskFile}`
+            );
+            console.log(
+              "Expected markdown checkboxes like: - [ ] <task>. Stopping to avoid an infinite loop."
+            );
+            process.exit(1);
           }
-          process.exit(0);
         }
 
-        await runPi(prompt, { model: action._options?.model, timeout: timeoutMs });
-        await ensureCommit("chore: generate tasks");
-        console.log(`\n✅ Tasks written to ${config.taskFile}`);
+        console.log(`\n[Done] Tasks written to ${config.taskFile}`);
         break;
       }
 
       case "work": {
         if (state.nextTodo) {
-          console.log(`▶ Task: ${state.nextTodo}`);
+          console.log(`> Task: ${state.nextTodo}`);
         }
 
-        const prompt = withResume(action._prompt!, hasUncommittedChanges);
-        const timeoutMs = action._options?.timeout
-          ? parseTimeout(action._options.timeout)
-          : defaultTimeoutMs;
-
-        if (dryRun) {
-          console.log("\n(dry-run) Prompt:\n");
-          console.log(prompt);
-          if (action._options?.model) {
-            console.log(`\nModel: ${action._options.model}`);
-          }
-          process.exit(0);
-        }
-
-        await runPi(prompt, { model: action._options?.model, timeout: timeoutMs });
+        await runPiAction("work", action, uncommittedChanges, config.timeout, flags);
         await ensureCommit(`chore: iteration ${iteration}`);
         break;
       }
@@ -515,13 +878,13 @@ export async function loop(config: LoopConfig): Promise<never> {
     }
 
     // Check if done
-    const updatedTodos = getUncheckedTodos(readFile(config.taskFile));
-    if (updatedTodos.length === 0 && action._type === "work") {
-      console.log("\n✅ All tasks complete");
+    const updatedTodos = getUncheckedTodos(await readTextFile(config.taskFile));
+    if (!continuous && updatedTodos.length === 0 && action._type === "work") {
+      console.log("\n[Done] All tasks complete");
       process.exit(0);
     }
 
-    if (once) {
+    if (flags.once) {
       console.log("\n(--once) Single iteration complete");
       process.exit(0);
     }

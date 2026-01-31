@@ -68,6 +68,38 @@ def _sumifs_formula(data_col: str) -> str:
     )
 
 
+def _salary_book_choose_cap() -> str:
+    """Return an Excel CHOOSE() expression selecting the correct cap_y* column for SelectedYear.
+
+    The workbook exports salary_book_warehouse with relative-year columns
+    (cap_y0..cap_y5) relative to MetaBaseYear.
+
+    SelectedYear is an absolute salary_year; we map it to a relative offset:
+        idx = (SelectedYear - MetaBaseYear) + 1
+
+    Returns an expression (no leading '=') suitable for embedding in AGGREGATE formulas.
+    """
+    cols = ",".join(f"tbl_salary_book_warehouse[cap_y{i}]" for i in range(6))
+    return f"CHOOSE(SelectedYear-MetaBaseYear+1,{cols})"
+
+
+def _salary_book_cap_sumproduct_min() -> str:
+    """Return a SUMPRODUCT formula for summing min-contract cap amounts for SelectedYear.
+
+    Filters by team_code=SelectedTeam AND is_min_contract=TRUE.
+    Uses the SelectedYear-aware CHOOSE expression to pick the correct cap_y* column.
+
+    Returns a formula string (with leading '=').
+    """
+    amount_expr = _salary_book_choose_cap()
+    return (
+        f"=SUMPRODUCT("
+        f"(tbl_salary_book_warehouse[team_code]=SelectedTeam)*"
+        f"(tbl_salary_book_warehouse[is_min_contract]=TRUE)*"
+        f"({amount_expr}))"
+    )
+
+
 def _if_formula(data_col: str) -> str:
     """Build INDEX/MATCH formula for boolean/text values from tbl_team_salary_warehouse.
 
@@ -417,16 +449,14 @@ def _write_minimum_contracts_readout(
     worksheet.write(row, COL_READOUT_DESC, "players on minimum contracts", label_fmt)
     row += 1
     
-    # Total salary for minimum contracts (cap_y0 for base year)
+    # Total salary for minimum contracts (SelectedYear cap amounts)
     worksheet.write(row, COL_READOUT_LABEL, "Min Contract Total:", label_fmt)
     worksheet.write_formula(
         row, COL_READOUT_VALUE,
-        "=SUMIFS(tbl_salary_book_warehouse[cap_y0],"
-        "tbl_salary_book_warehouse[team_code],SelectedTeam,"
-        "tbl_salary_book_warehouse[is_min_contract],TRUE)",
+        _salary_book_cap_sumproduct_min(),
         money_fmt,
     )
-    worksheet.write(row, COL_READOUT_DESC, "(base year cap amounts)", label_fmt)
+    worksheet.write(row, COL_READOUT_DESC, "(SelectedYear cap amounts)", label_fmt)
     row += 1
     
     # Blank row for spacing
@@ -477,28 +507,37 @@ def _write_quick_drivers(
     
     # Use LARGE + INDEX/MATCH for top N
     # We filter by team_code=SelectedTeam and is_two_way=FALSE (standard contracts)
+    # The amount column is SelectedYear-aware via CHOOSE(SelectedYear-MetaBaseYear+1, cap_y0..cap_y5)
+    #
+    # For AGGREGATE(14,6,...), we need a different approach since CHOOSE returns arrays.
+    # We use SUMPRODUCT with LARGE for the Nth largest value.
+    # NOTE: Excel's AGGREGATE with array division doesn't work well with CHOOSE in some versions,
+    # so we use a SUMPRODUCT/LARGE approach that's more compatible.
+    
+    cap_choose_expr = _salary_book_choose_cap()
+    
     for rank in range(1, TOP_N_DRIVERS + 1):
-        # Value: Nth largest cap_y0 for the team (excluding two-way)
+        # Value: Nth largest cap amount for SelectedYear for the team (excluding two-way)
+        # Uses AGGREGATE(14,6,IF(...),k) pattern which works with CHOOSE inside IF
         value_formula = (
             f"=IFERROR(AGGREGATE(14,6,"
-            f"(tbl_salary_book_warehouse[cap_y0])/"
-            f"((tbl_salary_book_warehouse[team_code]=SelectedTeam)*"
-            f"(tbl_salary_book_warehouse[is_two_way]=FALSE))"
-            f",{rank}),0)"
+            f"IF((tbl_salary_book_warehouse[team_code]=SelectedTeam)*"
+            f"(tbl_salary_book_warehouse[is_two_way]=FALSE),"
+            f"{cap_choose_expr}),"
+            f"{rank}),0)"
         )
         
         # Name: INDEX/MATCH to find player name with this value
-        # We need to match on team_code AND cap_y0 = the value we just computed
-        # This is tricky; we use a nested approach
+        # Match on team_code AND is_two_way=FALSE AND cap amount = the value we just computed
         name_formula = (
             f"=IFERROR(INDEX(tbl_salary_book_warehouse[player_name],"
             f"MATCH(1,(tbl_salary_book_warehouse[team_code]=SelectedTeam)*"
             f"(tbl_salary_book_warehouse[is_two_way]=FALSE)*"
-            f"(tbl_salary_book_warehouse[cap_y0]=AGGREGATE(14,6,"
-            f"(tbl_salary_book_warehouse[cap_y0])/"
-            f"((tbl_salary_book_warehouse[team_code]=SelectedTeam)*"
-            f"(tbl_salary_book_warehouse[is_two_way]=FALSE))"
-            f",{rank})),0)),\"\")"
+            f"(({cap_choose_expr})=AGGREGATE(14,6,"
+            f"IF((tbl_salary_book_warehouse[team_code]=SelectedTeam)*"
+            f"(tbl_salary_book_warehouse[is_two_way]=FALSE),"
+            f"{cap_choose_expr}),"
+            f"{rank})),0)),\"\")"
         )
         
         worksheet.write(row, COL_DRIVERS_LABEL, f"#{rank}")

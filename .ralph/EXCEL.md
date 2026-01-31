@@ -60,7 +60,7 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Apply conditional formatting by cell value (PO/TO/ETO, GTD/PRT/NG, NTC/Kicker/Restricted)
 
 ### 6) TEAM_COCKPIT drivers use SelectedYear
-- [ ] Update cockpit quick drivers + min totals to be SelectedYear-aware
+- [x] Update cockpit quick drivers + min totals to be SelectedYear-aware
   - Top cap hits should use SelectedYear (not always cap_y0)
   - Min contract totals should use SelectedYear cap amounts
   - Keep formulas stable with relative-year columns

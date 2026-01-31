@@ -87,7 +87,7 @@ Build a new, self-contained Sean-style Excel cap workbook **generated from code*
   - Plan delta summary in `BUDGET_LEDGER` sourced from `PLAN_JOURNAL`
 
 ### Phase 8 - Subsystem sheets (inputs → journal stubs)
-- [ ] Implement subsystem sheet v1 layouts
+- [x] Implement subsystem sheet v1 layouts
   - TRADE_MACHINE lanes A-D (inputs + outgoing/incoming totals)
   - SIGNINGS_AND_EXCEPTIONS input table + delta columns
   - WAIVE_BUYOUT_STRETCH input table + delta columns

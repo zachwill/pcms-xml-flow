@@ -51,6 +51,10 @@ from .sheets import (
     write_plan_manager,
     write_plan_journal,
     define_meta_named_ranges,
+    write_trade_machine,
+    write_signings_and_exceptions,
+    write_waive_buyout_stretch,
+    write_assets,
 )
 
 
@@ -369,11 +373,51 @@ def build_capbook(
         except Exception as e:  # noqa: BLE001
             _mark_failed(build_meta, f"PLAN_JOURNAL writer crashed: {e}\n{traceback.format_exc()}")
 
+        # TRADE_MACHINE - lane-based trade iteration (v1 layout)
+        try:
+            write_trade_machine(
+                workbook,
+                ui_worksheets["TRADE_MACHINE"],
+                formats,
+            )
+        except Exception as e:  # noqa: BLE001
+            _mark_failed(build_meta, f"TRADE_MACHINE writer crashed: {e}\n{traceback.format_exc()}")
+
+        # SIGNINGS_AND_EXCEPTIONS - signing inputs with exception tracking (v1 layout)
+        try:
+            write_signings_and_exceptions(
+                workbook,
+                ui_worksheets["SIGNINGS_AND_EXCEPTIONS"],
+                formats,
+            )
+        except Exception as e:  # noqa: BLE001
+            _mark_failed(build_meta, f"SIGNINGS_AND_EXCEPTIONS writer crashed: {e}\n{traceback.format_exc()}")
+
+        # WAIVE_BUYOUT_STRETCH - dead money modeling inputs (v1 layout)
+        try:
+            write_waive_buyout_stretch(
+                workbook,
+                ui_worksheets["WAIVE_BUYOUT_STRETCH"],
+                formats,
+            )
+        except Exception as e:  # noqa: BLE001
+            _mark_failed(build_meta, f"WAIVE_BUYOUT_STRETCH writer crashed: {e}\n{traceback.format_exc()}")
+
+        # ASSETS - exception/TPE + draft pick inventory (v1 layout)
+        try:
+            write_assets(
+                workbook,
+                ui_worksheets["ASSETS"],
+                formats,
+            )
+        except Exception as e:  # noqa: BLE001
+            _mark_failed(build_meta, f"ASSETS writer crashed: {e}\n{traceback.format_exc()}")
+
         # Write remaining UI sheet stubs (skip sheets we've already handled)
         # NOTE: UI stub writers now require (workbook, worksheet, formats) signature
         # because they include the shared command bar.
         for sheet_name, writer_fn in UI_STUB_WRITERS.items():
-            if sheet_name in ("TEAM_COCKPIT", "AUDIT_AND_RECONCILE", "ROSTER_GRID", "BUDGET_LEDGER", "PLAN_MANAGER", "PLAN_JOURNAL"):
+            if sheet_name in ("TEAM_COCKPIT", "AUDIT_AND_RECONCILE", "ROSTER_GRID", "BUDGET_LEDGER", "PLAN_MANAGER", "PLAN_JOURNAL", "TRADE_MACHINE", "SIGNINGS_AND_EXCEPTIONS", "WAIVE_BUYOUT_STRETCH", "ASSETS"):
                 continue  # Already handled above
             if sheet_name in ui_worksheets:
                 try:

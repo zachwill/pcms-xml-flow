@@ -1,6 +1,6 @@
-# Sean Workbook — Index & Dependency Map
+# Sean Workbook - Index & Dependency Map
 
-**Generated:** 2026-01-31  
+**Generated:** 2026-01-31
 **Source:** `reference/warehouse/*.json` (current Excel export)
 
 ---
@@ -9,11 +9,11 @@
 
 Sean's workbook is the canonical analyst reference for NBA salary cap modeling. It contains:
 
-- **Data warehouses** — raw contract/salary data in structured formats
-- **System constants** — CBA parameters (cap, tax, apron) by year
-- **Presentation views** — team rosters, salary books, dashboards
-- **Trade tools** — trade machine, exceptions, salary matching logic
-- **Calculators** — extensions, buyouts, rookie scale, projections
+- **Data warehouses** - raw contract/salary data in structured formats
+- **System constants** - CBA parameters (cap, tax, apron) by year
+- **Presentation views** - team rosters, salary books, dashboards
+- **Trade tools** - trade machine, exceptions, salary matching logic
+- **Calculators** - extensions, buyouts, rookie scale, projections
 
 ---
 
@@ -123,45 +123,45 @@ The workbook has a layered architecture:
 
 ### Core Data (source-of-truth)
 
-- **Y Warehouse** (`y.json`) — pivoted salary matrix, one row per player
-- **Dynamic Contracts** (`dynamic_contracts.json`) — raw contract rows with all permutations
-- **Contract Protections** (`contract_protections.json`) — guarantee details
+- **Y Warehouse** (`y.json`) - pivoted salary matrix, one row per player
+- **Dynamic Contracts** (`dynamic_contracts.json`) - raw contract rows with all permutations
+- **Contract Protections** (`contract_protections.json`) - guarantee details
 
 ### CBA Constants
 
-- **System Values** (`system_values.json`) — cap/tax/apron levels by year
-- **Minimum Salary Scale** (`minimum_salary_scale.json`) — min salary by years of service
-- **Rookie Scale Amounts** (`rookie_scale_amounts.json`) — rookie scale by pick + year
-- **Tax Array** (`tax_array.json`) — luxury tax bracket calculations
+- **System Values** (`system_values.json`) - cap/tax/apron levels by year
+- **Minimum Salary Scale** (`minimum_salary_scale.json`) - min salary by years of service
+- **Rookie Scale Amounts** (`rookie_scale_amounts.json`) - rookie scale by pick + year
+- **Tax Array** (`tax_array.json`) - luxury tax bracket calculations
 
 ### Team Views (salary book / playground)
 
-- **Playground** (`playground.json`) — interactive team selector → roster view
-- **POR** (`por.json`) — Portland snapshot (same layout as playground)
-- **2025** (`2025.json`) — 2025 season snapshot
-- **Team** (`team.json`) — team roster with contract blocks
-- **Team Summary** (`team_summary.json`) — 30-team dashboard (salary vs cap/tax/apron)
-- **Finance** (`finance.json`) — financial data by team
-- **GA** (`ga.json`) — G-League / two-way players
+- **Playground** (`playground.json`) - interactive team selector → roster view
+- **POR** (`por.json`) - Portland snapshot (same layout as playground)
+- **2025** (`2025.json`) - 2025 season snapshot
+- **Team** (`team.json`) - team roster with contract blocks
+- **Team Summary** (`team_summary.json`) - 30-team dashboard (salary vs cap/tax/apron)
+- **Finance** (`finance.json`) - financial data by team
+- **GA** (`ga.json`) - G-League / two-way players
 
 ### Trade Tooling
 
-- **Machine** (`machine.json`) — trade machine: salary matching, exception usage
-- **The Matrix** (`the_matrix.json`) — multi-team trade scenario calculator (salary matching + apron constraints)
-- **Exceptions** (`exceptions.json`) — active trade exceptions by team
-- **Trade Bonus Amounts** (`trade_bonus_amounts.json`) — trade kicker lookup
+- **Machine** (`machine.json`) - trade machine: salary matching, exception usage
+- **The Matrix** (`the_matrix.json`) - multi-team trade scenario calculator (salary matching + apron constraints)
+- **Exceptions** (`exceptions.json`) - active trade exceptions by team
+- **Trade Bonus Amounts** (`trade_bonus_amounts.json`) - trade kicker lookup
 
 ### Draft
 
-- **Draft Picks** (`draft_picks.json`) — pick ownership/trades
-- **Pick Database** (`pick_database.json`) — historical pick reference
+- **Draft Picks** (`draft_picks.json`) - pick ownership/trades
+- **Pick Database** (`pick_database.json`) - historical pick reference
 
 ### Calculators / Scenarios
 
-- **High Low** (`high_low.json`) — high/low salary projections
-- **Buyout Calculator** (`buyout_calculator.json`) — buyout scenarios
-- **Kuzma Buyout** (`kuzma_buyout.json`) — specific buyout example
-- **Set-Off** (`set-off.json`) — waiver set-off calculations
+- **High Low** (`high_low.json`) - high/low salary projections
+- **Buyout Calculator** (`buyout_calculator.json`) - buyout scenarios
+- **Kuzma Buyout** (`kuzma_buyout.json`) - specific buyout example
+- **Set-Off** (`set-off.json`) - waiver set-off calculations
 
 ---
 
@@ -186,7 +186,7 @@ The workbook has a layered architecture:
 
 ### Y Warehouse is the hub
 
-Almost every presentation sheet uses `INDEX(Y!$D:$J, ...)` or similar to pull player salaries. The Y sheet is a **pivoted view** — one row per player with columns for each year's cap/tax/apron amounts.
+Almost every presentation sheet uses `INDEX(Y!$D:$J, ...)` or similar to pull player salaries. The Y sheet is a **pivoted view** - one row per player with columns for each year's cap/tax/apron amounts.
 
 Row 2 headers in Y:
 - A: `PlayerID`
@@ -212,23 +212,29 @@ Presentation sheets like `playground.json` use a team dropdown (e.g., cell `D1 =
 
 ---
 
-## Open Questions
+## External Workbook References
 
-1. **X sheet?** — `machine.json` references `X!` but there's no `x.json`. May be a legacy sheet or different naming.
-2. **Exceptions self-reference** — `exceptions.json` references `Exceptions!` (itself). Likely named range or table reference.
-3. **Contract Protections external reference** — `dynamic_contracts.json` references `[2]Contract Protections` which suggests it was linking to an external workbook at some point.
+Some formulas use `[2]` syntax to reference an **external workbook** (prior-season 2024-25 version). See **[external-refs.md](external-refs.md)** for full resolution details.
+
+| External Reference | Resolution |
+|--------------------|------------|
+| `[2]Exceptions Warehouse - 2024` | Use `exceptions.json` or `pcms.exceptions_warehouse` |
+| `[2]Y!` | Use `y.json` or `pcms.salary_book_warehouse` |
+| `[2]X!` | Prior-year warehouse; use `pcms.league_system_values` for cap constants |
+| `[2]Contract Protections` | Use `contract_protections.json` or `pcms.contract_amounts` |
 
 ---
 
-## Next Steps
+## Open Questions
 
-Remaining specs (low dependency risk):
+1. **Exceptions self-reference** — `exceptions.json` references `Exceptions!` (itself). Likely named range or table reference.
 
-1. `set-off.md` — waiver set-off calculator
-2. `cover.md` — metadata only
+---
 
-Follow-up investigations (not specs, but correctness blockers for tooling parity):
+## Follow-up Investigations
 
-- **External sheet refs:** resolve what `X!` and `[2]Exceptions Warehouse - 2024` should map to in our repo/DB.
+(Correctness blockers for tooling parity)
+
+- ✅ **External sheet refs:** resolved in [external-refs.md](external-refs.md)
 - **Luxury tax parity:** confirm `Tax Array` SUMPRODUCT math matches `pcms.league_tax_rates` + `pcms.tax_team_status`.
-- **Minimum scale parity:** confirm Sean’s multi-year minimum escalators vs what PCMS provides in `pcms.league_salary_scales`.
+- **Minimum scale parity:** confirm Sean's multi-year minimum escalators vs what PCMS provides in `pcms.league_salary_scales`.

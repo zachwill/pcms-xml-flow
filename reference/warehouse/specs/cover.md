@@ -1,48 +1,64 @@
-# cover.json — Cover Sheet
+# Cover Spec
 
-## Purpose
+**Source:** `reference/warehouse/cover.json`
 
-A minimal cover/title page for Sean's workbook. Displays the workbook title and current date. Contains no data or logic—purely presentational metadata.
+---
 
-## Key Inputs / Controls
+## 1. Purpose
+
+A minimal cover/title page for Sean's workbook. Displays the workbook title and a last-opened date.
+
+No data modeling or tooling logic lives here.
+
+---
+
+## 2. Key Inputs / Controls
 
 None.
 
-## Key Outputs
+---
 
-| Row | Col | Value/Formula | Purpose |
-|-----|-----|---------------|---------|
-| 42 | G | `"Data Warehouse"` | Workbook title |
-| 46 | G | `=TODAY()` | Last-opened date |
+## 3. Key Outputs
 
-## Layout / Zones
+| Cell | Value/Formula | Meaning |
+|------|---------------|---------|
+| `G42` | `"Data Warehouse"` | Workbook title text |
+| `G46` | `=TODAY()` | Last-opened date stamp |
 
-Only two cells populated in the entire sheet:
-- G42: static title string
-- G46: dynamic date formula
+---
 
-Row/column positioning suggests this is a centered title block in the visual layout (row 42 is well below row 1, column G is offset from left edge).
+## 4. Layout / Zones
 
-## Cross-Sheet Dependencies
+Only two populated cells in the sheet:
+- `G42`: centered title block
+- `G46`: date stamp beneath the title
 
-### References out
-None.
+---
 
-### Referenced by
-None — no other sheet references `'cover'!`.
+## 5. Cross-Sheet Dependencies
 
-## Key Formulas / Logic Patterns
+### Cover references (outbound)
+- None.
+
+### Sheets that reference Cover (inbound)
+- None observed (no `'Cover'!` references across the workbook export).
+
+---
+
+## 6. Key Formulas / Logic Patterns
 
 ```excel
 =TODAY()
 ```
 
-Simple date function for display purposes.
+---
 
-## Mapping to Our Postgres Model
+## 7. Mapping to Our Postgres Model
 
-**Not applicable.** This is purely presentational; no data to model.
+Not applicable (purely presentational).
 
-## Open Questions / TODO
+---
 
-None — this sheet is complete.
+## 8. Open Questions / TODO
+
+None.

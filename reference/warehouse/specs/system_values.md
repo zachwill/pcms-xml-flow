@@ -87,11 +87,11 @@ Example:
 
 ## 5. Cross-Sheet Dependencies
 
-### System Values is referenced by:
+### Inbound (other sheets reference System Values)
 
 Direct cell refs:
 - `team_summary.json`: `='System Values'!G8` / `H8` / `I8` / `J8` (cap/tax/aprons)
-- `tax_array.json`: references `='System Values'!L8`, `L9`, etc. (tax bracket increments)
+- `tax_array.json`: `='System Values'!L8`, `L9`, … (tax bracket increments)
 
 Structured table refs (`SystemValues[...]`):
 - `playground.json`, `team.json`, `finance.json`, `2025.json`, `the_matrix.json`, `high_low.json` (caps and thresholds per year)
@@ -99,10 +99,9 @@ Structured table refs (`SystemValues[...]`):
 Maximums table refs:
 - `trade_bonus_amounts.json` uses `Maximums[[#Data],[25%]]` etc. for the trade-kicker max constraint.
 
-### System Values references:
+### Outbound (System Values references other sheets)
 
-- It self-references its named tables (`SystemValues`, `GrowthRate`, `Maximums`) via structured references.
-- No external sheet references were observed in `system_values.json`.
+- None observed. This sheet only self-references its own named tables (`SystemValues`, `GrowthRate`, `Maximums`) via structured references.
 
 ---
 

@@ -225,7 +225,7 @@ Computes expanded trade matching salary (125% + $250K rules).
 | Dead money | `pcms.dead_money_warehouse` |
 | Trade kicker display | `pcms.salary_book_warehouse.trade_kicker_display` |
 | Draft pick ownership | `pcms.draft_picks` |
-| Tax bracket calcs | `pcms.luxury_tax_brackets` (if exists) or computed |
+| Tax bracket calcs | `pcms.league_tax_rates` + `pcms.tax_team_status` (or `pcms.team_salary_warehouse.is_repeater_taxpayer`) |
 | Team totals | `pcms.team_salary_warehouse` |
 
 ---

@@ -291,25 +291,25 @@ Implements 2023 CBA trade matching rules for expanded/standard trades.
 | Player salary grid (E5:O35) | `pcms.salary_book_warehouse` |
 | Cap/Tax/Apron levels | `pcms.league_system_values` |
 | Dead Money (row 45) | `pcms.dead_money_warehouse` |
-| Tax brackets (Tax Array) | `pcms.tax_brackets` (TODO?) |
+| Tax payment (Tax Array SUMPRODUCT) | `pcms.league_tax_rates` + `pcms.tax_team_status` |
 | Draft picks (rows 65-71) | `pcms.draft_picks` |
 | Trade Machine math | `pcms.fn_tpe_trade_math()` / trade primitives |
 | Roster count / min fills | Could compute from salary_book_warehouse |
 | Team totals (row 47-59) | `pcms.team_salary_warehouse` |
 
-### Missing from our schema
+### Gaps / Follow-ups for tooling parity
 
-- **Tax Array / tax brackets** — Sean has a Tax Array sheet with bracket thresholds + rates. We may need to add `pcms.tax_brackets` for accurate tax payment calculation.
-- **Repeater flag** — Currently hard-coded in Sean's sheet. Should be derived or stored.
-- **Renegotiation Calculator logic** — Extension raise coefficients.
-- **Team-specific draft pick ownership** — We have `pcms.draft_picks` but need to verify filtering by team works.
+- **Luxury tax payment**: we already have bracket/rate data in `pcms.league_tax_rates`, but should expose a helper (e.g. `pcms.fn_luxury_tax_amount(salary_year, over_tax_amount, is_repeater)`) to match the workbook’s SUMPRODUCT output.
+- **Repeater flag**: the workbook hard-codes repeaters; tools should source from `pcms.tax_team_status` (or a derived view like `pcms.team_salary_warehouse.is_repeater_taxpayer`).
+- **Renegotiation Calculator logic**: extension raise coefficients / "levers" are not modeled in our DB yet.
+- **Draft pick ownership display**: verify `pcms.draft_picks` can reproduce the workbook’s ownership grid (team × year × round).
 
 ---
 
 ## 8. Open Questions / TODO
 
-- [ ] **Tax Array sheet**: Spec `tax_array.json` to understand bracket structure
-- [ ] **Pick Database sheet**: Spec `pick_database.json` for ownership lookup format
-- [ ] Verify `pcms.draft_picks` can replicate the XLOOKUP pattern
-- [ ] Consider adding a "team finance snapshot" cache for common queries
-- [ ] The "Repeater" logic is hard-coded — should derive from historical tax data
+- [ ] Validate luxury tax parity: confirm Excel SUMPRODUCT output matches `pcms.league_tax_rates` for (team, year, repeater).
+- [ ] Replace the hard-coded repeater IF chain with `pcms.tax_team_status` (or `pcms.team_salary_warehouse.is_repeater_taxpayer`).
+- [ ] Verify `pcms.draft_picks` can replicate the workbook’s ownership grid (including swaps / protections where applicable).
+- [ ] Consider adding a "team finance snapshot" cache for common UI queries.
+- [ ] Clarify the Renegotiation Calculator coefficients/constraints and map them to CBA rules + DB fields.

@@ -21,7 +21,7 @@ Sean's workbook is the canonical analyst reference for NBA salary cap modeling. 
 
 | Sheet | File | Purpose | Spec |
 |-------|------|---------|------|
-| Cover | `cover.json` | Title page with date stamp | TODO |
+| Cover | `cover.json` | Title page with date stamp | [cover.md](cover.md) |
 | **Y Warehouse** | `y.json` | Multi-year salary matrix (1 row/player) | [y.md](y.md) |
 | Dynamic Contracts | `dynamic_contracts.json` | Detailed contract rows with all year/salary permutations | [dynamic_contracts.md](dynamic_contracts.md) |
 | Contract Protections | `contract_protections.json` | Guarantee/protection lookup by contract+year | [contract_protections.md](contract_protections.md) |
@@ -45,7 +45,7 @@ Sean's workbook is the canonical analyst reference for NBA salary cap modeling. 
 | Tax Array | `tax_array.json` | Luxury tax bracket calculations | [tax_array.md](tax_array.md) |
 | Buyout Calculator | `buyout_calculator.json` | Buyout scenario calculator | [buyout_calculator.md](buyout_calculator.md) |
 | Kuzma Buyout | `kuzma_buyout.json` | Specific buyout example | [kuzma_buyout.md](kuzma_buyout.md) |
-| Set-Off | `set-off.json` | Waiver set-off calculations | TODO |
+| Set-Off | `set-off.json` | Waiver set-off calculations | [set-off.md](set-off.md) |
 
 ---
 

@@ -153,6 +153,10 @@ For each team buildup block:
 | **Exceptions** | Team TPE availability (display/selection) | `=FILTER(Exceptions!$B:$F, Exceptions!$B:$B=A$1)` |
 | **Tax Array** | Tax calculations | (Referenced but not heavily used here) |
 
+### References IN (other sheets → The Matrix)
+
+None observed — this appears to be a terminal tool sheet (no `'The Matrix'!` references in other exports).
+
 ### Roster Population Formula (Row 3, Column A):
 ```excel
 =LET(

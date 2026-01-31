@@ -254,7 +254,7 @@ AB36: =AB35/COUNTIF(AB3:AB32,"<1")  -- Per-team share (teams under tax)
 | Roster count | `pcms.salary_book_warehouse` | `COUNT(*) WHERE team_code = ?` |
 | Minimum salary fill | TODO | Requires a minimum-salary scale by YOS (Sean references `minimum_salary_scale.json`) |
 | Repeater status | `pcms.teams` or computed | Need 3-year tax history |
-| Tax bracket calc | `pcms.luxury_tax_brackets` (if exists) | Or inline computation |
+| Tax bracket calc | `pcms.league_tax_rates` + `pcms.tax_team_status` | Compute from over-tax amount + repeater flag |
 | Standings (wins/losses) | **Not in PCMS** | Would come from NBA Stats API |
 | Conference | `pcms.teams.conference` | |
 

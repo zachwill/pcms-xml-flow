@@ -106,12 +106,24 @@ grep -nE "'<Sheet Name>'!" reference/warehouse/*.json
 
 ## Follow-ups (post-spec / tooling parity)
 
-- [x] Resolve **external workbook references** in formulas (e.g. `X!` and `[2]Exceptions Warehouse - 2024`) and map them to our in-repo sheets and/or `pcms.*` tables. → See `specs/external-refs.md`
-- [x] Validate **luxury tax parity**: Sean's `Tax Array` SUMPRODUCT vs `pcms.league_tax_rates` (and repeater flags from `pcms.tax_team_status`). → See `specs/tax_array.md` §8–10 for detailed parity analysis, rate tables, and validation queries.
-- [ ] Validate **minimum salary parity**: Sean's multi-year minimum escalators vs what PCMS provides (`pcms.league_salary_scales` is year-1 only).
-- [ ] Decide whether our tool-facing warehouses should extend to **2031** (Sean's Y goes to 2031; ours is typically 2025-2030).
+### Completed analysis
+
+- [x] Resolve **external workbook references** in formulas (e.g. `X!` and `[2]Exceptions Warehouse - 2024`) and map them to our in-repo sheets and/or `pcms.*` tables. → See `reference/warehouse/specs/external-refs.md`
+- [x] Validate **luxury tax parity** (analysis): Sean's `Tax Array` SUMPRODUCT vs `pcms.league_tax_rates` (and repeater flags from `pcms.tax_team_status`). → See `reference/warehouse/specs/tax_array.md` §8–10.
+
+### Next (tooling correctness blockers)
+
+- [ ] **Decide warehouse year horizon**: extend tool-facing warehouses to **2031** (Sean’s Y goes to 2031) vs keep 2025–2030.
+- [ ] **Minimum salary parity**: validate Sean’s multi-year minimum escalators (Years 2–5) + proration assumptions (`/174`) vs what we expose from `pcms.league_salary_scales` (Year 1 only today).
+- [ ] **Luxury tax primitive**: implement `pcms.fn_luxury_tax_amount(salary_year, over_tax_amount, is_repeater)` (or equivalent) using `pcms.league_tax_rates`, so UI tools can replicate the workbook’s "Tax Payment" outputs without SUMPRODUCT emulation.
+
+### Scenario math
+
 - [ ] Reverse-engineer **buyout / waiver scenario math** from `buyout_calculator` + `kuzma_buyout`:
   - confirm the `174` day constant + `waived_date + 2` clearance assumption
   - explain the **$600,000 subtraction** in `kuzma_buyout` (guarantee protection?)
   - codify **stretch provision years** rule (typically `2 × years_remaining + 1`)
+
+### Hygiene
+
 - [ ] Identify other **duplicate snapshot sheets** (like `por.json` = `playground.json`) so we don't spec/implement redundant logic.

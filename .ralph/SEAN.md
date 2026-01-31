@@ -60,7 +60,7 @@ rg -n "'<Sheet Name>'!" reference/warehouse/*.json
 ## TODO (one spec per sheet)
 
 ### Meta / index
-- [ ] Create `reference/warehouse/specs/00-index.md` (workbook overview + dependency graph + links to each spec)
+- [x] Create `reference/warehouse/specs/00-index.md` (workbook overview + dependency graph + links to each spec)
 
 ### Core warehouses / constants
 - [ ] Spec: `y.json` (Y Warehouse — multi-year salary matrix)

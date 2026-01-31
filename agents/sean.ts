@@ -58,8 +58,10 @@ If you make changes:
     `,
     {
       every: 4,
-      model: "claude-opus-4-5-thinking",
+      model: "gpt-5.2",
+      provider: "openai-codex",
       thinking: "high",
+      timeout: "12m",
     }
   ),
 

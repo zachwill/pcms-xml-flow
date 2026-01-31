@@ -4,7 +4,7 @@
 -- These columns don't exist in the source data (they were season-level aggregates from player_day_counts).
 -- The actual daily values come from two_way_seasons which has day_of_season, contract_team_id, signing_team_id.
 --
--- Originally created as: migrations/simplify_two_way_daily_statuses.sql
+-- Originally created as: migrations/archive/simplify_two_way_daily_statuses.sql
 
 BEGIN;
 

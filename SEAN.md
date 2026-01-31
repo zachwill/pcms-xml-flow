@@ -36,9 +36,9 @@ SELECT pcms.refresh_salary_book_warehouse();
 ```
 
 Key migrations:
-- `migrations/013_salary_book_warehouse.sql`
-- `migrations/016_refresh_salary_book_warehouse_fast.sql`
-- `migrations/017_salary_book_age_and_option_normalization.sql`
+- `migrations/archive/013_salary_book_warehouse.sql`
+- `migrations/archive/016_refresh_salary_book_warehouse_fast.sql`
+- `migrations/archive/017_salary_book_age_and_option_normalization.sql`
 
 #### Team-level totals: `pcms.team_salary_warehouse`
 
@@ -54,10 +54,10 @@ SELECT pcms.refresh_team_salary_warehouse();
 ```
 
 Key migrations:
-- `migrations/019_team_salary_summary.sql`
-- `migrations/021_team_salary_summary_tax_status_flags.sql`
-- `migrations/022_team_salary_summary_tax_status_fallback.sql`
-- `migrations/023_rename_team_salary_summary_to_team_salary_warehouse.sql`
+- `migrations/archive/019_team_salary_summary.sql`
+- `migrations/archive/021_team_salary_summary_tax_status_flags.sql`
+- `migrations/archive/022_team_salary_summary_tax_status_fallback.sql`
+- `migrations/archive/023_rename_team_salary_summary_to_team_salary_warehouse.sql`
 
 #### Exceptions: `pcms.exceptions_warehouse`
 
@@ -75,8 +75,8 @@ SELECT pcms.refresh_exceptions_warehouse();
 ```
 
 Key migrations:
-- `migrations/020_exceptions_warehouse.sql`
-- `migrations/028_fix_exceptions_warehouse_team_code_and_lookups.sql`
+- `migrations/archive/020_exceptions_warehouse.sql`
+- `migrations/archive/028_fix_exceptions_warehouse_team_code_and_lookups.sql`
 
 #### Team Master drilldowns (fidelity helpers)
 
@@ -115,13 +115,13 @@ To make trade math sane, we added an adapter view over the wide player warehouse
     - `summary` (single object suitable for header rendering)
 
 Key migrations:
-- `migrations/026_salary_book_yearly.sql`
-- `migrations/027_tpe_trade_math.sql`
-- `migrations/029_trade_planner_tpe.sql`
-- `migrations/030_trade_planner_tpe_output_totals.sql`
-- `migrations/031_trade_planner_tpe_ui_fields.sql`
-- `migrations/032_trade_planner_tpe_summary.sql`
-- `migrations/033_trade_planner_tpe_summary_delta.sql`
+- `migrations/archive/026_salary_book_yearly.sql`
+- `migrations/archive/027_tpe_trade_math.sql`
+- `migrations/archive/029_trade_planner_tpe.sql`
+- `migrations/archive/030_trade_planner_tpe_output_totals.sql`
+- `migrations/archive/031_trade_planner_tpe_ui_fields.sql`
+- `migrations/archive/032_trade_planner_tpe_summary.sql`
+- `migrations/archive/033_trade_planner_tpe_summary_delta.sql`
 
 ---
 

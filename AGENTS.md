@@ -35,7 +35,8 @@ import_pcms_data.flow/
   team_financials.inline_script.py     # G
 
 shared/pcms/nba_pcms_full_extract/     # cleaned JSON outputs
-migrations/                            # schema + cache tables/functions
+migrations/                            # canonical entrypoint (000_canonical.sql)
+  archive/                             # schema + cache tables/functions
 scripts/
   xml-to-json.py                       # local XML→JSON (mirrors Step A)
   test-import.py                       # local runner (dry-run by default)

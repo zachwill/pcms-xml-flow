@@ -22,7 +22,7 @@ You are filling PCMS coverage gaps by creating import scripts.
 ## Key Reference Files
 - \`.ralph/COVERAGE.md\` — **The authoritative task list with exact instructions**
 - \`import_pcms_data.flow/transaction_waiver_amounts.inline_script.ts\` — Import script pattern to follow
-- \`migrations/006_team_transactions.sql\` — Table definition (already created)
+- \`migrations/archive/006_team_transactions.sql\` — Table definition (already created)
 
 ## Import Script Pattern
 

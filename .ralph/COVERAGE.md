@@ -5,7 +5,7 @@ Reference docs:
 - `SCHEMA.md` — Target table definitions
 - `SEAN.md` — Analyst requirements and implementation plan
 - `import_pcms_data.flow/transaction_waiver_amounts.inline_script.ts` — Import script pattern
-- `migrations/006_team_transactions.sql` — Team transactions table (just created)
+- `migrations/archive/006_team_transactions.sql` — Team transactions table (just created)
 
 ## Context
 
@@ -71,7 +71,7 @@ pcms.team_transactions (
 
 ### Tasks
 
-- [x] Create migration `migrations/006_team_transactions.sql`
+- [x] Create migration `migrations/archive/006_team_transactions.sql`
 
 - [x] Create import script `import_pcms_data.flow/team_transactions.inline_script.ts`
   
@@ -158,7 +158,7 @@ pcms.team_transactions (
 After completing all tasks:
 ```bash
 # Run migration
-psql $POSTGRES_URL -f migrations/006_team_transactions.sql
+psql $POSTGRES_URL -f migrations/archive/006_team_transactions.sql
 
 # Test import locally
 POSTGRES_URL="postgres://..." bun run import_pcms_data.flow/team_transactions.inline_script.ts

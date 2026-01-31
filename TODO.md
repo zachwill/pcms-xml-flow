@@ -117,7 +117,7 @@ Included in `queries/sql/run_all.sql`.
 
 ### 3.1 ✅ `pcms.draft_picks_warehouse` (team-facing, summary-derived)
 
-**Implemented:** `migrations/038_draft_picks_warehouses.sql`
+**Implemented:** `migrations/archive/038_draft_picks_warehouses.sql`
 
 **Purpose:** Sean-style team/year pick grid, preserving raw fidelity while extracting endnote refs.
 
@@ -135,7 +135,7 @@ Included in `queries/sql/run_all.sql`.
 
 ### 3.2 ✅ `pcms.draft_pick_trade_claims_warehouse` (trade-derived, evidence/claims)
 
-**Implemented:** `migrations/040_draft_pick_trade_claims_warehouse.sql`
+**Implemented:** `migrations/archive/040_draft_pick_trade_claims_warehouse.sql`
 
 **Purpose:** trade-derived pick *claims* per original slot (debug/provenance).
 
@@ -160,7 +160,7 @@ Included in `queries/sql/run_all.sql`.
 
 ### 4.1 ✅ `pcms.player_rights_warehouse`
 
-**Implemented:** `migrations/035_player_rights_warehouse.sql` + fixes in 036, 037
+**Implemented:** `migrations/archive/035_player_rights_warehouse.sql` + fixes in 036, 037
 
 **Purpose:** Team Master "Rights" section + Give/Get inputs.
 
@@ -199,7 +199,7 @@ Endnotes import is a **separate manual step** (`scripts/import-endnotes.py`) sin
 
 ## 6) ✅ DONE — `draft_assets_warehouse` (endnotes-enriched)
 
-**Implemented:** `migrations/044_draft_assets_warehouse_v3_fix_backslashes.sql`
+**Implemented:** `migrations/archive/044_draft_assets_warehouse_v3_fix_backslashes.sql`
 
 **Purpose:** make Team Master / Give-Get trivial by joining `draft_picks_warehouse` with `pcms.endnotes`.
 

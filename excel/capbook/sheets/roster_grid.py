@@ -7,20 +7,25 @@ This module implements:
    - Player name, team, badge columns (option, guarantee, trade restrictions)
    - Multi-year salary columns (cap_y0..cap_y5)
    - Bucket classification (ROST/2WAY)
+   - Explicit CountsTowardTotal (Ct$) and CountsTowardRoster (CtR) columns
    - MINIMUM label display when is_min_contract=TRUE
-3. Cap holds section (bucket = FA, from tbl_cap_holds_warehouse)
-4. Dead money section (bucket = TERM, from tbl_dead_money_warehouse)
-5. Totals + reconciliation block vs DATA_team_salary_warehouse
-6. % of cap display helper
+3. Two-way section (bucket = 2WAY)
+   - Respects CountTwoWayInRoster and CountTwoWayInTotals policy toggles
+4. Cap holds section (bucket = FA, from tbl_cap_holds_warehouse)
+5. Dead money section (bucket = TERM, from tbl_dead_money_warehouse)
+6. Totals + reconciliation block vs DATA_team_salary_warehouse
+7. % of cap display helper
 
 Per the blueprint (excel-cap-book-blueprint.md):
 - Every headline total must be reconcilable to the authoritative ledger
 - Drilldown tables are labeled by bucket and scoped to the snapshot
+- CountsTowardTotal/CountsTowardRoster columns make counting logic explicit
 
 Design notes:
 - Uses Excel formulas filtered by SelectedTeam + SelectedYear
 - Reconciliation block sums rows and compares to team_salary_warehouse totals
 - Conditional formatting highlights deltas ≠ 0
+- Two-way counting respects policy toggles: CountTwoWayInRoster, CountTwoWayInTotals
 """
 
 from __future__ import annotations
@@ -43,34 +48,40 @@ from .command_bar import (
 
 # Column layout for roster grid
 # A=0: Row Type/Bucket
-# B=1: Player/Hold Name
-# C=2: Option Badge
-# D=3: Guarantee Status
-# E=4: Trade Restriction
-# F=5: Min Contract label
-# G=6: cap_y0 (base year)
-# H-L=7-11: cap_y1..cap_y5
-# M=12: Total / % of Cap
+# B=1: CountsTowardTotal (Y/N) - explicit per blueprint
+# C=2: CountsTowardRoster (Y/N) - explicit per blueprint
+# D=3: Player/Hold Name
+# E=4: Option Badge
+# F=5: Guarantee Status
+# G=6: Trade Restriction
+# H=7: Min Contract label
+# I=8: cap_y0 (base year)
+# J-N=9-13: cap_y1..cap_y5
+# O=14: Total / % of Cap
 
 COL_BUCKET = 0
-COL_NAME = 1
-COL_OPTION = 2
-COL_GUARANTEE = 3
-COL_TRADE = 4
-COL_MIN_LABEL = 5
-COL_CAP_Y0 = 6
-COL_CAP_Y1 = 7
-COL_CAP_Y2 = 8
-COL_CAP_Y3 = 9
-COL_CAP_Y4 = 10
-COL_CAP_Y5 = 11
-COL_PCT_CAP = 12
+COL_COUNTS_TOTAL = 1
+COL_COUNTS_ROSTER = 2
+COL_NAME = 3
+COL_OPTION = 4
+COL_GUARANTEE = 5
+COL_TRADE = 6
+COL_MIN_LABEL = 7
+COL_CAP_Y0 = 8
+COL_CAP_Y1 = 9
+COL_CAP_Y2 = 10
+COL_CAP_Y3 = 11
+COL_CAP_Y4 = 12
+COL_CAP_Y5 = 13
+COL_PCT_CAP = 14
 
 YEAR_COLS = [COL_CAP_Y0, COL_CAP_Y1, COL_CAP_Y2, COL_CAP_Y3, COL_CAP_Y4, COL_CAP_Y5]
 
 # Column widths
 COLUMN_WIDTHS = {
     COL_BUCKET: 8,
+    COL_COUNTS_TOTAL: 5,
+    COL_COUNTS_ROSTER: 5,
     COL_NAME: 22,
     COL_OPTION: 6,
     COL_GUARANTEE: 8,
@@ -256,6 +267,20 @@ def _create_roster_formats(workbook: Workbook) -> dict[str, Any]:
         "italic": True,
     })
 
+    # Counts column formats (Y/N badges)
+    formats["counts_yes"] = workbook.add_format({
+        "font_size": 9,
+        "align": "center",
+        "font_color": "#166534",  # green-800
+        "bold": True,
+    })
+    formats["counts_no"] = workbook.add_format({
+        "font_size": 9,
+        "align": "center",
+        "font_color": "#9CA3AF",  # gray-400
+        "italic": True,
+    })
+
     # Subtotal row
     formats["subtotal"] = workbook.add_format({
         "bold": True,
@@ -314,6 +339,8 @@ def _write_column_headers(
     fmt = formats["col_header"]
 
     worksheet.write(row, COL_BUCKET, "Bucket", fmt)
+    worksheet.write(row, COL_COUNTS_TOTAL, "Ct$", fmt)  # CountsTowardTotal
+    worksheet.write(row, COL_COUNTS_ROSTER, "CtR", fmt)  # CountsTowardRoster
     worksheet.write(row, COL_NAME, "Name", fmt)
     worksheet.write(row, COL_OPTION, "Opt", fmt)
     worksheet.write(row, COL_GUARANTEE, "GTD", fmt)
@@ -403,6 +430,22 @@ def _write_roster_section(
             COL_BUCKET,
             f'=IF({name_expr}<>"","ROST","")',
             roster_formats["bucket_rost"],
+        )
+
+        # CountsTowardTotal: ROST contracts always count toward total (Y)
+        worksheet.write_formula(
+            row,
+            COL_COUNTS_TOTAL,
+            f'=IF({name_expr}<>"","Y","")',
+            roster_formats["counts_yes"],
+        )
+
+        # CountsTowardRoster: ROST contracts always count toward roster (Y)
+        worksheet.write_formula(
+            row,
+            COL_COUNTS_ROSTER,
+            f'=IF({name_expr}<>"","Y","")',
+            roster_formats["counts_yes"],
         )
 
         # Player name
@@ -532,6 +575,14 @@ def _write_twoway_section(
             roster_formats["bucket_2way"],
         )
 
+        # CountsTowardTotal: two-way counts only if CountTwoWayInTotals="Yes"
+        counts_total_expr = f'=IF({name_expr}<>"",IF(CountTwoWayInTotals="Yes","Y","N"),"")'
+        worksheet.write_formula(row, COL_COUNTS_TOTAL, counts_total_expr, roster_formats["counts_yes"])
+
+        # CountsTowardRoster: two-way counts only if CountTwoWayInRoster="Yes"
+        counts_roster_expr = f'=IF({name_expr}<>"",IF(CountTwoWayInRoster="Yes","Y","N"),"")'
+        worksheet.write_formula(row, COL_COUNTS_ROSTER, counts_roster_expr, roster_formats["counts_yes"])
+
         worksheet.write_formula(row, COL_NAME, f"={name_expr}")
         worksheet.write(row, COL_OPTION, "")  # Two-ways don't have options
         worksheet.write(row, COL_GUARANTEE, "")
@@ -589,6 +640,8 @@ def _write_cap_holds_section(
     # Simplified column headers for holds
     fmt = roster_formats["col_header"]
     worksheet.write(row, COL_BUCKET, "Bucket", fmt)
+    worksheet.write(row, COL_COUNTS_TOTAL, "Ct$", fmt)
+    worksheet.write(row, COL_COUNTS_ROSTER, "CtR", fmt)
     worksheet.write(row, COL_NAME, "Player", fmt)
     worksheet.write(row, COL_OPTION, "FA Type", fmt)
     worksheet.write(row, COL_GUARANTEE, "", fmt)
@@ -619,6 +672,22 @@ def _write_cap_holds_section(
             COL_BUCKET,
             f'=IF({name_expr}<>"","FA","")',
             roster_formats["bucket_fa"],
+        )
+
+        # CountsTowardTotal: FA/holds always count toward cap total (Y)
+        worksheet.write_formula(
+            row,
+            COL_COUNTS_TOTAL,
+            f'=IF({name_expr}<>"","Y","")',
+            roster_formats["counts_yes"],
+        )
+
+        # CountsTowardRoster: FA/holds do NOT count toward roster count (N)
+        worksheet.write_formula(
+            row,
+            COL_COUNTS_ROSTER,
+            f'=IF({name_expr}<>"","N","")',
+            roster_formats["counts_no"],
         )
 
         worksheet.write_formula(row, COL_NAME, f"={name_expr}")
@@ -685,6 +754,8 @@ def _write_dead_money_section(
     # Column headers
     fmt = roster_formats["col_header"]
     worksheet.write(row, COL_BUCKET, "Bucket", fmt)
+    worksheet.write(row, COL_COUNTS_TOTAL, "Ct$", fmt)
+    worksheet.write(row, COL_COUNTS_ROSTER, "CtR", fmt)
     worksheet.write(row, COL_NAME, "Player", fmt)
     worksheet.write(row, COL_OPTION, "", fmt)
     worksheet.write(row, COL_GUARANTEE, "", fmt)
@@ -715,6 +786,22 @@ def _write_dead_money_section(
             COL_BUCKET,
             f'=IF({name_expr}<>"","TERM","")',
             roster_formats["bucket_term"],
+        )
+
+        # CountsTowardTotal: TERM/dead money always counts toward total (Y)
+        worksheet.write_formula(
+            row,
+            COL_COUNTS_TOTAL,
+            f'=IF({name_expr}<>"","Y","")',
+            roster_formats["counts_yes"],
+        )
+
+        # CountsTowardRoster: TERM/dead money does NOT count toward roster (N)
+        worksheet.write_formula(
+            row,
+            COL_COUNTS_ROSTER,
+            f'=IF({name_expr}<>"","N","")',
+            roster_formats["counts_no"],
         )
 
         worksheet.write_formula(row, COL_NAME, f"={name_expr}")

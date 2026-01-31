@@ -25,11 +25,13 @@ from .extract import (
     extract_salary_book_yearly,
 )
 from .xlsx import create_standard_formats, write_table
+from .sheets import write_meta_sheet
 
 
 # Sheet names per the blueprint
 UI_SHEETS = [
     "HOME",
+    "META",
     "TEAM_COCKPIT",
     "ROSTER_GRID",
     "BUDGET_LEDGER",
@@ -140,24 +142,32 @@ def build_capbook(
         ws.hide()  # Hide DATA_* sheets
         data_worksheets[name] = ws
 
-    # Write META to HOME sheet
+    # Write META sheet (full metadata for reproducibility)
+    write_meta_sheet(ui_worksheets["META"], formats, build_meta)
+
+    # Write HOME sheet (summary with link to META)
     home = ui_worksheets["HOME"]
+    home.set_column(0, 0, 20)
+    home.set_column(1, 1, 30)
     home.write(0, 0, "NBA Cap Workbook", formats["header"])
-    home.write(2, 0, "Refreshed At:")
-    home.write(2, 1, build_meta["refreshed_at"])
-    home.write(3, 0, "Base Year:")
-    home.write(3, 1, base_year)
-    home.write(4, 0, "As-Of Date:")
-    home.write(4, 1, as_of.isoformat())
-    home.write(5, 0, "Git SHA:")
-    home.write(5, 1, build_meta["exporter_git_sha"])
-    home.write(6, 0, "Validation:")
+    home.write(0, 1, "", formats["header"])
+
+    # Validation status banner on HOME (prominent)
     if build_meta["validation_status"] == "PASS":
-        home.write(6, 1, "PASS", formats["alert_ok"])
+        home.write(2, 0, "Status:", formats["alert_ok"])
+        home.write(2, 1, "✓ PASS", formats["alert_ok"])
     else:
-        home.write(6, 1, "FAILED", formats["alert_fail"])
-        home.write(8, 0, "Errors:")
-        home.write(9, 0, "\n".join(build_meta["validation_errors"][:500]))
+        home.write(2, 0, "Status:", formats["alert_fail"])
+        home.write(2, 1, "✗ FAILED - See META sheet", formats["alert_fail"])
+
+    home.write(4, 0, "Base Year:")
+    home.write(4, 1, base_year)
+    home.write(5, 0, "As-Of Date:")
+    home.write(5, 1, as_of.isoformat())
+    home.write(6, 0, "Refreshed:")
+    home.write(6, 1, build_meta["refreshed_at"])
+
+    home.write(8, 0, "See META sheet for full build details.")
 
     # Write DATA tables
     if datasets.get("system_values"):

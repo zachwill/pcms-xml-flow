@@ -1,4 +1,4 @@
-# Excel Cap Workbook — Backlog
+# Excel Cap Workbook - Backlog
 
 Build a new, self-contained, Sean-style Excel cap workbook **generated from code** (Python + XlsxWriter) and powered by Postgres (`pcms.*`).
 
@@ -20,10 +20,10 @@ This backlog is intentionally concrete. The Excel agent should do **one task per
 ## Tasks
 
 - [x] Create Python module skeleton under `excel/capbook/` (multiple files; keep it small):
-  - `excel/capbook/db.py` — connect + query helpers + run assertions
-  - `excel/capbook/extract.py` — dataset extract functions per data contract
-  - `excel/capbook/xlsx.py` — XlsxWriter helpers (formats, tables, named ranges)
-  - `excel/capbook/build.py` — orchestrate workbook build (calls extract + sheet writers)
+  - `excel/capbook/db.py` - connect + query helpers + run assertions
+  - `excel/capbook/extract.py` - dataset extract functions per data contract
+  - `excel/capbook/xlsx.py` - XlsxWriter helpers (formats, tables, named ranges)
+  - `excel/capbook/build.py` - orchestrate workbook build (calls extract + sheet writers)
 
 - [x] Create `excel/export_capbook.py` entrypoint (PEP-723 style like other scripts) that:
   - depends on `xlsxwriter` + `psycopg[binary]`
@@ -32,9 +32,10 @@ This backlog is intentionally concrete. The Excel agent should do **one task per
 
 - [x] Implement helper: `get_git_sha()` (used by workbook `META`)
 
-- [ ] Implement `META` sheet writer:
+- [x] Implement `META` sheet writer:
   - fields: refreshed_at, base_year, as_of_date, exporter_git_sha, validation_status
-  - add a visible “FAILED” banner cell if validations fail
+  - add a visible "FAILED" banner cell if validations fail
+  - implemented in `excel/capbook/sheets/meta.py`
 
 - [ ] Implement workbook skeleton creation (code, not a template):
   - Create UI sheets (empty stubs to start): `HOME`, `TEAM_COCKPIT`, `ROSTER_GRID`, `BUDGET_LEDGER`, `PLAN_MANAGER`, `PLAN_JOURNAL`, `TRADE_MACHINE`, `SIGNINGS_AND_EXCEPTIONS`, `WAIVE_BUYOUT_STRETCH`, `ASSETS`, `AUDIT_AND_RECONCILE`, `RULES_REFERENCE`
@@ -88,6 +89,6 @@ This backlog is intentionally concrete. The Excel agent should do **one task per
 - [ ] Implement minimal `AUDIT_AND_RECONCILE` section:
   - show selected team/year totals from `DATA_team_salary_warehouse`
   - show row counts + basic sums from drilldown tables
-  - show a visible delta (even if it’s not 0 yet)
+  - show a visible delta (even if it's not 0 yet)
 
 - [ ] Document local usage in `excel/AGENTS.md` once CLI stabilizes

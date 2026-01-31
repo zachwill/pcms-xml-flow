@@ -4,19 +4,16 @@ Imports **NBA PCMS XML → Postgres**. **Python only**.
 
 If you are working on **Sean-style tooling** (Salary Book / Team Master / Trade Machine), start with:
 
-- `TODO.md` (roadmap + what we’re building next)
-- `SEAN.md` (current state + roadmap; reference specs are directional)
 - `SALARY_BOOK.md` (how to interpret contracts/salaries; canonical table)
-- `queries/AGENTS.md` (tool/query handoff)
-- `SCHEMA.md` (authoritative schema/column names)
+- `queries/README.md` (assertion-style SQL tests)
 
 ---
 
 ## Architecture (flow steps)
 
-**Step A**: `pcms_xml_to_json` — S3 ZIP → XML → **clean JSON** in `shared/pcms/nba_pcms_full_extract/`
+**Step A**: `pcms_xml_to_json` - S3 ZIP → XML → **clean JSON** in `shared/pcms/nba_pcms_full_extract/`
 
-**Steps B–G**: read JSON → upsert to `pcms.*` tables
+**Steps B-G**: read JSON → upsert to `pcms.*` tables
 
 Key principle: **clean data once in Step A**. Import scripts should be deterministic: read JSON, normalize lightly, upsert.
 
@@ -33,13 +30,19 @@ import_pcms_data.flow/
   transactions.inline_script.py        # E
   league_config.inline_script.py       # F
   team_financials.inline_script.py     # G
+  refresh_caches.inline_script.py      # H: refresh warehouse tables
+
+import_nba_data.flow/                  # NBA Stats API → Postgres
+import_sr_data.flow/                   # SportRadar → Postgres
 
 shared/pcms/nba_pcms_full_extract/     # cleaned JSON outputs
 migrations/                            # schema + cache tables/functions
+queries/sql/                           # assertion-style SQL tests
 scripts/
   xml-to-json.py                       # local XML→JSON (mirrors Step A)
   test-import.py                       # local runner (dry-run by default)
-SCHEMA.md                              # schema reference
+  test-nba-import.py                   # local NBA import runner
+  test-sr-import.py                    # local SportRadar import runner
 ```
 
 ---
@@ -147,7 +150,7 @@ Some tables represent a superset of possibilities (rights/holds/history) and may
 - Dead money drilldown: `pcms.dead_money_warehouse`
 - Cap holds drilldown: `pcms.cap_holds_warehouse`
 
-Rule of thumb: if you’re showing tool output, prefer a `*_warehouse` table first; if you need detail, join a detail table but scope it to what `team_budget_snapshots` says counts.
+Rule of thumb: if you're showing tool output, prefer a `*_warehouse` table first; if you need detail, join a detail table but scope it to what `team_budget_snapshots` says counts.
 
 ---
 

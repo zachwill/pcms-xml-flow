@@ -851,12 +851,14 @@ def write_assets(
     - Exceptions/TPEs: remaining amount, expiration, restrictions, usage in plan
     - Picks: ownership grid + encumbrances; plan usage
 
-    This v2 implementation provides:
+    This v3 implementation provides:
     - Exceptions section with live FILTER formulas pulling from tbl_exceptions_warehouse
-    - Draft picks section with formula reference to DATA_draft_picks_warehouse
+    - Draft picks section with live FILTER+SORT formulas pulling from tbl_draft_picks_warehouse
     - Both filtered by SelectedTeam from command bar
+    - Draft picks sorted by draft_year, draft_round, asset_slot
+    - Conditional formatting to highlight needs_review rows in red
     - Money/date formats applied to output cells
-    - Explicit "None" empty-state when no exceptions exist
+    - Explicit "None" empty-state when no data exists for selected team
     """
     sub_formats = _create_subsystem_formats(workbook)
 
@@ -869,15 +871,16 @@ def write_assets(
 
     content_row = get_content_start_row()
 
-    # Column widths for exceptions display
-    worksheet.set_column(0, 0, 10)   # Year
-    worksheet.set_column(1, 1, 22)   # Exception Type
-    worksheet.set_column(2, 2, 22)   # Player Name (for TPEs)
-    worksheet.set_column(3, 3, 16)   # Original Amount
-    worksheet.set_column(4, 4, 16)   # Remaining Amount
-    worksheet.set_column(5, 5, 14)   # Effective Date
-    worksheet.set_column(6, 6, 14)   # Expiration Date
-    worksheet.set_column(7, 7, 10)   # Status
+    # Column widths for both exceptions and draft picks display
+    # (both sections use 8 columns)
+    worksheet.set_column(0, 0, 10)   # Year (both: salary_year / draft_year)
+    worksheet.set_column(1, 1, 22)   # Exception Type / Round
+    worksheet.set_column(2, 2, 22)   # Player Name (TPEs) / Slot
+    worksheet.set_column(3, 3, 16)   # Original Amount / Type
+    worksheet.set_column(4, 4, 40)   # Remaining Amount / Description (raw_fragment)
+    worksheet.set_column(5, 5, 14)   # Effective Date / Conditional?
+    worksheet.set_column(6, 6, 14)   # Expiration Date / Swap?
+    worksheet.set_column(7, 7, 14)   # Status / Needs Review
 
     # ==========================================================================
     # EXCEPTIONS SECTION
@@ -996,7 +999,7 @@ def write_assets(
 
     worksheet.merge_range(
         content_row, 0,
-        content_row, 5,
+        content_row, 7,
         "DRAFT PICKS (filtered by SelectedTeam from tbl_draft_picks_warehouse)",
         sub_formats["section_header"],
     )
@@ -1004,31 +1007,119 @@ def write_assets(
 
     worksheet.write(
         content_row, 0,
-        "Shows owned picks and picks owed. Encumbrances noted.",
+        "Shows owned picks and picks owed. Sorted by year, round, slot. Review flags highlighted.",
         sub_formats["note"],
     )
     content_row += 2
 
-    # Draft pick headers
-    pick_headers = ["Year", "Round", "Original Owner", "Current Owner", "Protection", "Notes"]
+    # Draft pick headers (match the FILTER output columns)
+    # Columns: draft_year, draft_round, asset_slot, asset_type, raw_fragment, is_conditional_text, is_swap_text, needs_review
+    pick_headers = [
+        "Year",
+        "Round",
+        "Slot",
+        "Type",
+        "Description",
+        "Conditional?",
+        "Swap?",
+        "Needs Review",
+    ]
     for i, header in enumerate(pick_headers):
         worksheet.write(content_row, i, header, sub_formats["label_bold"])
+    pick_header_row = content_row
     content_row += 1
 
-    # Placeholder for filtered data
+    # FILTER formula for draft picks
+    # Columns selected: draft_year, draft_round, asset_slot, asset_type, raw_fragment,
+    #                   is_conditional_text, is_swap_text, needs_review
+    # Filter: team_code = SelectedTeam
+    # Sort: by draft_year, draft_round, asset_slot (via SORT wrapper)
+    # Empty result: display "None"
+    #
+    # Excel FILTER + SORT syntax:
+    #   =IFERROR(
+    #     SORT(
+    #       FILTER(
+    #         CHOOSE({1,2,3,4,5,6,7,8},
+    #           tbl_draft_picks_warehouse[draft_year],
+    #           tbl_draft_picks_warehouse[draft_round],
+    #           tbl_draft_picks_warehouse[asset_slot],
+    #           tbl_draft_picks_warehouse[asset_type],
+    #           tbl_draft_picks_warehouse[raw_fragment],
+    #           IF(tbl_draft_picks_warehouse[is_conditional_text],"Yes",""),
+    #           IF(tbl_draft_picks_warehouse[is_swap_text],"Yes",""),
+    #           IF(tbl_draft_picks_warehouse[needs_review],"⚠ REVIEW","")
+    #         ),
+    #         tbl_draft_picks_warehouse[team_code]=SelectedTeam
+    #       ),
+    #       {1,2,3},  -- sort by columns 1 (year), 2 (round), 3 (slot)
+    #       {1,1,1}   -- all ascending
+    #     ),
+    #     "None"
+    #   )
+    pick_filter_formula = (
+        '=IFERROR('
+        'SORT('
+        'FILTER('
+        'CHOOSE({1,2,3,4,5,6,7,8},'
+        'tbl_draft_picks_warehouse[draft_year],'
+        'tbl_draft_picks_warehouse[draft_round],'
+        'tbl_draft_picks_warehouse[asset_slot],'
+        'tbl_draft_picks_warehouse[asset_type],'
+        'tbl_draft_picks_warehouse[raw_fragment],'
+        'IF(tbl_draft_picks_warehouse[is_conditional_text],"Yes",""),'
+        'IF(tbl_draft_picks_warehouse[is_swap_text],"Yes",""),'
+        'IF(tbl_draft_picks_warehouse[needs_review],"⚠ REVIEW","")),'
+        'tbl_draft_picks_warehouse[team_code]=SelectedTeam),'
+        '{1,2,3},{1,1,1}),'
+        '"None")'
+    )
+
+    # Write the FILTER formula - it will spill into the cells below/right
+    worksheet.write_formula(content_row, 0, pick_filter_formula, sub_formats["output"])
+
+    # Reserve space for spill results (up to 30 draft pick rows — 6 years × ~5 picks)
+    pick_data_start_row = content_row
+    content_row += 30  # Reserve 30 rows for draft pick data
+
+    # Conditional formatting for needs_review column (column 7 = index 7)
+    # Highlight cells containing "⚠ REVIEW" in red
+    worksheet.conditional_format(
+        pick_data_start_row, 7,
+        pick_data_start_row + 29, 7,
+        {
+            "type": "text",
+            "criteria": "containing",
+            "value": "REVIEW",
+            "format": sub_formats["status_fail"],
+        },
+    )
+
+    # Note about dynamic array behavior
     worksheet.write(
         content_row, 0,
-        "← Filtered from DATA_draft_picks_warehouse (tbl_draft_picks_warehouse) where team_code=SelectedTeam",
+        "↑ Dynamic array formula — results spill automatically. 'None' shown if no picks for selected team.",
         sub_formats["note"],
     )
+    content_row += 2
+
+    # Asset type legend
+    worksheet.write(content_row, 0, "Asset Type Legend:", sub_formats["label_bold"])
     content_row += 1
 
-    worksheet.write(
-        content_row, 0,
-        '=FILTER(tbl_draft_picks_warehouse, tbl_draft_picks_warehouse[team_code]=SelectedTeam, "None")',
-        sub_formats["note"],
-    )
-    content_row += 3
+    asset_types = [
+        ("OWN", "Team's own pick"),
+        ("TO", "Pick owed to another team"),
+        ("HAS", "Pick acquired from another team"),
+        ("MAY_HAVE", "Conditional pick (may acquire)"),
+        ("OTHER", "Other/complex arrangement"),
+    ]
+    for type_code, type_desc in asset_types:
+        worksheet.write(content_row, 0, f"• {type_code}:", sub_formats["label"])
+        worksheet.write(content_row, 2, type_desc, sub_formats["note"])
+        content_row += 1
+
+    content_row += 1
 
     # Pick encumbrance notes
     worksheet.write(content_row, 0, "Pick Trading Rules:", sub_formats["label_bold"])

@@ -80,7 +80,7 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Apply money/date formats + explicit "None" empty-state
 
 ### 9) ASSETS: wire draft picks to DATA_draft_picks_warehouse
-- [ ] Replace placeholder notes with live formulas
+- [x] Replace placeholder notes with live formulas
   - `FILTER/IFERROR` for `tbl_draft_picks_warehouse` (SelectedTeam)
   - Sort by `draft_year`, `draft_round`, `asset_slot` + show `needs_review` indicator clearly
 

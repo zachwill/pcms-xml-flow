@@ -2,12 +2,12 @@
 
 **Updated:** 2026-01-31
 
-This document captures the *tacit knowledge* behind Sean’s workbook and the emerging Postgres-backed tooling.
+This document captures the *tacit knowledge* behind Sean's workbook and the emerging Postgres-backed tooling.
 
-It’s meant to answer:
-- “What are we actually building?”
-- “What must always be true for analysts to trust it?”
-- “Where do cap tools usually betray users?”
+It's meant to answer:
+- "What are we actually building?"
+- "What must always be true for analysts to trust it?"
+- "Where do cap tools usually betray users?"
 
 ---
 
@@ -16,14 +16,14 @@ It’s meant to answer:
 NBA cap work is fundamentally ledger work.
 
 Analysts need a snapshot that is:
-- **authoritative** (“this is what counts”),
-- **reconcilable** (“show me the contributing rows”), and
-- **defensible** (“show me which assumptions/rules were applied”).
+- **authoritative** ("this is what counts"),
+- **reconcilable** ("show me the contributing rows"), and
+- **defensible** ("show me which assumptions/rules were applied").
 
-### The core trap: “rows that exist” vs “rows that count”
+### The core trap: "rows that exist" vs "rows that count"
 
 Cap tools fail when:
-- detail tables contain rights/holds/artifacts that *exist* but *don’t count*, and
+- detail tables contain rights/holds/artifacts that *exist* but *don't count*, and
 - totals are computed from a different definition than the drilldown.
 
 **Non-negotiable rule:**
@@ -36,40 +36,40 @@ For any primary readout (cap total, tax total, apron room, roster count, tax pay
 - an **assumptions applied** list
 - a **delta vs baseline** list
 
-If that’s missing, the tool will eventually lose trust.
+If that's missing, the tool will eventually lose trust.
 
 ---
 
 ## 2) Scenario = Baseline + Plan Journal + Derived State
 
-A “scenario” is not a static object.
+A "scenario" is not a static object.
 
 It is:
-1. **Baseline state** — facts (warehouses / snapshots)
-2. **Plan journal** — ordered actions (trade, waive, sign, stretch, renounce, use exception, etc.)
-3. **Derived state** — recomputed roster + totals + constraints + alerts
+1. **Baseline state** - facts (warehouses / snapshots)
+2. **Plan journal** - ordered actions (trade, waive, sign, stretch, renounce, use exception, etc.)
+3. **Derived state** - recomputed roster + totals + constraints + alerts
 
 ### Why: analysts work by transformations, not edits
 They try a move, observe consequences, then try a different move.
 
 ### Branching is a workflow problem
 Two common analyst workflows:
-- **Lane-based branching:** compare 2–4 deal candidates side-by-side
+- **Lane-based branching:** compare 2-4 deal candidates side-by-side
 - **Version-based branching:** v1 → v2 fork at step N with a journal diff
 
-Don’t force branching into a single-row serialization problem.
+Don't force branching into a single-row serialization problem.
 
 ---
 
 ## 3) Policies must be explicit (and visible)
 
-Most “complexity” comes from invisible defaults.
+Most "complexity" comes from invisible defaults.
 
 Examples:
 - fill-to-12 vs fill-to-14 vs fill-to-15
 - rookie minimum vs veteran minimum assumptions
-- whether two-ways count toward roster size and/or totals
-- whether incomplete roster charges are applied
+- whether two-ways count toward roster size and/or totals (CBA fact: they count toward totals, not roster)
+- whether incomplete roster charges are applied (NOT modeled in this workbook — see excel-cap-book-blueprint.md)
 - how partial guarantees are treated (display status vs counting status)
 
 ### Non-negotiable rule: policies create visible generated rows
@@ -78,14 +78,14 @@ If you auto-fill roster spots or generate charges:
 - they must be toggleable
 - they must be labeled as assumptions (not facts)
 
-Otherwise, analysts will experience “spooky action at a distance” (numbers change without visible cause).
+Otherwise, analysts will experience "spooky action at a distance" (numbers change without visible cause).
 
 ---
 
 ## 4) Cockpit UX principles (dense tools that stay usable)
 
 ### 4.1 The Command Bar (always in the same place)
-The command bar is the workbook’s “operating context.” It must be consistent across all sheets:
+The command bar is the workbook's "operating context." It must be consistent across all sheets:
 - Team
 - Salary Year (base year)
 - As-of date
@@ -95,8 +95,8 @@ The command bar is the workbook’s “operating context.” It must be consiste
 
 Scattered hidden selectors are a guaranteed failure mode.
 
-### 4.2 4–7 primary readouts
-Analysts can’t hold 20 numbers in working memory.
+### 4.2 4-7 primary readouts
+Analysts can't hold 20 numbers in working memory.
 
 A cockpit needs a small stable set of numbers (cap/tax/apron distances, roster count, tax estimate) with drilldown for everything else.
 
@@ -108,7 +108,7 @@ Examples:
 - apron gates + hard-cap triggers displayed where exceptions/signings are chosen
 
 ### 4.4 Constraints as first-class outputs
-Don’t just output “max incoming.” Output:
+Don't just output "max incoming." Output:
 - whether the move is legal
 - which constraint blocks it
 - which rule/tier caused the block
@@ -154,12 +154,12 @@ Hardcoded repeater status / stale external links / manual overrides eventually d
 A tool needs an explicit taxonomy for *what a row is*.
 
 Suggested categories (example):
-- `ROST` — active roster contracts that count
-- `FA` — holds/rights that count
-- `TERM` — dead money that counts
-- `2WAY` — two-way amounts (often separate totals)
-- `GENERATED` — tool-generated assumption rows (fill mins, incomplete charges)
-- `EXISTS_ONLY` — visible artifacts that do not count (for reference only)
+- `ROST` - active roster contracts that count
+- `FA` - holds/rights that count
+- `TERM` - dead money that counts
+- `2WAY` - two-way amounts (often separate totals)
+- `GENERATED` - tool-generated assumption rows (roster fill slots)
+- `EXISTS_ONLY` - visible artifacts that do not count (for reference only)
 
 ### 7.2 Action types (plan journal)
 A tool needs an explicit taxonomy for *what actions exist*.

@@ -136,10 +136,24 @@ Build a new, self-contained Sean-style Excel cap workbook **generated from code*
     - PLUS included `tbl_subsystem_outputs` rows for ActivePlanId + SelectedYear
   - Add a visible warning banner when any subsystem outputs are included
 
+<<<<<<< HEAD
 ### 13) Incomplete roster charges policy
 - [ ] Decide + implement (or explicitly exclude) incomplete roster charges
   - If implemented: GENERATED rows + policy delta + audit note
   - If excluded: explicit note in AUDIT_AND_RECONCILE policy assumptions
+=======
+### 20) Incomplete roster charges policy
+- [x] Decide + implement (or explicitly exclude) incomplete roster charges
+  - **Decision:** Explicitly EXCLUDED (not implemented)
+  - Added "INCOMPLETE ROSTER CHARGES (Not Implemented)" section to AUDIT_AND_RECONCILE
+  - Updated excel-cap-book-blueprint.md to document the decision and rationale
+  - Updated mental-models-and-design-principles.md to clarify the exclusion
+  - **Rationale:**
+    1. PCMS warehouse totals may already include these charges (double-counting risk)
+    2. Roster Fill feature (RosterFillTarget=12/14/15) covers scenario modeling use case
+    3. Accurate proration requires date-specific logic not reliably available
+    4. Rare in practice (most teams maintain 12+ players)
+>>>>>>> e9fb7a4 (excel: explicitly exclude incomplete roster charges from implementation)
 
 ---
 

@@ -51,10 +51,11 @@ Every major sheet reserves the same top strip (same cells) for context + policie
 ### Policy controls (explicit knobs)
 - Roster fill target: 0 (off) / 12 / 14 / 15
 - Fill type: Rookie min / Vet min / Cheapest
-- Incomplete roster charges toggle (if modeled)
 - "Show exists-only rows" toggle
 
 **Note on two-way counting:** Two-way counting is a CBA fact, not a policy toggle. Per CBA, two-way contracts count toward cap/tax/apron totals but do NOT count toward the 15-player roster. The cockpit shows informational two-way readouts (count + amount) in the PRIMARY READOUTS section.
+
+**Note on incomplete roster charges:** This workbook does NOT model CBA incomplete roster charges (the pro-rated minimum salary charge for teams with <12 players). See "Notes / open design choices" section at the end of this document for rationale. The Roster Fill feature (RosterFillTarget=12/14/15) covers the scenario modeling use case.
 
 **Design rule:** no hidden selectors. No context scattered across the workbook.
 
@@ -123,7 +124,7 @@ Links to subsystem sheets + audit.
 Sections:
 1. Authoritative snapshot totals (by bucket)
 2. Plan deltas (journal actions summarized into buckets)
-3. Policy-generated deltas (fill rows, incomplete charges)
+3. Policy-generated deltas (roster fill rows)
 4. Derived totals = snapshot + deltas
 
 This is the sheet you use to explain numbers to a GM/owner.
@@ -282,6 +283,6 @@ Refreshable tables for salaries, holds, dead money, exceptions, picks, system va
 
 ## Notes / open design choices
 
-- Whether to model incomplete roster charges explicitly depends on the intended fidelity and the source-of-truth availability.
+- **Incomplete roster charges: NOT implemented** (decision made 2026-02-01). Per CBA, teams with <12 players incur a pro-rated minimum salary charge per missing spot. We explicitly exclude this because: (1) PCMS warehouse totals may already include these charges, risking double-counting; (2) the Roster Fill feature (RosterFillTarget=12/14/15) covers the scenario modeling use case; (3) accurate proration requires date-specific logic not reliably available. See `AUDIT_AND_RECONCILE` policy assumptions section for full rationale.
 - If Excel performance becomes an issue, the journal can be implemented as an input table that drives precomputed deltas (rather than recalculating everything row-by-row).
 - The key success metric is not "more features." It's: can an analyst *explain* every number quickly and confidently?

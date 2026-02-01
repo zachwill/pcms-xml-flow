@@ -929,6 +929,46 @@ def _write_policy_assumptions_section(
     )
     row += 1
     
+    row += 1  # Blank row before next subsection
+    
+    # =========================================================================
+    # Incomplete Roster Charges (explicitly excluded)
+    # =========================================================================
+    worksheet.merge_range(
+        row, COL_LABEL, row, COL_NOTES,
+        "INCOMPLETE ROSTER CHARGES (Not Implemented)",
+        audit_formats["subsection_header"]
+    )
+    row += 1
+    
+    # Explanation of what incomplete roster charges are and why they're excluded
+    incomplete_roster_notes = [
+        "Per CBA: teams with fewer than 12 players (or 14 in off-season) incur a charge for each",
+        "\"missing\" roster spot, equal to the minimum salary pro-rated by days (/174 in-season).",
+        "",
+        "❌ THIS WORKBOOK DOES NOT MODEL INCOMPLETE ROSTER CHARGES. Reasons:",
+        "",
+        "  1. PCMS authoritative data: If PCMS includes these charges in team_budget_snapshots,",
+        "     they are already reflected in warehouse totals. Adding them again would double-count.",
+        "",
+        "  2. Scenario modeling covered: The Roster Fill feature (above) addresses the common",
+        "     analyst use case of projecting totals with fill-to-12/14/15 assumptions.",
+        "",
+        "  3. Proration complexity: Incomplete roster charges depend on specific dates and days",
+        "     remaining in season — information not reliably available in the current data model.",
+        "",
+        "  4. Rare in practice: Most teams maintain at least 12 players during the season.",
+        "",
+        "If incomplete roster charges are critical for your analysis:",
+        "  • Check if PCMS already includes them in cap_total (compare to official league sources)",
+        "  • Use Roster Fill (RosterFillTarget=12) as a proxy for scenario modeling",
+        "  • For precise calculations, consult official league cap sheets",
+    ]
+    
+    for note in incomplete_roster_notes:
+        worksheet.write(row, COL_LABEL, note, audit_formats["note"])
+        row += 1
+    
     return row + 2
 
 

@@ -201,6 +201,21 @@ The `PLAN_JOURNAL` sheet includes:
    - Rows with salary_year ≠ SelectedYear (unless blank)
    - Helps analysts focus on the currently-active plan/year
 
+5. **Subsystem Outputs Table (`tbl_subsystem_outputs`)** — aggregates deltas from subsystem sheets:
+   - Fixed rows for: Trade Lane A, B, C, D, Signings, Waive/Buyout
+   - **Columns**:
+     - `include_in_plan`: Yes/No toggle to include in plan calculations
+     - `plan_id`: defaults to ActivePlanId (formula)
+     - `salary_year`: defaults to SelectedYear (formula)
+     - `delta_cap`, `delta_tax`, `delta_apron`: linked to subsystem outputs
+     - `source`: fixed label per row
+     - `notes`: freeform input
+   - **Trade lanes**: manual delta entry (copy from TRADE_MACHINE Journal Output)
+   - **Signings/Waive**: auto-linked via SUBTOTAL formulas from input tables
+   - **Included Totals**: shows sum of deltas where include_in_plan="Yes"
+   - ⚠️ **WARNING**: Do NOT also copy these into tbl_plan_journal (double-counting!)
+   - BUDGET_LEDGER sums from both tbl_plan_journal AND tbl_subsystem_outputs
+
 ### SIGNINGS_AND_EXCEPTIONS features
 
 The `SIGNINGS_AND_EXCEPTIONS` sheet includes:

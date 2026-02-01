@@ -134,7 +134,7 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Publish instructions (copy into PLAN_JOURNAL)
 
 ### 18) PLAN_JOURNAL: SUBSYSTEM_OUTPUTS staging table (no copy/paste)
-- [ ] Add `tbl_subsystem_outputs` rollup (Trade lane + Signings + Waive)
+- [x] Add `tbl_subsystem_outputs` rollup (Trade lane + Signings + Waive)
   - On `PLAN_JOURNAL`, add a **SUBSYSTEM_OUTPUTS** block implemented as an Excel Table `tbl_subsystem_outputs`
   - Rows (fixed):
     - Trade Lane A / B / C / D

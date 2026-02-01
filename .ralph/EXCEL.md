@@ -23,7 +23,7 @@ This document tracks the Excel capbook modernization effort—splitting massive 
 |------|------:|--------|
 | `excel/capbook/sheets/audit/` | 1528 | ✅ Split done (9 modules) |
 | `excel/capbook/sheets/budget_ledger/` | 1331 | ✅ Split done (10 modules) |
-| `excel/capbook/sheets/cockpit.py` | 1183 | 🟡 Large but stable |
+| `excel/capbook/sheets/cockpit/` | 1177 | ✅ Split done (7 modules) |
 | `excel/capbook/sheets/plan/plan_journal.py` | 775 | 🔴 Needs cumulative running totals implementation |
 | `excel/capbook/sheets/subsystems/trade_machine.py` | 475 | ✅ Split done |
 | `excel/capbook/sheets/subsystems/signings.py` | 421 | ✅ Split done |
@@ -132,7 +132,7 @@ Lower priority. Only do if the files become pain points.
 
 - [x] `audit.py` — split by reconciliation type (cap, tax, apron, row counts, plan diff)
 - [x] `budget_ledger.py` — split by section (snapshot, thresholds, plan deltas, policy, derived)
-- [ ] `cockpit.py` — split by panel (readouts, alerts, plan comparison, quick drivers)
+- [x] `cockpit.py` — split by panel (readouts, alerts, plan comparison, quick drivers)
 
 ---
 

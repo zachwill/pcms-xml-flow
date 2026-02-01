@@ -39,18 +39,22 @@ THE THREE PILLARS (the guiding light):
 
 Every 4 commits, review:
 
-1) reference/blueprints/
+1) excel/
+   - UI.md (authoritative PLAYGROUND spec; do not shortcut)
+   - AGENTS.md (folder context)
+   - XLSXWRITER.md (patterns)
+   - capbook/ implementation
+
+2) reference/blueprints/
    - README.md (the guiding light)
    - excel-cap-book-blueprint.md (vision + principles)
    - data-contract.md (DATA_ sheet specs)
-   - specs/playground.md (current target)
 
-2) .ralph/EXCEL.md
+3) reference/blueprints/specs/
+   - playground.md (legacy notes; defer to excel/UI.md)
+
+4) .ralph/EXCEL.md
    - current backlog (ensure tasks are concrete and ordered)
-
-3) excel/
-   - XLSXWRITER.md (patterns)
-   - capbook/ implementation
 
 SUPERVISOR CHECKLIST
 
@@ -100,7 +104,8 @@ REQUIRED READING (before coding)
 3) reference/blueprints/README.md — the guiding light
 4) reference/blueprints/excel-cap-book-blueprint.md — vision + principles
 5) reference/blueprints/data-contract.md — DATA_ sheet specs
-6) reference/blueprints/specs/playground.md — current target sheet
+6) excel/UI.md — authoritative PLAYGROUND UI spec (do not shortcut)
+7) reference/blueprints/specs/playground.md — legacy notes (defer to excel/UI.md)
 
 RULES
 - Use modern Excel: FILTER, XLOOKUP, LET, LAMBDA, dynamic arrays

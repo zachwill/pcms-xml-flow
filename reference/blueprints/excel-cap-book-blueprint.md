@@ -99,4 +99,6 @@ We're building **working tools for practitioners**.
 
 ## Next steps
 
-See `specs/playground.md` for the first sheet to build.
+See `excel/UI.md` for the authoritative PLAYGROUND spec (source of truth).
+
+`specs/playground.md` is legacy notes and should defer to `excel/UI.md`.

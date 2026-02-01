@@ -34,8 +34,9 @@ DEFAULT_FONT_SIZE = 11
 # -----------------------------------------------------------------------------
 
 # Money formatting
-FMT_MONEY = "$#,##0"
-FMT_MONEY_MILLIONS = "$#,##0,,"  # Divide by 1M, show as $X (no decimals)
+# Amounts are stored as integer dollars; UI prefers dense display without "$".
+FMT_MONEY = "#,##0"
+FMT_MONEY_MILLIONS = "#,##0,,"  # Divide by 1M, show as X (no decimals)
 
 # Percentage
 FMT_PERCENT = "0.0%"

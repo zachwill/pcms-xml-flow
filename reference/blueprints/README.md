@@ -25,12 +25,13 @@ We are building Excel workbooks for NBA salary cap analysts. Three pillars:
 | `excel-cap-book-blueprint.md` | Design vision, principles, what we're building |
 | `mental-models-and-design-principles.md` | Foundational thinking: trust, density, reactivity |
 | `data-contract.md` | DATA_ sheet specifications (Postgres → Excel) |
-| `specs/` | Individual sheet specs (e.g., `specs/playground.md`) |
+| `specs/` | Legacy sheet notes. For PLAYGROUND, the source of truth is `excel/UI.md`. |
 
 ---
 
 ## Quick links
 
+- PLAYGROUND spec (authoritative): `excel/UI.md`
 - XlsxWriter patterns: `excel/XLSXWRITER.md`
 - Folder context: `excel/AGENTS.md`
 - Progress tracking: `.ralph/EXCEL.md`

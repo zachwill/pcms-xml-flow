@@ -7,11 +7,13 @@
 ## Current State
 
 PLAYGROUND sheet exists with basic functionality:
-- Team selector with dropdown
-- Roster pulls from `tbl_salary_book_warehouse`, sorted by salary
+- Team selector with dropdown (yellow input)
+- Roster pulls from `tbl_salary_book_yearly` (MetaBaseYear), sorted by salary
 - Trade Out/In/Waive/Sign inputs with named ranges
-- Conditional formatting for trade-out (gray strikethrough) and trade-in (purple)
-- Basic totals and KPIs
+- Roster includes Trade In + Sign rows; Trade Out/Waive are shown via strike-through
+- Dense money display: `#,##0` (no `$`)
+- Totals block includes Minimum/Cap/Tax comparisons with GREEN/RED conditional formatting
+- KPIs (Cap/Tax/Apron room) displayed in millions
 
 **But it's nowhere near Sean's professional workbook.**
 
@@ -22,10 +24,10 @@ PLAYGROUND sheet exists with basic functionality:
 ### Formatting
 | Sean's | Ours | Priority |
 |--------|------|----------|
-| No `$` in roster - just `32,400,000` | `$32,000,001` with dollar signs | HIGH |
+| No `$` in roster - just `32,400,000` | ✅ `32,400,000` (no `$`) | DONE |
 | `%` column right next to each salary year | Single `%` column | HIGH |
 | Smaller, denser fonts | Default sizing, too much whitespace | MEDIUM |
-| Green/red conditional formatting on thresholds | No threshold colors | HIGH |
+| Green/red conditional formatting on thresholds | ✅ Minimum/Cap/Tax done; Aprons TBD | MEDIUM |
 | Multi-year columns (2025-2030) | Single year only | HIGH |
 
 ### Structure - Totals Section
@@ -88,16 +90,16 @@ Sean has a dedicated trade machine section:
 ## Immediate TODO (Formatting Polish)
 
 ### Phase 1: Clean up roster formatting
-- [ ] Remove `$` from salary column - use `#,##0` not `$#,##0`
+- [x] Remove `$` from salary display (roster + totals) - use `#,##0`
 - [ ] Tighten column widths
 - [ ] Smaller font (10pt instead of 11pt for data)
-- [ ] Right-align all numbers
+- [x] Right-align all numbers
 
 ### Phase 2: Conditional formatting for thresholds
-- [ ] Cap Space cell: GREEN if positive, RED if negative
-- [ ] Tax cell: GREEN if under, RED if over
+- [x] Cap Space cell: GREEN if positive, RED if negative
+- [x] Tax cell: GREEN if under, RED if over
 - [ ] Apron cells: GREEN/RED based on threshold
-- [ ] Apply to both current values and scenario values
+- [ ] Apply to both base + modified rows consistently
 
 ### Phase 3: Better totals section
 - [ ] Add all the totals rows Sean has (see list above)
@@ -148,7 +150,8 @@ Sean has a dedicated trade machine section:
 ### Data Sources
 | Need | Table | Key Columns |
 |------|-------|-------------|
-| Player salaries | `tbl_salary_book_warehouse` | player_name, team_code, cap_y0..cap_y5 |
+| Player salaries (calc) | `tbl_salary_book_yearly` | player_name, team_code, salary_year, cap_amount |
+| Player salaries (wide display, later) | `tbl_salary_book_warehouse` | cap_2025..cap_2030, option flags, etc |
 | Team totals | `tbl_team_salary_warehouse` | All threshold comparisons |
 | System values | `tbl_system_values` | salary_cap_amount, tax_level_amount, tax_apron_amount |
 | Draft picks | `tbl_draft_picks_warehouse` | Ownership by year |
@@ -164,7 +167,8 @@ Sean has a dedicated trade machine section:
 - `SignNames` - B21:B22
 - `SignSalaries` - C21:C22
 - `TeamSalary` - F21 (base team salary from warehouse)
-- `ModifiedSalary` - F22 (scenario-adjusted total)
+- `TeamSalaryFilled` - F22 (base + rookie-min roster fills to 14)
+- `ModifiedSalary` - F23 (scenario-adjusted total)
 
 ---
 

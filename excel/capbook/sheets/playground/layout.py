@@ -1,0 +1,54 @@
+"""PLAYGROUND layout constants + small helpers."""
+
+from __future__ import annotations
+
+# Columns (0-indexed)
+COL_SECTION_LABEL = 0   # A - section labels
+COL_INPUT = 1           # B - input cells
+COL_INPUT_SALARY = 2    # C - salary inputs for SIGN
+
+COL_RANK = 3            # D
+COL_PLAYER = 4          # E
+
+# Multi-year (4-year visible slice for now; base year + 3)
+COL_SAL_Y0 = 5          # F
+COL_PCT_Y0 = 6          # G
+COL_SAL_Y1 = 7          # H
+COL_PCT_Y1 = 8          # I
+COL_SAL_Y2 = 9          # J
+COL_PCT_Y2 = 10         # K
+COL_SAL_Y3 = 11         # L
+COL_PCT_Y3 = 12         # M
+
+COL_TOTAL = 13          # N
+COL_AGENT = 14          # O
+COL_STATUS = 15         # P
+
+# Rows (0-indexed)
+ROW_TEAM_CONTEXT = 0    # Excel row 1
+ROW_KPI = 1             # Excel row 2
+ROW_HEADER = 2          # Excel row 3
+ROW_BODY_START = 3      # Excel row 4
+
+# Roster display headroom
+ROSTER_RESERVED = 30
+
+# Scenario input slots
+TRADE_OUT_SLOTS = 6
+TRADE_IN_SLOTS = 6
+WAIVE_SLOTS = 3
+STRETCH_SLOTS = 3
+SIGN_SLOTS = 2
+
+# Visible year offsets in the grid
+YEAR_OFFSETS = [0, 1, 2, 3]
+
+
+def col_letter(col: int) -> str:
+    """Convert 0-indexed column number to Excel letter (0=A, 1=B, ...)."""
+
+    result = ""
+    while col >= 0:
+        result = chr(col % 26 + ord("A")) + result
+        col = col // 26 - 1
+    return result

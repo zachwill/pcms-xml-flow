@@ -37,7 +37,8 @@ See `reference/blueprints/excel-cap-book-blueprint.md` for design principles.
 | `reference/blueprints/excel-cap-book-blueprint.md` | Design vision + principles |
 | `reference/blueprints/mental-models-and-design-principles.md` | Foundational thinking |
 | `reference/blueprints/data-contract.md` | DATA_ sheet specifications |
-| `reference/blueprints/specs/playground.md` | First UI sheet to build |
+| `excel/UI.md` | **Authoritative** PLAYGROUND UI spec (do not shortcut) |
+| `reference/blueprints/specs/playground.md` | Legacy notes (defer to `excel/UI.md`) |
 
 ---
 

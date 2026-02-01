@@ -133,13 +133,31 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Source label (e.g., "Trade Lane A")
   - Publish instructions (copy into PLAN_JOURNAL)
 
-### 18) PLAN_JOURNAL: subsystem outputs integration
-- [ ] Add SUBSYSTEM_OUTPUTS rollup + include in budget ledger
-  - Reference Journal Output blocks from Trade/Signings/Waive
-  - Update BUDGET_LEDGER plan deltas to include subsystem outputs
-  - Document workflow so analysts know what feeds totals
+### 18) PLAN_JOURNAL: SUBSYSTEM_OUTPUTS staging table (no copy/paste)
+- [ ] Add `tbl_subsystem_outputs` rollup (Trade lane + Signings + Waive)
+  - On `PLAN_JOURNAL`, add a **SUBSYSTEM_OUTPUTS** block implemented as an Excel Table `tbl_subsystem_outputs`
+  - Rows (fixed):
+    - Trade Lane A / B / C / D
+    - Signings (SIGNINGS_AND_EXCEPTIONS)
+    - Waive/Buyout (WAIVE_BUYOUT_STRETCH)
+  - Columns (minimum viable):
+    - `include_in_plan` (Yes/No)
+    - `plan_id` (default to `ActivePlanId` via formula)
+    - `salary_year` (default to `SelectedYear` via formula)
+    - `delta_cap`, `delta_tax`, `delta_apron` (formula links to each subsystem's Journal Output block)
+    - `source` (fixed label per row)
+    - `notes`
+  - Add a loud note: **do not also copy these into `tbl_plan_journal`** or you will double count
 
-### 19) Incomplete roster charges policy
+### 19) BUDGET_LEDGER: include SUBSYSTEM_OUTPUTS in plan delta totals
+- [ ] Sum `tbl_subsystem_outputs` into the PLAN DELTA section
+  - Add a "Subsystem Outputs" row (or mini-section) showing the total of included subsystem deltas
+  - Update **PLAN DELTA TOTAL** to include:
+    - `tbl_plan_journal` (enabled rows, ActivePlanId, SelectedYear)
+    - PLUS included `tbl_subsystem_outputs` rows for ActivePlanId + SelectedYear
+  - Add a visible warning banner when any subsystem outputs are included
+
+### 20) Incomplete roster charges policy
 - [ ] Decide + implement (or explicitly exclude) incomplete roster charges
   - If implemented: GENERATED rows + policy delta + audit note
   - If excluded: explicit note in AUDIT_AND_RECONCILE policy assumptions

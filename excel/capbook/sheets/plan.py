@@ -681,33 +681,26 @@ def write_plan_journal(
     # =========================================================================
     # Conditional formatting: gray out rows NOT in ActivePlan/SelectedYear
     # =========================================================================
-    # A row "counts" if:
-    #   - plan_id matches ActivePlanId (or plan_id is blank and ActivePlan="Baseline")
+    # A row "counts" for the current context if:
+    #   - plan_id matches ActivePlanId (or plan_id is blank)
     #   - AND salary_year matches SelectedYear (or salary_year is blank)
-    #   - AND enabled="Yes" or enabled is blank
-    # Rows that don't match get grayed out.
-    # 
-    # Formula checks: if NOT (matches active plan AND matches year), gray out.
-    # We use relative references starting from the first data row.
-    # 
+    #
+    # Rows that do NOT match the current (ActivePlanId, SelectedYear) context
+    # are grayed out to reduce visual noise.
+    #
     # Row reference: $B{row} = plan_id, $D{row} = salary_year
-    # The formula uses INDIRECT to get the cell value from the current row.
     # =========================================================================
     
-    # Build the conditional format formula
-    # For row N (0-indexed), the data starts at table_start_row + 1
-    # The formula is applied to each row and uses relative row references
+    # Build the conditional format formula.
+    # The formula is applied to each row and uses relative row references.
     first_data_row = table_start_row + 2  # 1-indexed for Excel formula
     
-    # Gray out formula: row does NOT match ActivePlan + SelectedYear
-    # Matches if: (plan_id = ActivePlanId OR plan_id is blank) AND 
-    #             (salary_year = SelectedYear OR salary_year is blank)
-    # Gray out if NOT matches
+    # Gray out if NOT( plan matches AND year matches )
     gray_out_formula = (
-        f'=AND('
-        f'NOT(OR($B{first_data_row}=ActivePlanId,$B{first_data_row}="")),'  # plan_id check
-        f'NOT(OR($D{first_data_row}=SelectedYear,$D{first_data_row}=""))'   # salary_year check
-        f')'
+        f'=NOT(AND('
+        f'OR($B{first_data_row}=ActivePlanId,$B{first_data_row}=""),'
+        f'OR($D{first_data_row}=SelectedYear,$D{first_data_row}="")'
+        f'))'
     )
     
     # Apply to entire journal table data rows (all columns)

@@ -511,26 +511,74 @@ Implementation is split across multiple Python files:
 
 ```
 excel/
-├── export_capbook.py          # CLI entrypoint
+├── export_capbook.py            # CLI entrypoint
+├── validate_xlsx_formulas.py    # Formula validation tool
 └── capbook/
-    ├── build.py               # Orchestration + sheet creation
-    ├── db.py                  # Database connection + SQL assertions
-    ├── extract.py             # Dataset extraction functions
-    ├── reconcile.py           # Reconciliation logic
-    ├── xlsx.py                # XlsxWriter helpers + format definitions
+    ├── build.py                 # Orchestration + sheet creation
+    ├── db.py                    # Database connection + SQL assertions
+    ├── extract.py               # Dataset extraction functions
+    ├── named_formulas.py        # Named formula helpers
+    ├── reconcile.py             # Reconciliation logic
+    ├── xlsx.py                  # XlsxWriter helpers + format definitions
     └── sheets/
         ├── __init__.py
-        ├── command_bar.py     # Shared command bar helper
-        ├── cockpit.py         # TEAM_COCKPIT implementation
-        ├── roster_grid.py     # ROSTER_GRID implementation
-        ├── budget_ledger.py   # BUDGET_LEDGER implementation
-        ├── plan.py            # PLAN_MANAGER + PLAN_JOURNAL
-        ├── subsystems.py      # TRADE_MACHINE, SIGNINGS, WAIVE, ASSETS
-        ├── audit.py           # AUDIT_AND_RECONCILE implementation
-        ├── rules_reference.py # RULES_REFERENCE implementation
-        ├── meta.py            # META sheet + named ranges
-        ├── home.py            # HOME landing page implementation
-        └── ui_stubs.py        # Stub writers for incomplete sheets
+        ├── command_bar.py       # Shared command bar helper
+        ├── home.py              # HOME landing page implementation
+        ├── meta.py              # META sheet + named ranges
+        ├── rules_reference.py   # RULES_REFERENCE implementation
+        ├── ui_stubs.py          # Stub writers for incomplete sheets
+        ├── audit/               # AUDIT_AND_RECONCILE implementation
+        │   ├── __init__.py
+        │   ├── apron_reconciliation.py
+        │   ├── cap_reconciliation.py
+        │   ├── formats.py
+        │   ├── helpers.py
+        │   ├── plan_diff.py
+        │   ├── policy_assumptions.py
+        │   ├── row_counts.py
+        │   └── tax_reconciliation.py
+        ├── budget_ledger/       # BUDGET_LEDGER implementation
+        │   ├── __init__.py
+        │   ├── constants.py
+        │   ├── derived.py
+        │   ├── formats.py
+        │   ├── helpers.py
+        │   ├── plan_deltas.py
+        │   ├── policy.py
+        │   ├── snapshot.py
+        │   ├── thresholds.py
+        │   └── verification.py
+        ├── cockpit/             # TEAM_COCKPIT implementation
+        │   ├── __init__.py
+        │   ├── alerts.py
+        │   ├── constants.py
+        │   ├── helpers.py
+        │   ├── plan_comparison.py
+        │   ├── quick_drivers.py
+        │   └── readouts.py
+        ├── plan/                # PLAN_MANAGER + PLAN_JOURNAL
+        │   ├── __init__.py
+        │   ├── formats.py
+        │   ├── plan_journal.py
+        │   └── plan_manager.py
+        ├── roster_grid/         # ROSTER_GRID implementation
+        │   ├── __init__.py
+        │   ├── cap_holds_section.py
+        │   ├── dead_money_section.py
+        │   ├── exists_only_section.py
+        │   ├── formats.py
+        │   ├── generated_section.py
+        │   ├── helpers.py
+        │   ├── reconciliation.py
+        │   ├── roster_section.py
+        │   └── twoway_section.py
+        └── subsystems/          # TRADE_MACHINE, SIGNINGS, WAIVE, ASSETS
+            ├── __init__.py
+            ├── assets.py
+            ├── signings.py
+            ├── trade_machine.py
+            ├── utils.py
+            └── waive_stretch.py
 ```
 
 ---

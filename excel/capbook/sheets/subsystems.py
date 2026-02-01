@@ -408,6 +408,7 @@ def _col_letter(col: int) -> str:
 # =============================================================================
 
 # Signings table columns
+# Input columns (user-editable)
 SIG_COL_PLAYER = 0
 SIG_COL_SIGNING_TYPE = 1
 SIG_COL_EXCEPTION = 2
@@ -417,6 +418,10 @@ SIG_COL_YEAR2 = 5
 SIG_COL_YEAR3 = 6
 SIG_COL_YEAR4 = 7
 SIG_COL_NOTES = 8
+# Computed delta columns (formula-driven, locked)
+SIG_COL_DELTA_CAP = 9
+SIG_COL_DELTA_TAX = 10
+SIG_COL_DELTA_APRON = 11
 
 SIG_NUM_ROWS = 10  # Number of input slots
 
@@ -437,8 +442,13 @@ def write_signings_and_exceptions(
     - Exception usage remaining
     - Hard-cap trigger flags
 
-    This v2 implementation provides:
+    This v3 implementation provides:
     - Signing input table with player, method, years, and amounts
+    - **NEW**: Per-row SelectedYear delta columns (delta_cap, delta_tax, delta_apron)
+        - Formulas compute the delta based on which year column matches SelectedYear
+        - year_1_salary = MetaBaseYear, year_2 = MetaBaseYear+1, etc.
+    - **NEW**: Journal Output block with aggregated deltas + source label
+        - For copying into PLAN_JOURNAL
     - Exception inventory with live FILTER formulas from DATA_exceptions_warehouse
     - Named range AvailableExceptions for exception_used dropdown validation
     - Signing method validation dropdown
@@ -449,7 +459,7 @@ def write_signings_and_exceptions(
 
     # Sheet title
     worksheet.write(0, 0, "SIGNINGS & EXCEPTIONS", formats["header"])
-    worksheet.write(1, 0, "Record signings and track exception usage")
+    worksheet.write(1, 0, "Record signings and track exception usage — SelectedYear deltas computed automatically")
 
     # Write read-only command bar
     write_command_bar_readonly(workbook, worksheet, formats)
@@ -463,12 +473,16 @@ def write_signings_and_exceptions(
     worksheet.set_column(SIG_COL_YEARS, SIG_COL_YEARS, 8)
     worksheet.set_column(SIG_COL_YEAR1, SIG_COL_YEAR4, 12)
     worksheet.set_column(SIG_COL_NOTES, SIG_COL_NOTES, 25)
+    # Delta columns
+    worksheet.set_column(SIG_COL_DELTA_CAP, SIG_COL_DELTA_CAP, 12)
+    worksheet.set_column(SIG_COL_DELTA_TAX, SIG_COL_DELTA_TAX, 12)
+    worksheet.set_column(SIG_COL_DELTA_APRON, SIG_COL_DELTA_APRON, 12)
 
     # Section header: Signings Input
     worksheet.merge_range(
         content_row, SIG_COL_PLAYER,
-        content_row, SIG_COL_NOTES,
-        "SIGNINGS INPUT (tbl_signings_input)",
+        content_row, SIG_COL_DELTA_APRON,
+        "SIGNINGS INPUT (tbl_signings_input) — SelectedYear deltas auto-computed",
         sub_formats["section_header"],
     )
     content_row += 1
@@ -476,12 +490,13 @@ def write_signings_and_exceptions(
     # Instructions
     worksheet.write(
         content_row, SIG_COL_PLAYER,
-        "Enter prospective signings. Use 'Publish to Journal' to record in plan.",
+        "Enter prospective signings. Delta columns show SelectedYear impact. "
+        "Copy Journal Output rows into PLAN_JOURNAL to record in plan.",
         sub_formats["note"],
     )
     content_row += 2
 
-    # Table columns
+    # Table columns (including delta columns)
     signing_columns = [
         "player_name",
         "signing_type",
@@ -492,26 +507,53 @@ def write_signings_and_exceptions(
         "year_3_salary",
         "year_4_salary",
         "notes",
+        "delta_cap",
+        "delta_tax",
+        "delta_apron",
     ]
 
     # Empty input rows
     table_start_row = content_row
     initial_data = []
     for _ in range(SIG_NUM_ROWS):
-        initial_data.append({col: "" for col in signing_columns})
+        row_data = {col: "" for col in signing_columns}
         # Set numeric defaults for salary columns
-        initial_data[-1]["years"] = ""
-        initial_data[-1]["year_1_salary"] = 0
-        initial_data[-1]["year_2_salary"] = 0
-        initial_data[-1]["year_3_salary"] = 0
-        initial_data[-1]["year_4_salary"] = 0
+        row_data["years"] = ""
+        row_data["year_1_salary"] = 0
+        row_data["year_2_salary"] = 0
+        row_data["year_3_salary"] = 0
+        row_data["year_4_salary"] = 0
+        # Delta columns will be formula-driven; initialize to 0
+        row_data["delta_cap"] = 0
+        row_data["delta_tax"] = 0
+        row_data["delta_apron"] = 0
+        initial_data.append(row_data)
 
     table_end_row = table_start_row + len(initial_data)
 
     # Build data matrix
     data_matrix = [[row_dict.get(col, "") for col in signing_columns] for row_dict in initial_data]
 
+    # =========================================================================
+    # Delta column formulas:
+    # Each delta column picks the salary for the year matching SelectedYear.
+    # year_1_salary = MetaBaseYear, year_2 = MetaBaseYear+1, etc.
+    #
+    # Formula pattern (for row N, using structured references):
+    #   =IFERROR(CHOOSE(SelectedYear - MetaBaseYear + 1,
+    #                   [@year_1_salary], [@year_2_salary],
+    #                   [@year_3_salary], [@year_4_salary]), 0)
+    #
+    # For now, cap/tax/apron deltas are all the same (the salary amount).
+    # In future, could adjust if different counting rules apply.
+    # =========================================================================
+    delta_formula = (
+        '=IFERROR(CHOOSE(SelectedYear-MetaBaseYear+1,'
+        '[@year_1_salary],[@year_2_salary],[@year_3_salary],[@year_4_salary]),0)'
+    )
+
     # Column definitions with unlocked formats for editing on protected sheet
+    # Note: delta columns are LOCKED (formula-driven, not user-editable)
     column_defs = [
         {"header": "player_name", "format": formats["input"]},
         {"header": "signing_type", "format": formats["input"]},
@@ -522,13 +564,16 @@ def write_signings_and_exceptions(
         {"header": "year_3_salary", "format": formats["input_money"]},
         {"header": "year_4_salary", "format": formats["input_money"]},
         {"header": "notes", "format": formats["input"]},
+        {"header": "delta_cap", "format": sub_formats["output_money"], "formula": delta_formula},
+        {"header": "delta_tax", "format": sub_formats["output_money"], "formula": delta_formula},
+        {"header": "delta_apron", "format": sub_formats["output_money"], "formula": delta_formula},
     ]
 
     worksheet.add_table(
         table_start_row,
         SIG_COL_PLAYER,
         table_end_row,
-        SIG_COL_NOTES,
+        SIG_COL_DELTA_APRON,
         {
             "name": "tbl_signings_input",
             "columns": column_defs,
@@ -557,22 +602,121 @@ def write_signings_and_exceptions(
     # Editable zone note
     worksheet.write(
         content_row, SIG_COL_PLAYER,
-        "📝 EDITABLE ZONE: The table above (yellow cells) is unlocked for editing. "
-        "Formulas and sheet structure are protected.",
+        "📝 EDITABLE ZONE: Yellow cells are unlocked for editing. "
+        "Blue delta columns (Δ Cap/Tax/Apron) are formula-driven based on SelectedYear.",
         sub_formats["note"],
     )
     content_row += 2
 
-    # Totals row
-    worksheet.write(content_row, SIG_COL_PLAYER, "TOTALS:", sub_formats["label_bold"])
+    # Totals row (for year salary columns)
+    worksheet.write(content_row, SIG_COL_PLAYER, "YEAR TOTALS:", sub_formats["label_bold"])
     for year_col in [SIG_COL_YEAR1, SIG_COL_YEAR2, SIG_COL_YEAR3, SIG_COL_YEAR4]:
-        col_letter = _col_letter(year_col)
         worksheet.write_formula(
             content_row, year_col,
             f"=SUBTOTAL(109,tbl_signings_input[{signing_columns[year_col]}])",
             sub_formats["total"],
         )
     content_row += 3
+
+    # =========================================================================
+    # JOURNAL OUTPUT BLOCK
+    # =========================================================================
+    # Provides aggregated deltas for SelectedYear + source label for copying
+    # into PLAN_JOURNAL.
+    #
+    # Per backlog task #11:
+    # - Total delta cap/tax/apron for SelectedYear (sum of delta columns)
+    # - Source label: "Signings (SIGNINGS_AND_EXCEPTIONS)"
+    # - Instructions for manual copy workflow
+    # =========================================================================
+
+    worksheet.merge_range(
+        content_row, SIG_COL_PLAYER,
+        content_row, SIG_COL_NOTES,
+        "JOURNAL OUTPUT (copy into PLAN_JOURNAL to record in plan)",
+        sub_formats["section_header"],
+    )
+    content_row += 1
+
+    worksheet.write(
+        content_row, SIG_COL_PLAYER,
+        "Total signing deltas for SelectedYear. Copy the values below into a new PLAN_JOURNAL row.",
+        sub_formats["note"],
+    )
+    content_row += 2
+
+    # Journal output: summary row with aggregated deltas
+    # Layout: label | value
+    journal_label_col = SIG_COL_PLAYER
+    journal_value_col = SIG_COL_SIGNING_TYPE
+
+    # SelectedYear context (for reference)
+    worksheet.write(content_row, journal_label_col, "Selected Year:", sub_formats["label_bold"])
+    worksheet.write_formula(content_row, journal_value_col, "=SelectedYear", sub_formats["output"])
+    content_row += 1
+
+    # Signing count (non-blank player_name rows)
+    worksheet.write(content_row, journal_label_col, "Signings Count:", sub_formats["label_bold"])
+    worksheet.write_formula(
+        content_row, journal_value_col,
+        '=COUNTA(tbl_signings_input[player_name])',
+        sub_formats["output"],
+    )
+    content_row += 2
+
+    # Total deltas section header
+    worksheet.write(content_row, journal_label_col, "TOTAL DELTAS", sub_formats["label_bold"])
+    worksheet.write(content_row, journal_value_col, "(for SelectedYear)", sub_formats["label"])
+    content_row += 1
+
+    # Delta Cap Total
+    worksheet.write(content_row, journal_label_col, "Δ Cap:", sub_formats["label"])
+    worksheet.write_formula(
+        content_row, journal_value_col,
+        "=SUBTOTAL(109,tbl_signings_input[delta_cap])",
+        sub_formats["total"],
+    )
+    content_row += 1
+
+    # Delta Tax Total
+    worksheet.write(content_row, journal_label_col, "Δ Tax:", sub_formats["label"])
+    worksheet.write_formula(
+        content_row, journal_value_col,
+        "=SUBTOTAL(109,tbl_signings_input[delta_tax])",
+        sub_formats["total"],
+    )
+    content_row += 1
+
+    # Delta Apron Total
+    worksheet.write(content_row, journal_label_col, "Δ Apron:", sub_formats["label"])
+    worksheet.write_formula(
+        content_row, journal_value_col,
+        "=SUBTOTAL(109,tbl_signings_input[delta_apron])",
+        sub_formats["total"],
+    )
+    content_row += 2
+
+    # Source label (for PLAN_JOURNAL source column)
+    worksheet.write(content_row, journal_label_col, "Source:", sub_formats["label_bold"])
+    worksheet.write(content_row, journal_value_col, "Signings (SIGNINGS_AND_EXCEPTIONS)", sub_formats["output"])
+    content_row += 2
+
+    # Manual publish instructions
+    worksheet.write(content_row, journal_label_col, "How to publish to PLAN_JOURNAL:", sub_formats["label_bold"])
+    content_row += 1
+
+    publish_steps = [
+        "1. Go to PLAN_JOURNAL sheet",
+        "2. Add a new row with action_type = 'Sign (Exception)' or appropriate type",
+        "3. Set plan_id, enabled, salary_year, target_player as needed",
+        "4. Copy the Δ Cap/Tax/Apron values above into delta_cap/delta_tax/delta_apron columns",
+        "5. Set source = 'Signings (SIGNINGS_AND_EXCEPTIONS)'",
+    ]
+    for step in publish_steps:
+        worksheet.write(content_row, journal_label_col, step, sub_formats["note"])
+        content_row += 1
+
+    content_row += 2
 
     # ==========================================================================
     # EXCEPTION INVENTORY SECTION (live FILTER from tbl_exceptions_warehouse)

@@ -201,6 +201,36 @@ The `PLAN_JOURNAL` sheet includes:
    - Rows with salary_year ≠ SelectedYear (unless blank)
    - Helps analysts focus on the currently-active plan/year
 
+### SIGNINGS_AND_EXCEPTIONS features
+
+The `SIGNINGS_AND_EXCEPTIONS` sheet includes:
+
+1. **Signings Input Table (`tbl_signings_input`)** — prospective signing entries:
+   - player_name, signing_type, exception_used, years
+   - year_1_salary through year_4_salary (amounts per contract year)
+   - notes
+   - **Formula-driven delta columns**: delta_cap, delta_tax, delta_apron
+     - Automatically computed based on SelectedYear
+     - year_1_salary = MetaBaseYear, year_2 = MetaBaseYear+1, etc.
+     - Formula: `IFERROR(CHOOSE(SelectedYear-MetaBaseYear+1, year_1, year_2, year_3, year_4), 0)`
+
+2. **Journal Output Block** — aggregated deltas for publishing to PLAN_JOURNAL:
+   - Selected Year context (from command bar)
+   - Signing count (non-blank rows)
+   - Total Δ Cap, Δ Tax, Δ Apron for SelectedYear
+   - Source label: "Signings (SIGNINGS_AND_EXCEPTIONS)"
+   - Manual publish instructions (copy into PLAN_JOURNAL)
+
+3. **Exception Inventory** — live FILTER from tbl_exceptions_warehouse:
+   - Filtered by SelectedTeam
+   - Shows salary_year, exception_type_name, original/remaining amounts, dates, status
+   - Used for exception_used validation in signings table
+
+4. **Signing Type Validation** — dropdown with values:
+   - Cap Room, MLE (Full), MLE (Taxpayer), MLE (Room), BAE, Minimum, TPE, Other
+
+5. **Hard-Cap Trigger Notes** — inline reference for which signings trigger hard cap
+
 ---
 
 ## Architecture (code-generated workbook)

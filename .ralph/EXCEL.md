@@ -91,7 +91,7 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Align formats with RULES_REFERENCE (money/date)
 
 ### 11) SIGNINGS_AND_EXCEPTIONS: compute deltas + journal output
-- [ ] Add formula-driven SelectedYear deltas for signings
+- [x] Add formula-driven SelectedYear deltas for signings
   - Per-row SelectedYear delta (cap/tax/apron) based on year columns
   - Add a "Journal Output" block with aggregated deltas + source label
   - Document manual publish workflow (copy into PLAN_JOURNAL)

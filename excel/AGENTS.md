@@ -226,10 +226,17 @@ The `SIGNINGS_AND_EXCEPTIONS` sheet includes:
    - Shows salary_year, exception_type_name, original/remaining amounts, dates, status
    - Used for exception_used validation in signings table
 
-4. **Signing Type Validation** — dropdown with values:
+4. **Exception Used Dropdown** — dynamic validation list for exception_used column:
+   - Helper spill range creates labels from tbl_exceptions_warehouse for SelectedTeam
+   - Filters to active (non-expired) exceptions only
+   - Label format: "exception_type_name ($remaining)" or "TPE: player_name ($remaining)"
+   - Named range `ExceptionUsedList` references the spill range
+   - Data validation uses warning mode (allows non-list values with warning)
+
+5. **Signing Type Validation** — dropdown with values:
    - Cap Room, MLE (Full), MLE (Taxpayer), MLE (Room), BAE, Minimum, TPE, Other
 
-5. **Hard-Cap Trigger Notes** — inline reference for which signings trigger hard cap
+6. **Hard-Cap Trigger Notes** — inline reference for which signings trigger hard cap
 
 ---
 

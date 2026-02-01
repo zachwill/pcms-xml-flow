@@ -442,15 +442,18 @@ def write_signings_and_exceptions(
     - Exception usage remaining
     - Hard-cap trigger flags
 
-    This v3 implementation provides:
+    This v4 implementation provides:
     - Signing input table with player, method, years, and amounts
-    - **NEW**: Per-row SelectedYear delta columns (delta_cap, delta_tax, delta_apron)
+    - Per-row SelectedYear delta columns (delta_cap, delta_tax, delta_apron)
         - Formulas compute the delta based on which year column matches SelectedYear
         - year_1_salary = MetaBaseYear, year_2 = MetaBaseYear+1, etc.
-    - **NEW**: Journal Output block with aggregated deltas + source label
+    - Journal Output block with aggregated deltas + source label
         - For copying into PLAN_JOURNAL
     - Exception inventory with live FILTER formulas from DATA_exceptions_warehouse
-    - (TODO) exception_used dropdown validation helper list (currently freeform text)
+    - **NEW**: exception_used dropdown validation helper list
+        - Helper spill range creates unique labels from tbl_exceptions_warehouse for SelectedTeam
+        - Label format: "exception_type_name ($remaining)" or "TPE: player_name ($remaining)"
+        - Data validation wired to reference the helper range
     - Signing method validation dropdown
     - Totals row
     - Money/date formats aligned with RULES_REFERENCE
@@ -596,6 +599,29 @@ def write_signings_and_exceptions(
             "input_message": "How is this player being signed?",
         },
     )
+
+    # =========================================================================
+    # exception_used data validation (per backlog task #13)
+    # =========================================================================
+    # Uses a formula-based list that pulls from tbl_exceptions_warehouse.
+    # The formula creates a dynamic list of exception labels for SelectedTeam.
+    #
+    # Label format: "exception_type_name ($remaining)" or for TPEs with a
+    # player name: "TPE: player_name ($remaining)"
+    #
+    # Note: XlsxWriter requires formula-based list validation to use a named
+    # range or a direct formula. We use a formula that builds labels from the
+    # warehouse table. Excel 365 dynamic arrays support this pattern.
+    #
+    # Formula logic:
+    # - Filter tbl_exceptions_warehouse by team_code = SelectedTeam AND NOT is_expired
+    # - Concatenate exception_type_name with remaining_amount
+    # - Include TPE player name if present
+    #
+    # The formula is placed in a helper cell (after the inventory section)
+    # and referenced via a named range "ExceptionUsedList".
+    # =========================================================================
+    # Note: data validation formula will be wired after the helper is created below
 
     content_row = table_end_row + 3
 
@@ -801,16 +827,138 @@ def write_signings_and_exceptions(
     )
     content_row += 2
 
-    # TODO: exception_used validation helper list
-    # Currently exception_used is freeform text. Analysts should reference the
-    # inventory above to verify availability / remaining amount.
+    # =========================================================================
+    # EXCEPTION_USED VALIDATION HELPER (per backlog task #13)
+    # =========================================================================
+    # Creates a helper spill range with unique exception labels for SelectedTeam.
+    # This enables dropdown validation for the exception_used column.
+    #
+    # Label format:
+    # - For TPEs with player name: "TPE: {player_name} (${remaining})"
+    # - For other exceptions: "{exception_type_name} (${remaining})"
+    #
+    # The formula:
+    # - Filters tbl_exceptions_warehouse by team_code = SelectedTeam AND NOT is_expired
+    # - Concatenates exception_type_name with remaining_amount (formatted)
+    # - Uses SORT to order by exception type + remaining descending
+    # =========================================================================
+
+    worksheet.merge_range(
+        content_row, SIG_COL_PLAYER,
+        content_row, SIG_COL_NOTES,
+        "EXCEPTION DROPDOWN LIST (helper for exception_used validation)",
+        sub_formats["section_header"],
+    )
+    content_row += 1
 
     worksheet.write(
         content_row, SIG_COL_PLAYER,
-        "Note: exception_used is currently freeform text. Reference the inventory above to verify availability.",
+        "Dynamic list of available exceptions for SelectedTeam. Used as dropdown source for exception_used column above.",
         sub_formats["note"],
     )
     content_row += 2
+
+    # Helper list header
+    worksheet.write(content_row, SIG_COL_PLAYER, "Available Exceptions:", sub_formats["label_bold"])
+    content_row += 1
+
+    # Store the helper cell location for the named range
+    helper_row = content_row
+    helper_col = SIG_COL_PLAYER
+
+    # The helper formula creates a list of exception labels.
+    # Formula logic:
+    # 1. FILTER tbl_exceptions_warehouse for SelectedTeam AND NOT is_expired
+    # 2. Build label: IF(has TPE player, "TPE: player ($amt)", "type ($amt)")
+    # 3. SORT by exception type, then remaining amount DESC
+    # 4. IFERROR for empty result
+    #
+    # Excel formula (uses TEXT for money formatting):
+    # =IFERROR(
+    #   SORT(
+    #     FILTER(
+    #       IF(
+    #         LEN(tbl_exceptions_warehouse[trade_exception_player_name])>0,
+    #         "TPE: "&tbl_exceptions_warehouse[trade_exception_player_name]&" ($"&TEXT(tbl_exceptions_warehouse[remaining_amount],"#,##0")&")",
+    #         tbl_exceptions_warehouse[exception_type_name]&" ($"&TEXT(tbl_exceptions_warehouse[remaining_amount],"#,##0")&")"
+    #       ),
+    #       (tbl_exceptions_warehouse[team_code]=SelectedTeam)*(NOT(tbl_exceptions_warehouse[is_expired]))
+    #     ),
+    #     1, 1
+    #   ),
+    #   "(none available)"
+    # )
+    exception_helper_formula = (
+        '=IFERROR('
+        'SORT('
+        'FILTER('
+        'IF('
+        'LEN(tbl_exceptions_warehouse[trade_exception_player_name])>0,'
+        '"TPE: "&tbl_exceptions_warehouse[trade_exception_player_name]&" ($"&TEXT(tbl_exceptions_warehouse[remaining_amount],"#,##0")&")",'
+        'tbl_exceptions_warehouse[exception_type_name]&" ($"&TEXT(tbl_exceptions_warehouse[remaining_amount],"#,##0")&")"'
+        '),'
+        '(tbl_exceptions_warehouse[team_code]=SelectedTeam)*(NOT(tbl_exceptions_warehouse[is_expired]))'
+        '),'
+        '1,1'
+        '),'
+        '"(none available)")'
+    )
+
+    worksheet.write_formula(helper_row, helper_col, exception_helper_formula, sub_formats["output"])
+
+    # Reserve space for spill results (up to 15 exceptions per team)
+    # The helper will spill downward automatically
+    exception_helper_start_row = helper_row
+    content_row = helper_row + 15
+
+    worksheet.write(
+        content_row, SIG_COL_PLAYER,
+        "↑ Dynamic array — available exceptions for dropdown. Shows '(none available)' if no valid exceptions.",
+        sub_formats["note"],
+    )
+    content_row += 2
+
+    # =========================================================================
+    # Define named range for the helper and wire data validation
+    # =========================================================================
+    # We define a named range "ExceptionUsedList" that references the helper
+    # spill range. This is then used by data validation for exception_used.
+    #
+    # Named range formula uses the spill operator (#) to capture the entire
+    # spill range dynamically:
+    #   =SIGNINGS_AND_EXCEPTIONS!$A$row#
+    #
+    # Note: XlsxWriter's define_name requires the formula without leading =
+    # =========================================================================
+    from xlsxwriter.utility import xl_col_to_name
+
+    helper_col_letter = xl_col_to_name(helper_col)
+    helper_cell_ref = f"${helper_col_letter}${exception_helper_start_row + 1}"  # Excel 1-indexed
+
+    # Define the named range using the spill reference (#)
+    # The spill operator (#) tells Excel to include all cells in the spill range
+    workbook.define_name(
+        "ExceptionUsedList",
+        f"='SIGNINGS_AND_EXCEPTIONS'!{helper_cell_ref}#"
+    )
+
+    # Now add data validation for exception_used column in the signings table
+    # Use the named range we just defined
+    worksheet.data_validation(
+        table_start_row + 1,
+        SIG_COL_EXCEPTION,
+        table_end_row,
+        SIG_COL_EXCEPTION,
+        {
+            "validate": "list",
+            "source": "=ExceptionUsedList",
+            "input_title": "Exception Used",
+            "input_message": "Select the exception being used for this signing (filtered by SelectedTeam).",
+            "error_title": "Invalid Exception",
+            "error_message": "Please select from the available exceptions list, or leave blank.",
+            "error_type": "warning",  # Allow non-list values with warning
+        },
+    )
 
     # Hard-cap trigger notes
     worksheet.write(content_row, SIG_COL_PLAYER, "Hard-Cap Trigger Notes:", sub_formats["label_bold"])

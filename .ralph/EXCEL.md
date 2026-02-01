@@ -101,10 +101,11 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - HOME: Data Health banner considers reconcile_v1 AND reconcile_v2
 
 ### 13) SIGNINGS_AND_EXCEPTIONS: exception_used validation helper list
-- [ ] Add exception_used dropdown sourced from DATA_exceptions_warehouse
-  - Add a helper spill range using UNIQUE/FILTER for SelectedTeam exceptions
-  - Wire data validation for tbl_signings_input[exception_used]
-  - Prefer selecting team_exception_id (or a stable label) over freeform text
+- [x] Add exception_used dropdown sourced from DATA_exceptions_warehouse
+  - Add a helper spill range using FILTER for SelectedTeam exceptions (non-expired)
+  - Label format: "exception_type_name ($remaining)" or "TPE: player_name ($remaining)"
+  - Named range `ExceptionUsedList` references the spill range via spill operator (#)
+  - Data validation wired for tbl_signings_input[exception_used] with warning mode
 
 ### 14) WAIVE_BUYOUT_STRETCH: formula-driven net owed + dead money
 - [ ] Compute waive/buyout deltas via formulas

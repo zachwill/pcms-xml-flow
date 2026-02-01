@@ -226,6 +226,9 @@ The `TEAM_COCKPIT` sheet includes:
    - Positive deltas (cost increase) in red, negative (savings) in green
 
 7. **Quick Drivers Panel** (right side) — top cap hits, dead money, holds
+   - Uses Excel 365 dynamic arrays: `LET + FILTER + SORTBY + TAKE`
+   - Single spilling formula per column (replaces per-row AGGREGATE/MATCH)
+   - Mode-aware sorting (respects SelectedMode: Cap/Tax/Apron)
 
 ### ROSTER_GRID sections
 

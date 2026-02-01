@@ -7,6 +7,9 @@ This module implements:
 3. Alert stack section (validation, reconciliation, policy alerts)
 4. Primary readouts section driven by DATA_team_salary_warehouse
 5. Quick drivers panel (top cap hits, top dead money, top holds)
+   - Uses Excel 365 dynamic arrays: LET + FILTER + SORTBY + TAKE
+   - Single spilling formula per column (replaces per-row AGGREGATE/MATCH)
+   - Mode-aware sorting (respects SelectedMode: Cap/Tax/Apron)
 6. Minimum contracts count + total (using is_min_contract)
 7. Plan comparison panel (ComparePlan A/B/C/D deltas vs Baseline)
 8. Sheet protection with unlocked input cells
@@ -818,6 +821,14 @@ def _write_quick_drivers(
     - Top N dead money (from dead_money_warehouse)
     - Top N holds (from cap_holds_warehouse)
     
+    Uses Excel 365 dynamic array formulas (LET + FILTER + SORTBY + TAKE)
+    instead of legacy AGGREGATE/MATCH patterns.
+    
+    Each panel writes:
+    - A spilling name formula at the first data cell
+    - A spilling amount formula at the first data cell
+    - Both spill down to fill TOP_N_DRIVERS rows
+    
     Returns:
         Next available row
     """
@@ -836,149 +847,188 @@ def _write_quick_drivers(
     worksheet.set_column(COL_DRIVERS_VALUE, COL_DRIVERS_VALUE, 14)
     
     row = start_row
+    n = TOP_N_DRIVERS
     
     # =========================================================================
-    # Top Cap Hits
+    # Top Cap Hits (salary_book_warehouse)
     # =========================================================================
+    # Uses LET + FILTER + SORTBY + TAKE pattern:
+    #   1. mode_amt: mode-aware amount for SelectedYear (cap/tax/apron)
+    #   2. filter_cond: team match + non-two-way + amount > 0
+    #   3. FILTER columns by filter_cond
+    #   4. SORTBY amount (descending)
+    #   5. TAKE first N rows
+    # =========================================================================
+    
     worksheet.write(row, COL_DRIVERS_LABEL, "TOP CAP HITS", section_header_fmt)
     worksheet.write(row, COL_DRIVERS_PLAYER, "Player", section_header_fmt)
     worksheet.write(row, COL_DRIVERS_VALUE, "Amount", section_header_fmt)
     row += 1
     
-    # Use LARGE + INDEX/MATCH for top N
-    # We filter by team_code=SelectedTeam and is_two_way=FALSE (standard contracts)
-    # The amount column is SelectedYear-aware via CHOOSE(SelectedYear-MetaBaseYear+1, cap_y0..cap_y5)
-    #
-    # For AGGREGATE(14,6,...), we need a different approach since CHOOSE returns arrays.
-    # We use SUMPRODUCT with LARGE for the Nth largest value.
-    # NOTE: Excel's AGGREGATE with array division doesn't work well with CHOOSE in some versions,
-    # so we use a SUMPRODUCT/LARGE approach that's more compatible.
+    # LET prefix for salary_book filtering (SelectedYear-aware, mode-aware)
+    # The salary_book_warehouse has relative-year columns: cap_y0..cap_y5, tax_y0..tax_y5, apron_y0..apron_y5
+    # We use CHOOSE(SelectedYear-MetaBaseYear+1, ...) to pick the correct year column
+    # and IF(SelectedMode=...) to pick the correct mode prefix
+    salary_book_let_prefix = (
+        'mode_amt,IF(SelectedMode="Cap",'
+        'CHOOSE(SelectedYear-MetaBaseYear+1,'
+        + ','.join(f'tbl_salary_book_warehouse[cap_y{i}]' for i in range(6))
+        + '),'
+        'IF(SelectedMode="Tax",'
+        'CHOOSE(SelectedYear-MetaBaseYear+1,'
+        + ','.join(f'tbl_salary_book_warehouse[tax_y{i}]' for i in range(6))
+        + '),'
+        'CHOOSE(SelectedYear-MetaBaseYear+1,'
+        + ','.join(f'tbl_salary_book_warehouse[apron_y{i}]' for i in range(6))
+        + '))),'
+        'filter_cond,(tbl_salary_book_warehouse[team_code]=SelectedTeam)*'
+        '(tbl_salary_book_warehouse[is_two_way]=FALSE)*(mode_amt>0),'
+    )
     
-    cap_choose_expr = _salary_book_choose_cap()
+    # Name formula: FILTER player_name, SORTBY mode_amt DESC, TAKE N
+    cap_hits_name_formula = (
+        "=LET("
+        + salary_book_let_prefix
+        + "filtered,FILTER(tbl_salary_book_warehouse[player_name],filter_cond,\"\"),"
+        + "sorted_amounts,FILTER(mode_amt,filter_cond,0),"
+        + f"IFNA(TAKE(SORTBY(filtered,sorted_amounts,-1),{n}),\"\"))"
+    )
+    worksheet.write_formula(row, COL_DRIVERS_PLAYER, cap_hits_name_formula, player_fmt)
     
-    for rank in range(1, TOP_N_DRIVERS + 1):
-        # Value: Nth largest cap amount for SelectedYear for the team (excluding two-way)
-        # Uses AGGREGATE(14,6,IF(...),k) pattern which works with CHOOSE inside IF
-        value_formula = (
-            f"=IFERROR(AGGREGATE(14,6,"
-            f"IF((tbl_salary_book_warehouse[team_code]=SelectedTeam)*"
-            f"(tbl_salary_book_warehouse[is_two_way]=FALSE),"
-            f"{cap_choose_expr}),"
-            f"{rank}),0)"
-        )
-        
-        # Name: INDEX/MATCH to find player name with this value
-        # Match on team_code AND is_two_way=FALSE AND cap amount = the value we just computed
-        name_formula = (
-            f"=IFERROR(INDEX(tbl_salary_book_warehouse[player_name],"
-            f"MATCH(1,(tbl_salary_book_warehouse[team_code]=SelectedTeam)*"
-            f"(tbl_salary_book_warehouse[is_two_way]=FALSE)*"
-            f"(({cap_choose_expr})=AGGREGATE(14,6,"
-            f"IF((tbl_salary_book_warehouse[team_code]=SelectedTeam)*"
-            f"(tbl_salary_book_warehouse[is_two_way]=FALSE),"
-            f"{cap_choose_expr}),"
-            f"{rank})),0)),\"\")"
-        )
-        
-        worksheet.write(row, COL_DRIVERS_LABEL, f"#{rank}")
-        worksheet.write_formula(row, COL_DRIVERS_PLAYER, name_formula, player_fmt)
-        worksheet.write_formula(row, COL_DRIVERS_VALUE, value_formula, money_fmt)
-        row += 1
+    # Amount formula: FILTER mode_amt, SORTBY mode_amt DESC, TAKE N
+    cap_hits_amount_formula = (
+        "=LET("
+        + salary_book_let_prefix
+        + "filtered,FILTER(mode_amt,filter_cond,\"\"),"
+        + "sorted_amounts,FILTER(mode_amt,filter_cond,0),"
+        + f"IFNA(TAKE(SORTBY(filtered,sorted_amounts,-1),{n}),\"\"))"
+    )
+    worksheet.write_formula(row, COL_DRIVERS_VALUE, cap_hits_amount_formula, money_fmt)
+    
+    # Row labels (static, don't spill)
+    for rank in range(1, n + 1):
+        worksheet.write(row + rank - 1, COL_DRIVERS_LABEL, f"#{rank}")
+    
+    row += n
     
     # Blank row
     row += 1
     
     # =========================================================================
-    # Top Dead Money
+    # Top Dead Money (dead_money_warehouse)
     # =========================================================================
+    # dead_money_warehouse has: cap_value, tax_value, apron_value (per salary_year)
+    # Filter by team_code + salary_year, sort by mode-aware value (DESC)
+    # =========================================================================
+    
     worksheet.write(row, COL_DRIVERS_LABEL, "TOP DEAD MONEY", section_header_fmt)
     worksheet.write(row, COL_DRIVERS_PLAYER, "Player", section_header_fmt)
     worksheet.write(row, COL_DRIVERS_VALUE, "Amount", section_header_fmt)
     row += 1
     
-    for rank in range(1, TOP_N_DRIVERS + 1):
-        # Value: Nth largest cap_value for the team in dead_money_warehouse
-        value_formula = (
-            f"=IFERROR(AGGREGATE(14,6,"
-            f"(tbl_dead_money_warehouse[cap_value])/"
-            f"((tbl_dead_money_warehouse[team_code]=SelectedTeam)*"
-            f"(tbl_dead_money_warehouse[salary_year]=SelectedYear))"
-            f",{rank}),0)"
-        )
-        
-        name_formula = (
-            f"=IFERROR(INDEX(tbl_dead_money_warehouse[player_name],"
-            f"MATCH(1,(tbl_dead_money_warehouse[team_code]=SelectedTeam)*"
-            f"(tbl_dead_money_warehouse[salary_year]=SelectedYear)*"
-            f"(tbl_dead_money_warehouse[cap_value]=AGGREGATE(14,6,"
-            f"(tbl_dead_money_warehouse[cap_value])/"
-            f"((tbl_dead_money_warehouse[team_code]=SelectedTeam)*"
-            f"(tbl_dead_money_warehouse[salary_year]=SelectedYear))"
-            f",{rank})),0)),\"\")"
-        )
-        
-        worksheet.write(row, COL_DRIVERS_LABEL, f"#{rank}")
-        worksheet.write_formula(row, COL_DRIVERS_PLAYER, name_formula, player_fmt)
-        worksheet.write_formula(row, COL_DRIVERS_VALUE, value_formula, money_fmt)
-        row += 1
-    
-    # Dead money total for the team/year
-    worksheet.write(row, COL_DRIVERS_LABEL, "Total:", bold_fmt)
-    worksheet.write_formula(
-        row, COL_DRIVERS_VALUE,
-        "=SUMIFS(tbl_dead_money_warehouse[cap_value],"
-        "tbl_dead_money_warehouse[team_code],SelectedTeam,"
-        "tbl_dead_money_warehouse[salary_year],SelectedYear)",
-        money_fmt,
+    # LET prefix for dead_money filtering (mode-aware)
+    dead_money_let_prefix = (
+        'mode_amt,IF(SelectedMode="Cap",tbl_dead_money_warehouse[cap_value],'
+        'IF(SelectedMode="Tax",tbl_dead_money_warehouse[tax_value],'
+        'tbl_dead_money_warehouse[apron_value])),'
+        'filter_cond,(tbl_dead_money_warehouse[team_code]=SelectedTeam)*'
+        '(tbl_dead_money_warehouse[salary_year]=SelectedYear)*(mode_amt>0),'
     )
+    
+    # Name formula
+    dead_money_name_formula = (
+        "=LET("
+        + dead_money_let_prefix
+        + "filtered,FILTER(tbl_dead_money_warehouse[player_name],filter_cond,\"\"),"
+        + "sorted_amounts,FILTER(mode_amt,filter_cond,0),"
+        + f"IFNA(TAKE(SORTBY(filtered,sorted_amounts,-1),{n}),\"\"))"
+    )
+    worksheet.write_formula(row, COL_DRIVERS_PLAYER, dead_money_name_formula, player_fmt)
+    
+    # Amount formula
+    dead_money_amount_formula = (
+        "=LET("
+        + dead_money_let_prefix
+        + "filtered,FILTER(mode_amt,filter_cond,\"\"),"
+        + "sorted_amounts,FILTER(mode_amt,filter_cond,0),"
+        + f"IFNA(TAKE(SORTBY(filtered,sorted_amounts,-1),{n}),\"\"))"
+    )
+    worksheet.write_formula(row, COL_DRIVERS_VALUE, dead_money_amount_formula, money_fmt)
+    
+    # Row labels
+    for rank in range(1, n + 1):
+        worksheet.write(row + rank - 1, COL_DRIVERS_LABEL, f"#{rank}")
+    
+    row += n
+    
+    # Dead money total for the team/year (mode-aware)
+    worksheet.write(row, COL_DRIVERS_LABEL, "Total:", bold_fmt)
+    dead_money_total_formula = (
+        "=LET("
+        + dead_money_let_prefix
+        + "SUM(FILTER(mode_amt,filter_cond,0)))"
+    )
+    worksheet.write_formula(row, COL_DRIVERS_VALUE, dead_money_total_formula, money_fmt)
     row += 1
     
     # Blank row
     row += 1
     
     # =========================================================================
-    # Top Cap Holds
+    # Top Cap Holds (cap_holds_warehouse)
     # =========================================================================
+    # cap_holds_warehouse has: cap_amount, tax_amount, apron_amount (per salary_year)
+    # Filter by team_code + salary_year, sort by mode-aware amount (DESC)
+    # =========================================================================
+    
     worksheet.write(row, COL_DRIVERS_LABEL, "TOP HOLDS", section_header_fmt)
     worksheet.write(row, COL_DRIVERS_PLAYER, "Player", section_header_fmt)
     worksheet.write(row, COL_DRIVERS_VALUE, "Amount", section_header_fmt)
     row += 1
     
-    for rank in range(1, TOP_N_DRIVERS + 1):
-        # Value: Nth largest cap_amount for the team in cap_holds_warehouse
-        value_formula = (
-            f"=IFERROR(AGGREGATE(14,6,"
-            f"(tbl_cap_holds_warehouse[cap_amount])/"
-            f"((tbl_cap_holds_warehouse[team_code]=SelectedTeam)*"
-            f"(tbl_cap_holds_warehouse[salary_year]=SelectedYear))"
-            f",{rank}),0)"
-        )
-        
-        name_formula = (
-            f"=IFERROR(INDEX(tbl_cap_holds_warehouse[player_name],"
-            f"MATCH(1,(tbl_cap_holds_warehouse[team_code]=SelectedTeam)*"
-            f"(tbl_cap_holds_warehouse[salary_year]=SelectedYear)*"
-            f"(tbl_cap_holds_warehouse[cap_amount]=AGGREGATE(14,6,"
-            f"(tbl_cap_holds_warehouse[cap_amount])/"
-            f"((tbl_cap_holds_warehouse[team_code]=SelectedTeam)*"
-            f"(tbl_cap_holds_warehouse[salary_year]=SelectedYear))"
-            f",{rank})),0)),\"\")"
-        )
-        
-        worksheet.write(row, COL_DRIVERS_LABEL, f"#{rank}")
-        worksheet.write_formula(row, COL_DRIVERS_PLAYER, name_formula, player_fmt)
-        worksheet.write_formula(row, COL_DRIVERS_VALUE, value_formula, money_fmt)
-        row += 1
-    
-    # Holds total for the team/year
-    worksheet.write(row, COL_DRIVERS_LABEL, "Total:", bold_fmt)
-    worksheet.write_formula(
-        row, COL_DRIVERS_VALUE,
-        "=SUMIFS(tbl_cap_holds_warehouse[cap_amount],"
-        "tbl_cap_holds_warehouse[team_code],SelectedTeam,"
-        "tbl_cap_holds_warehouse[salary_year],SelectedYear)",
-        money_fmt,
+    # LET prefix for cap_holds filtering (mode-aware)
+    cap_holds_let_prefix = (
+        'mode_amt,IF(SelectedMode="Cap",tbl_cap_holds_warehouse[cap_amount],'
+        'IF(SelectedMode="Tax",tbl_cap_holds_warehouse[tax_amount],'
+        'tbl_cap_holds_warehouse[apron_amount])),'
+        'filter_cond,(tbl_cap_holds_warehouse[team_code]=SelectedTeam)*'
+        '(tbl_cap_holds_warehouse[salary_year]=SelectedYear)*(mode_amt>0),'
     )
+    
+    # Name formula
+    cap_holds_name_formula = (
+        "=LET("
+        + cap_holds_let_prefix
+        + "filtered,FILTER(tbl_cap_holds_warehouse[player_name],filter_cond,\"\"),"
+        + "sorted_amounts,FILTER(mode_amt,filter_cond,0),"
+        + f"IFNA(TAKE(SORTBY(filtered,sorted_amounts,-1),{n}),\"\"))"
+    )
+    worksheet.write_formula(row, COL_DRIVERS_PLAYER, cap_holds_name_formula, player_fmt)
+    
+    # Amount formula
+    cap_holds_amount_formula = (
+        "=LET("
+        + cap_holds_let_prefix
+        + "filtered,FILTER(mode_amt,filter_cond,\"\"),"
+        + "sorted_amounts,FILTER(mode_amt,filter_cond,0),"
+        + f"IFNA(TAKE(SORTBY(filtered,sorted_amounts,-1),{n}),\"\"))"
+    )
+    worksheet.write_formula(row, COL_DRIVERS_VALUE, cap_holds_amount_formula, money_fmt)
+    
+    # Row labels
+    for rank in range(1, n + 1):
+        worksheet.write(row + rank - 1, COL_DRIVERS_LABEL, f"#{rank}")
+    
+    row += n
+    
+    # Holds total for the team/year (mode-aware)
+    worksheet.write(row, COL_DRIVERS_LABEL, "Total:", bold_fmt)
+    cap_holds_total_formula = (
+        "=LET("
+        + cap_holds_let_prefix
+        + "SUM(FILTER(mode_amt,filter_cond,0)))"
+    )
+    worksheet.write_formula(row, COL_DRIVERS_VALUE, cap_holds_total_formula, money_fmt)
     row += 1
     
     return row

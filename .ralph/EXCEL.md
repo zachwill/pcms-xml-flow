@@ -34,12 +34,6 @@ Build a new, self-contained Sean-style Excel cap workbook **generated from code*
 
 ## Backlog (next work)
 
-### 12) TEAM_COCKPIT: Quick Drivers via FILTER/SORTBY/TAKE
-- [ ] Replace AGGREGATE/MATCH "top N" extraction with spill formulas
-  - Build Top Cap Hits / Top Holds / Top Dead Money as dynamic arrays
-  - Prefer `LET + FILTER + SORTBY + TAKE` (single spill per panel)
-  - Preserve existing formatting + conditional formatting semantics
-
 ### 13) TEAM_COCKPIT: Minimum contracts readout without SUMPRODUCT
 - [ ] Replace min-contract SUMPRODUCT logic with `LET + FILTER + SUM/ROWS`
   - Replace `Min Contract Total` SUMPRODUCT (SelectedYear cap amounts)
@@ -58,6 +52,13 @@ Build a new, self-contained Sean-style Excel cap workbook **generated from code*
 ---
 
 ## Completed (recent)
+
+### 12) TEAM_COCKPIT: Quick Drivers via FILTER/SORTBY/TAKE
+- [x] Replace AGGREGATE/MATCH "top N" extraction with spill formulas
+  - Build Top Cap Hits / Top Holds / Top Dead Money as dynamic arrays
+  - Prefer `LET + FILTER + SORTBY + TAKE` (single spill per panel)
+  - Mode-aware sorting (respects SelectedMode: Cap/Tax/Apron)
+  - Totals now use `SUM(FILTER(...))` instead of SUMIFS (mode-aware)
 
 ### 1) Document Excel 365+ requirement + formula standard
 - [x] Add explicit "Excel 365/2021 required" note to docs + workbook UI

@@ -741,26 +741,66 @@ def _write_running_state_panel(
     cumul_col_apron = cumul_col_step + 3
     
     worksheet.set_column(cumul_col_step, cumul_col_step, 6)
-    worksheet.set_column(cumul_col_cap, cumul_col_cap, 12)
-    worksheet.set_column(cumul_col_tax, cumul_col_tax, 12)
-    worksheet.set_column(cumul_col_apron, cumul_col_apron, 12)
+    worksheet.set_column(cumul_col_cap, cumul_col_cap, 14)
+    worksheet.set_column(cumul_col_tax, cumul_col_tax, 14)
+    worksheet.set_column(cumul_col_apron, cumul_col_apron, 14)
     
     worksheet.write(cumul_header_row, cumul_col_step, "Step", plan_formats["panel_subheader"])
     worksheet.write(cumul_header_row, cumul_col_cap, "Cumul Δ Cap", plan_formats["panel_subheader"])
     worksheet.write(cumul_header_row, cumul_col_tax, "Cumul Δ Tax", plan_formats["panel_subheader"])
     worksheet.write(cumul_header_row, cumul_col_apron, "Cumul Δ Apron", plan_formats["panel_subheader"])
     
-    cumul_first_data_row = cumul_header_row + 1
-    step_formula = "=tbl_plan_journal[step]"
-    worksheet.write_formula(
-        cumul_first_data_row, cumul_col_step,
-        step_formula,
-        plan_formats["panel_value"],
+    # Write row-by-row cumulative formulas
+    # We use SUMPRODUCT to handle the "matches ActivePlan OR is blank" logic easily.
+    # While O(N^2), it is very fast for typical journal sizes (<500 rows).
+    for i in range(num_data_rows):
+        curr_row = table_start_row + 1 + i
+        excel_row = curr_row + 1
+        step_ref = f"$A{excel_row}"
+        
+        # Step number (simple link)
+        worksheet.write_formula(
+            curr_row, cumul_col_step,
+            f"=IF({step_ref}<>\"\",{step_ref},\"\")",
+            plan_formats["panel_value"],
+        )
+        
+        def make_cumul_formula(col_name: str) -> str:
+            # Only sum rows where step <= current step AND (plan matches OR is blank) AND (year matches OR is blank) AND enabled="Yes"
+            return (
+                f'=IF({step_ref}="","",SUMPRODUCT('
+                f'tbl_plan_journal[{col_name}],'
+                f'(tbl_plan_journal[step]<={step_ref})*'
+                f'(tbl_plan_journal[enabled]="Yes")*'
+                f'((tbl_plan_journal[plan_id]=ActivePlanId)+(tbl_plan_journal[plan_id]=""))*'
+                f'((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]=""))'
+                f'))'
+            )
+
+        worksheet.write_formula(curr_row, cumul_col_cap, make_cumul_formula("delta_cap"), plan_formats["panel_value_money"])
+        worksheet.write_formula(curr_row, cumul_col_tax, make_cumul_formula("delta_tax"), plan_formats["panel_value_money"])
+        worksheet.write_formula(curr_row, cumul_col_apron, make_cumul_formula("delta_apron"), plan_formats["panel_value_money"])
+
+    # Apply same gray-out conditional formatting to cumulative columns
+    first_data_row = table_start_row + 2
+    gray_out_formula = (
+        f'=NOT(AND('
+        f'OR($B{first_data_row}=ActivePlanId,$B{first_data_row}=""),'
+        f'OR($D{first_data_row}=SelectedYear,$D{first_data_row}="")'
+        f'))'
     )
     
-    worksheet.write(cumul_first_data_row, cumul_col_cap, "-", plan_formats["panel_value"])
-    worksheet.write(cumul_first_data_row, cumul_col_tax, "-", plan_formats["panel_value"])
-    worksheet.write(cumul_first_data_row, cumul_col_apron, "-", plan_formats["panel_value"])
+    worksheet.conditional_format(
+        table_start_row + 1,
+        cumul_col_step,
+        table_end_row,
+        cumul_col_apron,
+        {
+            "type": "formula",
+            "criteria": gray_out_formula,
+            "format": plan_formats["grayed_out"],
+        },
+    )
 
 
 def get_plan_names_formula() -> str:

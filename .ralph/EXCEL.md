@@ -41,8 +41,8 @@ This document tracks the Excel capbook modernization effort—splitting massive 
 
 ### Next up (prioritized)
 
-- [ ] Build a real workbook and run XML sanity checks (no Excel repair dialog; no bare LET variables; no `#` spill refs in defined names)
-- [ ] PLAN_JOURNAL: implement row-by-row cumulative Δ Cap/Tax/Apron without SCAN/LAMBDA (avoid Mac Excel repair)
+- [x] Build a real workbook and run XML sanity checks (no Excel repair dialog; no bare LET variables; no `#` spill refs in defined names)
+- [x] PLAN_JOURNAL: implement row-by-row cumulative Δ Cap/Tax/Apron without SCAN/LAMBDA (avoid Mac Excel repair)
 - [ ] Continue modernizing remaining SUMPRODUCT hotspots only when it improves readability/performance
 
 ### Phase 1: Split `subsystems.py` (easiest win)

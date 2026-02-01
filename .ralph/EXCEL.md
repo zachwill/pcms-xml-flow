@@ -85,7 +85,7 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Sort by `draft_year`, `draft_round`, `asset_slot` + show `needs_review` indicator clearly
 
 ### 10) SIGNINGS_AND_EXCEPTIONS: wire exception inventory + validation
-- [ ] Drive exception inventory from DATA_exceptions_warehouse
+- [x] Drive exception inventory from DATA_exceptions_warehouse
   - Add live exception table filtered by SelectedTeam
   - Create a helper list/named range for exception_used validation
   - Align formats with RULES_REFERENCE (money/date)

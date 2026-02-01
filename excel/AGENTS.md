@@ -119,7 +119,7 @@ The workbook includes these UI sheets (per `excel-cap-book-blueprint.md`):
 | `PLAN_MANAGER` | Scenario/plan definitions |
 | `PLAN_JOURNAL` | Ordered action journal for scenario modeling + running-state panel |
 | `TRADE_MACHINE` | Lane-based trade iteration (A/B/C/D) |
-| `SIGNINGS_AND_EXCEPTIONS` | Signing inputs + exception tracking |
+| `SIGNINGS_AND_EXCEPTIONS` | Signing inputs + exception inventory (live from DATA_exceptions_warehouse) |
 | `WAIVE_BUYOUT_STRETCH` | Dead money modeling inputs |
 | `ASSETS` | Exception/TPE + draft pick inventory |
 | `AUDIT_AND_RECONCILE` | Totals reconciliation + assumptions display |

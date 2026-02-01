@@ -133,11 +133,16 @@ The `ROSTER_GRID` sheet includes these sections:
 2. **TWO-WAY CONTRACTS** — bucket = 2WAY, Ct$=Y, CtR=N
 3. **CAP HOLDS (Free Agent Rights)** — bucket = FA, Ct$=Y, CtR=N
 4. **DEAD MONEY (Terminated Contracts)** — bucket = TERM, Ct$=Y, CtR=N
-5. **EXISTS_ONLY (Future-Year Contracts)** — bucket = EXISTS, Ct$=N, CtR=N
+5. **GENERATED (Roster Fill Slots)** — bucket = GEN, Ct$=Y, CtR=Y
+   - Generated when `RosterFillTarget` is 12, 14, or 15 (0 = off)
+   - Fill amounts from `RosterFillType`: "Rookie Min" / "Vet Min" / "Cheapest"
+   - Displays as "Fill Slot #N (type)" rows with gold/amber styling
+   - Policy assumptions — included in totals but NOT in reconciliation checks
+6. **EXISTS_ONLY (Future-Year Contracts)** — bucket = EXISTS, Ct$=N, CtR=N
    - Shows players with $0 in SelectedYear but non-zero in future years
    - Controlled by `ShowExistsOnlyRows` toggle ("Yes" to show, "No" to hide)
    - For analyst reference only — excluded from totals
-6. **RECONCILIATION** — proves grid sums match warehouse totals
+7. **RECONCILIATION** — proves grid sums match warehouse totals
 
 ---
 

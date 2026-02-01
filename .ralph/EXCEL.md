@@ -27,7 +27,7 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
 ## Backlog (feature complete)
 
 ### 1) Docs alignment (blueprints + agents + comments)
-- [ ] Update docs to reflect current workbook semantics
+- [x] Update docs to reflect current workbook semantics
   - Remove two-way toggles from the blueprint command bar section
   - Add GENERATED section to ROSTER_GRID lists (blueprint + excel/AGENTS.md)
   - Update command_bar.py comment about fill rows being "not implemented yet"

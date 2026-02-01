@@ -89,8 +89,8 @@ COCKPIT_SHEET_NAME = "TEAM_COCKPIT"
 
 DEFAULT_MODE = "Cap"
 
-# NOTE: Fill rows are not implemented yet. Default to OFF (0) so the workbook
-# does not imply that generated assumptions are active.
+# NOTE: Fill rows are implemented. Default to OFF (0) so workbooks start with
+# no policy assumptions active. Users can enable by setting RosterFillTarget to 12/14/15.
 DEFAULT_ROSTER_FILL_TARGET = 0  # 0 = off
 DEFAULT_ROSTER_FILL_TYPE = "Vet Min"
 DEFAULT_SHOW_EXISTS_ONLY = False

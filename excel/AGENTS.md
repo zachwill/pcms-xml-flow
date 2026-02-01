@@ -238,6 +238,41 @@ The `SIGNINGS_AND_EXCEPTIONS` sheet includes:
 
 6. **Hard-Cap Trigger Notes** — inline reference for which signings trigger hard cap
 
+### WAIVE_BUYOUT_STRETCH features
+
+The `WAIVE_BUYOUT_STRETCH` sheet includes:
+
+1. **Waive/Buyout Input Table (`tbl_waive_input`)** — dead money scenario entries:
+   - player_name, waive_date, years_remaining (input columns)
+   - remaining_gtd, giveback (input amounts)
+   - stretch (Yes/No toggle)
+   - **Formula-driven computed columns**:
+     - `net_owed = remaining_gtd - giveback`
+     - `dead_year_1/2/3`: distribution based on stretch toggle
+       - If stretch="No": all net_owed goes to dead_year_1
+       - If stretch="Yes": divided across (2 × years_remaining + 1) years
+     - `delta_cap`, `delta_tax`, `delta_apron`: picks dead_year matching SelectedYear
+       - dead_year_1 = MetaBaseYear, dead_year_2 = MetaBaseYear+1, etc.
+   - notes (freeform input)
+
+2. **Journal Output Block** — aggregated deltas for publishing to PLAN_JOURNAL:
+   - Selected Year context (from command bar)
+   - Waive count (non-blank rows)
+   - Total Δ Cap, Δ Tax, Δ Apron for SelectedYear
+   - Source label: "Waive/Buyout (WAIVE_BUYOUT_STRETCH)"
+   - Manual publish instructions (copy into PLAN_JOURNAL)
+
+3. **Data Validation**:
+   - Stretch toggle: Yes/No dropdown
+   - Years remaining: integer 1-5 validation
+
+4. **Stretch Provision Reference** — inline notes:
+   - Formula: spread over (2 × years remaining + 1) seasons
+   - Election window timing
+   - Set-off rules when player signs elsewhere
+
+5. **Formula Reference** — documents the computed column logic
+
 ---
 
 ## Architecture (code-generated workbook)

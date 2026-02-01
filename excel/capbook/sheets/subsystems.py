@@ -981,17 +981,22 @@ def write_signings_and_exceptions(
 # WAIVE_BUYOUT_STRETCH Sheet Writer
 # =============================================================================
 
-# Waive table columns
+# Waive table columns (input columns)
 WV_COL_PLAYER = 0
 WV_COL_WAIVE_DATE = 1
-WV_COL_REMAINING_GTD = 2
-WV_COL_GIVEBACK = 3
-WV_COL_NET_OWED = 4
+WV_COL_YEARS_REMAINING = 2
+WV_COL_REMAINING_GTD = 3
+WV_COL_GIVEBACK = 4
 WV_COL_STRETCH = 5
-WV_COL_DEAD_Y1 = 6
-WV_COL_DEAD_Y2 = 7
-WV_COL_DEAD_Y3 = 8
-WV_COL_NOTES = 9
+# Computed columns (formula-driven)
+WV_COL_NET_OWED = 6
+WV_COL_DEAD_Y1 = 7
+WV_COL_DEAD_Y2 = 8
+WV_COL_DEAD_Y3 = 9
+WV_COL_DELTA_CAP = 10
+WV_COL_DELTA_TAX = 11
+WV_COL_DELTA_APRON = 12
+WV_COL_NOTES = 13
 
 WV_NUM_ROWS = 8  # Number of input slots
 
@@ -1013,17 +1018,23 @@ def write_waive_buyout_stretch(
     - Cap/tax/apron distribution by year output
     - Immediate savings vs future costs
 
-    This v1 implementation provides:
-    - Waive/buyout input table
-    - Stretch toggle per row
-    - Dead money distribution columns (formula-driven in future)
-    - Stretch provision reference
+    This v2 implementation provides (per backlog task #14):
+    - Waive/buyout input table with formula-driven computed columns
+    - Formula: net_owed = remaining_gtd - giveback
+    - Formula: dead_year_1/2/3 based on stretch toggle and years_remaining
+      - If stretch="No": all net_owed goes to dead_year_1
+      - If stretch="Yes": net_owed is divided evenly across stretch period
+        - Stretch period = (2 × years_remaining + 1), capped at 3 for display
+    - Formula: delta_cap/tax/apron picks appropriate dead_year based on SelectedYear
+      - dead_year_1 = MetaBaseYear, dead_year_2 = MetaBaseYear+1, etc.
+    - Journal Output block with aggregated deltas for SelectedYear
+    - Stretch provision reference notes
     """
     sub_formats = _create_subsystem_formats(workbook)
 
     # Sheet title
     worksheet.write(0, 0, "WAIVE / BUYOUT / STRETCH", formats["header"])
-    worksheet.write(1, 0, "Model dead money scenarios — waives, buyouts, and stretch provisions")
+    worksheet.write(1, 0, "Model dead money scenarios — formulas auto-compute net owed, dead money distribution, and SelectedYear deltas")
 
     # Write read-only command bar
     write_command_bar_readonly(workbook, worksheet, formats)
@@ -1033,26 +1044,28 @@ def write_waive_buyout_stretch(
     # Column widths
     worksheet.set_column(WV_COL_PLAYER, WV_COL_PLAYER, 22)
     worksheet.set_column(WV_COL_WAIVE_DATE, WV_COL_WAIVE_DATE, 12)
+    worksheet.set_column(WV_COL_YEARS_REMAINING, WV_COL_YEARS_REMAINING, 10)
     worksheet.set_column(WV_COL_REMAINING_GTD, WV_COL_REMAINING_GTD, 14)
     worksheet.set_column(WV_COL_GIVEBACK, WV_COL_GIVEBACK, 12)
-    worksheet.set_column(WV_COL_NET_OWED, WV_COL_NET_OWED, 12)
     worksheet.set_column(WV_COL_STRETCH, WV_COL_STRETCH, 10)
+    worksheet.set_column(WV_COL_NET_OWED, WV_COL_NET_OWED, 12)
     worksheet.set_column(WV_COL_DEAD_Y1, WV_COL_DEAD_Y3, 12)
+    worksheet.set_column(WV_COL_DELTA_CAP, WV_COL_DELTA_APRON, 12)
     worksheet.set_column(WV_COL_NOTES, WV_COL_NOTES, 20)
 
     # Section header
     worksheet.merge_range(
         content_row, WV_COL_PLAYER,
         content_row, WV_COL_NOTES,
-        "WAIVE/BUYOUT INPUT (tbl_waive_input)",
+        "WAIVE/BUYOUT INPUT (tbl_waive_input) — formulas auto-compute net owed + dead money + SelectedYear deltas",
         sub_formats["section_header"],
     )
     content_row += 1
 
     worksheet.write(
         content_row, WV_COL_PLAYER,
-        "Enter waive/buyout scenarios. Net Owed = Remaining GTD - Giveback. "
-        "Stretch spreads dead money over (2 × years remaining + 1) years.",
+        "Yellow = input cells. Blue = formula-driven. Net Owed = Remaining GTD - Giveback. "
+        "Stretch spreads over (2 × years remaining + 1) years.",
         sub_formats["note"],
     )
     content_row += 2
@@ -1061,13 +1074,17 @@ def write_waive_buyout_stretch(
     waive_columns = [
         "player_name",
         "waive_date",
+        "years_remaining",
         "remaining_gtd",
         "giveback",
-        "net_owed",
         "stretch",
+        "net_owed",
         "dead_year_1",
         "dead_year_2",
         "dead_year_3",
+        "delta_cap",
+        "delta_tax",
+        "delta_apron",
         "notes",
     ]
 
@@ -1078,13 +1095,17 @@ def write_waive_buyout_stretch(
         initial_data.append({
             "player_name": "",
             "waive_date": "",
+            "years_remaining": 1,
             "remaining_gtd": 0,
             "giveback": 0,
-            "net_owed": 0,
             "stretch": "No",
+            "net_owed": 0,
             "dead_year_1": 0,
             "dead_year_2": 0,
             "dead_year_3": 0,
+            "delta_cap": 0,
+            "delta_tax": 0,
+            "delta_apron": 0,
             "notes": "",
         })
 
@@ -1093,17 +1114,84 @@ def write_waive_buyout_stretch(
     # Build data matrix
     data_matrix = [[row_dict.get(col, "") for col in waive_columns] for row_dict in initial_data]
 
-    # Column definitions with unlocked formats for editing on protected sheet
+    # =========================================================================
+    # Formula definitions for computed columns
+    # =========================================================================
+
+    # net_owed = remaining_gtd - giveback
+    net_owed_formula = "=[@remaining_gtd]-[@giveback]"
+
+    # dead_year_1/2/3 formulas based on stretch toggle:
+    #
+    # If stretch="No": all goes to dead_year_1, years 2 and 3 are 0
+    # If stretch="Yes": divide net_owed by stretch_period, capped display at 3 years
+    #   stretch_period = MIN(2*years_remaining+1, some reasonable cap)
+    #
+    # For simplicity, we use a 3-year display window. The formulas:
+    # - dead_year_1: always gets a share if net_owed > 0
+    # - dead_year_2: gets share if stretch="Yes" AND stretch_period >= 2
+    # - dead_year_3: gets share if stretch="Yes" AND stretch_period >= 3
+    #
+    # Each year gets: ROUND(net_owed / stretch_period, 0)
+    # with year_1 getting any rounding remainder to ensure total matches.
+    #
+    # Simplified approach:
+    # - stretch_period = IF(stretch="Yes", MIN(2*years_remaining+1, 5), 1)
+    # - per_year = FLOOR(net_owed / stretch_period, 1)
+    # - dead_year_1: per_year + (net_owed - per_year * stretch_period) for remainder
+    # - dead_year_2: IF(stretch="Yes" AND stretch_period>=2, per_year, 0)
+    # - dead_year_3: IF(stretch="Yes" AND stretch_period>=3, per_year, 0)
+    #
+    # Using structured references with intermediate calculation approach:
+
+    dead_y1_formula = (
+        '=IF([@stretch]="Yes",'
+        'ROUND([@net_owed]/MIN(2*[@years_remaining]+1,5),0),'
+        '[@net_owed])'
+    )
+
+    dead_y2_formula = (
+        '=IF(AND([@stretch]="Yes",MIN(2*[@years_remaining]+1,5)>=2),'
+        'ROUND([@net_owed]/MIN(2*[@years_remaining]+1,5),0),'
+        '0)'
+    )
+
+    dead_y3_formula = (
+        '=IF(AND([@stretch]="Yes",MIN(2*[@years_remaining]+1,5)>=3),'
+        'ROUND([@net_owed]/MIN(2*[@years_remaining]+1,5),0),'
+        '0)'
+    )
+
+    # delta_cap/tax/apron: pick the dead_year matching SelectedYear
+    # dead_year_1 corresponds to MetaBaseYear, dead_year_2 to MetaBaseYear+1, etc.
+    #
+    # Formula: IFERROR(CHOOSE(SelectedYear - MetaBaseYear + 1,
+    #                         dead_year_1, dead_year_2, dead_year_3), 0)
+    #
+    # Note: cap/tax/apron all get the same dead money amount (waived salary
+    # counts identically toward all three thresholds per CBA).
+    delta_formula = (
+        '=IFERROR(CHOOSE(SelectedYear-MetaBaseYear+1,'
+        '[@dead_year_1],[@dead_year_2],[@dead_year_3]),0)'
+    )
+
+    # Column definitions with unlocked formats for input columns,
+    # locked output formats for computed columns
     column_defs = [
         {"header": "player_name", "format": formats["input"]},
         {"header": "waive_date", "format": formats["input_date"]},
+        {"header": "years_remaining", "format": formats["input_int"]},
         {"header": "remaining_gtd", "format": formats["input_money"]},
         {"header": "giveback", "format": formats["input_money"]},
-        {"header": "net_owed", "format": formats["input_money"]},
         {"header": "stretch", "format": formats["input"]},
-        {"header": "dead_year_1", "format": formats["input_money"]},
-        {"header": "dead_year_2", "format": formats["input_money"]},
-        {"header": "dead_year_3", "format": formats["input_money"]},
+        # Computed columns (formula-driven, locked)
+        {"header": "net_owed", "format": sub_formats["output_money"], "formula": net_owed_formula},
+        {"header": "dead_year_1", "format": sub_formats["output_money"], "formula": dead_y1_formula},
+        {"header": "dead_year_2", "format": sub_formats["output_money"], "formula": dead_y2_formula},
+        {"header": "dead_year_3", "format": sub_formats["output_money"], "formula": dead_y3_formula},
+        {"header": "delta_cap", "format": sub_formats["output_money"], "formula": delta_formula},
+        {"header": "delta_tax", "format": sub_formats["output_money"], "formula": delta_formula},
+        {"header": "delta_apron", "format": sub_formats["output_money"], "formula": delta_formula},
         {"header": "notes", "format": formats["input"]},
     ]
 
@@ -1134,13 +1222,29 @@ def write_waive_buyout_stretch(
         },
     )
 
+    # Data validation: years_remaining (1-4 typical)
+    worksheet.data_validation(
+        table_start_row + 1,
+        WV_COL_YEARS_REMAINING,
+        table_end_row,
+        WV_COL_YEARS_REMAINING,
+        {
+            "validate": "integer",
+            "criteria": "between",
+            "minimum": 1,
+            "maximum": 5,
+            "input_title": "Years Remaining",
+            "input_message": "How many years remain on the contract (1-5)?",
+        },
+    )
+
     content_row = table_end_row + 3
 
     # Editable zone note
     worksheet.write(
         content_row, WV_COL_PLAYER,
-        "📝 EDITABLE ZONE: The table above (yellow cells) is unlocked for editing. "
-        "Formulas and sheet structure are protected.",
+        "📝 EDITABLE ZONE: Yellow cells (input) are unlocked. Blue cells (net_owed, dead_year_*, delta_*) "
+        "are formula-driven and locked.",
         sub_formats["note"],
     )
     content_row += 2
@@ -1148,7 +1252,8 @@ def write_waive_buyout_stretch(
     # Totals row
     worksheet.write(content_row, WV_COL_PLAYER, "TOTALS:", sub_formats["label_bold"])
     for col in [WV_COL_REMAINING_GTD, WV_COL_GIVEBACK, WV_COL_NET_OWED,
-                WV_COL_DEAD_Y1, WV_COL_DEAD_Y2, WV_COL_DEAD_Y3]:
+                WV_COL_DEAD_Y1, WV_COL_DEAD_Y2, WV_COL_DEAD_Y3,
+                WV_COL_DELTA_CAP, WV_COL_DELTA_TAX, WV_COL_DELTA_APRON]:
         col_name = waive_columns[col]
         worksheet.write_formula(
             content_row, col,
@@ -1157,13 +1262,109 @@ def write_waive_buyout_stretch(
         )
     content_row += 3
 
-    # Stretch provision reference
+    # =========================================================================
+    # JOURNAL OUTPUT BLOCK
+    # =========================================================================
+    # Provides aggregated deltas for SelectedYear + source label for copying
+    # into PLAN_JOURNAL.
+
+    worksheet.merge_range(
+        content_row, WV_COL_PLAYER,
+        content_row, WV_COL_STRETCH,
+        "JOURNAL OUTPUT (copy into PLAN_JOURNAL to record in plan)",
+        sub_formats["section_header"],
+    )
+    content_row += 1
+
+    worksheet.write(
+        content_row, WV_COL_PLAYER,
+        "Total waive/buyout deltas for SelectedYear. Copy values into a new PLAN_JOURNAL row.",
+        sub_formats["note"],
+    )
+    content_row += 2
+
+    # Journal output: summary row with aggregated deltas
+    journal_label_col = WV_COL_PLAYER
+    journal_value_col = WV_COL_WAIVE_DATE
+
+    # SelectedYear context (for reference)
+    worksheet.write(content_row, journal_label_col, "Selected Year:", sub_formats["label_bold"])
+    worksheet.write_formula(content_row, journal_value_col, "=SelectedYear", sub_formats["output"])
+    content_row += 1
+
+    # Waive count (non-blank player_name rows)
+    worksheet.write(content_row, journal_label_col, "Waive Count:", sub_formats["label_bold"])
+    worksheet.write_formula(
+        content_row, journal_value_col,
+        '=COUNTA(tbl_waive_input[player_name])',
+        sub_formats["output"],
+    )
+    content_row += 2
+
+    # Total deltas section header
+    worksheet.write(content_row, journal_label_col, "TOTAL DELTAS", sub_formats["label_bold"])
+    worksheet.write(content_row, journal_value_col, "(for SelectedYear)", sub_formats["label"])
+    content_row += 1
+
+    # Delta Cap Total
+    worksheet.write(content_row, journal_label_col, "Δ Cap:", sub_formats["label"])
+    worksheet.write_formula(
+        content_row, journal_value_col,
+        "=SUBTOTAL(109,tbl_waive_input[delta_cap])",
+        sub_formats["total"],
+    )
+    content_row += 1
+
+    # Delta Tax Total
+    worksheet.write(content_row, journal_label_col, "Δ Tax:", sub_formats["label"])
+    worksheet.write_formula(
+        content_row, journal_value_col,
+        "=SUBTOTAL(109,tbl_waive_input[delta_tax])",
+        sub_formats["total"],
+    )
+    content_row += 1
+
+    # Delta Apron Total
+    worksheet.write(content_row, journal_label_col, "Δ Apron:", sub_formats["label"])
+    worksheet.write_formula(
+        content_row, journal_value_col,
+        "=SUBTOTAL(109,tbl_waive_input[delta_apron])",
+        sub_formats["total"],
+    )
+    content_row += 2
+
+    # Source label (for PLAN_JOURNAL source column)
+    worksheet.write(content_row, journal_label_col, "Source:", sub_formats["label_bold"])
+    worksheet.write(content_row, journal_value_col, "Waive/Buyout (WAIVE_BUYOUT_STRETCH)", sub_formats["output"])
+    content_row += 2
+
+    # Manual publish instructions
+    worksheet.write(content_row, journal_label_col, "How to publish to PLAN_JOURNAL:", sub_formats["label_bold"])
+    content_row += 1
+
+    publish_steps = [
+        "1. Go to PLAN_JOURNAL sheet",
+        "2. Add a new row with action_type = 'Waive' or 'Buyout' or 'Stretch'",
+        "3. Set plan_id, enabled, salary_year, target_player as needed",
+        "4. Copy the Δ Cap/Tax/Apron values above into delta_cap/delta_tax/delta_apron columns",
+        "5. Set source = 'Waive/Buyout (WAIVE_BUYOUT_STRETCH)'",
+    ]
+    for step in publish_steps:
+        worksheet.write(content_row, journal_label_col, step, sub_formats["note"])
+        content_row += 1
+
+    content_row += 2
+
+    # =========================================================================
+    # STRETCH PROVISION REFERENCE
+    # =========================================================================
+
     worksheet.write(content_row, WV_COL_PLAYER, "Stretch Provision Rules:", sub_formats["label_bold"])
     content_row += 1
 
     stretch_notes = [
         "• Stretch spreads remaining guaranteed over (2 × years remaining + 1) seasons",
-        "• Example: 2 years remaining → spread over 5 seasons",
+        "• Example: 2 years remaining → spread over 5 seasons (only first 3 shown in table)",
         "• Stretch must be elected within specific window after waiver",
         "• Cannot stretch mid-season signings in same season",
         "• Set-off: if player signs elsewhere, new salary may offset dead money",
@@ -1174,14 +1375,23 @@ def write_waive_buyout_stretch(
 
     content_row += 2
 
-    # Formula notes
+    # =========================================================================
+    # FORMULA REFERENCE
+    # =========================================================================
+
     worksheet.write(content_row, WV_COL_PLAYER, "Formula Reference:", sub_formats["label_bold"])
     content_row += 1
-    worksheet.write(
-        content_row, WV_COL_PLAYER,
-        "net_owed = remaining_gtd - giveback; dead_year columns computed based on stretch",
-        sub_formats["note"],
-    )
+
+    formula_notes = [
+        "• net_owed = remaining_gtd - giveback",
+        "• If stretch='No': dead_year_1 = net_owed, dead_year_2/3 = 0",
+        "• If stretch='Yes': net_owed divided across stretch period (capped at 5 years, 3 displayed)",
+        "• delta_cap/tax/apron = dead_year matching SelectedYear (year_1=MetaBaseYear, etc.)",
+        "• Dead money counts identically toward cap, tax, and apron per CBA",
+    ]
+    for note in formula_notes:
+        worksheet.write(content_row, WV_COL_PLAYER, note, sub_formats["note"])
+        content_row += 1
 
     _protect_sheet(worksheet)
 

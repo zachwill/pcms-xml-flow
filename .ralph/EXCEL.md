@@ -108,7 +108,7 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Data validation wired for tbl_signings_input[exception_used] with warning mode
 
 ### 14) WAIVE_BUYOUT_STRETCH: formula-driven net owed + dead money
-- [ ] Compute waive/buyout deltas via formulas
+- [x] Compute waive/buyout deltas via formulas
   - net_owed = remaining_gtd - giveback
   - dead_year_* formulas based on stretch toggle (simple distribution)
   - Add SelectedYear delta + journal output block

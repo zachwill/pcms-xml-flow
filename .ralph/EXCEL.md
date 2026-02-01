@@ -32,7 +32,7 @@ PLAYGROUND sheet exists with basic functionality:
 Sean has a comprehensive totals block. We need:
 
 - [x] **Team Salary** - sum of all roster salaries (uses `tbl_team_salary_warehouse[cap_total]`)
-- [ ] **Team Salary (fill to 14)** - with roster fills added
+- [x] **Team Salary (fill to 14)** - with roster fills added
 - [ ] **Minimum Level** - league minimum team salary
 - [ ] **+/- Minimum** - delta from minimum
 - [ ] **Cap Level** - salary cap amount

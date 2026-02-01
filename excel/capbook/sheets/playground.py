@@ -279,7 +279,7 @@ SORTBY(_xlpm.combinedNames,_xlpm.combinedSalaries,-1)
     })
     
     # -------------------------------------------------------------------------
-    # Totals section (rows 20-21)
+    # Totals section (rows 20-24)
     # -------------------------------------------------------------------------
     TOTALS_START = 20
     
@@ -289,18 +289,61 @@ SORTBY(_xlpm.combinedNames,_xlpm.combinedSalaries,-1)
     worksheet.write_formula(TOTALS_START, 5, team_salary_formula, fmt_totals_value)  # F21
     workbook.define_name("TeamSalary", "=PLAYGROUND!$F$21")
     
-    # Modified = base - trade out - waived + trade in + signings
-    worksheet.write(TOTALS_START + 1, 4, "Modified", fmt_totals_label)  # E22
+    # Roster fill count - how many slots to fill to reach 14
+    # Uses roster_row_count from warehouse + any trade-ins/signings - trade-outs/waives
+    roster_fill_formula = '''=LET(
+_xlpm.baseCount,XLOOKUP(SelectedTeam&MetaBaseYear,tbl_team_salary_warehouse[team_code]&tbl_team_salary_warehouse[salary_year],tbl_team_salary_warehouse[roster_row_count]),
+_xlpm.tradeOuts,SUMPRODUCT((TradeOutNames<>"")*1),
+_xlpm.tradeIns,SUMPRODUCT((TradeInNames<>"")*1),
+_xlpm.waived,SUMPRODUCT((WaivedNames<>"")*1),
+_xlpm.signed,SUMPRODUCT((SignNames<>"")*1),
+_xlpm.modifiedCount,_xlpm.baseCount-_xlpm.tradeOuts-_xlpm.waived+_xlpm.tradeIns+_xlpm.signed,
+MAX(0,14-_xlpm.modifiedCount)
+)'''
+    workbook.define_name("RosterFillCount", "=" + roster_fill_formula.replace("\n", ""))
+    
+    # Rookie minimum (years_of_service = 0) for fill calculation
+    rookie_min_formula = '=XLOOKUP(MetaBaseYear&0,tbl_minimum_scale[salary_year]&tbl_minimum_scale[years_of_service],tbl_minimum_scale[minimum_salary_amount])'
+    workbook.define_name("RookieMinSalary", "=" + rookie_min_formula)
+    
+    # Roster fill amount = fills needed * rookie min
+    workbook.define_name("RosterFillAmount", "=RosterFillCount*RookieMinSalary")
+    
+    # Team Salary (fill to 14) - Team Salary + roster fills
+    fmt_totals_label_indent = workbook.add_format({
+        **base_font,
+        "bold": False,
+        "font_color": "#6B7280",
+        "indent": 1,
+    })
+    worksheet.write(TOTALS_START + 1, 4, "(fill to 14)", fmt_totals_label_indent)  # E22
+    fill_salary_formula = '=TeamSalary+RosterFillAmount'
+    worksheet.write_formula(TOTALS_START + 1, 5, fill_salary_formula, fmt_totals_value)  # F22
+    workbook.define_name("TeamSalaryFilled", "=PLAYGROUND!$F$22")
+    
+    # Show fill count inline (e.g., "+2 fills")
+    fmt_fill_note = workbook.add_format({
+        **base_font,
+        "font_color": "#9CA3AF",
+        "font_size": 9,
+    })
+    fill_note_formula = '=IF(RosterFillCount>0,"+"&RosterFillCount&" × "&TEXT(RookieMinSalary,"$#,##0"),"")'
+    worksheet.write_formula(TOTALS_START + 1, 6, fill_note_formula, fmt_fill_note)  # G22
+    
+    # Modified = filled salary - trade out - waived + trade in + signings
+    worksheet.write(TOTALS_START + 2, 4, "Modified", fmt_totals_label)  # E23
+    # Modified uses filled salary as base, then applies trade adjustments
+    # Trade out/in/waived salaries are already calculated via the trade math formulas at B24/B25
     modified_formula = '''=LET(
-_xlpm.base,TeamSalary,
+_xlpm.base,TeamSalaryFilled,
 _xlpm.out,B24,
 _xlpm.in,B25,
 _xlpm.waived,SUMPRODUCT((tbl_salary_book_yearly[team_code]=SelectedTeam)*(tbl_salary_book_yearly[salary_year]=MetaBaseYear)*(COUNTIF(WaivedNames,tbl_salary_book_yearly[player_name])>0)*tbl_salary_book_yearly[cap_amount]),
 _xlpm.signed,SUM(SignSalaries),
 _xlpm.base-_xlpm.out-_xlpm.waived+_xlpm.in+_xlpm.signed
 )'''
-    worksheet.write_formula(TOTALS_START + 1, 5, modified_formula.replace("\n", ""), fmt_totals_value)  # F22
-    workbook.define_name("ModifiedSalary", "=PLAYGROUND!$F$22")
+    worksheet.write_formula(TOTALS_START + 2, 5, modified_formula.replace("\n", ""), fmt_totals_value)  # F23
+    workbook.define_name("ModifiedSalary", "=PLAYGROUND!$F$23")
     
     # -------------------------------------------------------------------------
     # KPIs - in left panel below trade math (rows 28-30)

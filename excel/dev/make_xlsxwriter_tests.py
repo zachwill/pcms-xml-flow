@@ -158,6 +158,38 @@ def test_defined_name_future_used_write_formula() -> None:
     wb.close()
 
 
+def test_defined_name_let_scalar() -> None:
+    """Scalar LET() stored as a defined name."""
+
+    path = _mk("test_defined_name_let_scalar.xlsx")
+    wb = xlsxwriter.Workbook(path, {"use_future_functions": True})
+    ws = wb.add_worksheet("UI")
+
+    wb.define_name("X", "=_xlfn.LET(_xlpm.a,1,_xlpm.a)")
+    ws.write_formula("A1", "=X")
+
+    wb.close()
+
+
+def test_defined_name_points_to_cell_with_let() -> None:
+    """Defined name is a plain cell ref; the cell contains LET().
+
+    Hypothesis: Excel warnings are about *defined name formulas* that contain
+    future functions, not about future functions in cells.
+    """
+
+    path = _mk("test_defined_name_points_to_cell_with_let.xlsx")
+    wb = xlsxwriter.Workbook(path, {"use_future_functions": True})
+    ws = wb.add_worksheet("UI")
+
+    ws.write_formula("D1", "=_xlfn.LET(_xlpm.a,1,_xlpm.a)")
+    wb.define_name("X", "=UI!$D$1")
+
+    ws.write_formula("A1", "=X")
+
+    wb.close()
+
+
 def test_defined_name_plain_sum_with_metadata() -> None:
     """Plain defined name plus a dynamic array formula (forces metadata.xml).
 
@@ -251,6 +283,10 @@ def main() -> None:
 
     # Stress
     test_complicated_prefixed_no_future_functions()
+
+    # LET in defined names vs LET in cells
+    test_defined_name_let_scalar()
+    test_defined_name_points_to_cell_with_let()
 
     print(f"Wrote tests to: {OUT_DIR}")
 

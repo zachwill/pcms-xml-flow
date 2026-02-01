@@ -110,7 +110,8 @@ Replace inline LET formulas with helper functions from `named_formulas.py`.
 - [x] Migrate `_write_cap_holds_section()` — ~10 column formulas → helper calls
 - [x] Migrate `_write_dead_money_section()` — ~10 column formulas → helper calls
 - [x] Migrate `_write_exists_only_section()` — ~8 column formulas → helper calls
-- [ ] Verify XML has no bare LET variables: `unzip -p shared/capbook.xlsx xl/worksheets/*.xml | grep -oE "LET\([a-z_]+," | grep -v "_xlpm"`
+- [x] Verify XML has no bare LET variables: `unzip -p shared/capbook.xlsx xl/worksheets/*.xml | grep -oE "LET\([a-z_]+," | grep -v "_xlpm"`
+- [ ] Implement a more robust XML sanity check that validates ALL variables in LET/LAMBDA (not just the first one)
 - [x] Implement per-row cumulative sums in `plan_journal.py` (SCAN + LAMBDA caused repair issues; try non-LAMBDA approach or simpler per-row formula)
 
 ### Phase 6: Modernize legacy formula patterns

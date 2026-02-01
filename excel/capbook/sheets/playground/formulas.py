@@ -118,6 +118,24 @@ def scenario_roster_count(*, year_expr: str) -> str:
     )
 
 
+def _as_expr(formula: str) -> str:
+    """Convert a standalone formula string into an expression for nesting.
+
+    XlsxWriter `define_name()` stores formulas without the leading `=` in the
+    XML, but our Python helpers often return strings that *include* `=`.
+
+    If you embed a returned formula (like `=LET(...)`) inside another formula,
+    the nested `=` becomes illegal Excel syntax and can trigger Excel repair/
+    "macro"-style warnings.
+
+    This helper strips a single leading `=` when present.
+    """
+
+    if formula.startswith("="):
+        return formula[1:]
+    return formula
+
+
 def scenario_team_total(*, year_expr: str, year_offset: int) -> str:
     """Scenario cap_total for a year (cap layer).
 
@@ -131,12 +149,14 @@ def scenario_team_total(*, year_expr: str, year_offset: int) -> str:
     """
 
     base = _xlookup_team_warehouse("cap_total", year_expr=year_expr)
-    out_ = sum_names_salary_yearly("TradeOutNames", year_expr=year_expr, team_scoped=True)
-    in_ = sum_names_salary_yearly("TradeInNames", year_expr=year_expr, team_scoped=False)
+
+    # IMPORTANT: sub-formulas must be embedded as expressions (no leading `=`).
+    out_ = _as_expr(sum_names_salary_yearly("TradeOutNames", year_expr=year_expr, team_scoped=True))
+    in_ = _as_expr(sum_names_salary_yearly("TradeInNames", year_expr=year_expr, team_scoped=False))
 
     # For stretch: remove original salaries (team-scoped) and add stretched per-year amounts.
-    stretch_removed = sum_names_salary_yearly("StretchNames", year_expr=year_expr, team_scoped=True)
-    stretch_dead = stretch_dead_money_yearly(year_expr=year_expr)
+    stretch_removed = _as_expr(sum_names_salary_yearly("StretchNames", year_expr=year_expr, team_scoped=True))
+    stretch_dead = _as_expr(stretch_dead_money_yearly(year_expr=year_expr))
 
     # Sign (base year only)
     sign = "SUM(SignSalaries)" if year_offset == 0 else "0"
@@ -163,8 +183,9 @@ def scenario_dead_money(*, year_expr: str) -> str:
     """
 
     base_term = _xlookup_team_warehouse("cap_term", year_expr=year_expr)
-    waived = sum_names_salary_yearly("WaivedNames", year_expr=year_expr, team_scoped=True)
-    stretched = stretch_dead_money_yearly(year_expr=year_expr)
+
+    waived = _as_expr(sum_names_salary_yearly("WaivedNames", year_expr=year_expr, team_scoped=True))
+    stretched = _as_expr(stretch_dead_money_yearly(year_expr=year_expr))
 
     return (
         "=LET("  # noqa: ISC003

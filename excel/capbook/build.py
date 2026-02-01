@@ -40,6 +40,7 @@ from .extract import (
 )
 from .reconcile import reconcile_team_salary_warehouse, reconcile_drilldowns_vs_totals
 from .xlsx import create_standard_formats, write_table
+from .named_formulas import define_named_formulas
 from .sheets import (
     UI_STUB_WRITERS,
     write_audit_and_reconcile,
@@ -477,6 +478,14 @@ def build_capbook(
             define_meta_named_ranges(workbook, "META")
         except Exception as e:  # noqa: BLE001
             _mark_failed(build_meta, f"Failed to define META named ranges: {e}")
+
+        # Define named formulas (LAMBDA helpers for repeated logic)
+        # Must be defined after META named ranges since they reference MetaBaseYear
+        try:
+            defined_formulas = define_named_formulas(workbook)
+            build_meta["named_formulas_count"] = len(defined_formulas)
+        except Exception as e:  # noqa: BLE001
+            _mark_failed(build_meta, f"Failed to define named formulas: {e}")
 
         # META + HOME (write last so they reflect failures above)
         write_meta_sheet(ui_worksheets["META"], formats, build_meta)

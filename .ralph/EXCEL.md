@@ -41,7 +41,7 @@ Build a new, self-contained Sean-style Excel cap workbook **generated from code*
   - Update `excel/AGENTS.md` with formula standard
 
 ### 2) Create shared named formulas (LAMBDA/LET helpers)
-- [ ] Define named formulas for repeated logic and reuse them in sheets
+- [x] Define named formulas for repeated logic and reuse them in sheets
   - `ModeYearIndex` = `SelectedYear - MetaBaseYear + 1`
   - Mode-aware amount helpers for roster/holds/dead money
   - `PlanRowMask` and `TeamYearMask` for filtered aggregates

@@ -34,7 +34,7 @@ The workbook uses modern Excel features including:
 - **Dynamic arrays**: `FILTER`, `SORTBY`, `UNIQUE`, `TAKE`, `CHOOSECOLS`
 - **XLOOKUP**: replaces legacy `INDEX/MATCH` patterns
 - **LET**: named sub-expressions for complex formulas
-- **LAMBDA** (optional): reusable formula helpers via named ranges
+- **LAMBDA**: reusable formula helpers via named ranges
 
 These features are **not available** in:
 - Excel 2019 or earlier
@@ -42,6 +42,52 @@ These features are **not available** in:
 - Google Sheets
 
 If you open the workbook in an unsupported version, formulas may show `#NAME?` errors or fail to spill correctly.
+
+---
+
+## Named formulas (LAMBDA helpers)
+
+The workbook defines reusable named formulas (LAMBDA) to centralize repeated logic. These are defined in `excel/capbook/named_formulas.py`.
+
+### Simple formulas (expressions)
+
+| Name | Formula | Purpose |
+|---|---|---|
+| `ModeYearIndex` | `=SelectedYear-MetaBaseYear+1` | 1-based relative year index (1..6) for CHOOSE/INDEX |
+
+### LAMBDA formulas (reusable functions)
+
+| Name | Parameters | Purpose |
+|---|---|---|
+| `PlanRowMask` | `plan_id_col, salary_year_col, enabled_col` | Filter mask for plan_journal rows matching ActivePlanId + SelectedYear + enabled |
+| `TeamYearMask` | `team_col, year_col` | Filter mask for rows matching SelectedTeam + SelectedYear |
+| `CapYearAmount` | `y0, y1, y2, y3, y4, y5` | Select cap_yN value based on SelectedYear |
+| `TaxYearAmount` | `y0, y1, y2, y3, y4, y5` | Select tax_yN value based on SelectedYear |
+| `ApronYearAmount` | `y0, y1, y2, y3, y4, y5` | Select apron_yN value based on SelectedYear |
+| `AmountByMode` | `cap_val, tax_val, apron_val` | Select cap/tax/apron value based on SelectedMode |
+| `YearAmountByMode` | `cap_y0..y5, tax_y0..y5, apron_y0..y5` | Combined year + mode selection |
+
+### Usage examples
+
+**Instead of:**
+```excel
+=CHOOSE(SelectedYear-MetaBaseYear+1, cap_y0, cap_y1, cap_y2, cap_y3, cap_y4, cap_y5)
+```
+
+**Use:**
+```excel
+=CapYearAmount([@cap_y0],[@cap_y1],[@cap_y2],[@cap_y3],[@cap_y4],[@cap_y5])
+```
+
+**Or with ModeYearIndex directly:**
+```excel
+=CHOOSE(ModeYearIndex, cap_y0, cap_y1, cap_y2, cap_y3, cap_y4, cap_y5)
+```
+
+**Plan filtering (instead of inline SUMPRODUCT):**
+```excel
+=SUMPRODUCT(PlanRowMask(tbl_plan_journal[plan_id],tbl_plan_journal[salary_year],tbl_plan_journal[enabled])*tbl_plan_journal[delta_cap])
+```
 
 ---
 

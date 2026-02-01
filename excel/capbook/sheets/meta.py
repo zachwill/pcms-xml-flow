@@ -142,7 +142,13 @@ def write_meta_sheet(
 
     # Excel version requirement
     worksheet.write(row, COL_LABEL, "excel_version_required")
-    worksheet.write(row, COL_VALUE, "Excel 365 or Excel 2021 (dynamic arrays: FILTER, XLOOKUP, LET)")
+    worksheet.write(row, COL_VALUE, "Excel 365 or Excel 2021 (dynamic arrays: FILTER, XLOOKUP, LET, LAMBDA)")
+    row += 1
+
+    # Named formulas count
+    named_formulas_count = build_meta.get("named_formulas_count", 0)
+    worksheet.write(row, COL_LABEL, "named_formulas_count")
+    worksheet.write(row, COL_VALUE, named_formulas_count)
     row += 1
 
     # === Validation errors (if any) ===

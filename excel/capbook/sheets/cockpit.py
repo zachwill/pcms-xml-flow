@@ -390,18 +390,17 @@ def _write_alert_stack(
     })
     row += 1
     
-    # Alert 3: Roster fill NOT YET IMPLEMENTED warning
-    # Per backlog item 4: When RosterFillTarget > 0, show a loud warning that
-    # no generated fill rows are currently being applied
+    # Alert 3: Roster fill ACTIVE notification
+    # When RosterFillTarget > 0, show an informational message that generated rows are included
     worksheet.write_formula(
         row, COL_READOUT_LABEL,
-        '=IF(RosterFillTarget>0,"🚧 ROSTER FILL NOT YET IMPLEMENTED — RosterFillTarget="&RosterFillTarget&" has no effect (no generated rows are applied)","")',
+        '=IF(RosterFillTarget>0,"📊 ROSTER FILL ACTIVE — "&RosterFillTarget&" roster target, "&RosterFillType&" amounts. See ROSTER_GRID for generated rows.","")',
         alert_row_fmt
     )
     worksheet.conditional_format(row, COL_READOUT_LABEL, row, COL_READOUT_DESC, {
         "type": "formula",
         "criteria": "=RosterFillTarget>0",
-        "format": workbook.add_format({"bg_color": "#FEE2E2", "font_color": "#991B1B", "bold": True}),  # red-100 / red-800 + bold
+        "format": workbook.add_format({"bg_color": "#FEF3C7", "font_color": "#92400E"}),  # amber-100 / amber-800 (warning)
     })
     row += 1
     

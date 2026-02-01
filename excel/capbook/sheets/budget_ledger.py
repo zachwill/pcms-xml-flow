@@ -647,45 +647,46 @@ def _write_policy_warnings(
     row: int,
     budget_formats: dict[str, Any],
 ) -> int:
-    """Write policy warnings for features that are not yet implemented.
+    """Write policy notifications for active features.
     
-    Per backlog item 4: When RosterFillTarget > 0, show a loud warning that
-    no generated fill rows are currently being applied.
+    Shows informational alerts when policy toggles are active:
+    - RosterFillTarget > 0: shows generated fill rows are active
+    - ShowExistsOnlyRows = "Yes": shows EXISTS_ONLY section is visible
     
     Returns next row.
     """
-    # Create a bold alert format for warnings
+    # Create an info/warning format for active policies
     warning_fmt = workbook.add_format({
         "bold": True,
-        "bg_color": "#FEE2E2",  # red-100
-        "font_color": "#991B1B",  # red-800
+        "bg_color": "#FEF3C7",  # amber-100
+        "font_color": "#92400E",  # amber-800
         "font_size": 10,
     })
     
-    # RosterFillTarget NOT YET IMPLEMENTED warning
+    # RosterFillTarget ACTIVE notification
     # Uses IF formula to only show when RosterFillTarget > 0
     worksheet.write_formula(
         row, COL_LABEL,
-        '=IF(RosterFillTarget>0,"🚧 ROSTER FILL NOT YET IMPLEMENTED","")',
+        '=IF(RosterFillTarget>0,"📊 ROSTER FILL ACTIVE","")',
         warning_fmt
     )
     worksheet.write_formula(
         row, COL_CAP,
-        '=IF(RosterFillTarget>0,"RosterFillTarget="&RosterFillTarget&" has no effect","")',
+        '=IF(RosterFillTarget>0,"Target="&RosterFillTarget&", Type="&RosterFillType,"")',
         warning_fmt
     )
     worksheet.write_formula(
         row, COL_NOTES,
-        '=IF(RosterFillTarget>0,"No generated fill rows are applied — set to 0 to hide this warning","")',
+        '=IF(RosterFillTarget>0,"Generated fill rows added — see ROSTER_GRID and AUDIT_AND_RECONCILE","")',
         workbook.add_format({
-            "bg_color": "#FEE2E2",
-            "font_color": "#991B1B",
+            "bg_color": "#FEF3C7",
+            "font_color": "#92400E",
             "font_size": 9,
             "italic": True,
         })
     )
     
-    # Conditional formatting to highlight the entire row when warning is active
+    # Conditional formatting to highlight the entire row when fill is active
     worksheet.conditional_format(row, COL_LABEL, row, COL_NOTES, {
         "type": "formula",
         "criteria": "=RosterFillTarget>0",

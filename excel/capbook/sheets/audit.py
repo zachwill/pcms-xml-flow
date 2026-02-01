@@ -780,7 +780,8 @@ def _write_policy_assumptions_section(
 ) -> int:
     """Write the policy assumptions section.
     
-    Shows current values of policy toggles that affect totals.
+    Shows current values of policy toggles that affect totals,
+    including generated fill row impacts.
     
     Returns next row.
     """
@@ -808,6 +809,119 @@ def _write_policy_assumptions_section(
         worksheet.write_formula(row, COL_WAREHOUSE, f"={named_range}", audit_formats["label"])
         worksheet.write(row, COL_NOTES, note, audit_formats["note"])
         row += 1
+    
+    row += 1
+    
+    # =========================================================================
+    # Generated Fill Rows Impact (when RosterFillTarget > 0)
+    # =========================================================================
+    worksheet.merge_range(
+        row, COL_LABEL, row, COL_NOTES,
+        "GENERATED FILL ROWS IMPACT",
+        audit_formats["subsection_header"]
+    )
+    row += 1
+    
+    # Explanation
+    worksheet.write(
+        row, COL_LABEL,
+        "When RosterFillTarget > 0, generated fill rows add to totals:",
+        audit_formats["note"]
+    )
+    row += 1
+    
+    # Current roster count (non-two-way with selected-year cap > 0)
+    # This formula matches the one in roster_grid.py
+    cap_choose_expr = (
+        "CHOOSE(SelectedYear-MetaBaseYear+1,"
+        + ",".join(f"tbl_salary_book_warehouse[cap_y{i}]" for i in range(6))
+        + ")"
+    )
+    current_roster_formula = (
+        "SUMPRODUCT(--(tbl_salary_book_warehouse[team_code]=SelectedTeam),"
+        "--(tbl_salary_book_warehouse[is_two_way]=FALSE),"
+        f"--({cap_choose_expr}>0))"
+    )
+    
+    worksheet.write(row, COL_LABEL, "  Current Roster Count:", audit_formats["label_indent"])
+    worksheet.write_formula(row, COL_WAREHOUSE, f"={current_roster_formula}", audit_formats["count"])
+    worksheet.write(row, COL_NOTES, "Non-two-way players with SelectedYear cap > 0", audit_formats["note"])
+    row += 1
+    
+    # Fill rows needed = MAX(0, RosterFillTarget - current_roster_count)
+    fill_rows_needed_formula = f"MAX(0,RosterFillTarget-{current_roster_formula})"
+    
+    worksheet.write(row, COL_LABEL, "  Fill Rows Needed:", audit_formats["label_indent"])
+    worksheet.write_formula(row, COL_WAREHOUSE, f"={fill_rows_needed_formula}", audit_formats["count"])
+    worksheet.write(row, COL_NOTES, "= MAX(0, RosterFillTarget - Current Roster)", audit_formats["note"])
+    row += 1
+    
+    # Fill amount per row (based on RosterFillType)
+    rookie_min_formula = (
+        "SUMIFS(tbl_rookie_scale[salary_year_1],"
+        "tbl_rookie_scale[salary_year],SelectedYear,"
+        "tbl_rookie_scale[pick_number],30)"
+    )
+    vet_min_formula = (
+        "SUMIFS(tbl_minimum_scale[minimum_salary_amount],"
+        "tbl_minimum_scale[salary_year],SelectedYear,"
+        "tbl_minimum_scale[years_of_service],0)"
+    )
+    fill_amount_formula = (
+        f'IF(RosterFillType="Rookie Min",{rookie_min_formula},'
+        f'IF(RosterFillType="Vet Min",{vet_min_formula},'
+        f'MIN({rookie_min_formula},{vet_min_formula})))'
+    )
+    
+    worksheet.write(row, COL_LABEL, "  Fill Amount (per row):", audit_formats["label_indent"])
+    worksheet.write_formula(row, COL_WAREHOUSE, f"={fill_amount_formula}", audit_formats["money"])
+    worksheet.write_formula(
+        row, COL_NOTES,
+        '="Based on RosterFillType = "&RosterFillType',
+        audit_formats["note"]
+    )
+    row += 1
+    
+    # Total fill impact = fill_rows_needed * fill_amount
+    total_fill_formula = f"IF(RosterFillTarget>0,{fill_rows_needed_formula}*{fill_amount_formula},0)"
+    
+    worksheet.write(row, COL_LABEL, "  Total Fill Impact:", audit_formats["label_bold"])
+    worksheet.write_formula(row, COL_WAREHOUSE, f"={total_fill_formula}", audit_formats["money_bold"])
+    worksheet.write(
+        row, COL_NOTES,
+        "GENERATED rows add this amount to totals (policy delta, not authoritative)",
+        audit_formats["note"]
+    )
+    
+    # Conditional formatting to highlight when fill is active
+    worksheet.conditional_format(row, COL_WAREHOUSE, row, COL_WAREHOUSE, {
+        "type": "cell",
+        "criteria": ">",
+        "value": 0,
+        "format": audit_formats["delta_fail"],  # Use warning format when active
+    })
+    row += 1
+    
+    # Warning note about reconciliation
+    row += 1
+    worksheet.write(
+        row, COL_LABEL,
+        "⚠ IMPORTANT: Generated fill rows are POLICY ASSUMPTIONS, not authoritative data.",
+        audit_formats["note"]
+    )
+    row += 1
+    worksheet.write(
+        row, COL_LABEL,
+        "  They are NOT included in the reconciliation sections above (which compare warehouse vs drilldowns).",
+        audit_formats["note"]
+    )
+    row += 1
+    worksheet.write(
+        row, COL_LABEL,
+        "  To disable: set RosterFillTarget = 0 in the command bar.",
+        audit_formats["note"]
+    )
+    row += 1
     
     return row + 2
 

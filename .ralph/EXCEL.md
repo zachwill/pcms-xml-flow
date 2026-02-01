@@ -49,13 +49,25 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
     - Roster Count readout already shows "NBA roster + N two-way" format
 
 ### 3) Roster fill (generated rows): implement minimal, explicit, toggleable generation
-- [ ] Add a `GENERATED` section that creates fill rows when `RosterFillTarget` is 12/14/15
+- [x] Add a `GENERATED` section that creates fill rows when `RosterFillTarget` is 12/14/15
   - Generate `RosterFillTarget - current_roster_count` rows
   - Choose amounts based on `RosterFillType` (`Rookie Min` / `Vet Min` / `Cheapest`) using `tbl_minimum_scale` / `tbl_rookie_scale`
-  - Generated rows must:
-    - be visibly labeled as generated assumptions
-    - be toggleable by setting `RosterFillTarget=0`
-    - be auditable/reconcilable in `AUDIT_AND_RECONCILE` (as policy deltas, not silently merged)
+  - Generated rows:
+    - Are visibly labeled as "GEN" bucket with gold/amber styling
+    - Are toggleable by setting `RosterFillTarget=0`
+    - Show Ct$=Y and CtR=Y (count toward totals and roster)
+    - Display "Fill Slot #N (type)" in the Name column
+    - Appear in ROSTER_GRID between DEAD MONEY and EXISTS_ONLY sections
+  - TEAM_COCKPIT and BUDGET_LEDGER show informational amber alert when fill is active
+  - AUDIT_AND_RECONCILE shows policy impact breakdown (current roster count, fill rows needed, amount per row, total impact)
+  - NOTE: Generated rows are policy assumptions, NOT included in reconciliation checks (warehouse vs drilldowns)
+
+---
+
+## Follow-ups discovered
+
+- [ ] Consider adding GENERATED fill amounts to BUDGET_LEDGER as an explicit "Policy Delta" row (currently only shown in AUDIT section)
+- [ ] Consider mode-aware fill amounts (currently uses cap-based minimum; could vary by Tax/Apron mode)
 
 ---
 

@@ -23,6 +23,7 @@ from .command_bar import (
     NAMED_RANGES,
     COCKPIT_SHEET_NAME,
 )
+from .home import write_home_sheet
 from .meta import write_meta_sheet
 from .plan import (
     write_plan_manager,
@@ -70,6 +71,8 @@ __all__ = [
     "get_command_bar_height",
     "NAMED_RANGES",
     "COCKPIT_SHEET_NAME",
+    # Home
+    "write_home_sheet",
     # Meta
     "write_meta_sheet",
     # Plan
@@ -86,7 +89,7 @@ __all__ = [
     "write_assets",
     # Rules reference
     "write_rules_reference",
-    # UI stubs
+    # UI stubs (kept for backwards compatibility)
     "UI_STUB_WRITERS",
     "write_home_stub",
     "write_team_cockpit_stub",

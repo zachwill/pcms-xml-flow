@@ -34,7 +34,7 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Note policy decisions (two-way counting, fill rows) in blueprint if missing
 
 ### 2) HOME sheet: implement full landing page
-- [ ] Replace HOME stub with a full landing page
+- [x] Replace HOME stub with a full landing page
   - Show Active Team/Year/Mode/As-of/ActivePlan/Compare Plans using named ranges
   - Show validation + reconcile status from META
   - Add navigation hyperlinks to all major sheets

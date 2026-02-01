@@ -178,7 +178,8 @@ excel/
         ├── audit.py           # AUDIT_AND_RECONCILE implementation
         ├── rules_reference.py # RULES_REFERENCE implementation
         ├── meta.py            # META sheet + named ranges
-        └── ui_stubs.py        # HOME + stub writers
+        ├── home.py            # HOME landing page implementation
+        └── ui_stubs.py        # Stub writers for incomplete sheets
 ```
 
 ---

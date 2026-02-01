@@ -44,7 +44,7 @@ from .sheets import (
     UI_STUB_WRITERS,
     write_audit_and_reconcile,
     write_budget_ledger,
-    write_home_stub,
+    write_home_sheet,
     write_meta_sheet,
     write_team_cockpit_with_command_bar,
     write_roster_grid,
@@ -445,7 +445,7 @@ def build_capbook(
 
         # META + HOME (write last so they reflect failures above)
         write_meta_sheet(ui_worksheets["META"], formats, build_meta)
-        write_home_stub(ui_worksheets["HOME"], formats, build_meta)
+        write_home_sheet(workbook, ui_worksheets["HOME"], formats, build_meta)
 
     except Exception as e:  # noqa: BLE001
         # Last-resort: ensure we mark failed. We may not be able to fully render
@@ -459,7 +459,7 @@ def build_capbook(
             if ws_meta is not None:
                 write_meta_sheet(ws_meta, formats, build_meta)
             if ws_home is not None:
-                write_home_stub(ws_home, formats, build_meta)
+                write_home_sheet(workbook, ws_home, formats, build_meta)
         except Exception:
             pass
 

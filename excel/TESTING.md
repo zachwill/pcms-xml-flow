@@ -29,7 +29,24 @@ Required env:
 
 ## XML sanity checks (common Mac Excel repair triggers)
 
-### 1) No bare LET/LAMBDA variables (must be `_xlpm.`)
+### Recommended: Use the automated validator
+
+The `validate_xlsx_formulas.py` script performs comprehensive validation of ALL LET/LAMBDA variables (not just the first one) and checks for spill refs in defined names:
+
+```bash
+uv run excel/validate_xlsx_formulas.py shared/capbook.xlsx
+
+# Expected output on success:
+# ✅ All formula validation checks passed!
+```
+
+If issues are found, the script reports each bare variable with its location and suggested fix.
+
+### Manual checks (for debugging)
+
+#### 1) No bare LET/LAMBDA variables (must be `_xlpm.`)
+
+The manual grep only catches the **first** variable after `LET(`; use the validator above for comprehensive checks.
 
 ```bash
 unzip -p shared/capbook.xlsx xl/worksheets/*.xml \
@@ -40,7 +57,7 @@ unzip -p shared/capbook.xlsx xl/worksheets/*.xml \
 # Expect: no output
 ```
 
-### 2) No spill operator (`#`) in defined names
+#### 2) No spill operator (`#`) in defined names
 
 XlsxWriter + Excel can generate invalid XML if a defined name contains a spill ref like `Sheet!$A$1#`.
 
@@ -52,7 +69,7 @@ unzip -p shared/capbook.xlsx xl/workbook.xml | grep -n "#" | head -20
 # Expect: no output
 ```
 
-### 3) Data validation sources: avoid structured table refs (use INDIRECT)
+#### 3) Data validation sources: avoid structured table refs (use INDIRECT)
 
 Some Excel versions repair when data validation sources use structured refs directly (e.g. `=tbl_plan_manager[plan_name]`).
 

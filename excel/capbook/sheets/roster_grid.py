@@ -44,6 +44,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import xlsxwriter.utility
+
 from xlsxwriter.workbook import Workbook
 from xlsxwriter.worksheet import Worksheet
 
@@ -272,7 +274,7 @@ def _create_roster_formats(workbook: Workbook) -> dict[str, Any]:
         "bold": True,
         "font_size": 11,
         "bg_color": "#E5E7EB",  # gray-200
-        "bottom": 1,
+        "bottom": 2,
     })
 
     # Exists-only section header (distinct purple color to indicate non-counting)
@@ -281,7 +283,7 @@ def _create_roster_formats(workbook: Workbook) -> dict[str, Any]:
         "font_size": 11,
         "bg_color": "#EDE9FE",  # purple-100
         "font_color": "#6B21A8",  # purple-800
-        "bottom": 1,
+        "bottom": 2,
     })
 
     # Column headers
@@ -1748,13 +1750,6 @@ def _write_reconciliation_block(
 
 
 # =============================================================================
-# Import xlsxwriter utility
-# =============================================================================
-
-import xlsxwriter.utility
-
-
-# =============================================================================
 # Badge Conditional Formatting
 # =============================================================================
 
@@ -1920,7 +1915,7 @@ def write_roster_grid(
     # 7. Reconciliation block
     content_row = _write_reconciliation_block(workbook, worksheet, content_row, formats, roster_formats)
 
-    # 6. Apply badge conditional formatting to roster section
+    # 8. Apply badge conditional formatting to roster section
     # Colors option/guarantee/trade columns based on cell values
     _apply_badge_conditional_formatting(
         worksheet, roster_formats, roster_data_start, roster_data_end

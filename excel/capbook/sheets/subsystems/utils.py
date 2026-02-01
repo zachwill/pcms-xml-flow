@@ -5,7 +5,7 @@ from typing import Any
 from xlsxwriter.workbook import Workbook
 from xlsxwriter.worksheet import Worksheet
 
-from ..xlsx import FMT_MONEY
+from ...xlsx import FMT_MONEY
 
 
 def _create_subsystem_formats(workbook: Workbook) -> dict[str, Any]:

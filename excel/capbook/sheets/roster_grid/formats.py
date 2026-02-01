@@ -4,7 +4,7 @@ from typing import Any
 
 from xlsxwriter.workbook import Workbook
 
-from ..xlsx import FMT_MONEY, FMT_PERCENT
+from ...xlsx import FMT_MONEY, FMT_PERCENT
 
 
 def _create_roster_formats(workbook: Workbook) -> dict[str, Any]:

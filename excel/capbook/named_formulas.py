@@ -261,6 +261,75 @@ def _build_dead_money_filter() -> str:
     )
 
 
+def _build_salary_book_exists_filter() -> str:
+    """
+    SalaryBookExistsFilter: returns filter condition for exists-only players.
+
+    Returns: (team_code=SelectedTeam) * (cap_curr=0) * (tax_curr=0) * (apron_curr=0) * (future_total>0)
+    """
+    cap_curr = ",".join(f"tbl_salary_book_warehouse[cap_y{i}]" for i in range(6))
+    tax_curr = ",".join(f"tbl_salary_book_warehouse[tax_y{i}]" for i in range(6))
+    apron_curr = ",".join(f"tbl_salary_book_warehouse[apron_y{i}]" for i in range(6))
+
+    def future_choose(prefix: str) -> str:
+        sums = []
+        for start_idx in range(6):
+            if start_idx >= 5:
+                sums.append("0")
+            else:
+                cols = "+".join(f"tbl_salary_book_warehouse[{prefix}_y{j}]" for j in range(start_idx + 1, 6))
+                sums.append(f"({cols})")
+        return f"CHOOSE(ModeYearIndex,{','.join(sums)})"
+
+    _CURR_CAP = _xlpm("cc")
+    _CURR_TAX = _xlpm("ct")
+    _CURR_APRON = _xlpm("ca")
+    _FUT_CAP = _xlpm("fc")
+    _FUT_TAX = _xlpm("ft")
+    _FUT_APRON = _xlpm("fa")
+
+    return (
+        "=LET("
+        f"{_CURR_CAP},CHOOSE(ModeYearIndex,{cap_curr}),"
+        f"{_CURR_TAX},CHOOSE(ModeYearIndex,{tax_curr}),"
+        f"{_CURR_APRON},CHOOSE(ModeYearIndex,{apron_curr}),"
+        f"{_FUT_CAP},{future_choose('cap')},"
+        f"{_FUT_TAX},{future_choose('tax')},"
+        f"{_FUT_APRON},{future_choose('apron')},"
+        f"(tbl_salary_book_warehouse[team_code]=SelectedTeam)*"
+        f"({_CURR_CAP}=0)*({_CURR_TAX}=0)*({_CURR_APRON}=0)*"
+        f"(({_FUT_CAP}+{_FUT_TAX}+{_FUT_APRON})>0))"
+    )
+
+
+def _build_salary_book_exists_future_amt() -> str:
+    """
+    SalaryBookExistsFutureAmt: returns mode-aware future total for exists-only players.
+    """
+
+    def future_choose(prefix: str) -> str:
+        sums = []
+        for start_idx in range(6):
+            if start_idx >= 5:
+                sums.append("0")
+            else:
+                cols = "+".join(f"tbl_salary_book_warehouse[{prefix}_y{j}]" for j in range(start_idx + 1, 6))
+                sums.append(f"({cols})")
+        return f"CHOOSE(ModeYearIndex,{','.join(sums)})"
+
+    _FC = _xlpm("fc")
+    _FT = _xlpm("ft")
+    _FA = _xlpm("fa")
+
+    return (
+        "=LET("
+        f"{_FC},{future_choose('cap')},"
+        f"{_FT},{future_choose('tax')},"
+        f"{_FA},{future_choose('apron')},"
+        f'IF(SelectedMode="Cap",{_FC},IF(SelectedMode="Tax",{_FT},{_FA})))'
+    )
+
+
 def _build_plan_row_mask() -> str:
     """
     PlanRowMask: filter mask for plan_journal rows.
@@ -372,6 +441,14 @@ LAMBDA_NAMED_FORMULAS: dict[str, tuple[str, str]] = {
     "DeadMoneyFilter": (
         _build_dead_money_filter(),
         "Filter condition for dead money (team + year + has amount)",
+    ),
+    "SalaryBookExistsFilter": (
+        _build_salary_book_exists_filter(),
+        "Filter condition for exists-only players (team + current=0 + future>0)",
+    ),
+    "SalaryBookExistsFutureAmt": (
+        _build_salary_book_exists_future_amt(),
+        "Mode-aware future total for exists-only players (array)",
     ),
     "PlanRowMask": (
         _build_plan_row_mask(),
@@ -559,3 +636,31 @@ def roster_pct_of_cap_formula(take_n: int = 40) -> str:
     inner = f"FilterSortTake(SalaryBookModeAmt(),SalaryBookModeAmt(),SalaryBookRosterFilter(),{take_n})"
     cap_limit = "SUMIFS(tbl_system_values[salary_cap_amount],tbl_system_values[salary_year],SelectedYear)"
     return f"=LET({_AMT},{inner},{_LIMIT},{cap_limit},IF({_AMT}=\"\",\"\",{_AMT}/{_LIMIT}))"
+
+
+def exists_only_col_formula(column: str, take_n: int = 40) -> str:
+    """
+    Return formula for an exists-only column.
+    When ShowExistsOnlyRows="No", returns empty string.
+    """
+    inner = f"FilterSortTake({column},SalaryBookExistsFutureAmt(),SalaryBookExistsFilter(),{take_n})"
+    return f'=IF(ShowExistsOnlyRows<>"Yes","", {inner})'
+
+
+def exists_only_derived_formula(column: str, transform: str, take_n: int = 40) -> str:
+    """Return formula for a derived exists-only column."""
+    _RES = _xlpm("res")
+    inner = f"FilterSortTake({column},SalaryBookExistsFutureAmt(),SalaryBookExistsFilter(),{take_n})"
+    transformed = transform.replace("{result}", _RES)
+    return f'=IF(ShowExistsOnlyRows<>"Yes","", LET({_RES},{inner},{transformed}))'
+
+
+def exists_only_salary_formula(yi: int, take_n: int = 40) -> str:
+    """Return mode-aware salary column formula for exists-only players."""
+    inner_col = (
+        f'IF(SelectedMode="Cap",tbl_salary_book_warehouse[cap_y{yi}],'
+        f'IF(SelectedMode="Tax",tbl_salary_book_warehouse[tax_y{yi}],'
+        f'tbl_salary_book_warehouse[apron_y{yi}]))'
+    )
+    inner = f"FilterSortTake({inner_col},SalaryBookExistsFutureAmt(),SalaryBookExistsFilter(),{take_n})"
+    return f'=IF(ShowExistsOnlyRows<>"Yes","", {inner})'

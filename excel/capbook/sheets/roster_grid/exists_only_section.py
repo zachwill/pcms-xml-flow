@@ -11,6 +11,11 @@ from .helpers import (
     COL_CAP_Y0, COL_PCT_CAP,
     num_exists_rows
 )
+from ...named_formulas import (
+    exists_only_col_formula,
+    exists_only_derived_formula,
+    exists_only_salary_formula,
+)
 
 
 def _write_exists_only_section(
@@ -105,107 +110,56 @@ def _write_exists_only_section(
     row += 1
 
     # =========================================================================
-    # Dynamic Array Formula: LET + FILTER + SORTBY for EXISTS_ONLY rows
+    # Dynamic Array Formulas: using named formula helpers
     # =========================================================================
-    #
-    # Design: We use a single spilling formula per column that:
-    # 1. Computes per-row "current year amount" (all modes must be zero)
-    # 2. Computes per-row "future total" (sum of future years in any mode)
-    # 3. FILTERs to SelectedTeam + current=0 + future>0
-    # 4. SORTBYs by future_total (DESC) - biggest future commitments first
-    # 5. TAKEs first N rows
-
-    # -------------------------------------------------------------------------
-    # LET prefix for EXISTS_ONLY filtering
-    # -------------------------------------------------------------------------
-
-    def exists_only_let_prefix() -> str:
-        """Return LET prefix for EXISTS_ONLY filtering (computes current and future amounts)."""
-        # Current year amounts per mode (using CHOOSE with (SelectedYear-MetaBaseYear+1))
-        cap_curr = ",".join(f"tbl_salary_book_warehouse[cap_y{i}]" for i in range(6))
-        tax_curr = ",".join(f"tbl_salary_book_warehouse[tax_y{i}]" for i in range(6))
-        apron_curr = ",".join(f"tbl_salary_book_warehouse[apron_y{i}]" for i in range(6))
-
-        # Future year sums per mode (CHOOSE returns sum of years after selected)
-        # For each starting index, sum remaining years
-        def future_choose(prefix: str) -> str:
-            sums = []
-            for start_idx in range(6):
-                if start_idx >= 5:
-                    sums.append("0")  # Year 5 has no future
-                else:
-                    cols = "+".join(f"tbl_salary_book_warehouse[{prefix}_y{j}]" for j in range(start_idx + 1, 6))
-                    sums.append(f"({cols})")
-            return f"CHOOSE((SelectedYear-MetaBaseYear+1),{','.join(sums)})"
-
-        return (
-            # Current year amounts per mode
-            f"_xlpm.curr_cap,CHOOSE((SelectedYear-MetaBaseYear+1),{cap_curr}),"
-            f"_xlpm.curr_tax,CHOOSE((SelectedYear-MetaBaseYear+1),{tax_curr}),"
-            f"_xlpm.curr_apron,CHOOSE((SelectedYear-MetaBaseYear+1),{apron_curr}),"
-            # Future year sums per mode
-            f"_xlpm.future_cap,{future_choose('cap')},"
-            f"_xlpm.future_tax,{future_choose('tax')},"
-            f"_xlpm.future_apron,{future_choose('apron')},"
-            # Combined future total (any mode) - used for filter criterion
-            "_xlpm.future_total,_xlpm.future_cap+_xlpm.future_tax+_xlpm.future_apron,"
-            # Mode-aware future sum - used for sorting/display
-            '_xlpm.future_mode,IF(SelectedMode="Cap",_xlpm.future_cap,IF(SelectedMode="Tax",_xlpm.future_tax,_xlpm.future_apron)),'
-            # Filter condition: team match AND all current = 0 AND future > 0
-            "_xlpm.filter_cond,(tbl_salary_book_warehouse[team_code]=SelectedTeam)*(_xlpm.curr_cap=0)*(_xlpm.curr_tax=0)*(_xlpm.curr_apron=0)*(_xlpm.future_total>0),"
-        )
 
     # -------------------------------------------------------------------------
     # Player Name column (spills down)
     # -------------------------------------------------------------------------
     # When ShowExistsOnlyRows="No", returns empty array; otherwise spills names
-    name_formula = (
-        '=IF(ShowExistsOnlyRows<>"Yes","",LET('
-        + exists_only_let_prefix()
-        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
-        + "_xlpm.sort_key,FILTER(_xlpm.future_mode,_xlpm.filter_cond,0),"
-        + f"IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sort_key,-1),{num_exists_rows}),\"\")))"
+    worksheet.write_formula(
+        row, COL_NAME,
+        exists_only_col_formula("tbl_salary_book_warehouse[player_name]", num_exists_rows)
     )
-    worksheet.write_formula(row, COL_NAME, name_formula)
 
     # -------------------------------------------------------------------------
     # Bucket column (EXISTS for non-empty rows)
     # -------------------------------------------------------------------------
-    bucket_formula = (
-        '=IF(ShowExistsOnlyRows<>"Yes","",LET('
-        + exists_only_let_prefix()
-        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
-        + "_xlpm.sort_key,FILTER(_xlpm.future_mode,_xlpm.filter_cond,0),"
-        + f"_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sort_key,-1),{num_exists_rows}),\"\"),"
-        + 'IF(_xlpm.names<>"","EXISTS","")))'
+    worksheet.write_formula(
+        row, COL_BUCKET,
+        exists_only_derived_formula(
+            "tbl_salary_book_warehouse[player_name]",
+            'IF({result}<>"","EXISTS","")',
+            num_exists_rows
+        ),
+        roster_formats["bucket_exists_only"]
     )
-    worksheet.write_formula(row, COL_BUCKET, bucket_formula, roster_formats["bucket_exists_only"])
 
     # -------------------------------------------------------------------------
     # CountsTowardTotal column (N for EXISTS_ONLY - never counts)
     # -------------------------------------------------------------------------
-    ct_total_formula = (
-        '=IF(ShowExistsOnlyRows<>"Yes","",LET('
-        + exists_only_let_prefix()
-        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
-        + "_xlpm.sort_key,FILTER(_xlpm.future_mode,_xlpm.filter_cond,0),"
-        + f"_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sort_key,-1),{num_exists_rows}),\"\"),"
-        + 'IF(_xlpm.names<>"","N","")))'
+    worksheet.write_formula(
+        row, COL_COUNTS_TOTAL,
+        exists_only_derived_formula(
+            "tbl_salary_book_warehouse[player_name]",
+            'IF({result}<>"","N","")',
+            num_exists_rows
+        ),
+        roster_formats["counts_no"]
     )
-    worksheet.write_formula(row, COL_COUNTS_TOTAL, ct_total_formula, roster_formats["counts_no"])
 
     # -------------------------------------------------------------------------
     # CountsTowardRoster column (N for EXISTS_ONLY - never counts)
     # -------------------------------------------------------------------------
-    ct_roster_formula = (
-        '=IF(ShowExistsOnlyRows<>"Yes","",LET('
-        + exists_only_let_prefix()
-        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
-        + "_xlpm.sort_key,FILTER(_xlpm.future_mode,_xlpm.filter_cond,0),"
-        + f"_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sort_key,-1),{num_exists_rows}),\"\"),"
-        + 'IF(_xlpm.names<>"","N","")))'
+    worksheet.write_formula(
+        row, COL_COUNTS_ROSTER,
+        exists_only_derived_formula(
+            "tbl_salary_book_warehouse[player_name]",
+            'IF({result}<>"","N","")',
+            num_exists_rows
+        ),
+        roster_formats["counts_no"]
     )
-    worksheet.write_formula(row, COL_COUNTS_ROSTER, ct_roster_formula, roster_formats["counts_no"])
 
     # Option/Guarantee/Trade - empty for EXISTS_ONLY (these are future contracts)
     worksheet.write(row, COL_OPTION, "")
@@ -215,43 +169,34 @@ def _write_exists_only_section(
     # -------------------------------------------------------------------------
     # Future Total column (shows mode-aware future sum for context)
     # -------------------------------------------------------------------------
-    future_total_formula = (
-        '=IF(ShowExistsOnlyRows<>"Yes","",LET('
-        + exists_only_let_prefix()
-        + "_xlpm.filtered,FILTER(_xlpm.future_mode,_xlpm.filter_cond,\"\"),"
-        + "_xlpm.sort_key,FILTER(_xlpm.future_mode,_xlpm.filter_cond,0),"
-        + f"IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sort_key,-1),{num_exists_rows}),\"\")))"
+    worksheet.write_formula(
+        row, COL_MIN_LABEL,
+        exists_only_col_formula("SalaryBookExistsFutureAmt()", num_exists_rows),
+        roster_formats["money"]
     )
-    worksheet.write_formula(row, COL_MIN_LABEL, future_total_formula, roster_formats["money"])
 
     # -------------------------------------------------------------------------
     # Salary columns - show all years (mode-aware) so analyst can see future money
     # -------------------------------------------------------------------------
     for yi in range(6):
-        sal_formula = (
-            '=IF(ShowExistsOnlyRows<>"Yes","",LET('
-            + exists_only_let_prefix()
-            + f'_xlpm.year_col,IF(SelectedMode="Cap",tbl_salary_book_warehouse[cap_y{yi}],'
-            + f'IF(SelectedMode="Tax",tbl_salary_book_warehouse[tax_y{yi}],'
-            + f"tbl_salary_book_warehouse[apron_y{yi}])),"
-            + "_xlpm.filtered,FILTER(_xlpm.year_col,_xlpm.filter_cond,\"\"),"
-            + "_xlpm.sort_key,FILTER(_xlpm.future_mode,_xlpm.filter_cond,0),"
-            + f"IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sort_key,-1),{num_exists_rows}),\"\")))"
+        worksheet.write_formula(
+            row, COL_CAP_Y0 + yi,
+            exists_only_salary_formula(yi, num_exists_rows),
+            roster_formats["money"]
         )
-        worksheet.write_formula(row, COL_CAP_Y0 + yi, sal_formula, roster_formats["money"])
 
     # -------------------------------------------------------------------------
     # Note column - display "Future $" for non-empty rows
     # -------------------------------------------------------------------------
-    note_formula = (
-        '=IF(ShowExistsOnlyRows<>"Yes","",LET('
-        + exists_only_let_prefix()
-        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
-        + "_xlpm.sort_key,FILTER(_xlpm.future_mode,_xlpm.filter_cond,0),"
-        + f"_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sort_key,-1),{num_exists_rows}),\"\"),"
-        + 'IF(_xlpm.names<>"","Future $","")))'
+    worksheet.write_formula(
+        row, COL_PCT_CAP,
+        exists_only_derived_formula(
+            "tbl_salary_book_warehouse[player_name]",
+            'IF({result}<>"","Future $","")',
+            num_exists_rows
+        ),
+        hidden_text_fmt
     )
-    worksheet.write_formula(row, COL_PCT_CAP, note_formula, hidden_text_fmt)
 
     # Move past spill zone
     row += num_exists_rows
@@ -265,11 +210,13 @@ def _write_exists_only_section(
 
     # Count formula using LET + ROWS(FILTER)
     count_value_formula = (
-        '=IF(ShowExistsOnlyRows<>"Yes","",LET('
-        + exists_only_let_prefix()
-        + 'IFERROR(ROWS(FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond)),0)))'
+        '=IF(ShowExistsOnlyRows<>"Yes","",IFERROR(ROWS(FILTER(tbl_salary_book_warehouse[player_name],SalaryBookExistsFilter())),0))'
     )
     worksheet.write_formula(row, COL_BUCKET, count_value_formula, roster_formats["subtotal_label"])
+
+    row += 2
+
+    return row
 
     row += 2
 

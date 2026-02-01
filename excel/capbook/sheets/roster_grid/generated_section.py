@@ -12,7 +12,7 @@ from .helpers import (
     num_generated_rows,
     _salary_book_choose_mode_aware
 )
-from ..xlsx import FMT_MONEY
+from ...xlsx import FMT_MONEY
 
 
 def _write_generated_section(

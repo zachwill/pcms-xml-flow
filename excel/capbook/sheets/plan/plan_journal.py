@@ -9,7 +9,7 @@ from typing import Any
 from xlsxwriter.workbook import Workbook
 from xlsxwriter.worksheet import Worksheet
 
-from . import _create_plan_formats
+from .formats import _create_plan_formats
 from ..command_bar import (
     write_command_bar_readonly,
     get_content_start_row,

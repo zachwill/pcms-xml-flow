@@ -4,7 +4,7 @@ from typing import Any
 
 from xlsxwriter.worksheet import Worksheet
 
-from ..named_formulas import _xlpm
+from ...named_formulas import _xlpm
 
 # =============================================================================
 # Layout Constants

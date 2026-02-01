@@ -97,7 +97,7 @@ Replace inline LET formulas with helper functions from `named_formulas.py`.
 - [x] Migrate `_write_twoway_section()` — ~10 column formulas → helper calls
 - [x] Migrate `_write_cap_holds_section()` — ~10 column formulas → helper calls
 - [x] Migrate `_write_dead_money_section()` — ~10 column formulas → helper calls
-- [ ] Migrate `_write_exists_only_section()` — ~8 column formulas → helper calls
+- [x] Migrate `_write_exists_only_section()` — ~8 column formulas → helper calls
 - [ ] Verify XML has no bare LET variables: `unzip -p shared/capbook.xlsx xl/worksheets/*.xml | grep -oE "LET\([a-z_]+," | grep -v "_xlpm"`
 - [ ] Implement per-row cumulative sums in `plan_journal.py` (SCAN + LAMBDA caused repair issues; try non-LAMBDA approach or simpler per-row formula)
 
@@ -154,6 +154,8 @@ Lower priority. Only do if the files become pain points.
 | `CapHoldsFilter` | LET | Filter condition for cap holds |
 | `DeadMoneyModeAmt` | Simple | Mode-aware amount for dead_money_warehouse |
 | `DeadMoneyFilter` | LET | Filter condition for dead money |
+| `SalaryBookExistsFilter` | LET | Filter condition for exists-only players |
+| `SalaryBookExistsFutureAmt` | LET | Mode-aware future total for exists-only players |
 | `PlanRowMask` | LAMBDA | Filter mask for plan_journal rows |
 
 ### Python Helper Functions
@@ -164,6 +166,7 @@ from excel.capbook.named_formulas import (
     twoway_col_formula,      # Two-way section column
     cap_holds_col_formula,   # Cap holds section column
     dead_money_col_formula,  # Dead money section column
+    exists_only_col_formula, # Exists-only section column
     roster_derived_formula,  # Column with transformation
     _xlpm,                   # Prefix helper: _xlpm("x") → "_xlpm.x"
 )

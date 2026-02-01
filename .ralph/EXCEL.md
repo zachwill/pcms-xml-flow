@@ -37,8 +37,8 @@ Sean has a comprehensive totals block. We need:
 - [x] **+/- Minimum** - delta from minimum (GREEN if above, RED if below)
 - [x] **Cap Level** - salary cap amount
 - [x] **Cap Space** - GREEN if positive, RED if negative
-- [ ] **Tax Level** - luxury tax threshold
-- [ ] **+/- Tax** - GREEN if under, RED if over
+- [x] **Tax Level** - luxury tax threshold
+- [x] **+/- Tax** - GREEN if under, RED if over
 - [ ] **Tax Payment** - calculated tax owed (if over)
 - [ ] **Tax Refund** - (if applicable)
 - [ ] **Apron 1 Level** - first apron threshold

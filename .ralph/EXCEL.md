@@ -128,7 +128,7 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Tie to SelectedMode/SelectedYear context
 
 ### 17) TRADE_MACHINE: journal output rows
-- [ ] Add per-lane Journal Output rows
+- [x] Add per-lane Journal Output rows
   - Net delta for SelectedYear (cap/tax/apron)
   - Source label (e.g., "Trade Lane A")
   - Publish instructions (copy into PLAN_JOURNAL)

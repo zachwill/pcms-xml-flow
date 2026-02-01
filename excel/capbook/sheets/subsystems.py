@@ -288,12 +288,13 @@ def write_trade_machine(
         )
         lane_team_cells.append(team_cell_ref)
 
-    # Calculate rows used by lane content (status summary + outgoing + incoming + matching)
+    # Calculate rows used by lane content (status summary + outgoing + incoming + matching + journal)
     # Status summary: 10 rows (Team, blank, Status header, 8 status lines, blank)
     # Outgoing: 1 header + 5 slots + 1 total + 1 blank = 8 rows
     # Incoming: 1 header + 5 slots + 1 total + 1 blank = 8 rows
     # Matching summary: 5 rows (Net delta, Max Incoming, Legal?, Matching Rule, Note)
-    rows_per_lane = 10 + 8 + 8 + 5 + 2  # plus spacing
+    # Journal output: 7 rows (header, Δ Cap, Δ Tax, Δ Apron, Source, publish note, blank)
+    rows_per_lane = 10 + 8 + 8 + 5 + 7 + 2  # plus spacing
     content_row += rows_per_lane + 2
 
     # Salary matching reference table
@@ -340,6 +341,29 @@ def write_trade_machine(
     ]
     for note in apron_notes:
         worksheet.write(content_row, 0, note, sub_formats["note"])
+        content_row += 1
+
+    content_row += 2
+
+    # =========================================================================
+    # JOURNAL PUBLISH INSTRUCTIONS
+    # =========================================================================
+    # Detailed instructions for copying lane journal output to PLAN_JOURNAL
+    # =========================================================================
+
+    worksheet.write(content_row, 0, "How to publish Trade to PLAN_JOURNAL:", sub_formats["label_bold"])
+    content_row += 1
+
+    publish_steps = [
+        "1. Go to PLAN_JOURNAL sheet",
+        "2. Add a new row with action_type = 'Trade'",
+        "3. Set plan_id, enabled, salary_year, target_player as needed",
+        "4. Copy the Δ Cap/Tax/Apron values from the lane's JOURNAL OUTPUT into delta_cap/delta_tax/delta_apron",
+        "5. Set source = 'Trade Lane A' (or B/C/D as appropriate)",
+        "Note: For multi-team trades, add one PLAN_JOURNAL row per team involved",
+    ]
+    for step in publish_steps:
+        worksheet.write(content_row, 0, step, sub_formats["note"])
         content_row += 1
 
     content_row += 3
@@ -403,7 +427,12 @@ def _write_trade_lane(
     """
     Write a single trade lane (A/B/C/D) with team selector, status summary, and trade slots.
 
-    This v3 implementation (per backlog #16) adds:
+    This v4 implementation (per backlog #17) adds:
+    - Journal Output block with net deltas (Δ Cap/Tax/Apron)
+    - Source label for PLAN_JOURNAL (e.g., "Trade Lane A")
+    - Brief publish instructions per lane
+
+    Previous features (v3, backlog #16):
     - Max Incoming calculation using salary matching rules
     - Legal? check comparing Incoming Total vs Max Incoming
     - Matching Rule note explaining which tier applies
@@ -708,6 +737,64 @@ def _write_trade_lane(
     worksheet.write(
         row, base_col,
         "Note: Apron teams cannot aggregate players",
+        sub_formats["note"],
+    )
+    row += 2
+
+    # =========================================================================
+    # JOURNAL OUTPUT BLOCK (per lane)
+    # =========================================================================
+    # Provides net delta for SelectedYear + source label for copying into
+    # PLAN_JOURNAL.
+    #
+    # Per backlog task #17:
+    # - Net delta (cap/tax/apron) = Total In - Total Out
+    # - Source label: "Trade Lane {A|B|C|D}"
+    # - Publish instructions
+    #
+    # Note: For trades, the delta for this team is (incoming - outgoing).
+    # Cap/tax/apron deltas are all the same since traded salaries count
+    # identically toward all three thresholds.
+    # =========================================================================
+
+    worksheet.write(row, base_col, "JOURNAL OUTPUT", sub_formats["label_bold"])
+    row += 1
+
+    # Net Delta (same as already computed above, but we re-state for journal)
+    # This is the change in salary for this team: incoming - outgoing
+    worksheet.write(row, base_col, "Δ Cap:", sub_formats["label"])
+    worksheet.write_formula(
+        row, base_col + 1,
+        f"={incoming_total_cell}-{outgoing_total_cell}",
+        sub_formats["output_money"],
+    )
+    row += 1
+
+    worksheet.write(row, base_col, "Δ Tax:", sub_formats["label"])
+    worksheet.write_formula(
+        row, base_col + 1,
+        f"={incoming_total_cell}-{outgoing_total_cell}",
+        sub_formats["output_money"],
+    )
+    row += 1
+
+    worksheet.write(row, base_col, "Δ Apron:", sub_formats["label"])
+    worksheet.write_formula(
+        row, base_col + 1,
+        f"={incoming_total_cell}-{outgoing_total_cell}",
+        sub_formats["output_money"],
+    )
+    row += 1
+
+    # Source label
+    worksheet.write(row, base_col, "Source:", sub_formats["label"])
+    worksheet.write(row, base_col + 1, f"Trade Lane {lane_id}", sub_formats["output"])
+    row += 1
+
+    # Publish note (brief, since full instructions are after all lanes)
+    worksheet.write(
+        row, base_col,
+        "→ Copy to PLAN_JOURNAL",
         sub_formats["note"],
     )
 

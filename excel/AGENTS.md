@@ -274,10 +274,19 @@ The `TRADE_MACHINE` sheet includes:
    - **Matching Rule**: shows which tier applies (Low: 200%+$250K / Mid: 100%+TPE / High: 125%+$250K / Apron: 100%+$100K)
    - Conditional formatting: green for legal, red for over limit
 
-6. **Salary Matching Reference** — inline table with matching tiers:
+6. **Journal Output Block** (per lane) — for publishing to PLAN_JOURNAL:
+   - **Δ Cap / Δ Tax / Δ Apron**: net delta (Total In - Total Out) for SelectedYear
+   - **Source**: label identifying the lane (e.g., "Trade Lane A")
+   - Brief publish instructions with link to detailed instructions below
+
+7. **Salary Matching Reference** — inline table with matching tiers:
    - Tier breakpoints derived from TPE_dollar_allowance (~$8M low, ~$33M high for 2025)
    - Formulas for each tier (200%+$250K, 100%+TPE, 125%+$250K)
    - Apron gate notes: first apron teams cannot aggregate players
+
+8. **Journal Publish Instructions** — detailed workflow for copying trade deltas to PLAN_JOURNAL:
+   - Step-by-step instructions for adding trade rows to journal
+   - Notes about multi-team trades requiring one row per team
 
 ### WAIVE_BUYOUT_STRETCH features
 

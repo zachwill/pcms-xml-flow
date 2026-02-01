@@ -348,10 +348,10 @@ const colors = {
 };
 
 const toolIcons: Record<string, string> = {
+  bash: ">",
+  edit: ">",
   read: ">",
   write: ">",
-  edit: ">",
-  bash: ">",
 };
 
 function getToolColor(tool: string): string {

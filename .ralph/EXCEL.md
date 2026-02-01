@@ -54,7 +54,7 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Conditional formatting to gray out rows not in ActivePlan/SelectedYear
 
 ### 5) AUDIT_AND_RECONCILE: implement plan diff section
-- [ ] Replace plan diff placeholder with real Plan Diff outputs
+- [x] Replace plan diff placeholder with real Plan Diff outputs
   - Baseline vs ActivePlan delta totals (cap/tax/apron) for SelectedYear
   - Journal action counts + enabled counts
   - Link note back to PLAN_JOURNAL for drilldown

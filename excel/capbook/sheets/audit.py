@@ -6,21 +6,24 @@ Per the blueprint (excel-cap-book-blueprint.md), it must include:
 - Totals reconciliation (snapshot vs counting rows vs derived totals)
 - Contributing rows drilldowns for each headline readout
 - Assumptions applied (fill rows, toggles, overrides)
-- Plan diff (baseline vs plan) and journal step summary
+- Plan diff (baseline vs ActivePlan) and journal action summary
 
 This implementation provides:
 1. Shared command bar (read-only reference to TEAM_COCKPIT)
-2. Authoritative totals from DATA_team_salary_warehouse (by bucket)
-3. Drilldown table sums (salary_book, cap_holds, dead_money)
-4. Visible deltas with conditional formatting
-5. Row counts + counts-vs-exists summary
-6. Policy assumptions summary
-7. Notes section for plan diff placeholder
+2. Summary banner (at-a-glance reconciliation status for cap/tax/apron)
+3. Authoritative totals from DATA_team_salary_warehouse (by bucket)
+4. Drilldown table sums (salary_book, cap_holds, dead_money)
+5. Visible deltas with conditional formatting
+6. Row counts + counts-vs-exists summary
+7. Policy assumptions summary (fill rows, toggles)
+8. Plan diff section (Baseline vs ActivePlan delta totals + action counts)
+9. Notes section with drilldown links
 
 Design notes:
 - Uses Excel formulas filtered by SelectedTeam + SelectedYear
 - Conditional formatting highlights any non-zero deltas as red (reconciliation failures)
 - Row count comparison shows if drilldown tables have expected number of rows
+- Plan diff uses SUMPRODUCT to aggregate enabled journal actions for ActivePlan + SelectedYear
 """
 
 from __future__ import annotations
@@ -929,13 +932,201 @@ def _write_policy_assumptions_section(
     return row + 2
 
 
+def _write_plan_diff_section(
+    worksheet: Worksheet,
+    row: int,
+    formats: dict[str, Any],
+    audit_formats: dict[str, Any],
+) -> int:
+    """Write the Plan Diff section showing Baseline vs ActivePlan comparison.
+    
+    This section provides:
+    - Active Plan and Selected Year context display
+    - Total plan deltas (cap/tax/apron) for ActivePlan + SelectedYear
+    - Journal action counts (total rows vs enabled rows)
+    - Link to PLAN_JOURNAL for detailed drilldown
+    
+    The formulas use SUMPRODUCT to aggregate from tbl_plan_journal where:
+    - plan_id matches ActivePlanId (or plan_id is blank)
+    - salary_year matches SelectedYear (or is blank, defaulting to SelectedYear)
+    - enabled = "Yes" for counting/summing active actions
+    
+    Returns next row.
+    """
+    # Section header
+    worksheet.merge_range(
+        row, COL_LABEL, row, COL_NOTES,
+        "PLAN DIFF (Baseline vs ActivePlan)",
+        audit_formats["section_header"]
+    )
+    row += 1
+    
+    # Context display: Active Plan and Selected Year
+    worksheet.write(row, COL_LABEL, "Active Plan:", audit_formats["label_indent"])
+    worksheet.write_formula(row, COL_WAREHOUSE, "=ActivePlan", audit_formats["label"])
+    worksheet.write(row, COL_NOTES, "Selected scenario from command bar", audit_formats["note"])
+    row += 1
+    
+    worksheet.write(row, COL_LABEL, "Selected Year:", audit_formats["label_indent"])
+    worksheet.write_formula(row, COL_WAREHOUSE, "=SelectedYear", audit_formats["count"])
+    worksheet.write(row, COL_NOTES, "Year context for plan deltas", audit_formats["note"])
+    row += 1
+    
+    row += 1  # Blank row
+    
+    # =========================================================================
+    # Journal Action Counts
+    # =========================================================================
+    worksheet.merge_range(
+        row, COL_LABEL, row, COL_NOTES,
+        "Journal Action Counts (for ActivePlan + SelectedYear)",
+        audit_formats["subsection_header"]
+    )
+    row += 1
+    
+    # Total rows for ActivePlan (regardless of enabled status)
+    # Count rows where plan_id matches ActivePlanId AND salary_year matches SelectedYear (or blank)
+    total_rows_formula = (
+        '=SUMPRODUCT('
+        '((tbl_plan_journal[plan_id]=ActivePlanId)+(tbl_plan_journal[plan_id]=""))>0,'
+        '((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]=""))>0,'
+        '(tbl_plan_journal[action_type]<>"")*1'  # Count only rows with an action_type
+        ')'
+    )
+    worksheet.write(row, COL_LABEL, "Total Journal Rows:", audit_formats["label_indent"])
+    worksheet.write_formula(row, COL_WAREHOUSE, total_rows_formula, audit_formats["count"])
+    worksheet.write(row, COL_NOTES, "Rows with action_type for ActivePlan + SelectedYear", audit_formats["note"])
+    row += 1
+    
+    # Enabled rows count
+    enabled_rows_formula = (
+        '=SUMPRODUCT('
+        '((tbl_plan_journal[plan_id]=ActivePlanId)+(tbl_plan_journal[plan_id]=""))>0,'
+        '((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]=""))>0,'
+        '(tbl_plan_journal[enabled]="Yes")*1'
+        ')'
+    )
+    worksheet.write(row, COL_LABEL, "Enabled Actions:", audit_formats["label_indent"])
+    worksheet.write_formula(row, COL_WAREHOUSE, enabled_rows_formula, audit_formats["count"])
+    worksheet.write(row, COL_NOTES, "Only enabled actions count toward plan deltas", audit_formats["note"])
+    row += 1
+    
+    # Disabled/pending rows (for awareness)
+    worksheet.write(row, COL_LABEL, "Disabled/Pending:", audit_formats["label_indent"])
+    disabled_formula = f"={xlsxwriter.utility.xl_rowcol_to_cell(row-2, COL_WAREHOUSE)}-{xlsxwriter.utility.xl_rowcol_to_cell(row-1, COL_WAREHOUSE)}"
+    worksheet.write_formula(row, COL_WAREHOUSE, disabled_formula, audit_formats["count"])
+    worksheet.write(row, COL_NOTES, "Rows with enabled≠Yes (excluded from deltas)", audit_formats["note"])
+    row += 1
+    
+    row += 1  # Blank row
+    
+    # =========================================================================
+    # Plan Delta Totals
+    # =========================================================================
+    worksheet.merge_range(
+        row, COL_LABEL, row, COL_NOTES,
+        "Plan Delta Totals (Enabled Actions Only)",
+        audit_formats["subsection_header"]
+    )
+    row += 1
+    
+    # Column headers for delta display
+    headers = ["", "Cap Δ", "Tax Δ", "Apron Δ", "Notes"]
+    for col, header in enumerate(headers[:5]):
+        worksheet.write(row, col, header, audit_formats["col_header"])
+    row += 1
+    
+    # Delta Cap Total
+    delta_cap_formula = (
+        '=IFERROR(SUMPRODUCT('
+        '((tbl_plan_journal[plan_id]=ActivePlanId)+(tbl_plan_journal[plan_id]=""))>0,'
+        '((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]=""))>0,'
+        '(tbl_plan_journal[enabled]="Yes")*1,'
+        'tbl_plan_journal[delta_cap]'
+        '),0)'
+    )
+    delta_tax_formula = (
+        '=IFERROR(SUMPRODUCT('
+        '((tbl_plan_journal[plan_id]=ActivePlanId)+(tbl_plan_journal[plan_id]=""))>0,'
+        '((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]=""))>0,'
+        '(tbl_plan_journal[enabled]="Yes")*1,'
+        'tbl_plan_journal[delta_tax]'
+        '),0)'
+    )
+    delta_apron_formula = (
+        '=IFERROR(SUMPRODUCT('
+        '((tbl_plan_journal[plan_id]=ActivePlanId)+(tbl_plan_journal[plan_id]=""))>0,'
+        '((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]=""))>0,'
+        '(tbl_plan_journal[enabled]="Yes")*1,'
+        'tbl_plan_journal[delta_apron]'
+        '),0)'
+    )
+    
+    worksheet.write(row, COL_LABEL, "PLAN DELTA TOTAL", audit_formats["label_bold"])
+    worksheet.write_formula(row, COL_WAREHOUSE, delta_cap_formula, audit_formats["money_bold"])
+    worksheet.write_formula(row, COL_DRILLDOWN, delta_tax_formula, audit_formats["money_bold"])
+    worksheet.write_formula(row, COL_DELTA, delta_apron_formula, audit_formats["money_bold"])
+    worksheet.write(row, COL_NOTES, "Sum of enabled actions for ActivePlan + SelectedYear", audit_formats["note"])
+    
+    # Conditional formatting for delta totals (highlight non-zero)
+    for col in [COL_WAREHOUSE, COL_DRILLDOWN, COL_DELTA]:
+        worksheet.conditional_format(row, col, row, col, {
+            "type": "cell",
+            "criteria": ">",
+            "value": 0,
+            "format": audit_formats["delta_fail"],  # Red for increasing costs
+        })
+        worksheet.conditional_format(row, col, row, col, {
+            "type": "cell",
+            "criteria": "<",
+            "value": 0,
+            "format": audit_formats["delta_ok"],  # Green for savings
+        })
+    row += 1
+    
+    row += 1  # Blank row
+    
+    # =========================================================================
+    # Drilldown Link
+    # =========================================================================
+    worksheet.write(
+        row, COL_LABEL,
+        "➤ For full journal drilldown, see PLAN_JOURNAL sheet",
+        audit_formats["note"]
+    )
+    row += 1
+    worksheet.write(
+        row, COL_LABEL,
+        "  PLAN_JOURNAL shows per-action details + cumulative running totals",
+        audit_formats["note"]
+    )
+    row += 1
+    worksheet.write(
+        row, COL_LABEL,
+        "  BUDGET_LEDGER shows plan deltas by action type with derived totals",
+        audit_formats["note"]
+    )
+    row += 1
+    
+    # Note about Baseline behavior
+    row += 1
+    worksheet.write(
+        row, COL_LABEL,
+        "ℹ When ActivePlan = 'Baseline', deltas should be $0 (no journal entries).",
+        audit_formats["note"]
+    )
+    row += 1
+    
+    return row + 2
+
+
 def _write_notes_section(
     worksheet: Worksheet,
     row: int,
     formats: dict[str, Any],
     audit_formats: dict[str, Any],
 ) -> int:
-    """Write the notes and future work section.
+    """Write the notes and guidance section.
     
     Returns next row.
     """
@@ -951,7 +1142,7 @@ def _write_notes_section(
         "• This sheet validates that drilldown table sums match warehouse totals",
         "• Any non-zero delta indicates a reconciliation issue that needs investigation",
         "• Row counts help verify that all expected rows are included",
-        "• Plan diffs (baseline vs scenario) will appear once PLAN_JOURNAL is implemented",
+        "• Plan Diff section shows ActivePlan impact vs Baseline (above)",
         "• See META sheet for validation status, timestamps, and any build errors",
         "• See BUDGET_LEDGER for the authoritative totals statement",
         "• See ROSTER_GRID for per-row drilldowns by bucket",
@@ -981,8 +1172,10 @@ def write_audit_and_reconcile(
     - Summary banner (at-a-glance reconciliation status)
     - Cap amount reconciliation (warehouse vs drilldown by bucket)
     - Tax amount reconciliation (warehouse vs drilldown by bucket)
+    - Apron amount reconciliation (warehouse vs drilldown by bucket)
     - Row counts comparison
-    - Policy assumptions summary
+    - Policy assumptions summary (fill rows, toggles)
+    - Plan diff (Baseline vs ActivePlan delta totals + action counts)
     - Notes and guidance
 
     Per the blueprint:
@@ -1031,7 +1224,10 @@ def write_audit_and_reconcile(
     # 6. Policy assumptions
     content_row = _write_policy_assumptions_section(worksheet, content_row, formats, audit_formats)
     
-    # 7. Notes
+    # 7. Plan diff (Baseline vs ActivePlan)
+    content_row = _write_plan_diff_section(worksheet, content_row, formats, audit_formats)
+    
+    # 8. Notes
     content_row = _write_notes_section(worksheet, content_row, formats, audit_formats)
     
     # Sheet protection

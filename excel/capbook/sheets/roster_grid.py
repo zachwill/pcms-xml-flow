@@ -1134,6 +1134,23 @@ def _write_generated_section(
     # Formula references:
     # - tbl_rookie_scale: columns salary_year, pick_number, salary_year_1
     # - tbl_minimum_scale: columns salary_year, years_of_service, minimum_salary_amount
+    #
+    # NOTE on mode-awareness (Cap/Tax/Apron):
+    # ----------------------------------------
+    # Fill amounts do NOT vary by SelectedMode. This is intentional and correct:
+    #
+    # 1. Minimum salary contracts (both rookie and veteran) count the SAME toward
+    #    cap, tax, and apron thresholds. The CBA defines a single minimum salary
+    #    amount that is mode-independent.
+    #
+    # 2. The distinction between cap/tax/apron modes affects how thresholds are
+    #    calculated and which limits apply, NOT the contract salary amounts.
+    #
+    # 3. In salary_book_warehouse, minimum contracts have identical values in
+    #    cap_y*, tax_y*, and apron_y* columns (no mode-specific adjustments).
+    #
+    # Therefore, the fill_amount_formula uses the base salary values from
+    # tbl_rookie_scale and tbl_minimum_scale without mode branching.
 
     # Rookie min formula (pick 30, year 1 salary for SelectedYear)
     rookie_min_formula = (

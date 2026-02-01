@@ -73,7 +73,13 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Dynamic note shows fill count and type when active
   - Updated Derived Totals formula: `Snapshot + Plan + Policy = Derived`
   - Updated sheet subtitle and docstrings to reflect new structure
-- [ ] Consider mode-aware fill amounts (currently uses cap-based minimum; could vary by Tax/Apron mode)
+- [x] Consider mode-aware fill amounts (currently uses cap-based minimum; could vary by Tax/Apron mode)
+  - **Decision:** No change needed. Fill amounts are intentionally mode-independent.
+  - **Rationale:** Minimum salary contracts (both rookie min and vet min) count identically
+    toward cap, tax, and apron thresholds per CBA. There is no separate "tax minimum" or
+    "apron minimum" — the same dollar amount applies regardless of which mode is selected.
+  - **Implementation:** Added clarifying comments to `roster_grid.py` and `audit.py` explaining
+    why mode-aware fill amounts are not needed.
 
 ---
 

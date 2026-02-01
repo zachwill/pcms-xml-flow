@@ -823,9 +823,11 @@ def _write_policy_assumptions_section(
     row += 1
     
     # Explanation
+    # NOTE: Fill amounts are mode-independent (same for Cap/Tax/Apron) because
+    # minimum salary contracts count identically toward all thresholds per CBA.
     worksheet.write(
         row, COL_LABEL,
-        "When RosterFillTarget > 0, generated fill rows add to totals:",
+        "When RosterFillTarget > 0, generated fill rows add to totals (mode-independent):",
         audit_formats["note"]
     )
     row += 1
@@ -857,6 +859,7 @@ def _write_policy_assumptions_section(
     row += 1
     
     # Fill amount per row (based on RosterFillType)
+    # Mode-independent: minimum salaries count the same for cap/tax/apron thresholds
     rookie_min_formula = (
         "SUMIFS(tbl_rookie_scale[salary_year_1],"
         "tbl_rookie_scale[salary_year],SelectedYear,"

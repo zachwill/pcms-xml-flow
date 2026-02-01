@@ -273,12 +273,49 @@ def _build_plan_row_mask() -> str:
     )
 
 
+def _build_salary_book_option_col() -> str:
+    """
+    SalaryBookOptionCol: returns the option_yN column for SelectedYear.
+    """
+    option_cols = ",".join(f"tbl_salary_book_warehouse[option_y{i}]" for i in range(6))
+    return f"=CHOOSE(ModeYearIndex,{option_cols})"
+
+
+def _build_salary_book_guarantee_label() -> str:
+    """
+    SalaryBookGuaranteeLabel: returns GTD/PRT/NG label for SelectedYear.
+    """
+    gtd_full_cols = ",".join(f"tbl_salary_book_warehouse[is_fully_guaranteed_y{i}]" for i in range(6))
+    gtd_part_cols = ",".join(f"tbl_salary_book_warehouse[is_partially_guaranteed_y{i}]" for i in range(6))
+    gtd_non_cols = ",".join(f"tbl_salary_book_warehouse[is_non_guaranteed_y{i}]" for i in range(6))
+    
+    _GTD_FULL = _xlpm("gtd_full")
+    _GTD_PART = _xlpm("gtd_part")
+    _GTD_NON = _xlpm("gtd_non")
+    
+    return (
+        "=LET("
+        f"{_GTD_FULL},CHOOSE(ModeYearIndex,{gtd_full_cols}),"
+        f"{_GTD_PART},CHOOSE(ModeYearIndex,{gtd_part_cols}),"
+        f"{_GTD_NON},CHOOSE(ModeYearIndex,{gtd_non_cols}),"
+        f'IF({_GTD_FULL}=TRUE,"GTD",IF({_GTD_PART}=TRUE,"PRT",IF({_GTD_NON}=TRUE,"NG",""))))'
+    )
+
+
 # LAMBDA named formulas: (formula_builder, description)
 # Using builders so we can construct with proper _xlpm. prefixes
 LAMBDA_NAMED_FORMULAS: dict[str, tuple[str, str]] = {
     "SalaryBookModeAmt": (
         _build_salary_book_mode_amt(),
         "Mode-aware amount for SelectedYear from salary_book_warehouse (array)",
+    ),
+    "SalaryBookOptionCol": (
+        _build_salary_book_option_col(),
+        "Option column for SelectedYear from salary_book_warehouse",
+    ),
+    "SalaryBookGuaranteeLabel": (
+        _build_salary_book_guarantee_label(),
+        "Guarantee label (GTD/PRT/NG) for SelectedYear",
     ),
     "SalaryBookRosterFilter": (
         _build_salary_book_roster_filter(),
@@ -427,3 +464,40 @@ def roster_derived_formula(column: str, transform: str, take_n: int = 40) -> str
     # Replace {result} with the LET variable
     transformed = transform.replace("{result}", _RES)
     return f"=LET({_RES},{inner},{transformed})"
+
+
+def SalaryBookYearCol(col_prefix: str) -> str:
+    """Return CHOOSE formula for a set of yearly columns."""
+    cols = ",".join(f"tbl_salary_book_warehouse[{col_prefix}_y{i}]" for i in range(6))
+    return f"CHOOSE(ModeYearIndex,{cols})"
+
+
+def roster_option_formula(take_n: int = 40) -> str:
+    """Return complete option badge column formula."""
+    return f"=FilterSortTake(SalaryBookOptionCol(),SalaryBookModeAmt(),SalaryBookRosterFilter(),{take_n})"
+
+
+def roster_guarantee_formula(take_n: int = 40) -> str:
+    """Return complete guarantee label formula."""
+    return f"=FilterSortTake(SalaryBookGuaranteeLabel(),SalaryBookModeAmt(),SalaryBookRosterFilter(),{take_n})"
+
+
+def roster_salary_formula(yi: int, take_n: int = 40) -> str:
+    """Return mode-aware salary column formula for a specific year offset (0-5)."""
+    _VAL = _xlpm("val")
+    # In yi offset year, we still sort by SelectedYear mode_amt
+    inner = (
+        f'IF(SelectedMode="Cap",tbl_salary_book_warehouse[cap_y{yi}],'
+        f'IF(SelectedMode="Tax",tbl_salary_book_warehouse[tax_y{yi}],'
+        f'tbl_salary_book_warehouse[apron_y{yi}]))'
+    )
+    return f"=FilterSortTake({inner},SalaryBookModeAmt(),SalaryBookRosterFilter(),{take_n})"
+
+
+def roster_pct_of_cap_formula(take_n: int = 40) -> str:
+    """Return salary / cap_limit percentage formula."""
+    _AMT = _xlpm("amt")
+    _LIMIT = _xlpm("cap_limit")
+    inner = f"FilterSortTake(SalaryBookModeAmt(),SalaryBookModeAmt(),SalaryBookRosterFilter(),{take_n})"
+    cap_limit = "SUMIFS(tbl_system_values[salary_cap_amount],tbl_system_values[salary_year],SelectedYear)"
+    return f"=LET({_AMT},{inner},{_LIMIT},{cap_limit},IF({_AMT}=\"\",\"\",{_AMT}/{_LIMIT}))"

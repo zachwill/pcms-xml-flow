@@ -8,10 +8,16 @@ This module implements:
 4. Primary readouts section driven by DATA_team_salary_warehouse
 5. Quick drivers panel (top cap hits, top dead money, top holds)
 6. Minimum contracts count + total (using is_min_contract)
-7. Sheet protection with unlocked input cells
+7. Plan comparison panel (ComparePlan A/B/C/D deltas vs Baseline)
+8. Sheet protection with unlocked input cells
 
 Per the blueprint (excel-cap-book-blueprint.md), the command bar is the
 workbook's "operating context" and should be consistent across all sheets.
+
+Comparison workflow (per mental-models-and-design-principles.md):
+- Analysts compare 2-4 deal candidates side-by-side (lane-based branching)
+- The PLAN COMPARISON panel shows deltas for each ComparePlan vs Baseline
+- Warnings appear if a ComparePlan is blank or equals Baseline
 """
 
 from __future__ import annotations
@@ -605,6 +611,200 @@ def _write_minimum_contracts_readout(
     return row
 
 
+def _write_plan_comparison_panel(
+    workbook: Workbook,
+    worksheet: Worksheet,
+    formats: dict[str, Any],
+    row: int,
+) -> int:
+    """Write the plan comparison panel showing ComparePlan A/B/C/D deltas.
+    
+    Per the blueprint (mental-models-and-design-principles.md):
+    - Comparison is a first-class workflow
+    - Analysts compare 2-4 deal candidates side-by-side (lane-based branching)
+    
+    This panel shows:
+    - For each ComparePlan (A/B/C/D): delta vs Baseline (cap/tax/apron)
+    - Warning if ComparePlan is blank or equals Baseline
+    - Link to PLAN_JOURNAL for details
+    
+    Plan delta formulas filter by:
+    - plan_id = lookup(ComparePlanX -> tbl_plan_manager[plan_id])
+    - salary_year = SelectedYear (or blank)
+    - enabled = "Yes"
+    
+    Returns:
+        Next available row
+    """
+    # Formats
+    section_header_fmt = workbook.add_format({
+        "bold": True,
+        "font_size": 9,
+        "font_color": "#616161",
+    })
+    panel_header_fmt = workbook.add_format({
+        "bold": True,
+        "font_size": 10,
+        "bg_color": "#3B82F6",  # blue-500
+        "font_color": "#FFFFFF",
+        "border": 1,
+    })
+    label_fmt = workbook.add_format({"bold": False})
+    plan_label_fmt = workbook.add_format({
+        "bold": True,
+        "font_size": 10,
+    })
+    money_fmt = workbook.add_format({"num_format": FMT_MONEY})
+    money_delta_pos_fmt = workbook.add_format({
+        "num_format": FMT_MONEY,
+        "font_color": "#DC2626",  # red-600 (cost increase)
+    })
+    money_delta_neg_fmt = workbook.add_format({
+        "num_format": FMT_MONEY,
+        "font_color": "#059669",  # green-600 (savings)
+    })
+    note_fmt = workbook.add_format({
+        "font_size": 9,
+        "font_color": "#6B7280",
+        "italic": True,
+    })
+    warning_fmt = workbook.add_format({
+        "font_size": 9,
+        "font_color": "#92400E",  # amber-800
+        "bg_color": "#FEF3C7",  # amber-100
+    })
+    
+    # Section header
+    worksheet.write(row, COL_READOUT_LABEL, "PLAN COMPARISON", section_header_fmt)
+    worksheet.write(row, COL_READOUT_DESC, "(ComparePlan A/B/C/D vs Baseline)")
+    row += 1
+    
+    # Column headers
+    worksheet.write(row, COL_READOUT_LABEL, "Plan", panel_header_fmt)
+    worksheet.write(row, COL_READOUT_VALUE, "Δ Cap", panel_header_fmt)
+    worksheet.write(row, COL_READOUT_DESC, "Status / Notes", panel_header_fmt)
+    row += 1
+    
+    # Helper to build plan delta formula for a given compare plan named range
+    def _plan_delta_formula(compare_plan_range: str, delta_col: str) -> str:
+        """Build SUMPRODUCT formula to get delta for a ComparePlan.
+        
+        Logic:
+        - Lookup plan_id from tbl_plan_manager where plan_name = ComparePlanX
+        - Sum deltas from tbl_plan_journal where:
+          - plan_id matches
+          - salary_year = SelectedYear OR blank
+          - enabled = "Yes"
+        
+        Returns 0 if the compare plan is blank or not found.
+        """
+        # Lookup plan_id for the ComparePlan
+        plan_id_lookup = (
+            f'IFERROR(INDEX(tbl_plan_manager[plan_id],'
+            f'MATCH({compare_plan_range},tbl_plan_manager[plan_name],0)),"")'
+        )
+        
+        # SUMPRODUCT for deltas matching that plan_id + SelectedYear + enabled
+        return (
+            f'=IFERROR(IF({compare_plan_range}="",'
+            f'0,'  # Return 0 if compare plan is blank
+            f'SUMPRODUCT('
+            f'(tbl_plan_journal[{delta_col}])*'
+            f'(tbl_plan_journal[enabled]="Yes")*'
+            f'(tbl_plan_journal[plan_id]={plan_id_lookup})*'
+            f'((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]=""))'
+            f')),0)'
+        )
+    
+    # Helper to build status formula for a compare plan
+    def _plan_status_formula(compare_plan_range: str) -> str:
+        """Build formula to show status/warning for a ComparePlan.
+        
+        Shows:
+        - "(blank)" if the compare plan is not selected
+        - "(same as Baseline)" if compare plan equals "Baseline"
+        - Action count and link to PLAN_JOURNAL otherwise
+        """
+        # Lookup plan_id
+        plan_id_lookup = (
+            f'IFERROR(INDEX(tbl_plan_manager[plan_id],'
+            f'MATCH({compare_plan_range},tbl_plan_manager[plan_name],0)),"")'
+        )
+        
+        # Action count for this plan + SelectedYear
+        action_count = (
+            f'SUMPRODUCT('
+            f'((tbl_plan_journal[plan_id]={plan_id_lookup})+(tbl_plan_journal[plan_id]=""))>0,'
+            f'((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]=""))>0,'
+            f'(tbl_plan_journal[enabled]="Yes")*1'
+            f')'
+        )
+        
+        return (
+            f'=IF({compare_plan_range}="",'
+            f'"(not selected)",'
+            f'IF({compare_plan_range}="Baseline",'
+            f'"(same as Baseline)",'
+            f'{action_count}&" actions → see PLAN_JOURNAL"))'
+        )
+    
+    # Write rows for each ComparePlan
+    compare_plans = [
+        ("ComparePlanA", "Compare A:"),
+        ("ComparePlanB", "Compare B:"),
+        ("ComparePlanC", "Compare C:"),
+        ("ComparePlanD", "Compare D:"),
+    ]
+    
+    for plan_range, label in compare_plans:
+        # Plan name label (shows the selected plan name)
+        worksheet.write(row, COL_READOUT_LABEL, label, plan_label_fmt)
+        
+        # Delta Cap (for now, show cap delta; could expand to show tax/apron)
+        cap_formula = _plan_delta_formula(plan_range, "delta_cap")
+        worksheet.write_formula(row, COL_READOUT_VALUE, cap_formula, money_fmt)
+        
+        # Status/notes
+        status_formula = _plan_status_formula(plan_range)
+        worksheet.write_formula(row, COL_READOUT_DESC, status_formula, note_fmt)
+        
+        # Conditional formatting: delta values
+        worksheet.conditional_format(row, COL_READOUT_VALUE, row, COL_READOUT_VALUE, {
+            "type": "cell",
+            "criteria": ">",
+            "value": 0,
+            "format": money_delta_pos_fmt,
+        })
+        worksheet.conditional_format(row, COL_READOUT_VALUE, row, COL_READOUT_VALUE, {
+            "type": "cell",
+            "criteria": "<",
+            "value": 0,
+            "format": money_delta_neg_fmt,
+        })
+        
+        # Conditional formatting: warn if blank or Baseline
+        worksheet.conditional_format(row, COL_READOUT_DESC, row, COL_READOUT_DESC, {
+            "type": "formula",
+            "criteria": f'=OR({plan_range}="",{plan_range}="Baseline")',
+            "format": warning_fmt,
+        })
+        
+        row += 1
+    
+    # Blank row
+    row += 1
+    
+    # Link note
+    worksheet.write(
+        row, COL_READOUT_LABEL,
+        "→ Edit plans in PLAN_MANAGER, actions in PLAN_JOURNAL",
+        note_fmt
+    )
+    row += 2
+    
+    return row
+
+
 def _write_quick_drivers(
     workbook: Workbook,
     worksheet: Worksheet,
@@ -800,7 +1000,7 @@ def write_team_cockpit_with_command_bar(
 
     The command bar provides the workbook's operating context:
     - SelectedTeam, SelectedYear, AsOfDate, SelectedMode
-    - Policy toggles (roster fill, two-way counting, etc.)
+    - Policy toggles (roster fill, etc.)
     - Plan selectors (ActivePlan, ComparePlanA/B/C/D)
 
     The cockpit includes:
@@ -808,6 +1008,7 @@ def write_team_cockpit_with_command_bar(
     - Alert stack (validation, policy alerts)
     - Primary readouts (cap/tax/apron positions, roster counts)
     - Minimum contracts count + total
+    - Plan comparison panel (ComparePlan A/B/C/D deltas vs Baseline)
     - Quick drivers panel (top cap hits, dead money, holds)
 
     Args:
@@ -857,7 +1058,10 @@ def write_team_cockpit_with_command_bar(
     # 4. Minimum contracts readout
     content_row = _write_minimum_contracts_readout(workbook, worksheet, formats, content_row)
     
-    # 5. Quick drivers panel (starts at same row as validation banner, on right side)
+    # 5. Plan comparison panel (ComparePlan A/B/C/D deltas)
+    content_row = _write_plan_comparison_panel(workbook, worksheet, formats, content_row)
+    
+    # 6. Quick drivers panel (starts at same row as validation banner, on right side)
     drivers_start_row = _get_readouts_start_row()
     _write_quick_drivers(workbook, worksheet, formats, drivers_start_row)
     

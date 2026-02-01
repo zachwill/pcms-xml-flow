@@ -60,7 +60,7 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Link note back to PLAN_JOURNAL for drilldown
 
 ### 6) TEAM_COCKPIT: add plan comparison panel
-- [ ] Surface ComparePlan A/B/C/D deltas
+- [x] Surface ComparePlan A/B/C/D deltas
   - For each compare plan, show delta vs Baseline (cap/tax/apron)
   - Warn if ComparePlan is blank or equals Baseline
   - Link to PLAN_JOURNAL for details

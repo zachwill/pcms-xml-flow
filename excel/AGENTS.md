@@ -113,7 +113,7 @@ The workbook includes these UI sheets (per `excel-cap-book-blueprint.md`):
 |---|---|
 | `HOME` | Workbook summary + navigation links |
 | `META` | Build metadata (timestamp, git SHA, validation status) |
-| `TEAM_COCKPIT` | Primary flight display: key readouts + alerts + quick drivers |
+| `TEAM_COCKPIT` | Primary flight display: key readouts + alerts + quick drivers + plan comparison |
 | `ROSTER_GRID` | Full roster/ledger view with reconciliation + EXISTS_ONLY section |
 | `BUDGET_LEDGER` | Authoritative totals + plan deltas |
 | `PLAN_MANAGER` | Scenario/plan definitions |
@@ -124,6 +124,39 @@ The workbook includes these UI sheets (per `excel-cap-book-blueprint.md`):
 | `ASSETS` | Exception/TPE + draft pick inventory |
 | `AUDIT_AND_RECONCILE` | Totals reconciliation + assumptions display |
 | `RULES_REFERENCE` | Quick reference tables (tax rates, minimums, rookie scale, matching tiers) |
+
+### TEAM_COCKPIT features
+
+The `TEAM_COCKPIT` sheet includes:
+
+1. **Command Bar** (editable) — the workbook's operating context:
+   - Context selectors: Team, Year, As-Of, Mode
+   - Policy toggles: RosterFillTarget, RosterFillType, ShowExistsOnlyRows
+   - Plan selectors: ActivePlan, ComparePlanA/B/C/D
+
+2. **Validation Banner** — shows PASS/FAIL status from META
+
+3. **Alert Stack** — formula-driven alerts:
+   - Validation failed warning
+   - Reconciliation delta (mode-aware)
+   - Roster fill active notification
+   - EXISTS_ONLY section info
+
+4. **Primary Readouts** — key cap metrics from tbl_team_salary_warehouse:
+   - Cap/Tax/Apron positions
+   - Roster count + two-way count
+   - Repeater status, Cap/Tax totals
+   - Two-way informational readouts
+
+5. **Minimum Contracts** — count + total for min-contract players
+
+6. **Plan Comparison Panel** — shows ComparePlan A/B/C/D deltas:
+   - For each compare plan, shows delta cap vs Baseline (from tbl_plan_journal)
+   - Warns if compare plan is blank or equals Baseline
+   - Links to PLAN_JOURNAL for details
+   - Positive deltas (cost increase) in red, negative (savings) in green
+
+7. **Quick Drivers Panel** (right side) — top cap hits, dead money, holds
 
 ### ROSTER_GRID sections
 

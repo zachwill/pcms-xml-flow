@@ -5,12 +5,16 @@ from typing import Any
 from xlsxwriter.workbook import Workbook
 from xlsxwriter.worksheet import Worksheet
 
+from ...named_formulas import (
+    cap_holds_col_formula,
+    cap_holds_derived_formula,
+)
 from .helpers import (
     COL_BUCKET, COL_COUNTS_TOTAL, COL_COUNTS_ROSTER, COL_NAME,
     COL_CAP_Y0, COL_PCT_CAP,
     num_hold_rows,
     _mode_year_label, _write_column_headers,
-    cap_holds_let_prefix
+    _cap_holds_sumproduct, _cap_holds_countproduct
 )
 
 
@@ -22,6 +26,8 @@ def _write_cap_holds_section(
     roster_formats: dict[str, Any],
 ) -> int:
     """Write the cap holds section (from tbl_cap_holds_warehouse).
+
+    Uses Excel 365 dynamic array formulas (FILTER, SORTBY, TAKE).
 
     Returns next row.
     """
@@ -45,67 +51,44 @@ def _write_cap_holds_section(
     # -------------------------------------------------------------------------
     # Player Name column
     # -------------------------------------------------------------------------
-    name_formula = (
-        "=LET("
-        + cap_holds_let_prefix()
-        + "_xlpm.filtered,FILTER(tbl_cap_holds_warehouse[player_name],_xlpm.filter_cond,\"\"),"
-        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
-        + "IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_hold_rows) + "),\"\"))"
-    )
+    name_formula = cap_holds_col_formula("tbl_cap_holds_warehouse[player_name]", num_hold_rows)
     worksheet.write_formula(row, COL_NAME, name_formula)
 
     # -------------------------------------------------------------------------
     # Bucket column (FA)
     # -------------------------------------------------------------------------
-    bucket_formula = (
-        "=LET("
-        + cap_holds_let_prefix()
-        + "_xlpm.filtered,FILTER(tbl_cap_holds_warehouse[player_name],_xlpm.filter_cond,\"\"),"
-        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
-        + "_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_hold_rows) + "),\"\"),"
-        + 'IF(_xlpm.names<>"","FA",""))'
+    bucket_formula = cap_holds_derived_formula(
+        "tbl_cap_holds_warehouse[player_name]", 'IF({result}<>"", "FA", "")', num_hold_rows
     )
     worksheet.write_formula(row, COL_BUCKET, bucket_formula, roster_formats["bucket_fa"])
 
     # -------------------------------------------------------------------------
     # CountsTowardTotal (Y for FA)
     # -------------------------------------------------------------------------
-    ct_total_formula = (
-        "=LET("
-        + cap_holds_let_prefix()
-        + "_xlpm.filtered,FILTER(tbl_cap_holds_warehouse[player_name],_xlpm.filter_cond,\"\"),"
-        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
-        + "_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_hold_rows) + "),\"\"),"
-        + 'IF(_xlpm.names<>"","Y",""))'
+    ct_total_formula = cap_holds_derived_formula(
+        "tbl_cap_holds_warehouse[player_name]", 'IF({result}<>"", "Y", "")', num_hold_rows
     )
     worksheet.write_formula(row, COL_COUNTS_TOTAL, ct_total_formula, roster_formats["counts_yes"])
 
     # -------------------------------------------------------------------------
     # CountsTowardRoster (N for FA)
     # -------------------------------------------------------------------------
-    ct_roster_formula = (
-        "=LET("
-        + cap_holds_let_prefix()
-        + "_xlpm.filtered,FILTER(tbl_cap_holds_warehouse[player_name],_xlpm.filter_cond,\"\"),"
-        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
-        + "_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_hold_rows) + "),\"\"),"
-        + 'IF(_xlpm.names<>"","N",""))'
+    ct_roster_formula = cap_holds_derived_formula(
+        "tbl_cap_holds_warehouse[player_name]", 'IF({result}<>"", "N", "")', num_hold_rows
     )
     worksheet.write_formula(row, COL_COUNTS_ROSTER, ct_roster_formula, roster_formats["counts_no"])
 
     # -------------------------------------------------------------------------
-    # Salary columns (cap holds only have cap_y* but we display in all modes)
+    # Salary columns (cap holds only show in SelectedYear column)
     # -------------------------------------------------------------------------
-    for yi in range(6):
-        sal_formula = (
-            "=LET("
-            + cap_holds_let_prefix()
-            + f"_xlpm.year_col,tbl_cap_holds_warehouse[cap_y{yi}],"
-            + "_xlpm.filtered,FILTER(_xlpm.year_col,_xlpm.filter_cond,\"\"),"
-            + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
-            + "IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_hold_rows) + "),\"\"))"
-        )
-        worksheet.write_formula(row, COL_CAP_Y0 + yi, sal_formula, roster_formats["money"])
+    # SelectedYear column
+    sal_formula = cap_holds_col_formula("CapHoldsModeAmt()", num_hold_rows)
+    worksheet.write_formula(row, COL_CAP_Y0, sal_formula, roster_formats["money"])
+
+    # Future columns are empty for now as cap_holds_warehouse is tall and filtered by SelectedYear
+    # (If we want to show future holds, we'd need a different filter per column)
+    for yi in range(1, 6):
+        worksheet.write_formula(row, COL_CAP_Y0 + yi, '=""', roster_formats["money"])
 
     # Move past spill zone
     row += num_hold_rows
@@ -113,11 +96,18 @@ def _write_cap_holds_section(
     # Subtotal row
     worksheet.write(row, COL_NAME, "Cap Holds Subtotal:", roster_formats["subtotal_label"])
     
-    cap_choose = ",".join(f"tbl_cap_holds_warehouse[cap_y{i}]" for i in range(6))
-    mode_amt = f"CHOOSE(SelectedYear-MetaBaseYear+1,{cap_choose})"
-    sum_formula = f"=SUMPRODUCT((tbl_cap_holds_warehouse[team_code]=SelectedTeam)*({mode_amt}))"
-    
-    worksheet.write_formula(row, COL_CAP_Y0, sum_formula, roster_formats["subtotal"])
+    worksheet.write_formula(
+        row,
+        COL_CAP_Y0,
+        f"={_cap_holds_sumproduct()}",
+        roster_formats["subtotal"],
+    )
+    worksheet.write_formula(
+        row,
+        COL_BUCKET,
+        f"={_cap_holds_countproduct()}",
+        roster_formats["subtotal_label"],
+    )
 
     row += 2  # Blank row
 

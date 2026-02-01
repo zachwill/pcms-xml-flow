@@ -466,9 +466,25 @@ def cap_holds_col_formula(column: str, take_n: int = 15) -> str:
     return f"=FilterSortTake({column},CapHoldsModeAmt(),CapHoldsFilter(),{take_n})"
 
 
+def cap_holds_derived_formula(column: str, transform: str, take_n: int = 15) -> str:
+    """Return formula for a derived cap holds column."""
+    _RES = _xlpm("res")
+    inner = f"FilterSortTake({column},CapHoldsModeAmt(),CapHoldsFilter(),{take_n})"
+    transformed = transform.replace("{result}", _RES)
+    return f"=LET({_RES},{inner},{transformed})"
+
+
 def dead_money_col_formula(column: str, take_n: int = 10) -> str:
     """Return formula for a dead money column."""
     return f"=FilterSortTake({column},DeadMoneyModeAmt(),DeadMoneyFilter(),{take_n})"
+
+
+def dead_money_derived_formula(column: str, transform: str, take_n: int = 10) -> str:
+    """Return formula for a derived dead money column."""
+    _RES = _xlpm("res")
+    inner = f"FilterSortTake({column},DeadMoneyModeAmt(),DeadMoneyFilter(),{take_n})"
+    transformed = transform.replace("{result}", _RES)
+    return f"=LET({_RES},{inner},{transformed})"
 
 
 def roster_derived_formula(column: str, transform: str, take_n: int = 40) -> str:

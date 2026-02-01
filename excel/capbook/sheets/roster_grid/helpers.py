@@ -92,26 +92,6 @@ def twoway_let_prefix() -> str:
     )
 
 
-def cap_holds_let_prefix() -> str:
-    """Return LET prefix for cap holds filtering."""
-    cap_choose = ",".join(f"tbl_cap_holds_warehouse[cap_y{i}]" for i in range(6))
-    # Cap holds only have cap_y* columns in warehouse, but we make them mode-aware
-    # by using the same amount for Tax/Apron if needed (they always count toward all for now)
-    return (
-        f"_xlpm.mode_amt,CHOOSE((SelectedYear-MetaBaseYear+1),{cap_choose}),"
-        "_xlpm.filter_cond,(tbl_cap_holds_warehouse[team_code]=SelectedTeam)*(_xlpm.mode_amt>0),"
-    )
-
-
-def dead_money_let_prefix() -> str:
-    """Return LET prefix for dead money filtering."""
-    cap_choose = ",".join(f"tbl_dead_money_warehouse[cap_y{i}]" for i in range(6))
-    return (
-        f"_xlpm.mode_amt,CHOOSE((SelectedYear-MetaBaseYear+1),{cap_choose}),"
-        "_xlpm.filter_cond,(tbl_dead_money_warehouse[team_code]=SelectedTeam)*(_xlpm.mode_amt>0),"
-    )
-
-
 def _mode_prefix_expr() -> str:
     """Return an Excel expression that maps SelectedMode to a column prefix.
 
@@ -201,18 +181,24 @@ def _salary_book_countproduct(is_two_way: str) -> str:
     return f'LET(_xlpm.f,FILTER(tbl_salary_book_warehouse[player_name],{filter_name},#N/A),IF(ISNA(_xlpm.f),0,ROWS(_xlpm.f)))'
 
 
-def _cap_holds_amount_col() -> str:
-    """Return a CHOOSE expression for cap_holds_warehouse mode-aware amount."""
-    # Cap holds use the same cap_y0..cap_y5 column names as salary_book
-    cols = ",".join(f"tbl_cap_holds_warehouse[cap_y{i}]" for i in range(6))
-    return f"CHOOSE(SelectedYear-MetaBaseYear+1,{cols})"
+def _cap_holds_sumproduct() -> str:
+    """Return a SUM(FILTER(...)) expression for cap holds."""
+    return "SUM(FILTER(CapHoldsModeAmt(),CapHoldsFilter(),0))"
 
 
-def _dead_money_amount_col() -> str:
-    """Return a CHOOSE expression for dead_money_warehouse mode-aware amount."""
-    # Dead money uses cap_y0..cap_y5
-    cols = ",".join(f"tbl_dead_money_warehouse[cap_y{i}]" for i in range(6))
-    return f"CHOOSE(SelectedYear-MetaBaseYear+1,{cols})"
+def _cap_holds_countproduct() -> str:
+    """Return a ROWS(FILTER(...)) expression for counting cap holds."""
+    return 'LET(_xlpm.f,FILTER(tbl_cap_holds_warehouse[player_name],CapHoldsFilter(),#N/A),IF(ISNA(_xlpm.f),0,ROWS(_xlpm.f)))'
+
+
+def _dead_money_sumproduct() -> str:
+    """Return a SUM(FILTER(...)) expression for dead money."""
+    return "SUM(FILTER(DeadMoneyModeAmt(),DeadMoneyFilter(),0))"
+
+
+def _dead_money_countproduct() -> str:
+    """Return a ROWS(FILTER(...)) expression for counting dead money rows."""
+    return 'LET(_xlpm.f,FILTER(tbl_dead_money_warehouse[player_name],DeadMoneyFilter(),#N/A),IF(ISNA(_xlpm.f),0,ROWS(_xlpm.f)))'
 
 
 def _mode_year_label(year_offset: int) -> str:

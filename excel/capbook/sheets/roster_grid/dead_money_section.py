@@ -5,12 +5,16 @@ from typing import Any
 from xlsxwriter.workbook import Workbook
 from xlsxwriter.worksheet import Worksheet
 
+from ...named_formulas import (
+    dead_money_col_formula,
+    dead_money_derived_formula,
+)
 from .helpers import (
     COL_BUCKET, COL_COUNTS_TOTAL, COL_COUNTS_ROSTER, COL_NAME,
     COL_CAP_Y0, COL_PCT_CAP,
     num_dead_rows,
     _mode_year_label, _write_column_headers,
-    dead_money_let_prefix
+    _dead_money_sumproduct, _dead_money_countproduct
 )
 
 
@@ -22,6 +26,8 @@ def _write_dead_money_section(
     roster_formats: dict[str, Any],
 ) -> int:
     """Write the dead money section (from tbl_dead_money_warehouse).
+
+    Uses Excel 365 dynamic array formulas (FILTER, SORTBY, TAKE).
 
     Returns next row.
     """
@@ -45,67 +51,43 @@ def _write_dead_money_section(
     # -------------------------------------------------------------------------
     # Player Name column
     # -------------------------------------------------------------------------
-    name_formula = (
-        "=LET("
-        + dead_money_let_prefix()
-        + "_xlpm.filtered,FILTER(tbl_dead_money_warehouse[player_name],_xlpm.filter_cond,\"\"),"
-        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
-        + "IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_dead_rows) + "),\"\"))"
-    )
+    name_formula = dead_money_col_formula("tbl_dead_money_warehouse[player_name]", num_dead_rows)
     worksheet.write_formula(row, COL_NAME, name_formula)
 
     # -------------------------------------------------------------------------
     # Bucket column (TERM)
     # -------------------------------------------------------------------------
-    bucket_formula = (
-        "=LET("
-        + dead_money_let_prefix()
-        + "_xlpm.filtered,FILTER(tbl_dead_money_warehouse[player_name],_xlpm.filter_cond,\"\"),"
-        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
-        + "_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_dead_rows) + "),\"\"),"
-        + 'IF(_xlpm.names<>"","TERM",""))'
+    bucket_formula = dead_money_derived_formula(
+        "tbl_dead_money_warehouse[player_name]", 'IF({result}<>"", "TERM", "")', num_dead_rows
     )
     worksheet.write_formula(row, COL_BUCKET, bucket_formula, roster_formats["bucket_term"])
 
     # -------------------------------------------------------------------------
     # CountsTowardTotal (Y for TERM)
     # -------------------------------------------------------------------------
-    ct_total_formula = (
-        "=LET("
-        + dead_money_let_prefix()
-        + "_xlpm.filtered,FILTER(tbl_dead_money_warehouse[player_name],_xlpm.filter_cond,\"\"),"
-        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
-        + "_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_dead_rows) + "),\"\"),"
-        + 'IF(_xlpm.names<>"","Y",""))'
+    ct_total_formula = dead_money_derived_formula(
+        "tbl_dead_money_warehouse[player_name]", 'IF({result}<>"", "Y", "")', num_dead_rows
     )
     worksheet.write_formula(row, COL_COUNTS_TOTAL, ct_total_formula, roster_formats["counts_yes"])
 
     # -------------------------------------------------------------------------
     # CountsTowardRoster (N for TERM)
     # -------------------------------------------------------------------------
-    ct_roster_formula = (
-        "=LET("
-        + dead_money_let_prefix()
-        + "_xlpm.filtered,FILTER(tbl_dead_money_warehouse[player_name],_xlpm.filter_cond,\"\"),"
-        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
-        + "_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_dead_rows) + "),\"\"),"
-        + 'IF(_xlpm.names<>"","N",""))'
+    ct_roster_formula = dead_money_derived_formula(
+        "tbl_dead_money_warehouse[player_name]", 'IF({result}<>"", "N", "")', num_dead_rows
     )
     worksheet.write_formula(row, COL_COUNTS_ROSTER, ct_roster_formula, roster_formats["counts_no"])
 
     # -------------------------------------------------------------------------
-    # Salary columns
+    # Salary columns (dead money only shows in SelectedYear column)
     # -------------------------------------------------------------------------
-    for yi in range(6):
-        sal_formula = (
-            "=LET("
-            + dead_money_let_prefix()
-            + f"_xlpm.year_col,tbl_dead_money_warehouse[cap_y{yi}],"
-            + "_xlpm.filtered,FILTER(_xlpm.year_col,_xlpm.filter_cond,\"\"),"
-            + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
-            + "IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_dead_rows) + "),\"\"))"
-        )
-        worksheet.write_formula(row, COL_CAP_Y0 + yi, sal_formula, roster_formats["money"])
+    # SelectedYear column
+    sal_formula = dead_money_col_formula("DeadMoneyModeAmt()", num_dead_rows)
+    worksheet.write_formula(row, COL_CAP_Y0, sal_formula, roster_formats["money"])
+
+    # Future columns are empty for now as dead_money_warehouse is tall and filtered by SelectedYear
+    for yi in range(1, 6):
+        worksheet.write_formula(row, COL_CAP_Y0 + yi, '=""', roster_formats["money"])
 
     # Move past spill zone
     row += num_dead_rows
@@ -113,11 +95,18 @@ def _write_dead_money_section(
     # Subtotal row
     worksheet.write(row, COL_NAME, "Dead Money Subtotal:", roster_formats["subtotal_label"])
     
-    cap_choose = ",".join(f"tbl_dead_money_warehouse[cap_y{i}]" for i in range(6))
-    mode_amt = f"CHOOSE(SelectedYear-MetaBaseYear+1,{cap_choose})"
-    sum_formula = f"=SUMPRODUCT((tbl_dead_money_warehouse[team_code]=SelectedTeam)*({mode_amt}))"
-    
-    worksheet.write_formula(row, COL_CAP_Y0, sum_formula, roster_formats["subtotal"])
+    worksheet.write_formula(
+        row,
+        COL_CAP_Y0,
+        f"={_dead_money_sumproduct()}",
+        roster_formats["subtotal"],
+    )
+    worksheet.write_formula(
+        row,
+        COL_BUCKET,
+        f"={_dead_money_countproduct()}",
+        roster_formats["subtotal_label"],
+    )
 
     row += 2  # Blank row
 

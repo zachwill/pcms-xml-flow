@@ -19,23 +19,35 @@ Named formulas defined here:
    - Computes mode-aware amount for SelectedYear from salary_book_warehouse
    - Returns: cap/tax/apron amount based on SelectedMode + SelectedYear
 
-3. SalaryBookRosterFilter (LAMBDA)
+3. SalaryBookOptionCol (LAMBDA)
+   - Returns the option_yN column for SelectedYear
+
+4. SalaryBookGuaranteeCol (LAMBDA)
+   - Returns the guaranteed_amount_yN column for SelectedYear
+
+5. SalaryBookGuaranteeLabel (LAMBDA)
+   - Returns GTD/PRT/NG label for SelectedYear
+
+6. SalaryBookRosterFilter (LAMBDA)
    - Filters salary_book_warehouse for roster players (non-two-way)
    - Returns: filter condition array for use with FILTER()
 
-4. SalaryBookTwoWayFilter (LAMBDA)
+7. SalaryBookTwoWayFilter (LAMBDA)
    - Filters salary_book_warehouse for two-way players
    - Returns: filter condition array
 
-5. FilterSortTake (LAMBDA)
+8. FilterSortTake (LAMBDA)
    - Generic: filters a column, sorts by another, takes N rows
    - The workhorse for all spilling roster columns
 
-6. CapHoldsModeAmt (LAMBDA)
+9. CapHoldsModeAmt (LAMBDA)
    - Mode-aware amount for cap_holds_warehouse
 
-7. DeadMoneyModeAmt (LAMBDA)
+10. DeadMoneyModeAmt (LAMBDA)
    - Mode-aware amount for dead_money_warehouse
+
+11. PlanRowMask (LAMBDA)
+   - Filter mask for plan_journal rows
 
 Usage in roster_grid.py:
     # Before (repeated 40+ times):
@@ -302,6 +314,14 @@ def _build_salary_book_guarantee_label() -> str:
     )
 
 
+def _build_salary_book_guarantee_col() -> str:
+    """
+    SalaryBookGuaranteeCol: returns the guaranteed_amount_yN column for SelectedYear.
+    """
+    amt_cols = ",".join(f"tbl_salary_book_warehouse[guaranteed_amount_y{i}]" for i in range(6))
+    return f"=CHOOSE(ModeYearIndex,{amt_cols})"
+
+
 # LAMBDA named formulas: (formula_builder, description)
 # Using builders so we can construct with proper _xlpm. prefixes
 LAMBDA_NAMED_FORMULAS: dict[str, tuple[str, str]] = {
@@ -312,6 +332,10 @@ LAMBDA_NAMED_FORMULAS: dict[str, tuple[str, str]] = {
     "SalaryBookOptionCol": (
         _build_salary_book_option_col(),
         "Option column for SelectedYear from salary_book_warehouse",
+    ),
+    "SalaryBookGuaranteeCol": (
+        _build_salary_book_guarantee_col(),
+        "Guaranteed amount column for SelectedYear from salary_book_warehouse",
     ),
     "SalaryBookGuaranteeLabel": (
         _build_salary_book_guarantee_label(),

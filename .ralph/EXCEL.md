@@ -80,14 +80,14 @@ Two logical units: plan manager (definitions) and plan journal (actions).
 
 Add specialized helpers to reduce inline formula duplication in roster sections.
 
-- [ ] Add `SalaryBookOptionCol` — returns `option_yN` for SelectedYear via CHOOSE
-- [ ] Add `SalaryBookGuaranteeCol` — returns guarantee columns for SelectedYear
-- [ ] Add `SalaryBookYearCol(col_prefix)` — generic CHOOSE wrapper for `{prefix}_y0..y5`
-- [ ] Add `roster_option_formula(take_n)` — complete option badge column formula
-- [ ] Add `roster_guarantee_formula(take_n)` — complete guarantee label formula
-- [ ] Add `roster_salary_formula(take_n)` — mode-aware salary column formula
-- [ ] Add `roster_pct_of_cap_formula(take_n)` — salary / cap_limit percentage
-- [ ] Document all new formulas in this file
+- [x] Add `SalaryBookOptionCol` — returns `option_yN` for SelectedYear via CHOOSE
+- [x] Add `SalaryBookGuaranteeCol` — returns guarantee columns for SelectedYear
+- [x] Add `SalaryBookYearCol(col_prefix)` — generic CHOOSE wrapper for `{prefix}_y0..y5`
+- [x] Add `roster_option_formula(take_n)` — complete option badge column formula
+- [x] Add `roster_guarantee_formula(take_n)` — complete guarantee label formula
+- [x] Add `roster_salary_formula(take_n)` — mode-aware salary column formula
+- [x] Add `roster_pct_of_cap_formula(take_n)` — salary / cap_limit percentage
+- [x] Document all new formulas in this file
 
 ### Phase 5: Migrate roster sections to use named formulas
 

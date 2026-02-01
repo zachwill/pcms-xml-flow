@@ -33,6 +33,7 @@ import { PlayerDetail } from "./PlayerDetail";
 import { AgentDetail } from "./AgentDetail";
 import { PickDetail } from "./PickDetail";
 import { TradeMachineView } from "./TradeMachineView";
+import { BuyoutCalculatorView } from "./BuyoutCalculatorView";
 import { BackButtonTeamBadge } from "./BackButtonTeamBadge";
 
 // ============================================================================
@@ -117,6 +118,8 @@ function EntityDetail({ entity }: { entity: SidebarEntity }) {
       return <TeamDetailPlaceholder entity={entity} />;
     case "trade":
       return <TradeMachineView />;
+    case "buyout":
+      return <BuyoutCalculatorView />;
     default:
       // TypeScript exhaustiveness check
       const _exhaustive: never = entity;

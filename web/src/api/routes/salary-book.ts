@@ -65,6 +65,24 @@ function normalizeIdArray(value: unknown): number[] {
     .filter((id) => Number.isFinite(id));
 }
 
+function normalizeInt(value: unknown, fallback: number | null = null): number | null {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.trunc(n);
+}
+
+function normalizeAmount(value: unknown, fallback = 0): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function normalizeDateString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
+  return trimmed;
+}
+
 const PICK_PROTECTION_REGEX = /(Top\s+\d+|Lottery|Unprotected)[\s-]*(Protected)?/i;
 
 function parsePickProtections(fragment: string | null | undefined): string | null {
@@ -1137,6 +1155,220 @@ salaryBookRouter.get("/pick", async (req) => {
       endnote_depends_on: normalizeIdArray(row.endnote_depends_on),
       needs_review: row.needs_review ?? false,
     })),
+  });
+});
+
+// POST /api/salary-book/buyout-scenario
+// Compute buyout scenario rows via pcms.fn_buyout_scenario
+salaryBookRouter.post("/buyout-scenario", async (req) => {
+  const body = await req.json().catch(() => null);
+
+  if (!body || typeof body !== "object") {
+    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const playerId = normalizeInt((body as any).playerId);
+  const waiveDate = normalizeDateString((body as any).waiveDate);
+  let salaryYear = normalizeInt((body as any).salaryYear, 2025) ?? 2025;
+  if (salaryYear < 2000) {
+    salaryYear = 2025;
+  }
+  const league =
+    typeof (body as any).league === "string" ? (body as any).league : "NBA";
+
+  const giveBackAmount = Math.max(
+    0,
+    Math.round(normalizeAmount((body as any).giveBackAmount, 0))
+  );
+
+  if (!playerId || !waiveDate) {
+    return Response.json(
+      { error: "playerId and waiveDate are required" },
+      { status: 400 }
+    );
+  }
+
+  const sql = getSql();
+
+  const playerRows = await sql`
+    SELECT
+      s.player_id,
+      COALESCE(
+        NULLIF(TRIM(CONCAT_WS(' ', p.display_first_name, p.display_last_name)), ''),
+        s.player_name
+      ) as player_name,
+      COALESCE(NULLIF(s.person_team_code, ''), s.team_code) as team_code
+    FROM pcms.salary_book_warehouse s
+    LEFT JOIN pcms.people p ON s.player_id = p.person_id
+    WHERE s.player_id = ${playerId}
+    LIMIT 1
+  `;
+
+  if (playerRows.length === 0) {
+    return Response.json({ error: "Player not found" }, { status: 404 });
+  }
+
+  const seasonRows = await sql`
+    SELECT season_start_at::text as season_start_at
+    FROM pcms.league_system_values
+    WHERE league_lk = ${league}
+      AND salary_year = ${salaryYear}
+    LIMIT 1
+  `;
+
+  const fallbackSeasonStart = `${salaryYear}-10-20`;
+  const seasonStart = seasonRows?.[0]?.season_start_at ?? fallbackSeasonStart;
+
+  const rows = await sql`
+    SELECT
+      salary_year,
+      cap_salary::float8 as cap_salary,
+      days_remaining,
+      proration_factor::float8 as proration_factor,
+      guaranteed_remaining::float8 as guaranteed_remaining,
+      give_back_pct::float8 as give_back_pct,
+      give_back_amount::float8 as give_back_amount,
+      dead_money::float8 as dead_money
+    FROM pcms.fn_buyout_scenario(
+      ${playerId},
+      ${waiveDate},
+      ${giveBackAmount},
+      ${seasonStart},
+      ${league}
+    )
+    ORDER BY salary_year
+  `;
+
+  const totalsRaw = rows.reduce(
+    (acc: any, row: any) => ({
+      guaranteed_remaining:
+        acc.guaranteed_remaining + (Number(row.guaranteed_remaining) || 0),
+      give_back_amount:
+        acc.give_back_amount + (Number(row.give_back_amount) || 0),
+      dead_money: acc.dead_money + (Number(row.dead_money) || 0),
+    }),
+    {
+      guaranteed_remaining: 0,
+      give_back_amount: 0,
+      dead_money: 0,
+    }
+  );
+
+  const totals =
+    rows.length > 0
+      ? totalsRaw
+      : { guaranteed_remaining: null, give_back_amount: null, dead_money: null };
+
+  const remainingYears = rows.length;
+  let stretch: any = null;
+
+  if (remainingYears > 0 && totalsRaw.dead_money > 0) {
+    const stretchRows = await sql`
+      SELECT
+        stretch_years,
+        annual_amount::float8 as annual_amount
+      FROM pcms.fn_stretch_waiver(
+        ${Math.round(totalsRaw.dead_money)},
+        ${remainingYears}
+      )
+    `;
+
+    const stretchRow = stretchRows[0] as any | undefined;
+    if (stretchRow?.stretch_years) {
+      const startYear = Number(rows[0]?.salary_year ?? salaryYear);
+      const stretchYears = Number(stretchRow.stretch_years);
+      const annualAmount =
+        stretchRow.annual_amount === null ? null : Number(stretchRow.annual_amount);
+
+      const schedule = Array.from({ length: stretchYears }, (_, index) => ({
+        year: Number.isFinite(startYear) ? startYear + index : null,
+        amount: annualAmount,
+      }));
+
+      stretch = {
+        stretch_years: stretchYears,
+        annual_amount: annualAmount,
+        remaining_years: remainingYears,
+        start_year: Number.isFinite(startYear) ? startYear : null,
+        schedule,
+      };
+    }
+  }
+
+  const player = playerRows[0] as any;
+
+  return Response.json({
+    player_id: Number(player.player_id ?? playerId),
+    player_name: player.player_name ?? null,
+    team_code: player.team_code ?? null,
+    salary_year: salaryYear,
+    waive_date: waiveDate,
+    give_back_amount: giveBackAmount,
+    season_start: seasonStart ?? null,
+    rows,
+    totals,
+    stretch,
+  });
+});
+
+// POST /api/salary-book/setoff-amount
+// Compute waiver set-off amount via pcms.fn_setoff_amount
+salaryBookRouter.post("/setoff-amount", async (req) => {
+  const body = await req.json().catch(() => null);
+
+  if (!body || typeof body !== "object") {
+    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const newSalary = normalizeAmount((body as any).newSalary, NaN);
+  let salaryYear = normalizeInt((body as any).salaryYear, 2025) ?? 2025;
+  if (salaryYear < 2000) {
+    salaryYear = 2025;
+  }
+  const yearsOfService = normalizeInt((body as any).yearsOfService, 1) ?? 1;
+  const league =
+    typeof (body as any).league === "string" ? (body as any).league : "NBA";
+
+  if (!Number.isFinite(newSalary) || newSalary <= 0) {
+    return Response.json(
+      { error: "newSalary must be a positive number" },
+      { status: 400 }
+    );
+  }
+
+  const safeSalary = Math.round(newSalary);
+  const safeYos = Math.max(1, Math.round(yearsOfService));
+
+  const sql = getSql();
+
+  const minimumRows = await sql`
+    SELECT pcms.fn_minimum_salary(
+      ${salaryYear},
+      ${safeYos},
+      1,
+      ${league}
+    )::float8 as minimum_salary
+  `;
+
+  const setoffRows = await sql`
+    SELECT pcms.fn_setoff_amount(
+      ${safeSalary},
+      ${safeYos},
+      ${salaryYear},
+      ${league}
+    )::float8 as setoff_amount
+  `;
+
+  const minimumSalary = minimumRows?.[0]?.minimum_salary ?? null;
+  const setoffAmount = setoffRows?.[0]?.setoff_amount ?? null;
+
+  return Response.json({
+    new_salary: safeSalary,
+    salary_year: salaryYear,
+    years_of_service: safeYos,
+    league,
+    minimum_salary: minimumSalary,
+    setoff_amount: setoffAmount,
   });
 });
 

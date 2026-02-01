@@ -11,3 +11,4 @@ export { PlayerDetail, type PlayerDetailProps } from "./PlayerDetail";
 export { AgentDetail, type AgentDetailProps } from "./AgentDetail";
 export { PickDetail, type PickDetailProps } from "./PickDetail";
 export { TradeMachineView } from "./TradeMachineView";
+export { BuyoutCalculatorView } from "./BuyoutCalculatorView";

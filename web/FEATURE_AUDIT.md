@@ -35,7 +35,7 @@ This is a **web UI audit** against what we already have in Postgres + the Sean w
 | `pcms.fn_post_trade_apron()` | Post-trade apron projection | **Wired** (Trade Machine v1 apron delta) |
 | `pcms.fn_luxury_tax_amount()` / `pcms.fn_team_luxury_tax()` | Luxury tax math | **Partially exposed** (team-year tax bill now available) |
 | `pcms.fn_minimum_salary()` | Multi-year minimum scale (Y2–Y5 escalators + /174 proration) | **Not exposed** |
-| `pcms.fn_buyout_scenario()` (+ `fn_stretch_waiver`, `fn_setoff_amount`) | Buyout/stretch/set-off calculator | **Not exposed** |
+| `pcms.fn_buyout_scenario()` (+ `fn_stretch_waiver`, `fn_setoff_amount`) | Buyout/stretch/set-off calculator | **Wired** (Buyout calculator view) |
 
 ### 1.3 Config/reference tables
 
@@ -60,7 +60,7 @@ This is a **web UI audit** against what we already have in Postgres + the Sean w
 | `system_values.json` | Cap/tax/apron values | **Yes** (System Values sidebar view) |
 | `machine.json` | Trade machine | **Partial** (Trade Machine v1 overlay) |
 | `minimum_salary_scale.json` | Minimum scale | **Missing** |
-| `buyout_calculator.json` / `set-off.json` | Buyout/stretch/set-off | **Missing** |
+| `buyout_calculator.json` / `set-off.json` | Buyout/stretch/set-off | **Partial** (Buyout calculator + stretch/set-off amounts) |
 | `the_matrix.json` / `high_low.json` | Extension calculator / projections | **Missing** |
 
 ## 3) Biggest “missing from web” gaps (high leverage)

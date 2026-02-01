@@ -36,12 +36,21 @@ export function SalaryBookCommandBar() {
   const { currentEntity, pushEntity, popEntity } = useShellSidebarContext();
 
   const isTradeOpen = currentEntity?.type === "trade";
+  const isBuyoutOpen = currentEntity?.type === "buyout";
 
   const handleTradeToggle = () => {
     if (isTradeOpen) {
       popEntity();
     } else {
       pushEntity({ type: "trade" });
+    }
+  };
+
+  const handleBuyoutToggle = () => {
+    if (isBuyoutOpen) {
+      popEntity();
+    } else {
+      pushEntity({ type: "buyout" });
     }
   };
 
@@ -72,18 +81,27 @@ export function SalaryBookCommandBar() {
       {/* Vertical divider */}
       <div className="h-20 w-px bg-border self-center" />
 
-      {/* Trade mode */}
-      <div className="min-w-[4.5rem] space-y-1">
+      {/* Modes */}
+      <div className="min-w-[6rem] space-y-1">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
           Mode
         </div>
-        <Button
-          variant={isTradeOpen ? "primary" : "secondary"}
-          size="xs"
-          onClick={handleTradeToggle}
-        >
-          Trade
-        </Button>
+        <div className="flex flex-col gap-1">
+          <Button
+            variant={isTradeOpen ? "primary" : "secondary"}
+            size="xs"
+            onClick={handleTradeToggle}
+          >
+            Trade
+          </Button>
+          <Button
+            variant={isBuyoutOpen ? "primary" : "secondary"}
+            size="xs"
+            onClick={handleBuyoutToggle}
+          >
+            Buyout
+          </Button>
+        </div>
       </div>
 
       {/* Vertical divider */}

@@ -418,6 +418,79 @@ export interface TradeEvaluationResponse {
 }
 
 /**
+ * Buyout / waiver scenario calculator
+ */
+export interface BuyoutScenarioRow {
+  salary_year: number;
+  cap_salary: number | null;
+  days_remaining: number | null;
+  proration_factor: number | null;
+  guaranteed_remaining: number | null;
+  give_back_pct: number | null;
+  give_back_amount: number | null;
+  dead_money: number | null;
+}
+
+export interface BuyoutScenarioTotals {
+  guaranteed_remaining: number | null;
+  give_back_amount: number | null;
+  dead_money: number | null;
+}
+
+export interface BuyoutStretchSchedule {
+  year: number | null;
+  amount: number | null;
+}
+
+export interface BuyoutStretchSummary {
+  stretch_years: number | null;
+  annual_amount: number | null;
+  remaining_years: number | null;
+  start_year: number | null;
+  schedule: BuyoutStretchSchedule[];
+}
+
+export interface BuyoutScenarioResponse {
+  player_id: number;
+  player_name: string | null;
+  team_code: string | null;
+  salary_year: number;
+  waive_date: string;
+  give_back_amount: number;
+  season_start: string | null;
+  rows: BuyoutScenarioRow[];
+  totals: BuyoutScenarioTotals;
+  stretch: BuyoutStretchSummary | null;
+}
+
+export interface BuyoutScenarioRequest {
+  playerId: number;
+  waiveDate: string;
+  giveBackAmount: number;
+  salaryYear: number;
+  league: string;
+}
+
+/**
+ * Waiver set-off calculator
+ */
+export interface SetoffAmountRequest {
+  newSalary: number;
+  salaryYear: number;
+  yearsOfService: number;
+  league: string;
+}
+
+export interface SetoffAmountResponse {
+  new_salary: number;
+  salary_year: number;
+  years_of_service: number;
+  league: string;
+  minimum_salary: number | null;
+  setoff_amount: number | null;
+}
+
+/**
  * Draft pick summaries from pcms.draft_pick_summaries
  * Text descriptions of picks per team per year
  */
@@ -554,7 +627,7 @@ export interface Agency {
 /**
  * Sidebar entity types for navigation stack
  */
-export type EntityType = "player" | "team" | "agent" | "pick" | "trade";
+export type EntityType = "player" | "team" | "agent" | "pick" | "trade" | "buyout";
 
 /**
  * Entity reference for sidebar stack

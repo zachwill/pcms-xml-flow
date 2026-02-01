@@ -255,5 +255,7 @@ function getEntityId(entity: SidebarEntity): string {
       return `team-${entity.teamCode}`;
     case "trade":
       return "trade";
+    case "buyout":
+      return "buyout";
   }
 }

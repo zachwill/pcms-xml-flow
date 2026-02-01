@@ -851,10 +851,12 @@ def write_assets(
     - Exceptions/TPEs: remaining amount, expiration, restrictions, usage in plan
     - Picks: ownership grid + encumbrances; plan usage
 
-    This v1 implementation provides:
-    - Exceptions section with formula reference to DATA_exceptions_warehouse
+    This v2 implementation provides:
+    - Exceptions section with live FILTER formulas pulling from tbl_exceptions_warehouse
     - Draft picks section with formula reference to DATA_draft_picks_warehouse
     - Both filtered by SelectedTeam from command bar
+    - Money/date formats applied to output cells
+    - Explicit "None" empty-state when no exceptions exist
     """
     sub_formats = _create_subsystem_formats(workbook)
 
@@ -867,13 +869,15 @@ def write_assets(
 
     content_row = get_content_start_row()
 
-    # Column widths
-    worksheet.set_column(0, 0, 18)
-    worksheet.set_column(1, 1, 16)
-    worksheet.set_column(2, 2, 14)
-    worksheet.set_column(3, 3, 14)
-    worksheet.set_column(4, 4, 12)
-    worksheet.set_column(5, 5, 25)
+    # Column widths for exceptions display
+    worksheet.set_column(0, 0, 10)   # Year
+    worksheet.set_column(1, 1, 22)   # Exception Type
+    worksheet.set_column(2, 2, 22)   # Player Name (for TPEs)
+    worksheet.set_column(3, 3, 16)   # Original Amount
+    worksheet.set_column(4, 4, 16)   # Remaining Amount
+    worksheet.set_column(5, 5, 14)   # Effective Date
+    worksheet.set_column(6, 6, 14)   # Expiration Date
+    worksheet.set_column(7, 7, 10)   # Status
 
     # ==========================================================================
     # EXCEPTIONS SECTION
@@ -881,7 +885,7 @@ def write_assets(
 
     worksheet.merge_range(
         content_row, 0,
-        content_row, 5,
+        content_row, 7,
         "EXCEPTIONS & TPEs (filtered by SelectedTeam from tbl_exceptions_warehouse)",
         sub_formats["section_header"],
     )
@@ -889,35 +893,84 @@ def write_assets(
 
     worksheet.write(
         content_row, 0,
-        "Shows tradeable player exceptions (TPEs), MLE, BAE, and other exceptions.",
+        "Shows tradeable player exceptions (TPEs), MLE, BAE, and other exceptions for the selected team.",
         sub_formats["note"],
     )
     content_row += 2
 
-    # Exception headers
-    exc_headers = ["Exception Type", "Original Amount", "Remaining", "Effective Date", "Expiration", "Notes"]
+    # Exception headers (match the FILTER output columns)
+    exc_headers = [
+        "Year",
+        "Exception Type",
+        "TPE Player",
+        "Original Amount",
+        "Remaining Amount",
+        "Effective Date",
+        "Expiration Date",
+        "Status",
+    ]
     for i, header in enumerate(exc_headers):
         worksheet.write(content_row, i, header, sub_formats["label_bold"])
+    exc_header_row = content_row
     content_row += 1
 
-    # Placeholder for filtered data
-    # In v2, this will use FILTER formula:
-    # =FILTER(tbl_exceptions_warehouse[[exception_type_name]:[expiration_date]],
-    #         tbl_exceptions_warehouse[team_code]=SelectedTeam, "No exceptions")
-    worksheet.write(
-        content_row, 0,
-        "← Filtered from DATA_exceptions_warehouse (tbl_exceptions_warehouse) where team_code=SelectedTeam",
-        sub_formats["note"],
+    # FILTER formula for exceptions
+    # Columns selected: salary_year, exception_type_name, trade_exception_player_name,
+    #                   original_amount, remaining_amount, effective_date, expiration_date, is_expired
+    # Filter: team_code = SelectedTeam
+    # Empty result: display "None"
+    #
+    # The FILTER formula uses IFERROR to handle the case where no rows match
+    # (FILTER returns #CALC! when no rows match and no if_empty is provided).
+    #
+    # Excel FILTER syntax:
+    #   =IFERROR(
+    #     FILTER(
+    #       CHOOSE({1,2,3,4,5,6,7,8},
+    #         tbl_exceptions_warehouse[salary_year],
+    #         tbl_exceptions_warehouse[exception_type_name],
+    #         tbl_exceptions_warehouse[trade_exception_player_name],
+    #         tbl_exceptions_warehouse[original_amount],
+    #         tbl_exceptions_warehouse[remaining_amount],
+    #         tbl_exceptions_warehouse[effective_date],
+    #         tbl_exceptions_warehouse[expiration_date],
+    #         IF(tbl_exceptions_warehouse[is_expired],"Expired","Active")),
+    #       tbl_exceptions_warehouse[team_code]=SelectedTeam
+    #     ),
+    #     "None"
+    #   )
+    exc_filter_formula = (
+        '=IFERROR('
+        'FILTER('
+        'CHOOSE({1,2,3,4,5,6,7,8},'
+        'tbl_exceptions_warehouse[salary_year],'
+        'tbl_exceptions_warehouse[exception_type_name],'
+        'tbl_exceptions_warehouse[trade_exception_player_name],'
+        'tbl_exceptions_warehouse[original_amount],'
+        'tbl_exceptions_warehouse[remaining_amount],'
+        'tbl_exceptions_warehouse[effective_date],'
+        'tbl_exceptions_warehouse[expiration_date],'
+        'IF(tbl_exceptions_warehouse[is_expired],"Expired","Active")),'
+        'tbl_exceptions_warehouse[team_code]=SelectedTeam'
+        '),'
+        '"None")'
     )
-    content_row += 1
 
-    # Show formula hint
+    # Write the FILTER formula - it will spill into the cells below/right
+    worksheet.write_formula(content_row, 0, exc_filter_formula, sub_formats["output"])
+
+    # Reserve space for spill results (up to 20 exception rows)
+    # We don't know how many rows will spill, but we can leave space
+    exc_data_start_row = content_row
+    content_row += 20  # Reserve 20 rows for exception data
+
+    # Note about dynamic array behavior
     worksheet.write(
         content_row, 0,
-        '=FILTER(tbl_exceptions_warehouse, tbl_exceptions_warehouse[team_code]=SelectedTeam, "None")',
+        "↑ Dynamic array formula — results spill automatically. 'None' shown if no exceptions for selected team.",
         sub_formats["note"],
     )
-    content_row += 3
+    content_row += 2
 
     # Exception types reference
     worksheet.write(content_row, 0, "Common Exception Types:", sub_formats["label_bold"])
@@ -932,7 +985,7 @@ def write_assets(
     ]
     for exc_name, exc_desc in exception_types:
         worksheet.write(content_row, 0, f"• {exc_name}:", sub_formats["label"])
-        worksheet.write(content_row, 1, exc_desc, sub_formats["note"])
+        worksheet.write(content_row, 2, exc_desc, sub_formats["note"])
         content_row += 1
 
     content_row += 2

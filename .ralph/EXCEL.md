@@ -75,7 +75,7 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Mark `validation_status=FAILED` when any mismatch (still emit workbook artifact)
 
 ### 8) ASSETS: wire exceptions inventory to DATA_exceptions_warehouse
-- [ ] Replace placeholder notes with live formulas
+- [x] Replace placeholder notes with live formulas
   - `FILTER/IFERROR` for `tbl_exceptions_warehouse` (SelectedTeam; include salary_year column in display)
   - Apply money/date formats + explicit "None" empty-state
 

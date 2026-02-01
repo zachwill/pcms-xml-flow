@@ -102,8 +102,8 @@ RULES
   - Exit immediately
         `,
         {
-          // model: "claude-opus-4-5-thinking",
-          model: "gemini-3-flash",
+          model: "claude-opus-4-5-thinking",
+          // model: "gemini-3-flash",
           provider: "google-antigravity",
           thinking: "high",
           timeout: "10m",

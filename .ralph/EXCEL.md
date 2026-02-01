@@ -48,7 +48,7 @@ This backlog reflects the post-v2 audit. Core sheets exist; remaining work focus
   - Adjusted module docstrings and notes to reflect year-aware filtering
 
 ### 4) PLAN_JOURNAL: ActivePlan summary + running totals panel
-- [ ] Add a running-state panel for ActivePlan + SelectedYear
+- [x] Add a running-state panel for ActivePlan + SelectedYear
   - Summary box: total deltas (cap/tax/apron) + action count
   - Cumulative running totals by step for ActivePlan
   - Conditional formatting to gray out rows not in ActivePlan/SelectedYear

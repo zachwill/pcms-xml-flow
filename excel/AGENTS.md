@@ -117,7 +117,7 @@ The workbook includes these UI sheets (per `excel-cap-book-blueprint.md`):
 | `ROSTER_GRID` | Full roster/ledger view with reconciliation + EXISTS_ONLY section |
 | `BUDGET_LEDGER` | Authoritative totals + plan deltas |
 | `PLAN_MANAGER` | Scenario/plan definitions |
-| `PLAN_JOURNAL` | Ordered action journal for scenario modeling |
+| `PLAN_JOURNAL` | Ordered action journal for scenario modeling + running-state panel |
 | `TRADE_MACHINE` | Lane-based trade iteration (A/B/C/D) |
 | `SIGNINGS_AND_EXCEPTIONS` | Signing inputs + exception tracking |
 | `WAIVE_BUYOUT_STRETCH` | Dead money modeling inputs |
@@ -143,6 +143,30 @@ The `ROSTER_GRID` sheet includes these sections:
    - Controlled by `ShowExistsOnlyRows` toggle ("Yes" to show, "No" to hide)
    - For analyst reference only — excluded from totals
 7. **RECONCILIATION** — proves grid sums match warehouse totals
+
+### PLAN_JOURNAL features
+
+The `PLAN_JOURNAL` sheet includes:
+
+1. **Journal Table (`tbl_plan_journal`)** — ordered action journal with columns:
+   - step, plan_id, enabled, salary_year, effective_date, action_type
+   - target_player, target_team, notes
+   - delta_cap, delta_tax, delta_apron (delta columns)
+   - validation, source
+
+2. **Running-State Panel** — positioned to the right of the journal table:
+   - **Plan Summary Box**: Active Plan name, Selected Year, Enabled action count
+   - **Total Deltas**: Aggregate cap/tax/apron deltas for ActivePlan + SelectedYear
+   - Formulas use SUMPRODUCT to filter by plan_id = ActivePlanId AND (salary_year = SelectedYear OR blank) AND enabled = "Yes"
+
+3. **Cumulative Running Totals** — step-by-step running totals aligned with journal rows:
+   - Each row shows cumulative Δ Cap, Δ Tax, Δ Apron up to that step
+   - Only includes rows matching ActivePlan + SelectedYear context
+
+4. **Conditional Formatting** — grays out journal rows not matching current context:
+   - Rows with plan_id ≠ ActivePlanId (unless blank)
+   - Rows with salary_year ≠ SelectedYear (unless blank)
+   - Helps analysts focus on the currently-active plan/year
 
 ---
 

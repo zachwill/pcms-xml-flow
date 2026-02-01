@@ -724,65 +724,68 @@ def _write_plan_comparison_panel(
     
     # Helper to build plan delta formula for a given compare plan named range
     def _plan_delta_formula(compare_plan_range: str, delta_col: str) -> str:
-        """Build SUMPRODUCT formula to get delta for a ComparePlan.
+        """Build LET+XLOOKUP+FILTER+SUM formula to get delta for a ComparePlan.
         
         Logic:
-        - Lookup plan_id from tbl_plan_manager where plan_name = ComparePlanX
-        - Sum deltas from tbl_plan_journal where:
-          - plan_id matches
-          - salary_year = SelectedYear OR blank
+        - Use XLOOKUP to resolve plan_name → plan_id from tbl_plan_manager
+        - Filter tbl_plan_journal rows where:
+          - (plan_id = resolved_plan_id OR plan_id = "")
+          - (salary_year = SelectedYear OR salary_year = "")
           - enabled = "Yes"
+        - Sum the delta column for matching rows
         
         Returns 0 if the compare plan is blank or not found.
-        """
-        # Lookup plan_id for the ComparePlan
-        plan_id_lookup = (
-            f'IFERROR(INDEX(tbl_plan_manager[plan_id],'
-            f'MATCH({compare_plan_range},tbl_plan_manager[plan_name],0)),"")'
-        )
         
-        # SUMPRODUCT for deltas matching that plan_id + SelectedYear + enabled
+        Uses Excel 365+ dynamic arrays (LET + XLOOKUP + FILTER + SUM) per
+        the formula standard in AGENTS.md.
+        """
+        # LET structure:
+        #   plan_name: the selected compare plan name
+        #   plan_id: XLOOKUP to resolve plan_name → plan_id
+        #   mask: filter condition for matching journal rows
+        #   result: SUM(FILTER(...)) or 0
         return (
-            f'=IFERROR(IF({compare_plan_range}="",'
-            f'0,'  # Return 0 if compare plan is blank
-            f'SUMPRODUCT('
-            f'(tbl_plan_journal[{delta_col}])*'
-            f'(tbl_plan_journal[enabled]="Yes")*'
-            f'(tbl_plan_journal[plan_id]={plan_id_lookup})*'
-            f'((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]=""))'
-            f')),0)'
+            f'=LET('
+            f'plan_name,{compare_plan_range},'
+            f'plan_id,XLOOKUP(plan_name,tbl_plan_manager[plan_name],tbl_plan_manager[plan_id],""),'
+            f'mask,(tbl_plan_journal[enabled]="Yes")*'
+            f'((tbl_plan_journal[plan_id]=plan_id)+(tbl_plan_journal[plan_id]=""))*'
+            f'((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]="")),'
+            f'IF(plan_name="",'
+            f'0,'
+            f'IFERROR(SUM(FILTER(tbl_plan_journal[{delta_col}],mask,0)),0)))'
         )
     
     # Helper to build status formula for a compare plan
     def _plan_status_formula(compare_plan_range: str) -> str:
-        """Build formula to show status/warning for a ComparePlan.
+        """Build LET+XLOOKUP+FILTER+ROWS formula to show status/warning for a ComparePlan.
         
         Shows:
-        - "(blank)" if the compare plan is not selected
+        - "(not selected)" if the compare plan is blank
         - "(same as Baseline)" if compare plan equals "Baseline"
         - Action count and link to PLAN_JOURNAL otherwise
+        
+        Uses Excel 365+ dynamic arrays (LET + XLOOKUP + FILTER + ROWS) per
+        the formula standard in AGENTS.md.
         """
-        # Lookup plan_id
-        plan_id_lookup = (
-            f'IFERROR(INDEX(tbl_plan_manager[plan_id],'
-            f'MATCH({compare_plan_range},tbl_plan_manager[plan_name],0)),"")'
-        )
-        
-        # Action count for this plan + SelectedYear
-        action_count = (
-            f'SUMPRODUCT('
-            f'((tbl_plan_journal[plan_id]={plan_id_lookup})+(tbl_plan_journal[plan_id]=""))>0,'
-            f'((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]=""))>0,'
-            f'(tbl_plan_journal[enabled]="Yes")*1'
-            f')'
-        )
-        
+        # LET structure:
+        #   plan_name: the selected compare plan name
+        #   plan_id: XLOOKUP to resolve plan_name → plan_id
+        #   mask: filter condition for matching journal rows
+        #   action_count: ROWS(FILTER(...)) to count matching rows
         return (
-            f'=IF({compare_plan_range}="",'
+            f'=LET('
+            f'plan_name,{compare_plan_range},'
+            f'plan_id,XLOOKUP(plan_name,tbl_plan_manager[plan_name],tbl_plan_manager[plan_id],""),'
+            f'mask,(tbl_plan_journal[enabled]="Yes")*'
+            f'((tbl_plan_journal[plan_id]=plan_id)+(tbl_plan_journal[plan_id]=""))*'
+            f'((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]="")),'
+            f'action_count,IFERROR(ROWS(FILTER(tbl_plan_journal[step],mask)),0),'
+            f'IF(plan_name="",'
             f'"(not selected)",'
-            f'IF({compare_plan_range}="Baseline",'
+            f'IF(plan_name="Baseline",'
             f'"(same as Baseline)",'
-            f'{action_count}&" actions → see PLAN_JOURNAL"))'
+            f'action_count&" actions → see PLAN_JOURNAL")))'
         )
     
     # Write rows for each ComparePlan

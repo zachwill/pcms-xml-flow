@@ -42,7 +42,7 @@ Build a new, self-contained Sean-style Excel cap workbook **generated from code*
   - Keep display clean (0 instead of errors via IFERROR)
 
 ### 14) TEAM_COCKPIT: Plan comparison deltas without SUMPRODUCT
-- [ ] Replace SUMPRODUCT-based compare-plan deltas + action counts with `LET + FILTER + SUM/ROWS`
+- [x] Replace SUMPRODUCT-based compare-plan deltas + action counts with `LET + FILTER + SUM/ROWS`
   - Use `XLOOKUP` to resolve `ComparePlan{A..D}` → `plan_id`
   - Filter rules must match journal semantics:
     - `(plan_id = resolved_plan_id OR plan_id = "")`

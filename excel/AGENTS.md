@@ -223,7 +223,11 @@ The `TEAM_COCKPIT` sheet includes:
    - Total uses `SUM(FILTER(...))` instead of legacy SUMPRODUCT
 
 6. **Plan Comparison Panel** — shows ComparePlan A/B/C/D deltas:
-   - For each compare plan, shows delta cap vs Baseline (from tbl_plan_journal)
+   - Uses Excel 365 dynamic arrays: `LET + XLOOKUP + FILTER + SUM/ROWS`
+   - Resolves plan_name → plan_id via `XLOOKUP` (replaces INDEX/MATCH)
+   - Delta uses `SUM(FILTER(...))` instead of legacy SUMPRODUCT
+   - Action count uses `ROWS(FILTER(...))` instead of legacy SUMPRODUCT
+   - Filter rules: `(plan_id = resolved OR "") AND (salary_year = SelectedYear OR "") AND enabled = "Yes"`
    - Warns if compare plan is blank or equals Baseline
    - Links to PLAN_JOURNAL for details
    - Positive deltas (cost increase) in red, negative (savings) in green

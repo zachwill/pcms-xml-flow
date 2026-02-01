@@ -68,6 +68,14 @@ from xlsxwriter.workbook import Workbook
 from xlsxwriter.worksheet import Worksheet
 
 from ..xlsx import FMT_MONEY, FMT_PERCENT
+from ..named_formulas import (
+    roster_col_formula,
+    roster_derived_formula,
+    twoway_col_formula,
+    cap_holds_col_formula,
+    dead_money_col_formula,
+    _xlpm,
+)
 from .command_bar import (
     write_command_bar_readonly,
     get_content_start_row,
@@ -558,9 +566,9 @@ def _write_roster_section(
     # The mode-aware SelectedYear amount for filtering and sorting:
     #   LET(
     #     tbl, tbl_salary_book_warehouse,
-    #     cap_col, CHOOSE(ModeYearIndex, tbl[cap_y0], tbl[cap_y1], ...),
-    #     tax_col, CHOOSE(ModeYearIndex, tbl[tax_y0], tbl[tax_y1], ...),
-    #     apron_col, CHOOSE(ModeYearIndex, tbl[apron_y0], tbl[apron_y1], ...),
+    #     cap_col, CHOOSE((SelectedYear-MetaBaseYear+1), tbl[cap_y0], tbl[cap_y1], ...),
+    #     tax_col, CHOOSE((SelectedYear-MetaBaseYear+1), tbl[tax_y0], tbl[tax_y1], ...),
+    #     apron_col, CHOOSE((SelectedYear-MetaBaseYear+1), tbl[apron_y0], tbl[apron_y1], ...),
     #     mode_amt, IF(SelectedMode="Cap", cap_col, IF(SelectedMode="Tax", tax_col, apron_col)),
     #     ...
     #   )
@@ -579,11 +587,11 @@ def _write_roster_section(
         apron_choose = ",".join(f"tbl_salary_book_warehouse[apron_y{i}]" for i in range(6))
 
         return (
-            f"cap_col,CHOOSE(ModeYearIndex,{cap_choose}),"
-            f"tax_col,CHOOSE(ModeYearIndex,{tax_choose}),"
-            f"apron_col,CHOOSE(ModeYearIndex,{apron_choose}),"
-            'mode_amt,IF(SelectedMode="Cap",cap_col,IF(SelectedMode="Tax",tax_col,apron_col)),'
-            "filter_cond,(tbl_salary_book_warehouse[team_code]=SelectedTeam)*(tbl_salary_book_warehouse[is_two_way]=FALSE)*(mode_amt>0),"
+            f"_xlpm.cap_col,CHOOSE((SelectedYear-MetaBaseYear+1),{cap_choose}),"
+            f"_xlpm.tax_col,CHOOSE((SelectedYear-MetaBaseYear+1),{tax_choose}),"
+            f"_xlpm.apron_col,CHOOSE((SelectedYear-MetaBaseYear+1),{apron_choose}),"
+            '_xlpm.mode_amt,IF(SelectedMode="Cap",_xlpm.cap_col,IF(SelectedMode="Tax",_xlpm.tax_col,_xlpm.apron_col)),'
+            "_xlpm.filter_cond,(tbl_salary_book_warehouse[team_code]=SelectedTeam)*(tbl_salary_book_warehouse[is_two_way]=FALSE)*(_xlpm.mode_amt>0),"
         )
 
     # Helper to build SORTBY + TAKE wrapper
@@ -597,9 +605,9 @@ def _write_roster_section(
     name_formula = (
         "=LET("
         + roster_let_prefix()
-        + "filtered,FILTER(tbl_salary_book_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"  # Need mode_amt for sorting
-        + "IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"))"
+        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"  # Need mode_amt for sorting
+        + "IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"))"
     )
     worksheet.write_formula(row, COL_NAME, name_formula)
 
@@ -610,10 +618,10 @@ def _write_roster_section(
     bucket_formula = (
         "=LET("
         + roster_let_prefix()
-        + "filtered,FILTER(tbl_salary_book_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + "names,IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"),"
-        + 'IF(names<>"","ROST",""))'
+        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + "_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"),"
+        + 'IF(_xlpm.names<>"","ROST",""))'
     )
     worksheet.write_formula(row, COL_BUCKET, bucket_formula, roster_formats["bucket_rost"])
 
@@ -623,10 +631,10 @@ def _write_roster_section(
     ct_total_formula = (
         "=LET("
         + roster_let_prefix()
-        + "filtered,FILTER(tbl_salary_book_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + "names,IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"),"
-        + 'IF(names<>"","Y",""))'
+        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + "_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"),"
+        + 'IF(_xlpm.names<>"","Y",""))'
     )
     worksheet.write_formula(row, COL_COUNTS_TOTAL, ct_total_formula, roster_formats["counts_yes"])
 
@@ -636,10 +644,10 @@ def _write_roster_section(
     ct_roster_formula = (
         "=LET("
         + roster_let_prefix()
-        + "filtered,FILTER(tbl_salary_book_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + "names,IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"),"
-        + 'IF(names<>"","Y",""))'
+        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + "_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"),"
+        + 'IF(_xlpm.names<>"","Y",""))'
     )
     worksheet.write_formula(row, COL_COUNTS_ROSTER, ct_roster_formula, roster_formats["counts_yes"])
 
@@ -651,10 +659,10 @@ def _write_roster_section(
     option_formula = (
         "=LET("
         + roster_let_prefix()
-        + f"opt_col,CHOOSE(ModeYearIndex,{opt_choose}),"
-        + "filtered,FILTER(opt_col,filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + "IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"))"
+        + f"_xlpm.opt_col,CHOOSE((SelectedYear-MetaBaseYear+1),{opt_choose}),"
+        + "_xlpm.filtered,FILTER(_xlpm.opt_col,_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + "IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"))"
     )
     worksheet.write_formula(row, COL_OPTION, option_formula)
 
@@ -668,13 +676,13 @@ def _write_roster_section(
     guarantee_formula = (
         "=LET("
         + roster_let_prefix()
-        + f"gtd_full,CHOOSE(ModeYearIndex,{gtd_full_choose}),"
-        + f"gtd_part,CHOOSE(ModeYearIndex,{gtd_part_choose}),"
-        + f"gtd_non,CHOOSE(ModeYearIndex,{gtd_non_choose}),"
-        + 'gtd_label,IF(gtd_full=TRUE,"GTD",IF(gtd_part=TRUE,"PRT",IF(gtd_non=TRUE,"NG",""))),'
-        + "filtered,FILTER(gtd_label,filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + "IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"))"
+        + f"_xlpm.gtd_full,CHOOSE((SelectedYear-MetaBaseYear+1),{gtd_full_choose}),"
+        + f"_xlpm.gtd_part,CHOOSE((SelectedYear-MetaBaseYear+1),{gtd_part_choose}),"
+        + f"_xlpm.gtd_non,CHOOSE((SelectedYear-MetaBaseYear+1),{gtd_non_choose}),"
+        + '_xlpm.gtd_label,IF(_xlpm.gtd_full=TRUE,"GTD",IF(_xlpm.gtd_part=TRUE,"PRT",IF(_xlpm.gtd_non=TRUE,"NG",""))),'
+        + "_xlpm.filtered,FILTER(_xlpm.gtd_label,_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + "IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"))"
     )
     worksheet.write_formula(row, COL_GUARANTEE, guarantee_formula)
 
@@ -684,12 +692,12 @@ def _write_roster_section(
     trade_formula = (
         "=LET("
         + roster_let_prefix()
-        + 'trade_label,IF(tbl_salary_book_warehouse[is_no_trade]=TRUE,"NTC",'
+        + '_xlpm.trade_label,IF(tbl_salary_book_warehouse[is_no_trade]=TRUE,"NTC",'
         + 'IF(tbl_salary_book_warehouse[is_trade_bonus]=TRUE,"Kicker",'
         + 'IF(tbl_salary_book_warehouse[is_trade_restricted_now]=TRUE,"Restricted",""))),'
-        + "filtered,FILTER(trade_label,filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + "IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"))"
+        + "_xlpm.filtered,FILTER(_xlpm.trade_label,_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + "IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"))"
     )
     worksheet.write_formula(row, COL_TRADE, trade_formula)
 
@@ -699,10 +707,10 @@ def _write_roster_section(
     min_formula = (
         "=LET("
         + roster_let_prefix()
-        + 'min_label,IF(tbl_salary_book_warehouse[is_min_contract]=TRUE,"MINIMUM",""),'
-        + "filtered,FILTER(min_label,filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + "IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"))"
+        + '_xlpm.min_label,IF(tbl_salary_book_warehouse[is_min_contract]=TRUE,"MINIMUM",""),' 
+        + "_xlpm.filtered,FILTER(_xlpm.min_label,_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + "IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"))"
     )
     worksheet.write_formula(row, COL_MIN_LABEL, min_formula, roster_formats["min_label"])
 
@@ -714,12 +722,12 @@ def _write_roster_section(
         sal_formula = (
             "=LET("
             + roster_let_prefix()
-            + f'year_col,IF(SelectedMode="Cap",tbl_salary_book_warehouse[cap_y{yi}],'
+            + f'_xlpm.year_col,IF(SelectedMode="Cap",tbl_salary_book_warehouse[cap_y{yi}],'
             + f'IF(SelectedMode="Tax",tbl_salary_book_warehouse[tax_y{yi}],'
             + f"tbl_salary_book_warehouse[apron_y{yi}])),"
-            + "filtered,FILTER(year_col,filter_cond,\"\"),"
-            + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-            + "IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"))"
+            + "_xlpm.filtered,FILTER(_xlpm.year_col,_xlpm.filter_cond,\"\"),"
+            + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+            + "IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"))"
         )
         worksheet.write_formula(row, COL_CAP_Y0 + yi, sal_formula, roster_formats["money"])
 
@@ -729,11 +737,11 @@ def _write_roster_section(
     pct_formula = (
         "=LET("
         + roster_let_prefix()
-        + "filtered,FILTER(mode_amt,filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + "sorted_amt,IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"),"
-        + "cap_limit,SUMIFS(tbl_system_values[salary_cap_amount],tbl_system_values[salary_year],SelectedYear),"
-        + 'IF(sorted_amt="","",sorted_amt/cap_limit))'
+        + "_xlpm.filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + "_xlpm.sorted_amt,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_roster_rows) + "),\"\"),"
+        + "_xlpm.cap_limit,SUMIFS(tbl_system_values[salary_cap_amount],tbl_system_values[salary_year],SelectedYear),"
+        + 'IF(_xlpm.sorted_amt="","",_xlpm.sorted_amt/_xlpm.cap_limit))'
     )
     worksheet.write_formula(row, COL_PCT_CAP, pct_formula, roster_formats["percent"])
 
@@ -809,11 +817,11 @@ def _write_twoway_section(
         apron_choose = ",".join(f"tbl_salary_book_warehouse[apron_y{i}]" for i in range(6))
 
         return (
-            f"cap_col,CHOOSE(ModeYearIndex,{cap_choose}),"
-            f"tax_col,CHOOSE(ModeYearIndex,{tax_choose}),"
-            f"apron_col,CHOOSE(ModeYearIndex,{apron_choose}),"
-            'mode_amt,IF(SelectedMode="Cap",cap_col,IF(SelectedMode="Tax",tax_col,apron_col)),'
-            "filter_cond,(tbl_salary_book_warehouse[team_code]=SelectedTeam)*(tbl_salary_book_warehouse[is_two_way]=TRUE)*(mode_amt>0),"
+            f"_xlpm.cap_col,CHOOSE((SelectedYear-MetaBaseYear+1),{cap_choose}),"
+            f"_xlpm.tax_col,CHOOSE((SelectedYear-MetaBaseYear+1),{tax_choose}),"
+            f"_xlpm.apron_col,CHOOSE((SelectedYear-MetaBaseYear+1),{apron_choose}),"
+            '_xlpm.mode_amt,IF(SelectedMode="Cap",_xlpm.cap_col,IF(SelectedMode="Tax",_xlpm.tax_col,_xlpm.apron_col)),'
+            "_xlpm.filter_cond,(tbl_salary_book_warehouse[team_code]=SelectedTeam)*(tbl_salary_book_warehouse[is_two_way]=TRUE)*(_xlpm.mode_amt>0),"
         )
 
     # -------------------------------------------------------------------------
@@ -822,9 +830,9 @@ def _write_twoway_section(
     name_formula = (
         "=LET("
         + twoway_let_prefix()
-        + "filtered,FILTER(tbl_salary_book_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + "IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1)," + str(num_twoway_rows) + "),\"\"))"
+        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + "IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_twoway_rows) + "),\"\"))"
     )
     worksheet.write_formula(row, COL_NAME, name_formula)
 
@@ -834,10 +842,10 @@ def _write_twoway_section(
     bucket_formula = (
         "=LET("
         + twoway_let_prefix()
-        + "filtered,FILTER(tbl_salary_book_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + "names,IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1)," + str(num_twoway_rows) + "),\"\"),"
-        + 'IF(names<>"","2WAY",""))'
+        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + "_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_twoway_rows) + "),\"\"),"
+        + 'IF(_xlpm.names<>"","2WAY",""))'
     )
     worksheet.write_formula(row, COL_BUCKET, bucket_formula, roster_formats["bucket_2way"])
 
@@ -847,10 +855,10 @@ def _write_twoway_section(
     ct_total_formula = (
         "=LET("
         + twoway_let_prefix()
-        + "filtered,FILTER(tbl_salary_book_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + "names,IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1)," + str(num_twoway_rows) + "),\"\"),"
-        + 'IF(names<>"","Y",""))'
+        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + "_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_twoway_rows) + "),\"\"),"
+        + 'IF(_xlpm.names<>"","Y",""))'
     )
     worksheet.write_formula(row, COL_COUNTS_TOTAL, ct_total_formula, roster_formats["counts_yes"])
 
@@ -860,10 +868,10 @@ def _write_twoway_section(
     ct_roster_formula = (
         "=LET("
         + twoway_let_prefix()
-        + "filtered,FILTER(tbl_salary_book_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + "names,IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1)," + str(num_twoway_rows) + "),\"\"),"
-        + 'IF(names<>"","N",""))'
+        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + "_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_twoway_rows) + "),\"\"),"
+        + 'IF(_xlpm.names<>"","N",""))'
     )
     worksheet.write_formula(row, COL_COUNTS_ROSTER, ct_roster_formula, roster_formats["counts_no"])
 
@@ -880,12 +888,12 @@ def _write_twoway_section(
         sal_formula = (
             "=LET("
             + twoway_let_prefix()
-            + f'year_col,IF(SelectedMode="Cap",tbl_salary_book_warehouse[cap_y{yi}],'
+            + f'_xlpm.year_col,IF(SelectedMode="Cap",tbl_salary_book_warehouse[cap_y{yi}],'
             + f'IF(SelectedMode="Tax",tbl_salary_book_warehouse[tax_y{yi}],'
             + f"tbl_salary_book_warehouse[apron_y{yi}])),"
-            + "filtered,FILTER(year_col,filter_cond,\"\"),"
-            + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-            + "IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1)," + str(num_twoway_rows) + "),\"\"))"
+            + "_xlpm.filtered,FILTER(_xlpm.year_col,_xlpm.filter_cond,\"\"),"
+            + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+            + "IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1)," + str(num_twoway_rows) + "),\"\"))"
         )
         worksheet.write_formula(row, COL_CAP_Y0 + yi, sal_formula, roster_formats["money"])
 
@@ -976,11 +984,11 @@ def _write_cap_holds_section(
     def cap_holds_let_prefix() -> str:
         """Return LET prefix for cap holds filtering (mode-aware amount calculation)."""
         return (
-            'mode_amt,IF(SelectedMode="Cap",tbl_cap_holds_warehouse[cap_amount],'
+            '_xlpm.mode_amt,IF(SelectedMode="Cap",tbl_cap_holds_warehouse[cap_amount],'
             'IF(SelectedMode="Tax",tbl_cap_holds_warehouse[tax_amount],'
             'tbl_cap_holds_warehouse[apron_amount])),'
-            'filter_cond,(tbl_cap_holds_warehouse[team_code]=SelectedTeam)*'
-            '(tbl_cap_holds_warehouse[salary_year]=SelectedYear)*(mode_amt>0),'
+            '_xlpm.filter_cond,(tbl_cap_holds_warehouse[team_code]=SelectedTeam)*'
+            '(tbl_cap_holds_warehouse[salary_year]=SelectedYear)*(_xlpm.mode_amt>0),'
         )
 
     # -------------------------------------------------------------------------
@@ -989,9 +997,9 @@ def _write_cap_holds_section(
     name_formula = (
         "=LET("
         + cap_holds_let_prefix()
-        + "filtered,FILTER(tbl_cap_holds_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + f"IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1),{num_hold_rows}),\"\"))"
+        + "_xlpm.filtered,FILTER(tbl_cap_holds_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + f"IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1),{num_hold_rows}),\"\"))"
     )
     worksheet.write_formula(row, COL_NAME, name_formula)
 
@@ -1001,10 +1009,10 @@ def _write_cap_holds_section(
     bucket_formula = (
         "=LET("
         + cap_holds_let_prefix()
-        + "filtered,FILTER(tbl_cap_holds_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + f"names,IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1),{num_hold_rows}),\"\"),"
-        + 'IF(names<>"","FA",""))'
+        + "_xlpm.filtered,FILTER(tbl_cap_holds_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + f"_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1),{num_hold_rows}),\"\"),"
+        + 'IF(_xlpm.names<>"","FA",""))'
     )
     worksheet.write_formula(row, COL_BUCKET, bucket_formula, roster_formats["bucket_fa"])
 
@@ -1014,10 +1022,10 @@ def _write_cap_holds_section(
     ct_total_formula = (
         "=LET("
         + cap_holds_let_prefix()
-        + "filtered,FILTER(tbl_cap_holds_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + f"names,IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1),{num_hold_rows}),\"\"),"
-        + 'IF(names<>"","Y",""))'
+        + "_xlpm.filtered,FILTER(tbl_cap_holds_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + f"_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1),{num_hold_rows}),\"\"),"
+        + 'IF(_xlpm.names<>"","Y",""))'
     )
     worksheet.write_formula(row, COL_COUNTS_TOTAL, ct_total_formula, roster_formats["counts_yes"])
 
@@ -1027,10 +1035,10 @@ def _write_cap_holds_section(
     ct_roster_formula = (
         "=LET("
         + cap_holds_let_prefix()
-        + "filtered,FILTER(tbl_cap_holds_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + f"names,IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1),{num_hold_rows}),\"\"),"
-        + 'IF(names<>"","N",""))'
+        + "_xlpm.filtered,FILTER(tbl_cap_holds_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + f"_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1),{num_hold_rows}),\"\"),"
+        + 'IF(_xlpm.names<>"","N",""))'
     )
     worksheet.write_formula(row, COL_COUNTS_ROSTER, ct_roster_formula, roster_formats["counts_no"])
 
@@ -1040,9 +1048,9 @@ def _write_cap_holds_section(
     fa_type_formula = (
         "=LET("
         + cap_holds_let_prefix()
-        + "filtered,FILTER(tbl_cap_holds_warehouse[free_agent_designation_lk],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + f"IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1),{num_hold_rows}),\"\"))"
+        + "_xlpm.filtered,FILTER(tbl_cap_holds_warehouse[free_agent_designation_lk],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + f"IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1),{num_hold_rows}),\"\"))"
     )
     worksheet.write_formula(row, COL_OPTION, fa_type_formula)
 
@@ -1055,9 +1063,9 @@ def _write_cap_holds_section(
     fa_status_formula = (
         "=LET("
         + cap_holds_let_prefix()
-        + "filtered,FILTER(tbl_cap_holds_warehouse[free_agent_status_lk],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + f"IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1),{num_hold_rows}),\"\"))"
+        + "_xlpm.filtered,FILTER(tbl_cap_holds_warehouse[free_agent_status_lk],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + f"IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1),{num_hold_rows}),\"\"))"
     )
     worksheet.write_formula(row, COL_TRADE, fa_status_formula)
 
@@ -1070,9 +1078,9 @@ def _write_cap_holds_section(
     amount_formula = (
         "=LET("
         + cap_holds_let_prefix()
-        + "filtered,FILTER(mode_amt,filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + f"IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1),{num_hold_rows}),\"\"))"
+        + "_xlpm.filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + f"IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1),{num_hold_rows}),\"\"))"
     )
     worksheet.write_formula(row, COL_CAP_Y0, amount_formula, roster_formats["money"])
 
@@ -1082,11 +1090,11 @@ def _write_cap_holds_section(
     pct_formula = (
         "=LET("
         + cap_holds_let_prefix()
-        + "filtered,FILTER(mode_amt,filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + f"sorted_amt,IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1),{num_hold_rows}),\"\"),"
-        + "cap_limit,SUMIFS(tbl_system_values[salary_cap_amount],tbl_system_values[salary_year],SelectedYear),"
-        + 'IF(sorted_amt="","",sorted_amt/cap_limit))'
+        + "_xlpm.filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + f"_xlpm.sorted_amt,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1),{num_hold_rows}),\"\"),"
+        + "_xlpm.cap_limit,SUMIFS(tbl_system_values[salary_cap_amount],tbl_system_values[salary_year],SelectedYear),"
+        + 'IF(_xlpm.sorted_amt="","",_xlpm.sorted_amt/_xlpm.cap_limit))'
     )
     worksheet.write_formula(row, COL_PCT_CAP, pct_formula, roster_formats["percent"])
 
@@ -1097,23 +1105,23 @@ def _write_cap_holds_section(
     worksheet.write(row, COL_NAME, "Holds Subtotal:", roster_formats["subtotal_label"])
     subtotal_formula = (
         "=LET("
-        'mode_amt,IF(SelectedMode="Cap",tbl_cap_holds_warehouse[cap_amount],'
+        '_xlpm.mode_amt,IF(SelectedMode="Cap",tbl_cap_holds_warehouse[cap_amount],'
         'IF(SelectedMode="Tax",tbl_cap_holds_warehouse[tax_amount],'
         'tbl_cap_holds_warehouse[apron_amount])),'
-        'filter_cond,(tbl_cap_holds_warehouse[team_code]=SelectedTeam)*'
-        '(tbl_cap_holds_warehouse[salary_year]=SelectedYear)*(mode_amt>0),'
-        'SUM(FILTER(mode_amt,filter_cond,0)))'
+        '_xlpm.filter_cond,(tbl_cap_holds_warehouse[team_code]=SelectedTeam)*'
+        '(tbl_cap_holds_warehouse[salary_year]=SelectedYear)*(_xlpm.mode_amt>0),'
+        'SUM(FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0)))'
     )
     worksheet.write_formula(row, COL_CAP_Y0, subtotal_formula, roster_formats["subtotal"])
 
     count_formula = (
         "=LET("
-        'mode_amt,IF(SelectedMode="Cap",tbl_cap_holds_warehouse[cap_amount],'
+        '_xlpm.mode_amt,IF(SelectedMode="Cap",tbl_cap_holds_warehouse[cap_amount],'
         'IF(SelectedMode="Tax",tbl_cap_holds_warehouse[tax_amount],'
         'tbl_cap_holds_warehouse[apron_amount])),'
-        'filter_cond,(tbl_cap_holds_warehouse[team_code]=SelectedTeam)*'
-        '(tbl_cap_holds_warehouse[salary_year]=SelectedYear)*(mode_amt>0),'
-        'ROWS(FILTER(tbl_cap_holds_warehouse[player_name],filter_cond,"")))'
+        '_xlpm.filter_cond,(tbl_cap_holds_warehouse[team_code]=SelectedTeam)*'
+        '(tbl_cap_holds_warehouse[salary_year]=SelectedYear)*(_xlpm.mode_amt>0),'
+        'ROWS(FILTER(tbl_cap_holds_warehouse[player_name],_xlpm.filter_cond,"")))'
     )
     worksheet.write_formula(row, COL_BUCKET, count_formula, roster_formats["subtotal_label"])
 
@@ -1185,11 +1193,11 @@ def _write_dead_money_section(
     def dead_money_let_prefix() -> str:
         """Return LET prefix for dead money filtering (mode-aware amount calculation)."""
         return (
-            'mode_amt,IF(SelectedMode="Cap",tbl_dead_money_warehouse[cap_value],'
+            '_xlpm.mode_amt,IF(SelectedMode="Cap",tbl_dead_money_warehouse[cap_value],'
             'IF(SelectedMode="Tax",tbl_dead_money_warehouse[tax_value],'
             'tbl_dead_money_warehouse[apron_value])),'
-            'filter_cond,(tbl_dead_money_warehouse[team_code]=SelectedTeam)*'
-            '(tbl_dead_money_warehouse[salary_year]=SelectedYear)*(mode_amt>0),'
+            '_xlpm.filter_cond,(tbl_dead_money_warehouse[team_code]=SelectedTeam)*'
+            '(tbl_dead_money_warehouse[salary_year]=SelectedYear)*(_xlpm.mode_amt>0),'
         )
 
     # -------------------------------------------------------------------------
@@ -1198,9 +1206,9 @@ def _write_dead_money_section(
     name_formula = (
         "=LET("
         + dead_money_let_prefix()
-        + "filtered,FILTER(tbl_dead_money_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + f"IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1),{num_dead_rows}),\"\"))"
+        + "_xlpm.filtered,FILTER(tbl_dead_money_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + f"IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1),{num_dead_rows}),\"\"))"
     )
     worksheet.write_formula(row, COL_NAME, name_formula)
 
@@ -1210,10 +1218,10 @@ def _write_dead_money_section(
     bucket_formula = (
         "=LET("
         + dead_money_let_prefix()
-        + "filtered,FILTER(tbl_dead_money_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + f"names,IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1),{num_dead_rows}),\"\"),"
-        + 'IF(names<>"","TERM",""))'
+        + "_xlpm.filtered,FILTER(tbl_dead_money_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + f"_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1),{num_dead_rows}),\"\"),"
+        + 'IF(_xlpm.names<>"","TERM",""))'
     )
     worksheet.write_formula(row, COL_BUCKET, bucket_formula, roster_formats["bucket_term"])
 
@@ -1223,10 +1231,10 @@ def _write_dead_money_section(
     ct_total_formula = (
         "=LET("
         + dead_money_let_prefix()
-        + "filtered,FILTER(tbl_dead_money_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + f"names,IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1),{num_dead_rows}),\"\"),"
-        + 'IF(names<>"","Y",""))'
+        + "_xlpm.filtered,FILTER(tbl_dead_money_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + f"_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1),{num_dead_rows}),\"\"),"
+        + 'IF(_xlpm.names<>"","Y",""))'
     )
     worksheet.write_formula(row, COL_COUNTS_TOTAL, ct_total_formula, roster_formats["counts_yes"])
 
@@ -1236,10 +1244,10 @@ def _write_dead_money_section(
     ct_roster_formula = (
         "=LET("
         + dead_money_let_prefix()
-        + "filtered,FILTER(tbl_dead_money_warehouse[player_name],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + f"names,IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1),{num_dead_rows}),\"\"),"
-        + 'IF(names<>"","N",""))'
+        + "_xlpm.filtered,FILTER(tbl_dead_money_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + f"_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1),{num_dead_rows}),\"\"),"
+        + 'IF(_xlpm.names<>"","N",""))'
     )
     worksheet.write_formula(row, COL_COUNTS_ROSTER, ct_roster_formula, roster_formats["counts_no"])
 
@@ -1255,9 +1263,9 @@ def _write_dead_money_section(
     waive_date_formula = (
         "=LET("
         + dead_money_let_prefix()
-        + "filtered,FILTER(tbl_dead_money_warehouse[waive_date],filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + f"IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1),{num_dead_rows}),\"\"))"
+        + "_xlpm.filtered,FILTER(tbl_dead_money_warehouse[waive_date],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + f"IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1),{num_dead_rows}),\"\"))"
     )
     worksheet.write_formula(row, COL_TRADE, waive_date_formula)
 
@@ -1270,9 +1278,9 @@ def _write_dead_money_section(
     amount_formula = (
         "=LET("
         + dead_money_let_prefix()
-        + "filtered,FILTER(mode_amt,filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + f"IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1),{num_dead_rows}),\"\"))"
+        + "_xlpm.filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + f"IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1),{num_dead_rows}),\"\"))"
     )
     worksheet.write_formula(row, COL_CAP_Y0, amount_formula, roster_formats["money"])
 
@@ -1282,11 +1290,11 @@ def _write_dead_money_section(
     pct_formula = (
         "=LET("
         + dead_money_let_prefix()
-        + "filtered,FILTER(mode_amt,filter_cond,\"\"),"
-        + "sorted_filtered,FILTER(mode_amt,filter_cond,0),"
-        + f"sorted_amt,IFNA(TAKE(SORTBY(filtered,sorted_filtered,-1),{num_dead_rows}),\"\"),"
-        + "cap_limit,SUMIFS(tbl_system_values[salary_cap_amount],tbl_system_values[salary_year],SelectedYear),"
-        + 'IF(sorted_amt="","",sorted_amt/cap_limit))'
+        + "_xlpm.filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sorted_filtered,FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0),"
+        + f"_xlpm.sorted_amt,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sorted_filtered,-1),{num_dead_rows}),\"\"),"
+        + "_xlpm.cap_limit,SUMIFS(tbl_system_values[salary_cap_amount],tbl_system_values[salary_year],SelectedYear),"
+        + 'IF(_xlpm.sorted_amt="","",_xlpm.sorted_amt/_xlpm.cap_limit))'
     )
     worksheet.write_formula(row, COL_PCT_CAP, pct_formula, roster_formats["percent"])
 
@@ -1297,23 +1305,23 @@ def _write_dead_money_section(
     worksheet.write(row, COL_NAME, "Dead Money Subtotal:", roster_formats["subtotal_label"])
     subtotal_formula = (
         "=LET("
-        'mode_amt,IF(SelectedMode="Cap",tbl_dead_money_warehouse[cap_value],'
+        '_xlpm.mode_amt,IF(SelectedMode="Cap",tbl_dead_money_warehouse[cap_value],'
         'IF(SelectedMode="Tax",tbl_dead_money_warehouse[tax_value],'
         'tbl_dead_money_warehouse[apron_value])),'
-        'filter_cond,(tbl_dead_money_warehouse[team_code]=SelectedTeam)*'
-        '(tbl_dead_money_warehouse[salary_year]=SelectedYear)*(mode_amt>0),'
-        'SUM(FILTER(mode_amt,filter_cond,0)))'
+        '_xlpm.filter_cond,(tbl_dead_money_warehouse[team_code]=SelectedTeam)*'
+        '(tbl_dead_money_warehouse[salary_year]=SelectedYear)*(_xlpm.mode_amt>0),'
+        'SUM(FILTER(_xlpm.mode_amt,_xlpm.filter_cond,0)))'
     )
     worksheet.write_formula(row, COL_CAP_Y0, subtotal_formula, roster_formats["subtotal"])
 
     count_formula = (
         "=LET("
-        'mode_amt,IF(SelectedMode="Cap",tbl_dead_money_warehouse[cap_value],'
+        '_xlpm.mode_amt,IF(SelectedMode="Cap",tbl_dead_money_warehouse[cap_value],'
         'IF(SelectedMode="Tax",tbl_dead_money_warehouse[tax_value],'
         'tbl_dead_money_warehouse[apron_value])),'
-        'filter_cond,(tbl_dead_money_warehouse[team_code]=SelectedTeam)*'
-        '(tbl_dead_money_warehouse[salary_year]=SelectedYear)*(mode_amt>0),'
-        'ROWS(FILTER(tbl_dead_money_warehouse[player_name],filter_cond,"")))'
+        '_xlpm.filter_cond,(tbl_dead_money_warehouse[team_code]=SelectedTeam)*'
+        '(tbl_dead_money_warehouse[salary_year]=SelectedYear)*(_xlpm.mode_amt>0),'
+        'ROWS(FILTER(tbl_dead_money_warehouse[player_name],_xlpm.filter_cond,"")))'
     )
     worksheet.write_formula(row, COL_BUCKET, count_formula, roster_formats["subtotal_label"])
 
@@ -1392,7 +1400,7 @@ def _write_generated_section(
     # Section header
     worksheet.merge_range(
         row, COL_BUCKET, row, COL_PCT_CAP,
-        "GENERATED (Roster Fill Assumptions — policy-driven, NOT authoritative)",
+        "GENERATED (Roster Fill Assumptions - policy-driven, NOT authoritative)",
         generated_section_fmt
     )
     row += 1
@@ -1627,7 +1635,7 @@ def _write_exists_only_section(
     # Section header with explanatory text
     worksheet.merge_range(
         row, COL_BUCKET, row, COL_PCT_CAP,
-        "EXISTS_ONLY (Future-Year Contracts — does NOT count in SelectedYear)",
+        "EXISTS_ONLY (Future-Year Contracts - does NOT count in SelectedYear)",
         section_fmt
     )
     row += 1
@@ -1640,13 +1648,13 @@ def _write_exists_only_section(
     })
     worksheet.write(
         row, COL_BUCKET,
-        "Players with $0 this year but future-year amounts. For analyst reference only — excluded from totals.",
+        "Players with $0 this year but future-year amounts. For analyst reference only - excluded from totals.",
         note_fmt
     )
     worksheet.merge_range(row, COL_BUCKET, row, COL_PCT_CAP, "", note_fmt)
     worksheet.write(
         row, COL_BUCKET,
-        "Players with $0 this year but future-year amounts. For analyst reference only — excluded from totals.",
+        "Players with $0 this year but future-year amounts. For analyst reference only - excluded from totals.",
         note_fmt
     )
     row += 1
@@ -1699,7 +1707,7 @@ def _write_exists_only_section(
     # 4. SORTBYs by future_total (DESC) - biggest future commitments first
     # 5. TAKEs first N rows
     #
-    # The future_total calculation uses CHOOSE with ModeYearIndex to determine
+    # The future_total calculation uses CHOOSE with (SelectedYear-MetaBaseYear+1) to determine
     # which years are "future" relative to SelectedYear.
 
     num_exists_rows = 15  # Allocate slots for exists-only rows
@@ -1714,14 +1722,14 @@ def _write_exists_only_section(
     # - future_mode_aware: mode-specific future sum (for sorting)
     # - filter_cond: team match AND all curr=0 AND future_total>0
     #
-    # For the future sum, we use CHOOSE with ModeYearIndex:
-    # - ModeYearIndex=1 (base year): future = y1+y2+y3+y4+y5
-    # - ModeYearIndex=2 (base+1): future = y2+y3+y4+y5
+    # For the future sum, we use CHOOSE with (SelectedYear-MetaBaseYear+1):
+    # - (SelectedYear-MetaBaseYear+1)=1 (base year): future = y1+y2+y3+y4+y5
+    # - (SelectedYear-MetaBaseYear+1)=2 (base+1): future = y2+y3+y4+y5
     # - etc.
 
     def exists_only_let_prefix() -> str:
         """Return LET prefix for EXISTS_ONLY filtering (computes current and future amounts)."""
-        # Current year amounts per mode (using CHOOSE with ModeYearIndex)
+        # Current year amounts per mode (using CHOOSE with (SelectedYear-MetaBaseYear+1))
         cap_curr = ",".join(f"tbl_salary_book_warehouse[cap_y{i}]" for i in range(6))
         tax_curr = ",".join(f"tbl_salary_book_warehouse[tax_y{i}]" for i in range(6))
         apron_curr = ",".join(f"tbl_salary_book_warehouse[apron_y{i}]" for i in range(6))
@@ -1736,23 +1744,23 @@ def _write_exists_only_section(
                 else:
                     cols = "+".join(f"tbl_salary_book_warehouse[{prefix}_y{j}]" for j in range(start_idx + 1, 6))
                     sums.append(f"({cols})")
-            return f"CHOOSE(ModeYearIndex,{','.join(sums)})"
+            return f"CHOOSE((SelectedYear-MetaBaseYear+1),{','.join(sums)})"
 
         return (
             # Current year amounts per mode
-            f"curr_cap,CHOOSE(ModeYearIndex,{cap_curr}),"
-            f"curr_tax,CHOOSE(ModeYearIndex,{tax_curr}),"
-            f"curr_apron,CHOOSE(ModeYearIndex,{apron_curr}),"
+            f"_xlpm.curr_cap,CHOOSE((SelectedYear-MetaBaseYear+1),{cap_curr}),"
+            f"_xlpm.curr_tax,CHOOSE((SelectedYear-MetaBaseYear+1),{tax_curr}),"
+            f"_xlpm.curr_apron,CHOOSE((SelectedYear-MetaBaseYear+1),{apron_curr}),"
             # Future year sums per mode
-            f"future_cap,{future_choose('cap')},"
-            f"future_tax,{future_choose('tax')},"
-            f"future_apron,{future_choose('apron')},"
+            f"_xlpm.future_cap,{future_choose('cap')},"
+            f"_xlpm.future_tax,{future_choose('tax')},"
+            f"_xlpm.future_apron,{future_choose('apron')},"
             # Combined future total (any mode) - used for filter criterion
-            "future_total,future_cap+future_tax+future_apron,"
+            "_xlpm.future_total,_xlpm.future_cap+_xlpm.future_tax+_xlpm.future_apron,"
             # Mode-aware future sum - used for sorting/display
-            'future_mode,IF(SelectedMode="Cap",future_cap,IF(SelectedMode="Tax",future_tax,future_apron)),'
+            '_xlpm.future_mode,IF(SelectedMode="Cap",_xlpm.future_cap,IF(SelectedMode="Tax",_xlpm.future_tax,_xlpm.future_apron)),'
             # Filter condition: team match AND all current = 0 AND future > 0
-            "filter_cond,(tbl_salary_book_warehouse[team_code]=SelectedTeam)*(curr_cap=0)*(curr_tax=0)*(curr_apron=0)*(future_total>0),"
+            "_xlpm.filter_cond,(tbl_salary_book_warehouse[team_code]=SelectedTeam)*(_xlpm.curr_cap=0)*(_xlpm.curr_tax=0)*(_xlpm.curr_apron=0)*(_xlpm.future_total>0),"
         )
 
     # -------------------------------------------------------------------------
@@ -1762,9 +1770,9 @@ def _write_exists_only_section(
     name_formula = (
         '=IF(ShowExistsOnlyRows<>"Yes","",LET('
         + exists_only_let_prefix()
-        + "filtered,FILTER(tbl_salary_book_warehouse[player_name],filter_cond,\"\"),"
-        + "sort_key,FILTER(future_mode,filter_cond,0),"
-        + f"IFNA(TAKE(SORTBY(filtered,sort_key,-1),{num_exists_rows}),\"\")))"
+        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sort_key,FILTER(_xlpm.future_mode,_xlpm.filter_cond,0),"
+        + f"IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sort_key,-1),{num_exists_rows}),\"\")))"
     )
     worksheet.write_formula(row, COL_NAME, name_formula)
 
@@ -1774,10 +1782,10 @@ def _write_exists_only_section(
     bucket_formula = (
         '=IF(ShowExistsOnlyRows<>"Yes","",LET('
         + exists_only_let_prefix()
-        + "filtered,FILTER(tbl_salary_book_warehouse[player_name],filter_cond,\"\"),"
-        + "sort_key,FILTER(future_mode,filter_cond,0),"
-        + f"names,IFNA(TAKE(SORTBY(filtered,sort_key,-1),{num_exists_rows}),\"\"),"
-        + 'IF(names<>"","EXISTS","")))'
+        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sort_key,FILTER(_xlpm.future_mode,_xlpm.filter_cond,0),"
+        + f"_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sort_key,-1),{num_exists_rows}),\"\"),"
+        + 'IF(_xlpm.names<>"","EXISTS","")))'
     )
     worksheet.write_formula(row, COL_BUCKET, bucket_formula, roster_formats["bucket_exists_only"])
 
@@ -1787,10 +1795,10 @@ def _write_exists_only_section(
     ct_total_formula = (
         '=IF(ShowExistsOnlyRows<>"Yes","",LET('
         + exists_only_let_prefix()
-        + "filtered,FILTER(tbl_salary_book_warehouse[player_name],filter_cond,\"\"),"
-        + "sort_key,FILTER(future_mode,filter_cond,0),"
-        + f"names,IFNA(TAKE(SORTBY(filtered,sort_key,-1),{num_exists_rows}),\"\"),"
-        + 'IF(names<>"","N","")))'
+        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sort_key,FILTER(_xlpm.future_mode,_xlpm.filter_cond,0),"
+        + f"_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sort_key,-1),{num_exists_rows}),\"\"),"
+        + 'IF(_xlpm.names<>"","N","")))'
     )
     worksheet.write_formula(row, COL_COUNTS_TOTAL, ct_total_formula, roster_formats["counts_no"])
 
@@ -1800,10 +1808,10 @@ def _write_exists_only_section(
     ct_roster_formula = (
         '=IF(ShowExistsOnlyRows<>"Yes","",LET('
         + exists_only_let_prefix()
-        + "filtered,FILTER(tbl_salary_book_warehouse[player_name],filter_cond,\"\"),"
-        + "sort_key,FILTER(future_mode,filter_cond,0),"
-        + f"names,IFNA(TAKE(SORTBY(filtered,sort_key,-1),{num_exists_rows}),\"\"),"
-        + 'IF(names<>"","N","")))'
+        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sort_key,FILTER(_xlpm.future_mode,_xlpm.filter_cond,0),"
+        + f"_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sort_key,-1),{num_exists_rows}),\"\"),"
+        + 'IF(_xlpm.names<>"","N","")))'
     )
     worksheet.write_formula(row, COL_COUNTS_ROSTER, ct_roster_formula, roster_formats["counts_no"])
 
@@ -1818,9 +1826,9 @@ def _write_exists_only_section(
     future_total_formula = (
         '=IF(ShowExistsOnlyRows<>"Yes","",LET('
         + exists_only_let_prefix()
-        + "filtered,FILTER(future_mode,filter_cond,\"\"),"
-        + "sort_key,FILTER(future_mode,filter_cond,0),"
-        + f"IFNA(TAKE(SORTBY(filtered,sort_key,-1),{num_exists_rows}),\"\")))"
+        + "_xlpm.filtered,FILTER(_xlpm.future_mode,_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sort_key,FILTER(_xlpm.future_mode,_xlpm.filter_cond,0),"
+        + f"IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sort_key,-1),{num_exists_rows}),\"\")))"
     )
     worksheet.write_formula(row, COL_MIN_LABEL, future_total_formula, roster_formats["money"])
 
@@ -1831,12 +1839,12 @@ def _write_exists_only_section(
         sal_formula = (
             '=IF(ShowExistsOnlyRows<>"Yes","",LET('
             + exists_only_let_prefix()
-            + f'year_col,IF(SelectedMode="Cap",tbl_salary_book_warehouse[cap_y{yi}],'
+            + f'_xlpm.year_col,IF(SelectedMode="Cap",tbl_salary_book_warehouse[cap_y{yi}],'
             + f'IF(SelectedMode="Tax",tbl_salary_book_warehouse[tax_y{yi}],'
             + f"tbl_salary_book_warehouse[apron_y{yi}])),"
-            + "filtered,FILTER(year_col,filter_cond,\"\"),"
-            + "sort_key,FILTER(future_mode,filter_cond,0),"
-            + f"IFNA(TAKE(SORTBY(filtered,sort_key,-1),{num_exists_rows}),\"\")))"
+            + "_xlpm.filtered,FILTER(_xlpm.year_col,_xlpm.filter_cond,\"\"),"
+            + "_xlpm.sort_key,FILTER(_xlpm.future_mode,_xlpm.filter_cond,0),"
+            + f"IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sort_key,-1),{num_exists_rows}),\"\")))"
         )
         worksheet.write_formula(row, COL_CAP_Y0 + yi, sal_formula, roster_formats["money"])
 
@@ -1846,10 +1854,10 @@ def _write_exists_only_section(
     note_formula = (
         '=IF(ShowExistsOnlyRows<>"Yes","",LET('
         + exists_only_let_prefix()
-        + "filtered,FILTER(tbl_salary_book_warehouse[player_name],filter_cond,\"\"),"
-        + "sort_key,FILTER(future_mode,filter_cond,0),"
-        + f"names,IFNA(TAKE(SORTBY(filtered,sort_key,-1),{num_exists_rows}),\"\"),"
-        + 'IF(names<>"","Future $","")))'
+        + "_xlpm.filtered,FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,\"\"),"
+        + "_xlpm.sort_key,FILTER(_xlpm.future_mode,_xlpm.filter_cond,0),"
+        + f"_xlpm.names,IFNA(TAKE(SORTBY(_xlpm.filtered,_xlpm.sort_key,-1),{num_exists_rows}),\"\"),"
+        + 'IF(_xlpm.names<>"","Future $","")))'
     )
     worksheet.write_formula(row, COL_PCT_CAP, note_formula, hidden_text_fmt)
 
@@ -1867,7 +1875,7 @@ def _write_exists_only_section(
     count_value_formula = (
         '=IF(ShowExistsOnlyRows<>"Yes","",LET('
         + exists_only_let_prefix()
-        + 'ROWS(FILTER(tbl_salary_book_warehouse[player_name],filter_cond,""))))'
+        + 'ROWS(FILTER(tbl_salary_book_warehouse[player_name],_xlpm.filter_cond,""))))'
     )
     worksheet.write_formula(row, COL_BUCKET, count_value_formula, roster_formats["subtotal_label"])
 

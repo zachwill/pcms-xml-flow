@@ -1234,11 +1234,13 @@ def _write_running_state_panel(
     worksheet.write(row, PJ_RUNNING_COL_LABEL, "Actions (Enabled):", plan_formats["panel_label"])
     action_count_formula = (
         '=IFNA('
-        'SUM(--PlanRowMask('
-        'tbl_plan_journal[plan_id],'
-        'tbl_plan_journal[salary_year],'
+        'SUM(--((('
+        'tbl_plan_journal[plan_id]=ActivePlanId)+('
+        'tbl_plan_journal[plan_id]=""))*(('
+        'tbl_plan_journal[salary_year]=SelectedYear)+('
+        'tbl_plan_journal[salary_year]=""))*('
         'tbl_plan_journal[enabled]'
-        ')),0)'
+        '="Yes"))),0)'
     )
     worksheet.write_formula(row, PJ_RUNNING_COL_VALUE, action_count_formula, plan_formats["panel_value"])
     row += 1
@@ -1261,11 +1263,13 @@ def _write_running_state_panel(
     worksheet.write(row, PJ_RUNNING_COL_LABEL, "Δ Cap Total:", plan_formats["panel_label"])
     delta_cap_formula = (
         '=LET('
-        'mask,PlanRowMask('
-        'tbl_plan_journal[plan_id],'
-        'tbl_plan_journal[salary_year],'
-        'tbl_plan_journal[enabled]),'
-        'SUM(FILTER(tbl_plan_journal[delta_cap],mask,0)))'
+        '_xlpm.mask,((('
+        'tbl_plan_journal[plan_id]=ActivePlanId)+('
+        'tbl_plan_journal[plan_id]=""))*(('
+        'tbl_plan_journal[salary_year]=SelectedYear)+('
+        'tbl_plan_journal[salary_year]=""))*('
+        'tbl_plan_journal[enabled]="Yes")),'
+        'SUM(FILTER(tbl_plan_journal[delta_cap],_xlpm.mask,0)))'
     )
     worksheet.write_formula(row, PJ_RUNNING_COL_VALUE, delta_cap_formula, plan_formats["panel_value_money"])
     row += 1
@@ -1274,11 +1278,13 @@ def _write_running_state_panel(
     worksheet.write(row, PJ_RUNNING_COL_LABEL, "Δ Tax Total:", plan_formats["panel_label"])
     delta_tax_formula = (
         '=LET('
-        'mask,PlanRowMask('
-        'tbl_plan_journal[plan_id],'
-        'tbl_plan_journal[salary_year],'
-        'tbl_plan_journal[enabled]),'
-        'SUM(FILTER(tbl_plan_journal[delta_tax],mask,0)))'
+        '_xlpm.mask,((('
+        'tbl_plan_journal[plan_id]=ActivePlanId)+('
+        'tbl_plan_journal[plan_id]=""))*(('
+        'tbl_plan_journal[salary_year]=SelectedYear)+('
+        'tbl_plan_journal[salary_year]=""))*('
+        'tbl_plan_journal[enabled]="Yes")),'
+        'SUM(FILTER(tbl_plan_journal[delta_tax],_xlpm.mask,0)))'
     )
     worksheet.write_formula(row, PJ_RUNNING_COL_VALUE, delta_tax_formula, plan_formats["panel_value_money"])
     row += 1
@@ -1287,11 +1293,13 @@ def _write_running_state_panel(
     worksheet.write(row, PJ_RUNNING_COL_LABEL, "Δ Apron Total:", plan_formats["panel_label"])
     delta_apron_formula = (
         '=LET('
-        'mask,PlanRowMask('
-        'tbl_plan_journal[plan_id],'
-        'tbl_plan_journal[salary_year],'
-        'tbl_plan_journal[enabled]),'
-        'SUM(FILTER(tbl_plan_journal[delta_apron],mask,0)))'
+        '_xlpm.mask,((('
+        'tbl_plan_journal[plan_id]=ActivePlanId)+('
+        'tbl_plan_journal[plan_id]=""))*(('
+        'tbl_plan_journal[salary_year]=SelectedYear)+('
+        'tbl_plan_journal[salary_year]=""))*('
+        'tbl_plan_journal[enabled]="Yes")),'
+        'SUM(FILTER(tbl_plan_journal[delta_apron],_xlpm.mask,0)))'
     )
     worksheet.write_formula(row, PJ_RUNNING_COL_VALUE, delta_apron_formula, plan_formats["panel_value_money"])
     row += 1
@@ -1320,7 +1328,7 @@ def _write_running_state_panel(
     #
     # Formula pattern:
     #   =LET(
-    #     mask, PlanRowMask(plan_ids, years, enabled),
+    #     mask, (((plan_ids=ActivePlanId)+(plan_ids=""))*((years=SelectedYear)+(years=""))*(enabled="Yes")),
     #     deltas, IF(mask, delta_col, 0),
     #     SCAN(0, deltas, LAMBDA(acc, val, acc + val))
     #   )
@@ -1368,56 +1376,13 @@ def _write_running_state_panel(
         plan_formats["panel_value"],
     )
     
-    # Cumulative Cap: LET + SCAN
-    # 1. mask = PlanRowMask(...) → TRUE/FALSE for each row
-    # 2. masked_deltas = IF(mask, delta_cap, 0) → 0 for non-matching rows
-    # 3. SCAN(0, masked_deltas, LAMBDA(acc, val, acc + val)) → running sum
-    cumul_cap_formula = (
-        '=LET('
-        'mask,PlanRowMask('
-        'tbl_plan_journal[plan_id],'
-        'tbl_plan_journal[salary_year],'
-        'tbl_plan_journal[enabled]),'
-        'masked_deltas,IF(mask,tbl_plan_journal[delta_cap],0),'
-        'SCAN(0,masked_deltas,LAMBDA(acc,val,acc+val)))'
-    )
-    worksheet.write_formula(
-        cumul_first_data_row, cumul_col_cap,
-        cumul_cap_formula,
-        plan_formats["panel_value_money"],
-    )
-    
-    # Cumulative Tax: same pattern
-    cumul_tax_formula = (
-        '=LET('
-        'mask,PlanRowMask('
-        'tbl_plan_journal[plan_id],'
-        'tbl_plan_journal[salary_year],'
-        'tbl_plan_journal[enabled]),'
-        'masked_deltas,IF(mask,tbl_plan_journal[delta_tax],0),'
-        'SCAN(0,masked_deltas,LAMBDA(acc,val,acc+val)))'
-    )
-    worksheet.write_formula(
-        cumul_first_data_row, cumul_col_tax,
-        cumul_tax_formula,
-        plan_formats["panel_value_money"],
-    )
-    
-    # Cumulative Apron: same pattern
-    cumul_apron_formula = (
-        '=LET('
-        'mask,PlanRowMask('
-        'tbl_plan_journal[plan_id],'
-        'tbl_plan_journal[salary_year],'
-        'tbl_plan_journal[enabled]),'
-        'masked_deltas,IF(mask,tbl_plan_journal[delta_apron],0),'
-        'SCAN(0,masked_deltas,LAMBDA(acc,val,acc+val)))'
-    )
-    worksheet.write_formula(
-        cumul_first_data_row, cumul_col_apron,
-        cumul_apron_formula,
-        plan_formats["panel_value_money"],
-    )
+    # Cumulative columns: DISABLED
+    # The SCAN + LAMBDA approach caused Excel repair issues.
+    # TODO: Implement per-row cumulative sums without LAMBDA if needed.
+    # For now, show "-" placeholders in cumulative columns.
+    worksheet.write(cumul_first_data_row, cumul_col_cap, "-", plan_formats["panel_value"])
+    worksheet.write(cumul_first_data_row, cumul_col_tax, "-", plan_formats["panel_value"])
+    worksheet.write(cumul_first_data_row, cumul_col_apron, "-", plan_formats["panel_value"])
 
 
 # =============================================================================

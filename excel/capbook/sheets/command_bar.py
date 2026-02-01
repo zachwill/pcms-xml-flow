@@ -390,7 +390,7 @@ def write_command_bar_editable(
         ROW_ACTIVE_PLAN, COL_INPUT_3, ROW_ACTIVE_PLAN, COL_INPUT_3,
         {
             "validate": "list",
-            "source": "=tbl_plan_manager[plan_name]",
+            "source": '=INDIRECT("tbl_plan_manager[plan_name]")',
             "input_title": "Active Plan",
             "input_message": "Select a plan from PLAN_MANAGER",
         },
@@ -408,7 +408,7 @@ def write_command_bar_editable(
             row, COL_INPUT_3, row, COL_INPUT_3,
             {
                 "validate": "list",
-                "source": "=tbl_plan_manager[plan_name]",
+                "source": '=INDIRECT("tbl_plan_manager[plan_name]")',
                 "input_title": label.replace(":", ""),
                 "input_message": "Optional: select a plan to compare",
             },

@@ -209,16 +209,16 @@ def _salary_book_filter_sum(col_base: str, *, is_two_way: bool) -> str:
 
     # Build the year column selector using CHOOSECOLS
     year_cols = ",".join(f"tbl_salary_book_warehouse[{col_base}_y{i}]" for i in range(6))
-    year_col_expr = f"CHOOSECOLS({year_cols},ModeYearIndex)"
+    year_col_expr = f"CHOOSECOLS({year_cols},(SelectedYear-MetaBaseYear+1))"
 
     return (
         "LET("
-        "tbl,tbl_salary_book_warehouse,"
-        "team_mask,tbl[team_code]=SelectedTeam,"
-        f"twoway_mask,tbl[is_two_way]={two_way_val},"
-        f"year_col,{year_col_expr},"
-        "mask,team_mask*twoway_mask,"
-        "IFERROR(SUM(FILTER(year_col,mask,0)),0)"
+        "_xlpm.tbl,tbl_salary_book_warehouse,"
+        "_xlpm.team_mask,_xlpm.tbl[team_code]=SelectedTeam,"
+        f"_xlpm.twoway_mask,_xlpm.tbl[is_two_way]={two_way_val},"
+        f"_xlpm.year_col,{year_col_expr},"
+        "_xlpm.mask,_xlpm.team_mask*_xlpm.twoway_mask,"
+        "IFERROR(SUM(FILTER(_xlpm.year_col,_xlpm.mask,0)),0)"
         ")"
     )
 
@@ -238,18 +238,18 @@ def _salary_book_filter_count(*, is_two_way: bool) -> str:
 
     # Build the year column selector for cap using CHOOSECOLS
     cap_year_cols = ",".join(f"tbl_salary_book_warehouse[cap_y{i}]" for i in range(6))
-    cap_year_col_expr = f"CHOOSECOLS({cap_year_cols},ModeYearIndex)"
+    cap_year_col_expr = f"CHOOSECOLS({cap_year_cols},(SelectedYear-MetaBaseYear+1))"
 
     return (
         "LET("
-        "tbl,tbl_salary_book_warehouse,"
-        "team_mask,tbl[team_code]=SelectedTeam,"
-        f"twoway_mask,tbl[is_two_way]={two_way_val},"
-        f"cap_col,{cap_year_col_expr},"
-        "cap_mask,cap_col>0,"
-        "mask,team_mask*twoway_mask*cap_mask,"
-        "filtered,FILTER(tbl[player_id],mask,\"\"),"
-        "IF(ISTEXT(filtered),0,ROWS(filtered))"
+        "_xlpm.tbl,tbl_salary_book_warehouse,"
+        "_xlpm.team_mask,_xlpm.tbl[team_code]=SelectedTeam,"
+        f"_xlpm.twoway_mask,_xlpm.tbl[is_two_way]={two_way_val},"
+        f"_xlpm.cap_col,{cap_year_col_expr},"
+        "_xlpm.cap_mask,_xlpm.cap_col>0,"
+        "_xlpm.mask,_xlpm.team_mask*_xlpm.twoway_mask*_xlpm.cap_mask,"
+        "_xlpm.filtered,FILTER(_xlpm.tbl[player_id],_xlpm.mask,\"\"),"
+        "IF(ISTEXT(_xlpm.filtered),0,ROWS(_xlpm.filtered))"
         ")"
     )
 
@@ -1050,13 +1050,13 @@ def _write_plan_diff_section(
     # Uses LET + FILTER + ROWS pattern instead of SUMPRODUCT
     total_rows_formula = (
         '=LET('
-        'tbl,tbl_plan_journal,'
-        'plan_mask,(tbl[plan_id]=ActivePlanId)+(tbl[plan_id]=""),'
-        'year_mask,(tbl[salary_year]=SelectedYear)+(tbl[salary_year]=""),'
-        'action_mask,tbl[action_type]<>"",'
-        'mask,(plan_mask>0)*(year_mask>0)*action_mask,'
-        'filtered,FILTER(tbl[action_type],mask,""),'
-        'IF(ISTEXT(filtered),0,ROWS(filtered))'
+        '_xlpm.tbl,tbl_plan_journal,'
+        '_xlpm.plan_mask,(_xlpm.tbl[plan_id]=ActivePlanId)+(_xlpm.tbl[plan_id]=""),'
+        '_xlpm.year_mask,(_xlpm.tbl[salary_year]=SelectedYear)+(_xlpm.tbl[salary_year]=""),'
+        '_xlpm.action_mask,_xlpm.tbl[action_type]<>"",'
+        '_xlpm.mask,(_xlpm.plan_mask>0)*(_xlpm.year_mask>0)*_xlpm.action_mask,'
+        '_xlpm.filtered,FILTER(_xlpm.tbl[action_type],_xlpm.mask,""),'
+        'IF(ISTEXT(_xlpm.filtered),0,ROWS(_xlpm.filtered))'
         ')'
     )
     worksheet.write(row, COL_LABEL, "Total Journal Rows:", audit_formats["label_indent"])
@@ -1068,9 +1068,9 @@ def _write_plan_diff_section(
     # Uses LET + FILTER + ROWS with PlanRowMask for consistent filtering
     enabled_rows_formula = (
         '=LET('
-        'mask,PlanRowMask(tbl_plan_journal[plan_id],tbl_plan_journal[salary_year],tbl_plan_journal[enabled]),'
-        'filtered,FILTER(tbl_plan_journal[enabled],mask,""),'
-        'IF(ISTEXT(filtered),0,ROWS(filtered))'
+        '_xlpm.mask,(((tbl_plan_journal[plan_id]=ActivePlanId)+(tbl_plan_journal[plan_id]=""))*((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]=""))*(tbl_plan_journal[enabled]="Yes")),'
+        '_xlpm.filtered,FILTER(tbl_plan_journal[enabled],_xlpm.mask,""),'
+        'IF(ISTEXT(_xlpm.filtered),0,ROWS(_xlpm.filtered))'
         ')'
     )
     worksheet.write(row, COL_LABEL, "Enabled Actions:", audit_formats["label_indent"])
@@ -1106,20 +1106,20 @@ def _write_plan_diff_section(
     # Delta Cap Total - uses LET + FILTER + SUM with PlanRowMask
     delta_cap_formula = (
         '=LET('
-        'mask,PlanRowMask(tbl_plan_journal[plan_id],tbl_plan_journal[salary_year],tbl_plan_journal[enabled]),'
-        'IFERROR(SUM(FILTER(tbl_plan_journal[delta_cap],mask,0)),0)'
+        '_xlpm.mask,(((tbl_plan_journal[plan_id]=ActivePlanId)+(tbl_plan_journal[plan_id]=""))*((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]=""))*(tbl_plan_journal[enabled]="Yes")),'
+        'IFERROR(SUM(FILTER(tbl_plan_journal[delta_cap],_xlpm.mask,0)),0)'
         ')'
     )
     delta_tax_formula = (
         '=LET('
-        'mask,PlanRowMask(tbl_plan_journal[plan_id],tbl_plan_journal[salary_year],tbl_plan_journal[enabled]),'
-        'IFERROR(SUM(FILTER(tbl_plan_journal[delta_tax],mask,0)),0)'
+        '_xlpm.mask,(((tbl_plan_journal[plan_id]=ActivePlanId)+(tbl_plan_journal[plan_id]=""))*((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]=""))*(tbl_plan_journal[enabled]="Yes")),'
+        'IFERROR(SUM(FILTER(tbl_plan_journal[delta_tax],_xlpm.mask,0)),0)'
         ')'
     )
     delta_apron_formula = (
         '=LET('
-        'mask,PlanRowMask(tbl_plan_journal[plan_id],tbl_plan_journal[salary_year],tbl_plan_journal[enabled]),'
-        'IFERROR(SUM(FILTER(tbl_plan_journal[delta_apron],mask,0)),0)'
+        '_xlpm.mask,(((tbl_plan_journal[plan_id]=ActivePlanId)+(tbl_plan_journal[plan_id]=""))*((tbl_plan_journal[salary_year]=SelectedYear)+(tbl_plan_journal[salary_year]=""))*(tbl_plan_journal[enabled]="Yes")),'
+        'IFERROR(SUM(FILTER(tbl_plan_journal[delta_apron],_xlpm.mask,0)),0)'
         ')'
     )
     

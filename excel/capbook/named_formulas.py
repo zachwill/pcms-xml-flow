@@ -1,53 +1,58 @@
 """
 Named Formulas (LAMBDA/LET helpers) for the Excel Cap Workbook.
 
-This module defines reusable named formulas that centralize repeated logic,
-per backlog item #2 in .ralph/EXCEL.md.
+This module defines reusable named formulas that centralize repeated logic.
 
 **Excel 365/2021 Required:** These formulas use LAMBDA which requires Excel 365
 or Excel 2021. Earlier versions will show #NAME? errors.
 
+**CRITICAL:** All LAMBDA parameter names and LET variable names MUST use the
+`_xlpm.` prefix or Mac Excel will show repair dialogs.
+
 Named formulas defined here:
 
-1. ModeYearIndex
+1. ModeYearIndex (simple)
    - Returns the 1-based relative year index: SelectedYear - MetaBaseYear + 1
    - Values: 1 (base year) through 6 (base year + 5)
-   - Used by: CHOOSE formulas for selecting cap_y0..cap_y5 columns
 
-2. PlanRowMask (LAMBDA)
-   - Returns TRUE for plan_journal rows matching ActivePlanId + SelectedYear + enabled
-   - Handles blank salary_year (means "applies to all years")
-   - Used by: PLAN_JOURNAL running totals, BUDGET_LEDGER plan deltas, AUDIT
+2. SalaryBookModeAmt (LAMBDA)
+   - Computes mode-aware amount for SelectedYear from salary_book_warehouse
+   - Returns: cap/tax/apron amount based on SelectedMode + SelectedYear
 
-3. TeamYearMask (LAMBDA)
-   - Returns TRUE for rows matching SelectedTeam + SelectedYear
-   - Used by: Drilldown aggregations, roster counts
+3. SalaryBookRosterFilter (LAMBDA)
+   - Filters salary_book_warehouse for roster players (non-two-way)
+   - Returns: filter condition array for use with FILTER()
 
-4. CapYearAmount (LAMBDA)
-   - Selects the appropriate cap amount column based on ModeYearIndex
-   - Takes row reference and returns the cap value for SelectedYear
+4. SalaryBookTwoWayFilter (LAMBDA)
+   - Filters salary_book_warehouse for two-way players
+   - Returns: filter condition array
 
-5. AmountByMode (LAMBDA)
-   - Selects cap/tax/apron amount based on SelectedMode + ModeYearIndex
-   - Used by: Mode-aware displays in ROSTER_GRID, COCKPIT
+5. FilterSortTake (LAMBDA)
+   - Generic: filters a column, sorts by another, takes N rows
+   - The workhorse for all spilling roster columns
 
-6. SalaryBookModeAmount (LAMBDA)
-   - Selects mode-aware amount for SelectedYear from salary_book_warehouse columns
-   - Takes cap_row, tax_row, apron_row ranges and returns the appropriate amount
-   - Used by: ROSTER_GRID dynamic array formulas (FILTER/SORTBY/TAKE)
+6. CapHoldsModeAmt (LAMBDA)
+   - Mode-aware amount for cap_holds_warehouse
 
-Usage in formulas:
-    Instead of:  CHOOSE(SelectedYear-MetaBaseYear+1, cap_y0, cap_y1, ...)
-    Use:         CapYearAmount([@cap_y0]:[@cap_y5])
+7. DeadMoneyModeAmt (LAMBDA)
+   - Mode-aware amount for dead_money_warehouse
+
+Usage in roster_grid.py:
+    # Before (repeated 40+ times):
+    \"=LET(cap_col,CHOOSE(...),tax_col,CHOOSE(...),mode_amt,IF(...),filter_cond,...,
+          filtered,FILTER(col,filter_cond),sorted,FILTER(mode_amt,filter_cond),
+          TAKE(SORTBY(filtered,sorted,-1),40))\"
     
-    Instead of:  SUMPRODUCT((plan_id=ActivePlanId)*((salary_year=SelectedYear)+(salary_year=""))*(enabled="Yes")*delta_cap)
-    Use:         SUMPRODUCT(PlanRowMask(tbl_plan_journal[plan_id],tbl_plan_journal[salary_year],tbl_plan_journal[enabled])*tbl_plan_journal[delta_cap])
+    # After (single call):
+    \"=FilterSortTake(tbl_salary_book_warehouse[player_name],
+                     SalaryBookModeAmt(),
+                     SalaryBookRosterFilter(),
+                     40)\"
 
 Design notes:
-- These are Excel 365+ features (LAMBDA requires Excel 365 or 2021)
-- All formulas are workbook-scoped (not sheet-scoped)
-- Formulas reference other named ranges (SelectedYear, MetaBaseYear, etc.)
-- LAMBDA formulas take parameters and can be called like functions
+- All LAMBDA params use `_xlpm.` prefix (required for Mac Excel compatibility)
+- All LET variables use `_xlpm.` prefix
+- Formulas reference global named ranges (SelectedYear, SelectedMode, etc.)
 """
 
 from __future__ import annotations
@@ -65,126 +70,251 @@ from xlsxwriter.workbook import Workbook
 SIMPLE_NAMED_FORMULAS: dict[str, str] = {
     # ModeYearIndex: 1-based year offset (1..6)
     # Use: CHOOSE(ModeYearIndex, cap_y0, cap_y1, ...)
-    # or:  INDEX(array, ModeYearIndex)
     "ModeYearIndex": "=SelectedYear-MetaBaseYear+1",
 }
 
-# LAMBDA-based named formulas (reusable functions with parameters)
-# These are more powerful but require Excel 365/2021+
-#
-# Note: XlsxWriter's define_name handles LAMBDA formulas correctly.
-# The formula string must start with '=' and use proper LAMBDA syntax.
+
+# -----------------------------------------------------------------------------
+# LAMBDA helper: prefix all variable names with _xlpm.
+# -----------------------------------------------------------------------------
+def _xlpm(var: str) -> str:
+    """Prefix a variable name with _xlpm. for LET/LAMBDA formulas."""
+    return f"_xlpm.{var}"
+
+
+# Shorthand for common variable names
+_CAP_COL = _xlpm("cap_col")
+_TAX_COL = _xlpm("tax_col")
+_APRON_COL = _xlpm("apron_col")
+_MODE_AMT = _xlpm("mode_amt")
+_FILTER_COND = _xlpm("filter_cond")
+_FILTERED = _xlpm("filtered")
+_SORTED = _xlpm("sorted")
+_RESULT = _xlpm("result")
+_COL = _xlpm("col")
+_SORT_COL = _xlpm("sort_col")
+_COND = _xlpm("cond")
+_N = _xlpm("n")
+_DEFAULT = _xlpm("default")
+
+
+# -----------------------------------------------------------------------------
+# Build LAMBDA formulas with proper _xlpm. prefixes
+# -----------------------------------------------------------------------------
+
+def _build_salary_book_mode_amt() -> str:
+    """
+    SalaryBookModeAmt: returns mode-aware amount for SelectedYear.
+    
+    No parameters - operates on tbl_salary_book_warehouse columns directly.
+    Returns an array (one value per row in the table).
+    
+    Logic:
+      cap_col = CHOOSE(ModeYearIndex, cap_y0, cap_y1, ..., cap_y5)
+      tax_col = CHOOSE(ModeYearIndex, tax_y0, tax_y1, ..., tax_y5)
+      apron_col = CHOOSE(ModeYearIndex, apron_y0, apron_y1, ..., apron_y5)
+      mode_amt = IF(SelectedMode="Cap", cap_col, IF(SelectedMode="Tax", tax_col, apron_col))
+    """
+    cap_cols = ",".join(f"tbl_salary_book_warehouse[cap_y{i}]" for i in range(6))
+    tax_cols = ",".join(f"tbl_salary_book_warehouse[tax_y{i}]" for i in range(6))
+    apron_cols = ",".join(f"tbl_salary_book_warehouse[apron_y{i}]" for i in range(6))
+    
+    return (
+        "=LET("
+        f"{_CAP_COL},CHOOSE(ModeYearIndex,{cap_cols}),"
+        f"{_TAX_COL},CHOOSE(ModeYearIndex,{tax_cols}),"
+        f"{_APRON_COL},CHOOSE(ModeYearIndex,{apron_cols}),"
+        f'IF(SelectedMode="Cap",{_CAP_COL},IF(SelectedMode="Tax",{_TAX_COL},{_APRON_COL})))'
+    )
+
+
+def _build_salary_book_roster_filter() -> str:
+    """
+    SalaryBookRosterFilter: returns filter condition for roster players.
+    
+    No parameters - uses SalaryBookModeAmt internally.
+    Returns: (team_code=SelectedTeam) * (is_two_way=FALSE) * (mode_amt>0)
+    """
+    return (
+        "=LET("
+        f"{_MODE_AMT},SalaryBookModeAmt(),"
+        f"(tbl_salary_book_warehouse[team_code]=SelectedTeam)*"
+        f"(tbl_salary_book_warehouse[is_two_way]=FALSE)*"
+        f"({_MODE_AMT}>0))"
+    )
+
+
+def _build_salary_book_twoway_filter() -> str:
+    """
+    SalaryBookTwoWayFilter: returns filter condition for two-way players.
+    
+    Same as roster but is_two_way=TRUE.
+    """
+    return (
+        "=LET("
+        f"{_MODE_AMT},SalaryBookModeAmt(),"
+        f"(tbl_salary_book_warehouse[team_code]=SelectedTeam)*"
+        f"(tbl_salary_book_warehouse[is_two_way]=TRUE)*"
+        f"({_MODE_AMT}>0))"
+    )
+
+
+def _build_filter_sort_take() -> str:
+    """
+    FilterSortTake: generic FILTER + SORTBY (desc) + TAKE.
+    
+    Parameters:
+      col: column to filter and return
+      sort_col: column to sort by (descending)
+      cond: filter condition (boolean array)
+      n: number of rows to take
+    
+    Returns: IFNA(TAKE(SORTBY(FILTER(col, cond), FILTER(sort_col, cond), -1), n), "")
+    """
+    return (
+        f"=LAMBDA({_COL},{_SORT_COL},{_COND},{_N},"
+        f"LET("
+        f"{_FILTERED},FILTER({_COL},{_COND},\"\"),"
+        f"{_SORTED},FILTER({_SORT_COL},{_COND},0),"
+        f"IFNA(TAKE(SORTBY({_FILTERED},{_SORTED},-1),{_N}),\"\")))"
+    )
+
+
+def _build_filter_sort_take_with_default() -> str:
+    """
+    FilterSortTakeDefault: same as FilterSortTake but with custom default.
+    
+    Parameters:
+      col, sort_col, cond, n: same as FilterSortTake
+      default: value to use for empty/short results
+    """
+    return (
+        f"=LAMBDA({_COL},{_SORT_COL},{_COND},{_N},{_DEFAULT},"
+        f"LET("
+        f"{_FILTERED},FILTER({_COL},{_COND},{_DEFAULT}),"
+        f"{_SORTED},FILTER({_SORT_COL},{_COND},0),"
+        f"IFNA(TAKE(SORTBY({_FILTERED},{_SORTED},-1),{_N}),{_DEFAULT})))"
+    )
+
+
+def _build_cap_holds_mode_amt() -> str:
+    """
+    CapHoldsModeAmt: mode-aware amount for cap_holds_warehouse.
+    
+    Simpler than salary_book - just one column per mode (no yearly variants).
+    """
+    return (
+        '=IF(SelectedMode="Cap",tbl_cap_holds_warehouse[cap_amount],'
+        'IF(SelectedMode="Tax",tbl_cap_holds_warehouse[tax_amount],'
+        'tbl_cap_holds_warehouse[apron_amount]))'
+    )
+
+
+def _build_cap_holds_filter() -> str:
+    """
+    CapHoldsFilter: filter condition for cap holds.
+    
+    Returns: (team_code=SelectedTeam) * (salary_year=SelectedYear) * (mode_amt>0)
+    """
+    return (
+        "=LET("
+        f"{_MODE_AMT},CapHoldsModeAmt(),"
+        f"(tbl_cap_holds_warehouse[team_code]=SelectedTeam)*"
+        f"(tbl_cap_holds_warehouse[salary_year]=SelectedYear)*"
+        f"({_MODE_AMT}>0))"
+    )
+
+
+def _build_dead_money_mode_amt() -> str:
+    """
+    DeadMoneyModeAmt: mode-aware amount for dead_money_warehouse.
+    """
+    return (
+        '=IF(SelectedMode="Cap",tbl_dead_money_warehouse[cap_value],'
+        'IF(SelectedMode="Tax",tbl_dead_money_warehouse[tax_value],'
+        'tbl_dead_money_warehouse[apron_value]))'
+    )
+
+
+def _build_dead_money_filter() -> str:
+    """
+    DeadMoneyFilter: filter condition for dead money.
+    """
+    return (
+        "=LET("
+        f"{_MODE_AMT},DeadMoneyModeAmt(),"
+        f"(tbl_dead_money_warehouse[team_code]=SelectedTeam)*"
+        f"(tbl_dead_money_warehouse[salary_year]=SelectedYear)*"
+        f"({_MODE_AMT}>0))"
+    )
+
+
+def _build_plan_row_mask() -> str:
+    """
+    PlanRowMask: filter mask for plan_journal rows.
+    
+    Parameters:
+      plan_id_col: plan_id column
+      salary_year_col: salary_year column  
+      enabled_col: enabled column
+    
+    Returns: TRUE for rows matching ActivePlanId + SelectedYear + enabled="Yes"
+    Handles blank plan_id (matches all plans) and blank salary_year (matches all years).
+    """
+    _PID = _xlpm("pid")
+    _SY = _xlpm("sy")
+    _EN = _xlpm("en")
+    
+    return (
+        f"=LAMBDA({_PID},{_SY},{_EN},"
+        f'(({_PID}=ActivePlanId)+({_PID}=""))*'
+        f'(({_SY}=SelectedYear)+({_SY}=""))*'
+        f'({_EN}="Yes"))'
+    )
+
+
+# LAMBDA named formulas: (formula_builder, description)
+# Using builders so we can construct with proper _xlpm. prefixes
 LAMBDA_NAMED_FORMULAS: dict[str, tuple[str, str]] = {
-    # PlanRowMask: Filter mask for plan_journal rows
-    # Parameters:
-    #   plan_id_col:    The plan_id column (e.g., tbl_plan_journal[plan_id])
-    #   salary_year_col: The salary_year column
-    #   enabled_col:    The enabled column
-    # Returns: Array of TRUE/FALSE matching ActivePlanId + SelectedYear + enabled
-    # Logic: (plan_id = ActivePlanId OR plan_id = "") AND 
-    #        (salary_year = SelectedYear OR salary_year = "") AND
-    #        (enabled = "Yes")
+    "SalaryBookModeAmt": (
+        _build_salary_book_mode_amt(),
+        "Mode-aware amount for SelectedYear from salary_book_warehouse (array)",
+    ),
+    "SalaryBookRosterFilter": (
+        _build_salary_book_roster_filter(),
+        "Filter condition for roster players (non-two-way, has amount)",
+    ),
+    "SalaryBookTwoWayFilter": (
+        _build_salary_book_twoway_filter(),
+        "Filter condition for two-way players",
+    ),
+    "FilterSortTake": (
+        _build_filter_sort_take(),
+        "Generic: FILTER col by cond, SORTBY sort_col desc, TAKE n rows",
+    ),
+    "FilterSortTakeDefault": (
+        _build_filter_sort_take_with_default(),
+        "Same as FilterSortTake but with custom default value",
+    ),
+    "CapHoldsModeAmt": (
+        _build_cap_holds_mode_amt(),
+        "Mode-aware amount for cap_holds_warehouse",
+    ),
+    "CapHoldsFilter": (
+        _build_cap_holds_filter(),
+        "Filter condition for cap holds (team + year + has amount)",
+    ),
+    "DeadMoneyModeAmt": (
+        _build_dead_money_mode_amt(),
+        "Mode-aware amount for dead_money_warehouse",
+    ),
+    "DeadMoneyFilter": (
+        _build_dead_money_filter(),
+        "Filter condition for dead money (team + year + has amount)",
+    ),
     "PlanRowMask": (
-        "=LAMBDA(plan_id_col,salary_year_col,enabled_col,"
-        "((plan_id_col=ActivePlanId)+(plan_id_col=\"\"))*"
-        "((salary_year_col=SelectedYear)+(salary_year_col=\"\"))*"
-        "(enabled_col=\"Yes\"))",
-        "Filter mask for plan_journal rows matching ActivePlanId + SelectedYear + enabled=Yes",
-    ),
-    
-    # TeamYearMask: Filter mask for team+year filtering
-    # Parameters:
-    #   team_col: Team code column
-    #   year_col: Salary year column
-    # Returns: Array of TRUE/FALSE for matching rows
-    "TeamYearMask": (
-        "=LAMBDA(team_col,year_col,"
-        "(team_col=SelectedTeam)*(year_col=SelectedYear))",
-        "Filter mask for rows matching SelectedTeam + SelectedYear",
-    ),
-    
-    # CapYearAmount: Select cap amount for SelectedYear from wide table row
-    # Parameters:
-    #   y0: cap_y0 value
-    #   y1: cap_y1 value
-    #   y2: cap_y2 value
-    #   y3: cap_y3 value
-    #   y4: cap_y4 value
-    #   y5: cap_y5 value
-    # Returns: The cap value for SelectedYear
-    # Note: Uses CHOOSE with ModeYearIndex (1-based)
-    "CapYearAmount": (
-        "=LAMBDA(y0,y1,y2,y3,y4,y5,"
-        "CHOOSE(ModeYearIndex,y0,y1,y2,y3,y4,y5))",
-        "Select cap_yN value based on SelectedYear (uses ModeYearIndex)",
-    ),
-    
-    # TaxYearAmount: Select tax amount for SelectedYear from wide table row
-    "TaxYearAmount": (
-        "=LAMBDA(y0,y1,y2,y3,y4,y5,"
-        "CHOOSE(ModeYearIndex,y0,y1,y2,y3,y4,y5))",
-        "Select tax_yN value based on SelectedYear (uses ModeYearIndex)",
-    ),
-    
-    # ApronYearAmount: Select apron amount for SelectedYear from wide table row
-    "ApronYearAmount": (
-        "=LAMBDA(y0,y1,y2,y3,y4,y5,"
-        "CHOOSE(ModeYearIndex,y0,y1,y2,y3,y4,y5))",
-        "Select apron_yN value based on SelectedYear (uses ModeYearIndex)",
-    ),
-    
-    # AmountByMode: Select cap/tax/apron amount based on SelectedMode
-    # Parameters:
-    #   cap_val: Cap amount
-    #   tax_val: Tax amount
-    #   apron_val: Apron amount
-    # Returns: The amount for the current SelectedMode (Cap/Tax/Apron)
-    "AmountByMode": (
-        "=LAMBDA(cap_val,tax_val,apron_val,"
-        'IF(SelectedMode="Cap",cap_val,'
-        'IF(SelectedMode="Tax",tax_val,'
-        "apron_val)))",
-        "Select cap/tax/apron value based on SelectedMode",
-    ),
-    
-    # YearAmountByMode: Combines CapYearAmount + AmountByMode
-    # Parameters:
-    #   cap_y0..cap_y5: Cap amounts for years 0-5
-    #   tax_y0..tax_y5: Tax amounts for years 0-5
-    #   apron_y0..apron_y5: Apron amounts for years 0-5
-    # This is complex with many params - in practice, we may use the simpler
-    # formulas and compose them. Included for completeness.
-    # Note: Due to LAMBDA's 253-char limit for define_name in some contexts,
-    # this longer formula is split for readability but defined as one string.
-    "YearAmountByMode": (
-        "=LAMBDA(cap_y0,cap_y1,cap_y2,cap_y3,cap_y4,cap_y5,"
-        "tax_y0,tax_y1,tax_y2,tax_y3,tax_y4,tax_y5,"
-        "apron_y0,apron_y1,apron_y2,apron_y3,apron_y4,apron_y5,"
-        "LET("
-        "cap_amt,CHOOSE(ModeYearIndex,cap_y0,cap_y1,cap_y2,cap_y3,cap_y4,cap_y5),"
-        "tax_amt,CHOOSE(ModeYearIndex,tax_y0,tax_y1,tax_y2,tax_y3,tax_y4,tax_y5),"
-        "apron_amt,CHOOSE(ModeYearIndex,apron_y0,apron_y1,apron_y2,apron_y3,apron_y4,apron_y5),"
-        'IF(SelectedMode="Cap",cap_amt,IF(SelectedMode="Tax",tax_amt,apron_amt))))',
-        "Select cap/tax/apron amount for SelectedYear based on SelectedMode",
-    ),
-    
-    # SalaryBookModeAmount: Select mode-aware amount for SelectedYear from salary_book_warehouse
-    # Uses INDEX+ModeYearIndex to pick the correct column, then AmountByMode pattern.
-    # Designed to work with dynamic array FILTER/SORTBY on the full table.
-    # Parameters:
-    #   cap_row: Range of cap_y0:cap_y5 for a row (or column arrays for FILTER)
-    #   tax_row: Range of tax_y0:tax_y5 for a row
-    #   apron_row: Range of apron_y0:apron_y5 for a row
-    # Returns: The mode-aware amount for SelectedYear
-    # Note: INDEX(range, ModeYearIndex) picks the Nth column from a 1-row range
-    "SalaryBookModeAmount": (
-        "=LAMBDA(cap_row,tax_row,apron_row,"
-        "LET("
-        "cap_amt,INDEX(cap_row,1,ModeYearIndex),"
-        "tax_amt,INDEX(tax_row,1,ModeYearIndex),"
-        "apron_amt,INDEX(apron_row,1,ModeYearIndex),"
-        'IF(SelectedMode="Cap",cap_amt,IF(SelectedMode="Tax",tax_amt,apron_amt))))',
-        "Select mode-aware amount for SelectedYear from salary_book_warehouse columns",
+        _build_plan_row_mask(),
+        "Filter mask for plan_journal rows (ActivePlanId + SelectedYear + enabled)",
     ),
 }
 
@@ -251,61 +381,49 @@ def get_formula_documentation() -> list[dict[str, Any]]:
 
 
 # =============================================================================
-# Formula Usage Helpers
+# Formula Usage Helpers (for use in sheet code)
 # =============================================================================
 
-def formula_plan_row_mask(plan_id_col: str, year_col: str, enabled_col: str) -> str:
+def roster_col_formula(column: str, take_n: int = 40) -> str:
     """
-    Return a formula that calls PlanRowMask with the given column references.
+    Return formula for a roster column using named formulas.
     
     Example:
-        formula_plan_row_mask(
-            "tbl_plan_journal[plan_id]",
-            "tbl_plan_journal[salary_year]",
-            "tbl_plan_journal[enabled]"
+        roster_col_formula("tbl_salary_book_warehouse[player_name]")
+        -> "=FilterSortTake(tbl_salary_book_warehouse[player_name],SalaryBookModeAmt(),SalaryBookRosterFilter(),40)"
+    """
+    return f"=FilterSortTake({column},SalaryBookModeAmt(),SalaryBookRosterFilter(),{take_n})"
+
+
+def twoway_col_formula(column: str, take_n: int = 10) -> str:
+    """Return formula for a two-way column."""
+    return f"=FilterSortTake({column},SalaryBookModeAmt(),SalaryBookTwoWayFilter(),{take_n})"
+
+
+def cap_holds_col_formula(column: str, take_n: int = 15) -> str:
+    """Return formula for a cap holds column."""
+    return f"=FilterSortTake({column},CapHoldsModeAmt(),CapHoldsFilter(),{take_n})"
+
+
+def dead_money_col_formula(column: str, take_n: int = 10) -> str:
+    """Return formula for a dead money column."""
+    return f"=FilterSortTake({column},DeadMoneyModeAmt(),DeadMoneyFilter(),{take_n})"
+
+
+def roster_derived_formula(column: str, transform: str, take_n: int = 40) -> str:
+    """
+    Return formula for a derived roster column (e.g., badge from name).
+    
+    Example:
+        roster_derived_formula(
+            "tbl_salary_book_warehouse[player_name]",
+            'IF({result}<>"","ROST","")'
         )
-        -> "PlanRowMask(tbl_plan_journal[plan_id],tbl_plan_journal[salary_year],tbl_plan_journal[enabled])"
-    """
-    return f"PlanRowMask({plan_id_col},{year_col},{enabled_col})"
-
-
-def formula_team_year_mask(team_col: str, year_col: str) -> str:
-    """
-    Return a formula that calls TeamYearMask with the given column references.
     
-    Example:
-        formula_team_year_mask("tbl_salary_book_yearly[team_code]", "tbl_salary_book_yearly[salary_year]")
-        -> "TeamYearMask(tbl_salary_book_yearly[team_code],tbl_salary_book_yearly[salary_year])"
+    The {result} placeholder is replaced with the FilterSortTake result via LET.
     """
-    return f"TeamYearMask({team_col},{year_col})"
-
-
-def formula_cap_year_amount_structured_ref() -> str:
-    """
-    Return a structured reference formula for CapYearAmount on salary_book_warehouse.
-    
-    Returns:
-        "CapYearAmount([@cap_y0],[@cap_y1],[@cap_y2],[@cap_y3],[@cap_y4],[@cap_y5])"
-    """
-    return "CapYearAmount([@cap_y0],[@cap_y1],[@cap_y2],[@cap_y3],[@cap_y4],[@cap_y5])"
-
-
-def formula_tax_year_amount_structured_ref() -> str:
-    """Return structured reference formula for TaxYearAmount on salary_book_warehouse."""
-    return "TaxYearAmount([@tax_y0],[@tax_y1],[@tax_y2],[@tax_y3],[@tax_y4],[@tax_y5])"
-
-
-def formula_apron_year_amount_structured_ref() -> str:
-    """Return structured reference formula for ApronYearAmount on salary_book_warehouse."""
-    return "ApronYearAmount([@apron_y0],[@apron_y1],[@apron_y2],[@apron_y3],[@apron_y4],[@apron_y5])"
-
-
-def formula_amount_by_mode(cap_expr: str, tax_expr: str, apron_expr: str) -> str:
-    """
-    Return a formula that calls AmountByMode with the given expressions.
-    
-    Example:
-        formula_amount_by_mode("cap_total", "tax_total", "apron_total")
-        -> "AmountByMode(cap_total,tax_total,apron_total)"
-    """
-    return f"AmountByMode({cap_expr},{tax_expr},{apron_expr})"
+    _RES = _xlpm("res")
+    inner = f"FilterSortTake({column},SalaryBookModeAmt(),SalaryBookRosterFilter(),{take_n})"
+    # Replace {result} with the LET variable
+    transformed = transform.replace("{result}", _RES)
+    return f"=LET({_RES},{inner},{transformed})"

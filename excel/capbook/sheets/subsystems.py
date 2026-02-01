@@ -393,18 +393,22 @@ def write_trade_machine(
 
     worksheet.write_formula(helper_row, helper_col, team_list_formula, sub_formats["output"])
 
-    # Define named range for the team list using spill reference
+    # Define named range for the team list within a fixed range (avoid spill operator).
     from xlsxwriter.utility import xl_col_to_name
     helper_col_letter = xl_col_to_name(helper_col)
-    helper_cell_ref = f"${helper_col_letter}${helper_row + 1}"  # Excel 1-indexed
+    team_list_max_rows = 32
+    helper_end_row = helper_row + team_list_max_rows - 1
+    helper_range_ref = (
+        f"${helper_col_letter}${helper_row + 1}:${helper_col_letter}${helper_end_row + 1}"
+    )  # Excel 1-indexed
 
     workbook.define_name(
         "TradeTeamList",
-        f"='TRADE_MACHINE'!{helper_cell_ref}#"
+        f"='TRADE_MACHINE'!{helper_range_ref}"
     )
 
     # Reserve space for spill (up to 32 teams)
-    content_row += 32
+    content_row += team_list_max_rows
 
     worksheet.write(
         content_row, 0,
@@ -654,15 +658,15 @@ def _write_trade_lane(
     max_incoming_formula = (
         f'=IFERROR('
         f'LET('
-        f'out,{outgoing_total_cell},'
-        f'apron,{apron_level_cell},'
-        f'tpe,{tpe_allowance_lookup},'
+        f'_xlpm.out,{outgoing_total_cell},'
+        f'_xlpm.apron,{apron_level_cell},'
+        f'_xlpm.tpe,{tpe_allowance_lookup},'
         # Below-tax teams get expanded matching
-        f'IF(OR(apron="BELOW_TAX",apron=""),'
+        f'IF(OR(_xlpm.apron="BELOW_TAX",_xlpm.apron=""),'
         # Expanded matching: GREATEST(LEAST(200%+250K, 100%+TPE), 125%+250K)
-        f'MAX(MIN(out*2+250000,out+tpe),out*1.25+250000),'
+        f'MAX(MIN(_xlpm.out*2+250000,_xlpm.out+_xlpm.tpe),_xlpm.out*1.25+250000),'
         # First apron or above: 100% + $100K (no aggregation)
-        f'out+100000)'
+        f'_xlpm.out+100000)'
         f'),'
         f'"")'
     )
@@ -714,18 +718,18 @@ def _write_trade_lane(
     matching_rule_formula = (
         f'=IF({outgoing_total_cell}=0,"",'
         f'LET('
-        f'out,{outgoing_total_cell},'
-        f'apron,{apron_level_cell},'
-        f'tpe,{tpe_allowance_lookup},'
+        f'_xlpm.out,{outgoing_total_cell},'
+        f'_xlpm.apron,{apron_level_cell},'
+        f'_xlpm.tpe,{tpe_allowance_lookup},'
         # Determine tier based on breakpoints
-        f'low_break,tpe-250000,'
-        f'high_break,4*(tpe-250000),'
+        f'_xlpm.low_break,_xlpm.tpe-250000,'
+        f'_xlpm.high_break,4*(_xlpm.tpe-250000),'
         # Check apron level first
-        f'IF(AND(apron<>"BELOW_TAX",apron<>""),'
+        f'IF(AND(_xlpm.apron<>"BELOW_TAX",_xlpm.apron<>""),'
         f'"Apron: 100%+$100K",'
         # For below-tax teams, check which tier applies
-        f'IF(out<low_break,"Low: 200%+$250K",'
-        f'IF(out>high_break,"High: 125%+$250K",'
+        f'IF(_xlpm.out<_xlpm.low_break,"Low: 200%+$250K",'
+        f'IF(_xlpm.out>_xlpm.high_break,"High: 125%+$250K",'
         f'"Mid: 100%+TPE")))))'
     )
 
@@ -952,15 +956,15 @@ def write_signings_and_exceptions(
     #           IFNA(INDEX([@year_1_salary]:[@year_4_salary], 1, idx), 0)))
     #
     # ModeYearIndex = SelectedYear - MetaBaseYear + 1 (defined in named_formulas.py)
-    # The LET+IF handles years beyond the 4-year contract window (returns 0).
+    #
+    # NOTE: Avoid LET in table calculated columns - XlsxWriter generates invalid XML
+    # Use IFERROR(CHOOSE(...)) instead of LET+INDEX
     #
     # For now, cap/tax/apron deltas are all the same (the salary amount).
     # In future, could adjust if different counting rules apply.
     # =========================================================================
     delta_formula = (
-        '=LET(idx,ModeYearIndex,'
-        'IF(idx>4,0,'
-        'IFNA(INDEX([@year_1_salary]:[@year_4_salary],1,idx),0)))'
+        '=IFERROR(CHOOSE(ModeYearIndex,[@year_1_salary],[@year_2_salary],[@year_3_salary],[@year_4_salary]),0)'
     )
 
     # Column definitions with unlocked formats for editing on protected sheet
@@ -1317,7 +1321,8 @@ def write_signings_and_exceptions(
     # Reserve space for spill results (up to 15 exceptions per team)
     # The helper will spill downward automatically
     exception_helper_start_row = helper_row
-    content_row = helper_row + 15
+    exception_list_max_rows = 15
+    content_row = helper_row + exception_list_max_rows
 
     worksheet.write(
         content_row, SIG_COL_PLAYER,
@@ -1330,24 +1335,22 @@ def write_signings_and_exceptions(
     # Define named range for the helper and wire data validation
     # =========================================================================
     # We define a named range "ExceptionUsedList" that references the helper
-    # spill range. This is then used by data validation for exception_used.
-    #
-    # Named range formula uses the spill operator (#) to capture the entire
-    # spill range dynamically:
-    #   =SIGNINGS_AND_EXCEPTIONS!$A$row#
+    # range within the reserved block (fixed range to avoid the spill operator).
     #
     # Note: XlsxWriter's define_name requires the formula without leading =
     # =========================================================================
     from xlsxwriter.utility import xl_col_to_name
 
     helper_col_letter = xl_col_to_name(helper_col)
-    helper_cell_ref = f"${helper_col_letter}${exception_helper_start_row + 1}"  # Excel 1-indexed
+    helper_end_row = exception_helper_start_row + exception_list_max_rows - 1
+    helper_range_ref = (
+        f"${helper_col_letter}${exception_helper_start_row + 1}:"
+        f"${helper_col_letter}${helper_end_row + 1}"
+    )  # Excel 1-indexed
 
-    # Define the named range using the spill reference (#)
-    # The spill operator (#) tells Excel to include all cells in the spill range
     workbook.define_name(
         "ExceptionUsedList",
-        f"='SIGNINGS_AND_EXCEPTIONS'!{helper_cell_ref}#"
+        f"='SIGNINGS_AND_EXCEPTIONS'!{helper_range_ref}"
     )
 
     # Now add data validation for exception_used column in the signings table
@@ -1535,13 +1538,8 @@ def write_waive_buyout_stretch(
     # =========================================================================
 
     # net_owed = remaining_gtd - giveback
-    # Uses LET for clarity (even though simple, consistent pattern)
-    net_owed_formula = (
-        '=LET('
-        'gtd,[@remaining_gtd],'
-        'give,[@giveback],'
-        'gtd-give)'
-    )
+    # NOTE: Avoid LET in table calculated columns - XlsxWriter generates invalid XML
+    net_owed_formula = '=[@remaining_gtd]-[@giveback]'
 
     # dead_year_1/2/3 formulas based on stretch toggle:
     #
@@ -1557,58 +1555,42 @@ def write_waive_buyout_stretch(
     # - Result varies by year position
     #
     # dead_year_1: always gets a share (all if no stretch, per_year if stretch)
+    # NOTE: Avoid LET in table calculated columns - XlsxWriter generates invalid XML
+    # Inline: IF(stretch="Yes", ROUND(net_owed / MIN(2*years+1,5), 0), net_owed)
     dead_y1_formula = (
-        '=LET('
-        'net,[@net_owed],'
-        'is_stretch,[@stretch]="Yes",'
-        'yrs,[@years_remaining],'
-        'period,IF(is_stretch,MIN(2*yrs+1,5),1),'
-        'per_year,ROUND(net/period,0),'
-        'IF(is_stretch,per_year,net))'
+        '=IF([@stretch]="Yes",'
+        'ROUND([@net_owed]/MIN(2*[@years_remaining]+1,5),0),'
+        '[@net_owed])'
     )
 
     # dead_year_2: gets share if stretch="Yes" AND stretch_period >= 2
+    # period = MIN(2*years+1, 5); if stretch and period>=2, return per_year, else 0
     dead_y2_formula = (
-        '=LET('
-        'net,[@net_owed],'
-        'is_stretch,[@stretch]="Yes",'
-        'yrs,[@years_remaining],'
-        'period,IF(is_stretch,MIN(2*yrs+1,5),1),'
-        'per_year,ROUND(net/period,0),'
-        'IF(AND(is_stretch,period>=2),per_year,0))'
+        '=IF(AND([@stretch]="Yes",MIN(2*[@years_remaining]+1,5)>=2),'
+        'ROUND([@net_owed]/MIN(2*[@years_remaining]+1,5),0),'
+        '0)'
     )
 
     # dead_year_3: gets share if stretch="Yes" AND stretch_period >= 3
     dead_y3_formula = (
-        '=LET('
-        'net,[@net_owed],'
-        'is_stretch,[@stretch]="Yes",'
-        'yrs,[@years_remaining],'
-        'period,IF(is_stretch,MIN(2*yrs+1,5),1),'
-        'per_year,ROUND(net/period,0),'
-        'IF(AND(is_stretch,period>=3),per_year,0))'
+        '=IF(AND([@stretch]="Yes",MIN(2*[@years_remaining]+1,5)>=3),'
+        'ROUND([@net_owed]/MIN(2*[@years_remaining]+1,5),0),'
+        '0)'
     )
 
     # delta_cap/tax/apron: pick the dead_year matching SelectedYear
     # dead_year_1 corresponds to MetaBaseYear, dead_year_2 to MetaBaseYear+1, etc.
     #
-    # Formula pattern (using LET + INDEX + ModeYearIndex):
-    #   =LET(
-    #     idx, ModeYearIndex,
-    #     dead_years, [@dead_year_1]:[@dead_year_3],
-    #     IF(idx > 3, 0, IFNA(INDEX(dead_years, 1, idx), 0))
-    #   )
-    #
     # ModeYearIndex = SelectedYear - MetaBaseYear + 1 (values 1..6)
     # We only have 3 dead_year columns, so return 0 for idx > 3
+    #
+    # NOTE: Avoid LET in table calculated columns - XlsxWriter generates invalid XML
+    # Use IFERROR(CHOOSE(...)) instead of LET+INDEX
     #
     # Note: cap/tax/apron all get the same dead money amount (waived salary
     # counts identically toward all three thresholds per CBA).
     delta_formula = (
-        '=LET('
-        'idx,ModeYearIndex,'
-        'IF(idx>3,0,'
-        'IFNA(INDEX([@dead_year_1]:[@dead_year_3],1,idx),0)))'
+        '=IFERROR(CHOOSE(ModeYearIndex,[@dead_year_1],[@dead_year_2],[@dead_year_3]),0)'
     )
 
     # Column definitions with unlocked formats for input columns,

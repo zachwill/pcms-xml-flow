@@ -33,8 +33,6 @@ Start with the Blueprints:
 The workbook uses modern Excel features including:
 - **Dynamic arrays**: `FILTER`, `SORTBY`, `UNIQUE`, `TAKE`, `CHOOSECOLS`
 - **XLOOKUP**: replaces legacy `INDEX/MATCH` patterns
-- **LET**: named sub-expressions for complex formulas
-- **LAMBDA**: reusable formula helpers via named ranges
 
 These features are **not available** in:
 - Excel 2019 or earlier
@@ -45,53 +43,108 @@ If you open the workbook in an unsupported version, formulas may show `#NAME?` e
 
 ---
 
-## Named formulas (LAMBDA helpers)
+## XlsxWriter formula basics
 
-The workbook defines reusable named formulas (LAMBDA) to centralize repeated logic. These are defined in `excel/capbook/named_formulas.py`.
+XlsxWriter does not calculate formulas — it writes them to the file and Excel computes on open.
 
-### Simple formulas (expressions)
+### Choosing the right write method
 
-| Name | Formula | Purpose |
-|---|---|---|
-| `ModeYearIndex` | `=SelectedYear-MetaBaseYear+1` | 1-based relative year index (1..6) for CHOOSE/INDEX |
+| Method | Use for | Example |
+|--------|---------|---------|
+| `write_formula()` | Single-cell formulas | `=SUM(A1:A10)`, `=VLOOKUP(...)` |
+| `write_dynamic_array_formula()` | Formulas that spill (return arrays) | `=FILTER(...)`, `=UNIQUE(...)`, `=SORT(...)` |
+| `write_array_formula()` | Legacy CSE arrays (Ctrl+Shift+Enter) | Rarely needed with Excel 365 |
 
-### LAMBDA formulas (reusable functions)
+**Rule of thumb:** If the formula uses `FILTER`, `UNIQUE`, `SORT`, `SORTBY`, `SEQUENCE`, `RANDARRAY`, or similar dynamic array functions, use `write_dynamic_array_formula()`.
 
-| Name | Parameters | Purpose |
-|---|---|---|
-| `PlanRowMask` | `plan_id_col, salary_year_col, enabled_col` | Filter mask for plan_journal rows matching ActivePlanId + SelectedYear + enabled |
-| `TeamYearMask` | `team_col, year_col` | Filter mask for rows matching SelectedTeam + SelectedYear |
-| `CapYearAmount` | `y0, y1, y2, y3, y4, y5` | Select cap_yN value based on SelectedYear |
-| `TaxYearAmount` | `y0, y1, y2, y3, y4, y5` | Select tax_yN value based on SelectedYear |
-| `ApronYearAmount` | `y0, y1, y2, y3, y4, y5` | Select apron_yN value based on SelectedYear |
-| `AmountByMode` | `cap_val, tax_val, apron_val` | Select cap/tax/apron value based on SelectedMode |
-| `YearAmountByMode` | `cap_y0..y5, tax_y0..y5, apron_y0..y5` | Combined year + mode selection |
-| `SalaryBookModeAmount` | `cap_row, tax_row, apron_row` | Select mode-aware amount for SelectedYear from salary_book_warehouse columns (used in ROSTER_GRID dynamic arrays) |
+### Spill range references (`#` operator)
 
-### Usage examples
+Excel uses `F2#` to reference a spill range. XlsxWriter requires `ANCHORARRAY()` instead:
 
-**Instead of:**
-```excel
-=CHOOSE(SelectedYear-MetaBaseYear+1, cap_y0, cap_y1, cap_y2, cap_y3, cap_y4, cap_y5)
+```python
+# Excel UI shows: =COUNTA(F2#)
+# XlsxWriter needs:
+worksheet.write_formula("J2", "=COUNTA(ANCHORARRAY(F2))")
 ```
 
-**Use:**
-```excel
-=CapYearAmount([@cap_y0],[@cap_y1],[@cap_y2],[@cap_y3],[@cap_y4],[@cap_y5])
+### Locale rules (non-negotiable)
+
+Excel stores formulas in US English format regardless of user locale:
+
+```python
+# ✅ CORRECT - English function names, comma separators
+worksheet.write_formula("A1", "=SUM(1, 2, 3)")
+
+# ❌ WRONG - localized function name
+worksheet.write_formula("A1", "=SOMME(1, 2, 3)")
+
+# ❌ WRONG - semicolon separators (European locale)
+worksheet.write_formula("A1", "=SUM(1; 2; 3)")
 ```
 
-**Or with ModeYearIndex directly:**
-```excel
-=CHOOSE(ModeYearIndex, cap_y0, cap_y1, cap_y2, cap_y3, cap_y4, cap_y5)
+### Future functions (`_xlfn.` prefix)
+
+Functions added after Excel 2010 require an `_xlfn.` prefix in the file format. Enable automatic prefixing:
+
+```python
+workbook = xlsxwriter.Workbook("output.xlsx", {"use_future_functions": True})
 ```
 
-**Plan filtering (instead of inline SUMPRODUCT):**
-```excel
-=LET(
-  mask,PlanRowMask(tbl_plan_journal[plan_id],tbl_plan_journal[salary_year],tbl_plan_journal[enabled]),
-  SUM(FILTER(tbl_plan_journal[delta_cap],mask,0))
-)
+With this option, you can write `=XLOOKUP(...)` and XlsxWriter converts it to `=_xlfn._xlws.XLOOKUP(...)`.
+
+### Debugging formula errors
+
+If formulas show `#NAME?` or trigger repair dialogs:
+
+1. Paste the formula into Excel directly to validate syntax
+2. Check function names are English
+3. Check separators are commas (not semicolons)
+4. Check `_xlfn.` / `_xlpm.` prefixes for newer functions
+5. If Excel shows unexpected `@` symbols, you probably need `write_dynamic_array_formula()`
+
+---
+
+## ⚠️ CRITICAL: LET and LAMBDA require `_xlpm.` prefix on variable names
+
+**LET and LAMBDA variable/parameter names must be prefixed with `_xlpm.`**
+
+XlsxWriter generates `_xlfn.LET` / `_xlfn.LAMBDA`, but the variable names also need the `_xlpm.` prefix or Mac Excel will trigger a repair dialog.
+
+### Correct usage
+
+```python
+# ✅ CORRECT - variable names have _xlpm. prefix
+worksheet.write_formula("A1", "=LET(_xlpm.x,B1,_xlpm.y,C1,_xlpm.x+_xlpm.y)")
+
+# ❌ WRONG - will cause repair dialog on Mac Excel
+worksheet.write_formula("A1", "=LET(x,B1,y,C1,x+y)")
 ```
+
+### Pattern for converting existing formulas
+
+| Before | After |
+|--------|-------|
+| `=LET(a,A1,b,B1,a+b)` | `=LET(_xlpm.a,A1,_xlpm.b,B1,_xlpm.a+_xlpm.b)` |
+| `=LET(mask,condition,SUM(FILTER(col,mask)))` | `=LET(_xlpm.mask,condition,SUM(FILTER(col,_xlpm.mask)))` |
+| `=LAMBDA(x,x*2)(5)` | `=LAMBDA(_xlpm.x,_xlpm.x*2)(5)` |
+
+### What works without special handling
+
+These functions work correctly with just `use_future_functions: True`:
+- `FILTER`, `SORT`, `SORTBY`, `UNIQUE`, `TAKE`, `DROP` (use `_xlfn._xlws.` prefix)
+- `XLOOKUP`, `XMATCH` (use `_xlfn._xlws.` prefix)  
+- `CHOOSE`, `IF`, `IFS`, `IFERROR`, `IFNA` (no special prefix needed)
+- `SUMIFS`, `COUNTIFS`, `SUMPRODUCT` (no special prefix needed)
+
+### Conditional formatting limitations
+
+**Avoid table references in conditional formatting formulas.** 
+
+CF formulas like `=SUM(tbl_data[column])>0` cause Excel repair dialogs. Use cell references instead, or reference a helper cell that contains the table calculation.
+
+### See also
+
+For detailed tracking of formula fixes, see `.ralph/EXCEL.md`.
 
 ---
 
@@ -218,12 +271,12 @@ The `TEAM_COCKPIT` sheet includes:
    - Two-way informational readouts
 
 5. **Minimum Contracts** — count + total for min-contract players
-   - Uses Excel 365 dynamic arrays: `LET + FILTER + SUM/ROWS`
+   - Uses Excel 365 dynamic arrays: `FILTER + SUM/ROWS`
    - Count uses `ROWS(FILTER(...))` instead of legacy COUNTIFS
    - Total uses `SUM(FILTER(...))` instead of legacy SUMPRODUCT
 
 6. **Plan Comparison Panel** — shows ComparePlan A/B/C/D deltas:
-   - Uses Excel 365 dynamic arrays: `LET + XLOOKUP + FILTER + SUM/ROWS`
+   - Uses Excel 365 dynamic arrays: `XLOOKUP + FILTER + SUM/ROWS`
    - Resolves plan_name → plan_id via `XLOOKUP` (replaces INDEX/MATCH)
    - Delta uses `SUM(FILTER(...))` instead of legacy SUMPRODUCT
    - Action count uses `ROWS(FILTER(...))` instead of legacy SUMPRODUCT
@@ -233,7 +286,7 @@ The `TEAM_COCKPIT` sheet includes:
    - Positive deltas (cost increase) in red, negative (savings) in green
 
 7. **Quick Drivers Panel** (right side) — top cap hits, dead money, holds
-   - Uses Excel 365 dynamic arrays: `LET + FILTER + SORTBY + TAKE`
+   - Uses Excel 365 dynamic arrays: `FILTER + SORTBY + TAKE`
    - Single spilling formula per column (replaces per-row AGGREGATE/MATCH)
    - Mode-aware sorting (respects SelectedMode: Cap/Tax/Apron)
 
@@ -294,7 +347,7 @@ The `PLAN_JOURNAL` sheet includes:
 2. **Running-State Panel** — positioned to the right of the journal table:
    - **Plan Summary Box**: Active Plan name, Selected Year, Enabled action count
    - **Total Deltas**: Aggregate cap/tax/apron deltas for ActivePlan + SelectedYear
-   - Formulas use `PlanRowMask` + `LET/FILTER/SCAN` (dynamic arrays) to filter by `ActivePlanId + SelectedYear + enabled` (with blank salary_year treated as SelectedYear)
+   - Formulas use `FILTER` (dynamic arrays) to filter by `ActivePlanId + SelectedYear + enabled` (with blank salary_year treated as SelectedYear)
 
 3. **Cumulative Running Totals** — step-by-step running totals aligned with journal rows:
    - Each row shows cumulative Δ Cap, Δ Tax, Δ Apron up to that step

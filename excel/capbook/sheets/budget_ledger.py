@@ -384,7 +384,7 @@ def _write_plan_delta_section(
     # 
     # Pattern for journal entries by action type:
     #   =IFERROR(LET(
-    #     mask, PlanRowMask(plan_id_col, salary_year_col, enabled_col),
+    #     mask, (((plan_id_col=ActivePlanId)+(plan_id_col=""))*((salary_year_col=SelectedYear)+(salary_year_col=""))*(enabled_col="Yes")),
     #     action_mask, (tbl_plan_journal[action_type]="Trade"),
     #     combined, mask * action_mask,
     #     SUM(FILTER(tbl_plan_journal[delta_cap], combined, 0))
@@ -405,13 +405,15 @@ def _write_plan_delta_section(
         """
         return (
             f'=IFERROR(LET('
-            f'mask,PlanRowMask('
-            f'tbl_plan_journal[plan_id],'
-            f'tbl_plan_journal[salary_year],'
-            f'tbl_plan_journal[enabled]),'
-            f'action_mask,(tbl_plan_journal[action_type]="{action_type}"),'
-            f'combined,mask*action_mask,'
-            f'SUM(FILTER(tbl_plan_journal[{delta_col}],combined,0))'
+            f'_xlpm.mask,((('
+            f'tbl_plan_journal[plan_id]=ActivePlanId)+('
+            f'tbl_plan_journal[plan_id]=""))*(('
+            f'tbl_plan_journal[salary_year]=SelectedYear)+('
+            f'tbl_plan_journal[salary_year]=""))*('
+            f'tbl_plan_journal[enabled]="Yes")),'
+            f'_xlpm.action_mask,(tbl_plan_journal[action_type]="{action_type}"),'
+            f'_xlpm.combined,_xlpm.mask*_xlpm.action_mask,'
+            f'SUM(FILTER(tbl_plan_journal[{delta_col}],_xlpm.combined,0))'
             f'),0)'
         )
     
@@ -447,32 +449,38 @@ def _write_plan_delta_section(
     journal_delta_row_end = row - 1  # Last journal data row
     
     # Journal entries subtotal using LET + FILTER + SUM with PlanRowMask
-    # Pattern: =IFERROR(LET(mask, PlanRowMask(...), SUM(FILTER(delta_col, mask, 0))), 0)
+    # Pattern: =IFERROR(LET(mask, (((...)=ActivePlanId)+(...)=""))*((SUM(FILTER(delta_col=SelectedYear)+(SUM(FILTER(delta_col=""))*(mask, 0="Yes")))), 0)
     journal_subtotal_cap_formula = (
         '=IFERROR(LET('
-        'mask,PlanRowMask('
-        'tbl_plan_journal[plan_id],'
-        'tbl_plan_journal[salary_year],'
-        'tbl_plan_journal[enabled]),'
-        'SUM(FILTER(tbl_plan_journal[delta_cap],mask,0))'
+        '_xlpm.mask,((('
+        'tbl_plan_journal[plan_id]=ActivePlanId)+('
+        'tbl_plan_journal[plan_id]=""))*(('
+        'tbl_plan_journal[salary_year]=SelectedYear)+('
+        'tbl_plan_journal[salary_year]=""))*('
+        'tbl_plan_journal[enabled]="Yes")),'
+        'SUM(FILTER(tbl_plan_journal[delta_cap],_xlpm.mask,0))'
         '),0)'
     )
     journal_subtotal_tax_formula = (
         '=IFERROR(LET('
-        'mask,PlanRowMask('
-        'tbl_plan_journal[plan_id],'
-        'tbl_plan_journal[salary_year],'
-        'tbl_plan_journal[enabled]),'
-        'SUM(FILTER(tbl_plan_journal[delta_tax],mask,0))'
+        '_xlpm.mask,((('
+        'tbl_plan_journal[plan_id]=ActivePlanId)+('
+        'tbl_plan_journal[plan_id]=""))*(('
+        'tbl_plan_journal[salary_year]=SelectedYear)+('
+        'tbl_plan_journal[salary_year]=""))*('
+        'tbl_plan_journal[enabled]="Yes")),'
+        'SUM(FILTER(tbl_plan_journal[delta_tax],_xlpm.mask,0))'
         '),0)'
     )
     journal_subtotal_apron_formula = (
         '=IFERROR(LET('
-        'mask,PlanRowMask('
-        'tbl_plan_journal[plan_id],'
-        'tbl_plan_journal[salary_year],'
-        'tbl_plan_journal[enabled]),'
-        'SUM(FILTER(tbl_plan_journal[delta_apron],mask,0))'
+        '_xlpm.mask,((('
+        'tbl_plan_journal[plan_id]=ActivePlanId)+('
+        'tbl_plan_journal[plan_id]=""))*(('
+        'tbl_plan_journal[salary_year]=SelectedYear)+('
+        'tbl_plan_journal[salary_year]=""))*('
+        'tbl_plan_journal[enabled]="Yes")),'
+        'SUM(FILTER(tbl_plan_journal[delta_apron],_xlpm.mask,0))'
         '),0)'
     )
     
@@ -549,12 +557,12 @@ def _write_plan_delta_section(
         """
         return (
             f'=IFERROR(LET('
-            f'mask,'
+            f'_xlpm.mask,'
             f'(tbl_subsystem_outputs[include_in_plan]="Yes")*'
             f'(tbl_subsystem_outputs[plan_id]=ActivePlanId)*'
             f'(tbl_subsystem_outputs[salary_year]=SelectedYear)*'
             f'(tbl_subsystem_outputs[source]="{source_value}"),'
-            f'SUM(FILTER(tbl_subsystem_outputs[{delta_col}],mask,0))'
+            f'SUM(FILTER(tbl_subsystem_outputs[{delta_col}],_xlpm.mask,0))'
             f'),0)'
         )
     
@@ -578,29 +586,29 @@ def _write_plan_delta_section(
     # Sum all included subsystem rows for ActivePlanId + SelectedYear
     subsystem_subtotal_cap_formula = (
         '=IFERROR(LET('
-        'mask,'
+        '_xlpm.mask,'
         '(tbl_subsystem_outputs[include_in_plan]="Yes")*'
         '(tbl_subsystem_outputs[plan_id]=ActivePlanId)*'
         '(tbl_subsystem_outputs[salary_year]=SelectedYear),'
-        'SUM(FILTER(tbl_subsystem_outputs[delta_cap],mask,0))'
+        'SUM(FILTER(tbl_subsystem_outputs[delta_cap],_xlpm.mask,0))'
         '),0)'
     )
     subsystem_subtotal_tax_formula = (
         '=IFERROR(LET('
-        'mask,'
+        '_xlpm.mask,'
         '(tbl_subsystem_outputs[include_in_plan]="Yes")*'
         '(tbl_subsystem_outputs[plan_id]=ActivePlanId)*'
         '(tbl_subsystem_outputs[salary_year]=SelectedYear),'
-        'SUM(FILTER(tbl_subsystem_outputs[delta_tax],mask,0))'
+        'SUM(FILTER(tbl_subsystem_outputs[delta_tax],_xlpm.mask,0))'
         '),0)'
     )
     subsystem_subtotal_apron_formula = (
         '=IFERROR(LET('
-        'mask,'
+        '_xlpm.mask,'
         '(tbl_subsystem_outputs[include_in_plan]="Yes")*'
         '(tbl_subsystem_outputs[plan_id]=ActivePlanId)*'
         '(tbl_subsystem_outputs[salary_year]=SelectedYear),'
-        'SUM(FILTER(tbl_subsystem_outputs[delta_apron],mask,0))'
+        'SUM(FILTER(tbl_subsystem_outputs[delta_apron],_xlpm.mask,0))'
         '),0)'
     )
     

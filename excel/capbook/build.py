@@ -150,7 +150,12 @@ def build_capbook(
 
     # We create the workbook early so we can always emit an artifact.
     # remove_timezone avoids XlsxWriter errors when DB timestamps include tzinfo.
-    workbook = xlsxwriter.Workbook(str(out_path), {"remove_timezone": True})
+    # use_future_functions ensures Excel 365 functions (LET, FILTER, XLOOKUP, etc.)
+    # get proper _xlfn. prefixes in the generated XML.
+    workbook = xlsxwriter.Workbook(str(out_path), {
+        "remove_timezone": True,
+        "use_future_functions": True,
+    })
 
     try:
         formats = create_standard_formats(workbook)

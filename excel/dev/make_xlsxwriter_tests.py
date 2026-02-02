@@ -190,6 +190,29 @@ def test_defined_name_points_to_cell_with_let() -> None:
     wb.close()
 
 
+def test_defined_name_points_to_cell_with_unique() -> None:
+    """Defined name is a plain cell ref; the cell contains UNIQUE().
+
+    This tests the key workaround we want in the real workbook:
+    - Avoid future/dynamic array functions directly in <definedName>
+    - Put them in cells, and point names at those cells.
+    """
+
+    path = _mk("test_defined_name_points_to_cell_with_unique.xlsx")
+    wb = xlsxwriter.Workbook(path, {"use_future_functions": True})
+    ws = wb.add_worksheet("UI")
+
+    ws.write_column("A1", [1, 2, 2, 3, 3, 3])
+    ws.write_dynamic_array_formula("D1", "=UNIQUE(A1:A6)")
+
+    wb.define_name("UCell", "=UI!$D$1")
+
+    # Just reference it; Excel might add @ but it shouldn't corrupt the file.
+    ws.write_formula("F1", "=UCell")
+
+    wb.close()
+
+
 def test_defined_name_plain_sum_with_metadata() -> None:
     """Plain defined name plus a dynamic array formula (forces metadata.xml).
 
@@ -287,6 +310,7 @@ def main() -> None:
     # LET in defined names vs LET in cells
     test_defined_name_let_scalar()
     test_defined_name_points_to_cell_with_let()
+    test_defined_name_points_to_cell_with_unique()
 
     print(f"Wrote tests to: {OUT_DIR}")
 

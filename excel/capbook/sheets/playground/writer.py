@@ -140,7 +140,7 @@ def write_playground_sheet(
     worksheet.write_formula(
         r,
         COL_PCT_Y3,
-        "=XLOOKUP(MetaBaseYear,tbl_system_values[salary_year],tbl_system_values[tax_level_amount])-ScnCapTotalFilled0",
+        "=XLOOKUP(MetaBaseYear,tbl_system_values[salary_year],tbl_system_values[tax_level_amount])-ScnTaxTotal0",
         fmts["kpi_delta_pos"],
     )
 
@@ -178,7 +178,7 @@ def write_playground_sheet(
     #
     #   Row:  off (0..3)
     #   Cols: B=RosterCount, C=CapTotal, D=DeadMoney, E=FillCount,
-    #         F=RookieMin, G=FillAmount, H=CapTotalFilled
+    #         F=RookieMin, G=FillAmount, H=CapTotalFilled, I=TaxTotal
 
     calc_worksheet.write(0, 1, "ScnRosterCount")
     calc_worksheet.write(0, 2, "ScnCapTotal")
@@ -187,6 +187,7 @@ def write_playground_sheet(
     calc_worksheet.write(0, 5, "ScnRookieMin")
     calc_worksheet.write(0, 6, "ScnFillAmount")
     calc_worksheet.write(0, 7, "ScnCapTotalFilled")
+    calc_worksheet.write(0, 8, "ScnTaxTotal")
 
     def _define_calc_name(name: str, row0: int, col0: int, formula: str) -> None:
         # Write the scalar formula into CALC.
@@ -212,11 +213,12 @@ def write_playground_sheet(
         )
         _define_calc_name(f"ScnFillAmount{off}", r0, 6, f"=ScnFillCount{off}*ScnRookieMin{off}")
         _define_calc_name(f"ScnCapTotalFilled{off}", r0, 7, f"=ScnCapTotal{off}+ScnFillAmount{off}")
+        _define_calc_name(f"ScnTaxTotal{off}", r0, 8, formulas.scenario_tax_total(year_expr=year_expr, year_offset=off))
 
     # ---------------------------------------------------------------------
     # Row 3: Roster headers
     # ---------------------------------------------------------------------
-    worksheet.write(ROW_HEADER, COL_RANK, "#", fmts["header"])
+    worksheet.write(ROW_HEADER, COL_RANK, "#", fmts["header_right"])
     worksheet.write(ROW_HEADER, COL_PLAYER, "Player", fmts["header"])
 
     # Year columns (labels like 25-26, 26-27, ... derived from MetaBaseYear)
@@ -227,13 +229,13 @@ def write_playground_sheet(
         )
     )
 
-    worksheet.write_formula(ROW_HEADER, COL_SAL_Y0, year_label(0), fmts["header_right"])
+    worksheet.write_formula(ROW_HEADER, COL_SAL_Y0, year_label(0), fmts["header_center"])
     worksheet.write(ROW_HEADER, COL_PCT_Y0, "%", fmts["header_right"])
-    worksheet.write_formula(ROW_HEADER, COL_SAL_Y1, year_label(1), fmts["header_right"])
+    worksheet.write_formula(ROW_HEADER, COL_SAL_Y1, year_label(1), fmts["header_center"])
     worksheet.write(ROW_HEADER, COL_PCT_Y1, "%", fmts["header_right"])
-    worksheet.write_formula(ROW_HEADER, COL_SAL_Y2, year_label(2), fmts["header_right"])
+    worksheet.write_formula(ROW_HEADER, COL_SAL_Y2, year_label(2), fmts["header_center"])
     worksheet.write(ROW_HEADER, COL_PCT_Y2, "%", fmts["header_right"])
-    worksheet.write_formula(ROW_HEADER, COL_SAL_Y3, year_label(3), fmts["header_right"])
+    worksheet.write_formula(ROW_HEADER, COL_SAL_Y3, year_label(3), fmts["header_center"])
     worksheet.write(ROW_HEADER, COL_PCT_Y3, "%", fmts["header_right"])
 
     worksheet.write(ROW_HEADER, COL_TOTAL, "Total", fmts["header_right"])
@@ -460,13 +462,13 @@ def write_playground_sheet(
     names_anchor = f"{col_letter(COL_PLAYER)}{roster_start + 1}"  # e.g. E4
     names_spill = f"ANCHORARRAY({names_anchor})"
 
-    # Rank (D4 spill)
+    # Rank (D4 spill) - skips traded/waived/stretched players
     worksheet.write_dynamic_array_formula(
         roster_start,
         COL_RANK,
         roster_start,
         COL_RANK,
-        f"=SEQUENCE(ROWS({names_spill}))",
+        formulas.roster_rank_column(names_spill=names_spill),
         fmts["rank"],
     )
 
@@ -557,6 +559,48 @@ def write_playground_sheet(
     )
 
     # -------------------------------------------------------------------------
+    # Two-way salary display: show "Two-Way" (gray pill) instead of "-".
+    #
+    # IMPORTANT: Conditional formatting formulas have quirks (see options block
+    # below). We avoid structured refs and XLOOKUP here.
+    #
+    # DATA_salary_book_yearly columns:
+    #   B=player_name, C=team_code, D=salary_year, H=is_two_way
+    # -------------------------------------------------------------------------
+    data_end = 20000
+    rng_name = f"DATA_salary_book_yearly!$B$2:$B${data_end}"
+    rng_team = f"DATA_salary_book_yearly!$C$2:$C${data_end}"
+    rng_year = f"DATA_salary_book_yearly!$D$2:$D${data_end}"
+    rng_tw = f"DATA_salary_book_yearly!$H$2:$H${data_end}"
+
+    player_ref = f"${col_letter(COL_PLAYER)}{roster_start + 1}"  # e.g. $E4
+
+    for i, off in enumerate(YEAR_OFFSETS):
+        year_expr = f"MetaBaseYear+{off}" if off else "MetaBaseYear"
+        sal_col = [COL_SAL_Y0, COL_SAL_Y1, COL_SAL_Y2, COL_SAL_Y3][i]
+
+        col_range = f"{col_letter(sal_col)}{roster_start + 1}:{col_letter(sal_col)}{roster_end + 1}"
+        sal_cell = f"{col_letter(sal_col)}{roster_start + 1}"  # relative row in CF
+
+        # Only apply when:
+        #  - this salary cell is 0 (so we don't hide real numeric values)
+        #  - the player is marked as two-way for SelectedTeam + year
+        criteria = (
+            f"=AND({sal_cell}=0,"
+            f"SUMPRODUCT(({rng_team}=SelectedTeam)*({rng_name}={player_ref})*({rng_year}={year_expr})*({rng_tw}=TRUE))>0)"
+        )
+
+        worksheet.conditional_format(
+            col_range,
+            {
+                "type": "formula",
+                "criteria": criteria,
+                "format": fmts["two_way_salary"],
+                "stop_if_true": True,
+            },
+        )
+
+    # -------------------------------------------------------------------------
     # Contract option conditional formatting (Team Option / Player Option)
     #
     # Apply per-column since each salary column maps to a specific year.
@@ -631,7 +675,7 @@ def write_playground_sheet(
     worksheet.write(row, COL_PLAYER, "TOTALS (Scenario)", fmts["totals_section"])
     for i, off in enumerate(YEAR_OFFSETS):
         col = [COL_SAL_Y0, COL_SAL_Y1, COL_SAL_Y2, COL_SAL_Y3][i]
-        worksheet.write(row, col, f"Y{off}", fmts["totals_section"])
+        worksheet.write_formula(row, col, year_label(off), fmts["totals_section"])
     row += 1
 
     # Scenario Team Total (cap_total)
@@ -674,14 +718,14 @@ def write_playground_sheet(
         worksheet.conditional_format(cell, {"type": "cell", "criteria": "<", "value": 0, "format": fmts["totals_delta_neg"]})
     row += 1
 
-    # Tax room
+    # Tax room (uses tax_total, not cap_total - excludes cap holds etc.)
     worksheet.write(row, COL_PLAYER, "Tax Room", fmts["totals_label"])
     for i, off in enumerate(YEAR_OFFSETS):
         year_expr = f"MetaBaseYear+{off}" if off else "MetaBaseYear"
         tax_level = f"XLOOKUP({year_expr},tbl_system_values[salary_year],tbl_system_values[tax_level_amount])"
         col = [COL_SAL_Y0, COL_SAL_Y1, COL_SAL_Y2, COL_SAL_Y3][i]
         cell = f"{col_letter(col)}{row + 1}"
-        worksheet.write_formula(row, col, f"={tax_level}-ScnCapTotalFilled{off}", fmts["totals_delta_pos"])
+        worksheet.write_formula(row, col, f"={tax_level}-ScnTaxTotal{off}", fmts["totals_delta_pos"])
         worksheet.conditional_format(cell, {"type": "cell", "criteria": ">=", "value": 0, "format": fmts["totals_delta_pos"]})
         worksheet.conditional_format(cell, {"type": "cell", "criteria": "<", "value": 0, "format": fmts["totals_delta_neg"]})
     row += 2

@@ -85,9 +85,20 @@ def create_playground_formats(workbook, shared: dict[str, Any]) -> dict[str, Any
             "align": "right",
         }
     )
+    fmts["header_center"] = workbook.add_format(
+        {
+            **base_font,
+            "bold": True,
+            "bg_color": "#F3F4F6",
+            "bottom": 1,
+            "bottom_color": "#D1D5DB",
+            "font_size": 10,
+            "align": "center",
+        }
+    )
 
     # Roster data
-    fmts["rank"] = workbook.add_format({**base_font, "font_color": "#9CA3AF", "align": "center"})
+    fmts["rank"] = workbook.add_format({**base_font, "font_color": "#9CA3AF", "align": "right"})
     fmts["player"] = workbook.add_format({**base_font})
 
     # Salary (dense, millions)
@@ -117,12 +128,25 @@ def create_playground_formats(workbook, shared: dict[str, Any]) -> dict[str, Any
     # Player Option (PO) - blue background matching web
     fmts["option_player"] = workbook.add_format({**base_font, "bg_color": "#DBEAFE", "font_color": "#1D4ED8"})
 
+    # Two-way salary display (conditional formatting): show "Two-Way" instead of "-".
+    fmts["two_way_salary"] = workbook.add_format(
+        {
+            **base_font,
+            "font_size": 9,
+            "align": "right",
+            "bg_color": "#E5E7EB",
+            "font_color": "#4B5563",
+            # Force display text regardless of underlying numeric value.
+            "num_format": '"Two-Way";"Two-Way";"Two-Way";"Two-Way"',
+        }
+    )
+
     # Totals section
-    fmts["totals_section"] = workbook.add_format({**base_font, "bold": True, "font_size": 10, "top": 2, "top_color": "#9CA3AF"})
+    fmts["totals_section"] = workbook.add_format({**base_font, "bold": True, "font_size": 10, "align": "center", "top": 2, "top_color": "#9CA3AF"})
     fmts["totals_label"] = workbook.add_format({**base_font, "font_size": 10})
-    fmts["totals_value"] = workbook.add_format({**base_font, "font_size": 10, "align": "right", "num_format": '#,##0,;[Red]-#,##0,;"-"'})
-    fmts["totals_delta_pos"] = workbook.add_format({**base_font, "font_size": 10, "align": "right", "font_color": "#16A34A", "num_format": '+#,##0,;-#,##0,;"-"'})
-    fmts["totals_delta_neg"] = workbook.add_format({**base_font, "font_size": 10, "align": "right", "font_color": "#DC2626", "num_format": '+#,##0,;-#,##0,;"-"'})
+    fmts["totals_value"] = workbook.add_format({**base_font, "font_size": 10, "align": "right", "num_format": '#,##0;[Red]-#,##0;"-"'})
+    fmts["totals_delta_pos"] = workbook.add_format({**base_font, "font_size": 10, "align": "right", "font_color": "#16A34A", "num_format": '+#,##0;-#,##0;"-"'})
+    fmts["totals_delta_neg"] = workbook.add_format({**base_font, "font_size": 10, "align": "right", "font_color": "#DC2626", "num_format": '+#,##0;-#,##0;"-"'})
 
     fmts["trade_label"] = workbook.add_format({**base_font, "font_color": "#6B7280", "font_size": 9})
     fmts["trade_value"] = workbook.add_format({**base_font, "num_format": "#,##0", "font_size": 9})

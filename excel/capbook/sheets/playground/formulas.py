@@ -184,6 +184,46 @@ def scenario_team_total(*, year_expr: str, year_offset: int) -> str:
     )
 
 
+def scenario_tax_total(*, year_expr: str, year_offset: int) -> str:
+    """Scenario tax_total for a year (tax layer).
+
+    Same adjustments as scenario_team_total but using tax_total as base.
+    tax_total excludes cap holds and other items that don't count toward tax.
+    """
+
+    base = _xlookup_team_warehouse("tax_total", year_expr=year_expr)
+
+    # IMPORTANT: sub-formulas must be embedded as expressions (no leading `=`).
+    out_ = _as_expr(sum_names_salary_yearly("TradeOutNames", year_expr=year_expr, team_scoped=True))
+    in_ = _as_expr(
+        sum_names_salary_yearly(
+            "TradeInNames",
+            year_expr=year_expr,
+            team_scoped=False,
+            salary_col="incoming_cap_amount",
+        )
+    )
+
+    # For stretch: remove original salaries (team-scoped) and add stretched per-year amounts.
+    stretch_removed = _as_expr(sum_names_salary_yearly("StretchNames", year_expr=year_expr, team_scoped=True))
+    stretch_dead = _as_expr(stretch_dead_money_yearly(year_expr=year_expr))
+
+    # Sign (base year only)
+    sign = "SUM(SignSalaries)" if year_offset == 0 else "0"
+
+    return (
+        "=LET("  # noqa: ISC003
+        f"_xlpm.base,{base},"
+        f"_xlpm.out,{out_},"
+        f"_xlpm.in,{in_},"
+        f"_xlpm.sign,{sign},"
+        f"_xlpm.stretchRemoved,{stretch_removed},"
+        f"_xlpm.stretchDead,{stretch_dead},"
+        "_xlpm.base-_xlpm.out+_xlpm.in+_xlpm.sign-_xlpm.stretchRemoved+_xlpm.stretchDead"
+        ")"
+    )
+
+
 def scenario_dead_money(*, year_expr: str) -> str:
     """Scenario dead money (cap_term proxy) for a year.
 
@@ -291,5 +331,33 @@ def roster_status_column(*, names_spill: str) -> str:
         "IF(COUNTIF(SignNames,_xlpm.p)>0,\"SIGN\","  # noqa: ISC003
         "IF(COUNTIF(TradeInNames,_xlpm.p)>0,\"IN\",\"\")"  # noqa: ISC003
         ")))))"
+        ")"
+    )
+
+
+def roster_rank_column(*, names_spill: str) -> str:
+    """Roster rank column that matches the roster KPI semantics.
+
+    - Blanks OUT/WAIVED/STRETCH players.
+    - Blanks two-way players (since roster_row_count excludes them).
+    - Numbers remaining players 1..N with no gaps.
+    """
+
+    return (
+        "=LET("  # noqa: ISC003
+        f"_xlpm.names,{names_spill},"
+        "_xlpm.y,MetaBaseYear,"
+        "_xlpm.team,SelectedTeam,"
+        "_xlpm.mask,(tbl_salary_book_yearly[salary_year]=_xlpm.y)*(tbl_salary_book_yearly[team_code]=_xlpm.team),"
+        "_xlpm.namesT,IFERROR(FILTER(tbl_salary_book_yearly[player_name],_xlpm.mask),\"\"),"
+        "_xlpm.twT,IFERROR(FILTER(tbl_salary_book_yearly[is_two_way],_xlpm.mask),FALSE),"
+        "_xlpm.counted,MAP(_xlpm.names,LAMBDA(_xlpm.p,"
+        "LET("
+        "_xlpm.isOut,OR(COUNTIF(TradeOutNames,_xlpm.p)>0,COUNTIF(WaivedNames,_xlpm.p)>0,COUNTIF(StretchNames,_xlpm.p)>0),"
+        "_xlpm.isTwoWay,IFERROR(XLOOKUP(_xlpm.p,_xlpm.namesT,_xlpm.twT,FALSE),FALSE),"
+        "IF(OR(_xlpm.isOut,_xlpm.isTwoWay),0,1)"
+        "))),"
+        "_xlpm.cum,SCAN(0,_xlpm.counted,LAMBDA(_xlpm.acc,_xlpm.v,_xlpm.acc+_xlpm.v)),"
+        "IF(_xlpm.counted=1,_xlpm.cum,\"\")"
         ")"
     )

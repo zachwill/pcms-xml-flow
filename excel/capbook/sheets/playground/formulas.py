@@ -92,10 +92,10 @@ def stretch_dead_money_yearly(*, year_expr: str) -> str:
         "_xlpm.stretchYrs,2*_xlpm.yrsRem+1,"
         "_xlpm.perYr,IF(_xlpm.stretchYrs=0,0,_xlpm.remTot/_xlpm.stretchYrs),"
         "IF(_xlpm.y<_xlpm.base+_xlpm.stretchYrs,_xlpm.perYr,0)"
-        ")"
-        ")))),"
-        "0)"
-        ")"
+        ")"  # close inner LET
+        "))),"  # close LAMBDA, MAP, SUM + comma for IFERROR 2nd arg
+        "0)"  # IFERROR default + close IFERROR
+        ")"  # close outer LET
     )
 
 
@@ -222,12 +222,12 @@ def roster_names_anchor(*, max_rows: int) -> str:
         "_xlpm.ss,IFERROR(XLOOKUP(_xlpm.p,SignNames,SignSalaries,0),0),"
         "_xlpm.db,IFERROR(XLOOKUP(_xlpm.p,_xlpm.namesY,_xlpm.salsY,0),0),"
         "IF(_xlpm.ss>0,_xlpm.ss,_xlpm.db)"
-        ")"
-        "))),"
+        ")"  # close inner LET
+        ")),"  # close LAMBDA, MAP + comma for outer LET's next param
         "TAKE(SORTBY(_xlpm.u,_xlpm.sortSal,-1),"
         f"{max_rows}"
-        ")"
-        ")"
+        ")"  # close TAKE
+        ")"  # close outer LET
     )
 
 

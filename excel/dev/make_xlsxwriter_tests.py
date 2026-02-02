@@ -352,6 +352,70 @@ def test_dynamic_array_plain_range_unique() -> None:
     wb.close()
 
 
+def test_complex_let_filter_map_scalar() -> None:
+    """Complex LET with nested FILTER/UNIQUE/MAP returning a scalar.
+
+    This test case mimics the CALC sheet formulas in capbook.
+    It must be balanced (parens match) to pass Excel validation.
+    """
+
+    path = _mk("test_complex_let_filter_map_scalar.xlsx")
+    wb = xlsxwriter.Workbook(path, {"use_future_functions": True})
+    ws = wb.add_worksheet("UI")
+    data = wb.add_worksheet("DATA")
+    data.hide()
+
+    # Set up a table
+    data.write_row("A1", ["player_name", "team_code", "salary_year", "cap_amount"])
+    data.write_row("A2", ["Player1", "POR", 2025, 10000000])
+    data.write_row("A3", ["Player2", "POR", 2025, 5000000])
+    data.write_row("A4", ["Player3", "LAL", 2025, 8000000])
+    data.add_table("A1:D4", {"name": "tbl_test", "columns": [
+        {"header": "player_name"},
+        {"header": "team_code"},
+        {"header": "salary_year"},
+        {"header": "cap_amount"}
+    ]})
+
+    # Create input ranges
+    ws.write("A1", "Team:")
+    ws.write("B1", "POR")
+    wb.define_name("SelectedTeam", "=UI!$B$1")
+
+    ws.write("A3", "TradeOut:")
+    ws.write("B3", "")
+    ws.write("B4", "")
+    ws.write("B5", "")
+    wb.define_name("TradeOutNames", "=UI!$B$3:$B$5")
+
+    # Complex formula similar to scenario_team_total
+    # Key: parens must be balanced!
+    formula = (
+        "=LET("
+        "_xlpm.team,SelectedTeam,"
+        "_xlpm.y,2025,"
+        "_xlpm.base,SUMIF(tbl_test[team_code],_xlpm.team,tbl_test[cap_amount]),"
+        "_xlpm.out,LET("
+        "_xlpm.has,COUNTA(TradeOutNames)>0,"
+        "_xlpm.n,IF(_xlpm.has,UNIQUE(FILTER(TradeOutNames,TradeOutNames<>\"\")),\"\"),"
+        "_xlpm.names,FILTER(tbl_test[player_name],(tbl_test[salary_year]=_xlpm.y)*(tbl_test[team_code]=_xlpm.team)),"
+        "_xlpm.sals,FILTER(tbl_test[cap_amount],(tbl_test[salary_year]=_xlpm.y)*(tbl_test[team_code]=_xlpm.team)),"
+        "IF(_xlpm.has,SUM(IFERROR(XLOOKUP(_xlpm.n,_xlpm.names,_xlpm.sals,0),0)),0)"
+        "),"  # close inner LET
+        "_xlpm.base-_xlpm.out"
+        ")"  # close outer LET
+    )
+
+    # Verify balanced before writing
+    opens = formula.count("(")
+    closes = formula.count(")")
+    assert opens == closes, f"Unbalanced formula: {opens} open, {closes} close"
+
+    ws.write_formula("D1", formula)
+
+    wb.close()
+
+
 def main() -> None:
     test_data_validation_range()
 
@@ -383,8 +447,13 @@ def main() -> None:
     test_dynamic_array_table_structured_ref_filter()
     test_dynamic_array_plain_range_unique()
 
+    # Complex formula patterns (capbook regression tests)
+    test_complex_let_filter_map_scalar()
+
     print(f"Wrote tests to: {OUT_DIR}")
 
 
 if __name__ == "__main__":
     main()
+
+

@@ -73,11 +73,14 @@ These are **denormalized cache tables** refreshed periodically. Use these for UI
 |--------|------|-------------|
 | `team_code` | text (PK) | Team code |
 | `salary_year` | integer (PK) | Salary year |
-| `cap_total` | bigint | Total cap salary |
+| `cap_total` | bigint | Contract-only cap total (no holds) |
+| `cap_total_hold` | bigint | Snapshot cap total (holds included) |
 | `tax_total` | bigint | Total tax salary |
 | `apron_total` | bigint | Total apron salary |
 | `mts_total` | bigint | Total MTS salary |
-| `cap_rost` / `tax_rost` / `apron_rost` | bigint | Roster subtotals |
+| `cap_rost` | bigint | Contract-only roster cap (salary book) |
+| `cap_rost_hold` | bigint | Snapshot ROST bucket (holds/rights) |
+| `tax_rost` / `apron_rost` | bigint | Roster subtotals (snapshot) |
 | `cap_fa` / `tax_fa` / `apron_fa` | bigint | FA / holds subtotals |
 | `cap_term` / `tax_term` / `apron_term` | bigint | Dead money subtotals |
 | `cap_2way` / `tax_2way` / `apron_2way` | bigint | Two-way subtotals |

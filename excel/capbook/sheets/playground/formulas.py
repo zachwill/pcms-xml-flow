@@ -63,18 +63,23 @@ def sum_names_salary_yearly(
     )
 
 
-def stretch_dead_money_yearly(*, year_expr: str) -> str:
+def stretch_dead_money_yearly(*, year_expr: str, amount_col: str = "cap_amount") -> str:
     """Approximate NBA stretch dead money for StretchNames for a given year.
 
     Simplified modeling:
     - For each stretched player, compute remaining salary total from MetaBaseYear onward
       (team-scoped to SelectedTeam).
-    - Determine years_remaining as the number of future salary years with cap_amount>0.
+    - Determine years_remaining as the number of future salary years with amount_col>0.
     - Stretch years = 2*years_remaining + 1.
     - Dead money per year = remaining_total / stretch_years.
     - If year < MetaBaseYear + stretch_years, apply per-year amount, else 0.
 
     This is intentionally approximate but directionally correct.
+
+    Args:
+        year_expr: Excel expression that evaluates to a salary_year.
+        amount_col: Column in tbl_salary_book_yearly to use as the “salary stream”.
+            Use cap_amount / tax_amount / apron_amount depending on the layer.
     """
 
     # If FILTER has no matches, SUM(MAP(...)) throws; IFERROR guards to 0.
@@ -89,9 +94,9 @@ def stretch_dead_money_yearly(*, year_expr: str) -> str:
         "_xlpm.mask,(tbl_salary_book_yearly[player_name]=_xlpm.p)"
         "*(tbl_salary_book_yearly[team_code]=_xlpm.team)"
         "*(tbl_salary_book_yearly[salary_year]>=_xlpm.base)"
-        "*(tbl_salary_book_yearly[cap_amount]>0),"
+        f"*(tbl_salary_book_yearly[{amount_col}]>0),"
         "_xlpm.yrsRem,IFERROR(ROWS(FILTER(tbl_salary_book_yearly[salary_year],_xlpm.mask)),0),"
-        "_xlpm.remTot,SUM(IFERROR(FILTER(tbl_salary_book_yearly[cap_amount],_xlpm.mask),0)),"
+        f"_xlpm.remTot,SUM(IFERROR(FILTER(tbl_salary_book_yearly[{amount_col}],_xlpm.mask),0)),"
         "_xlpm.stretchYrs,2*_xlpm.yrsRem+1,"
         "_xlpm.perYr,IF(_xlpm.stretchYrs=0,0,_xlpm.remTot/_xlpm.stretchYrs),"
         "IF(_xlpm.y<_xlpm.base+_xlpm.stretchYrs,_xlpm.perYr,0)"
@@ -187,28 +192,99 @@ def scenario_team_total(*, year_expr: str, year_offset: int) -> str:
 def scenario_tax_total(*, year_expr: str, year_offset: int) -> str:
     """Scenario tax_total for a year (tax layer).
 
-    Same adjustments as scenario_team_total but using tax_total as base.
-    tax_total excludes cap holds and other items that don't count toward tax.
+    Same adjustments as scenario_team_total but using tax_total as base and the
+    tax_amount/incoming_tax_amount salary columns.
     """
 
     base = _xlookup_team_warehouse("tax_total", year_expr=year_expr)
 
     # IMPORTANT: sub-formulas must be embedded as expressions (no leading `=`).
-    out_ = _as_expr(sum_names_salary_yearly("TradeOutNames", year_expr=year_expr, team_scoped=True))
+    out_ = _as_expr(
+        sum_names_salary_yearly(
+            "TradeOutNames",
+            year_expr=year_expr,
+            team_scoped=True,
+            salary_col="tax_amount",
+        )
+    )
     in_ = _as_expr(
         sum_names_salary_yearly(
             "TradeInNames",
             year_expr=year_expr,
             team_scoped=False,
-            salary_col="incoming_cap_amount",
+            salary_col="incoming_tax_amount",
         )
     )
 
     # For stretch: remove original salaries (team-scoped) and add stretched per-year amounts.
-    stretch_removed = _as_expr(sum_names_salary_yearly("StretchNames", year_expr=year_expr, team_scoped=True))
-    stretch_dead = _as_expr(stretch_dead_money_yearly(year_expr=year_expr))
+    stretch_removed = _as_expr(
+        sum_names_salary_yearly(
+            "StretchNames",
+            year_expr=year_expr,
+            team_scoped=True,
+            salary_col="tax_amount",
+        )
+    )
+    stretch_dead = _as_expr(stretch_dead_money_yearly(year_expr=year_expr, amount_col="tax_amount"))
 
     # Sign (base year only)
+    sign = "SUM(SignSalaries)" if year_offset == 0 else "0"
+
+    return (
+        "=LET("  # noqa: ISC003
+        f"_xlpm.base,{base},"
+        f"_xlpm.out,{out_},"
+        f"_xlpm.in,{in_},"
+        f"_xlpm.sign,{sign},"
+        f"_xlpm.stretchRemoved,{stretch_removed},"
+        f"_xlpm.stretchDead,{stretch_dead},"
+        "_xlpm.base-_xlpm.out+_xlpm.in+_xlpm.sign-_xlpm.stretchRemoved+_xlpm.stretchDead"
+        ")"
+    )
+
+
+def scenario_apron_total(*, year_expr: str, year_offset: int) -> str:
+    """Scenario apron_total for a year (apron layer).
+
+    Semantics:
+    - Base: tbl_team_salary_warehouse[apron_total]
+    - Trade Out: subtract outgoing_apron_amount (team-scoped)
+    - Trade In: add incoming_apron_amount (NOT team-scoped)
+    - Sign: base year only (treated as counting everywhere)
+    - Waive: v1 semantics (reclassification; net 0)
+    - Stretch: remove original apron_amount stream and add stretched dead money
+      stream computed from apron_amount.
+    """
+
+    base = _xlookup_team_warehouse("apron_total", year_expr=year_expr)
+
+    out_ = _as_expr(
+        sum_names_salary_yearly(
+            "TradeOutNames",
+            year_expr=year_expr,
+            team_scoped=True,
+            salary_col="outgoing_apron_amount",
+        )
+    )
+    in_ = _as_expr(
+        sum_names_salary_yearly(
+            "TradeInNames",
+            year_expr=year_expr,
+            team_scoped=False,
+            salary_col="incoming_apron_amount",
+        )
+    )
+
+    stretch_removed = _as_expr(
+        sum_names_salary_yearly(
+            "StretchNames",
+            year_expr=year_expr,
+            team_scoped=True,
+            salary_col="apron_amount",
+        )
+    )
+    stretch_dead = _as_expr(stretch_dead_money_yearly(year_expr=year_expr, amount_col="apron_amount"))
+
     sign = "SUM(SignSalaries)" if year_offset == 0 else "0"
 
     return (

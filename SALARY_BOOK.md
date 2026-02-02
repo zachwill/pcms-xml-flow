@@ -131,7 +131,7 @@ ORDER BY salary_year;
 
 ### Team-Level: `pcms.team_salary_warehouse`
 
-One row per (team, year). Team totals + cap/tax/apron room.
+One row per (team, year). Team totals + cap/tax/apron room. `cap_total` is contract-only (no holds); `cap_total_hold` preserves the snapshot total with holds.
 
 This table is derived from `pcms.team_budget_snapshots` (the authoritative “what counts” ledger).
 
@@ -146,7 +146,7 @@ WHERE salary_year = 2025
 ORDER BY tax_total DESC;
 ```
 
-Tip: component columns like `cap_rost`, `cap_fa`, `cap_term`, `cap_2way` mirror Sean’s “ROST/FA/TERM/2WAY” breakdown.
+Tip: `cap_rost` is now **contract-only roster salary** (from `salary_book_yearly`). The snapshot “ROST” bucket (holds/rights) is preserved as `cap_rost_hold`. `cap_fa`, `cap_term`, `cap_2way` still mirror the budget-group breakdown.
 
 ### Exceptions: `pcms.exceptions_warehouse`
 

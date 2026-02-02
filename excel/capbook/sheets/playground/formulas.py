@@ -33,13 +33,16 @@ def sum_names_salary_yearly(
     *,
     year_expr: str,
     team_scoped: bool,
+    salary_col: str = "cap_amount",
 ) -> str:
-    """Sum cap_amount for a list of player names in tbl_salary_book_yearly.
+    """Sum a salary column for a list of player names in tbl_salary_book_yearly.
 
     Args:
         names_range: Named range like TradeOutNames
         year_expr: Excel expression that evaluates to a year (e.g. MetaBaseYear+1)
         team_scoped: If true, only match rows where team_code=SelectedTeam
+        salary_col: Column in tbl_salary_book_yearly to sum (e.g. cap_amount,
+            incoming_cap_amount, outgoing_apron_amount).
     """
 
     # Build boolean mask as multiplication (AND).
@@ -54,7 +57,7 @@ def sum_names_salary_yearly(
         f"_xlpm.has,COUNTA({names_range})>0,"
         f"_xlpm.n,IF(_xlpm.has,UNIQUE(FILTER({names_range},{names_range}<>\"\")),\"\"),"
         f"_xlpm.names,FILTER(tbl_salary_book_yearly[player_name],{mask}),"
-        f"_xlpm.sals,FILTER(tbl_salary_book_yearly[cap_amount],{mask}),"
+        f"_xlpm.sals,FILTER(tbl_salary_book_yearly[{salary_col}],{mask}),"
         "IF(_xlpm.has,SUM(IFERROR(XLOOKUP(_xlpm.n,_xlpm.names,_xlpm.sals,0),0)),0)"
         ")"
     )
@@ -152,7 +155,14 @@ def scenario_team_total(*, year_expr: str, year_offset: int) -> str:
 
     # IMPORTANT: sub-formulas must be embedded as expressions (no leading `=`).
     out_ = _as_expr(sum_names_salary_yearly("TradeOutNames", year_expr=year_expr, team_scoped=True))
-    in_ = _as_expr(sum_names_salary_yearly("TradeInNames", year_expr=year_expr, team_scoped=False))
+    in_ = _as_expr(
+        sum_names_salary_yearly(
+            "TradeInNames",
+            year_expr=year_expr,
+            team_scoped=False,
+            salary_col="incoming_cap_amount",
+        )
+    )
 
     # For stretch: remove original salaries (team-scoped) and add stretched per-year amounts.
     stretch_removed = _as_expr(sum_names_salary_yearly("StretchNames", year_expr=year_expr, team_scoped=True))
@@ -217,10 +227,11 @@ def roster_names_anchor(*, max_rows: int) -> str:
         "_xlpm.u,UNIQUE(FILTER(_xlpm.all,_xlpm.all<>\"\")),"
         "_xlpm.namesY,FILTER(tbl_salary_book_yearly[player_name],tbl_salary_book_yearly[salary_year]=_xlpm.y),"
         "_xlpm.salsY,FILTER(tbl_salary_book_yearly[cap_amount],tbl_salary_book_yearly[salary_year]=_xlpm.y),"
+        "_xlpm.salsInY,FILTER(tbl_salary_book_yearly[incoming_cap_amount],tbl_salary_book_yearly[salary_year]=_xlpm.y),"
         "_xlpm.sortSal,MAP(_xlpm.u,LAMBDA(_xlpm.p,"
         "LET("
         "_xlpm.ss,IFERROR(XLOOKUP(_xlpm.p,SignNames,SignSalaries,0),0),"
-        "_xlpm.db,IFERROR(XLOOKUP(_xlpm.p,_xlpm.namesY,_xlpm.salsY,0),0),"
+        "_xlpm.db,IF(COUNTIF(TradeInNames,_xlpm.p)>0,IFERROR(XLOOKUP(_xlpm.p,_xlpm.namesY,_xlpm.salsInY,0),0),IFERROR(XLOOKUP(_xlpm.p,_xlpm.namesY,_xlpm.salsY,0),0)),"
         "IF(_xlpm.ss>0,_xlpm.ss,_xlpm.db)"
         ")"  # close inner LET
         ")),"  # close LAMBDA, MAP + comma for outer LET's next param
@@ -254,9 +265,13 @@ def roster_salary_column(*, names_spill: str, year_expr: str, year_offset: int) 
         f"_xlpm.y,{year_expr},"
         "_xlpm.namesY,FILTER(tbl_salary_book_yearly[player_name],tbl_salary_book_yearly[salary_year]=_xlpm.y),"
         "_xlpm.salsY,FILTER(tbl_salary_book_yearly[cap_amount],tbl_salary_book_yearly[salary_year]=_xlpm.y),"
+        "_xlpm.salsInY,FILTER(tbl_salary_book_yearly[incoming_cap_amount],tbl_salary_book_yearly[salary_year]=_xlpm.y),"
         f"MAP({names_spill},LAMBDA(_xlpm.p,"
         f"{sign_override}"
+        "IF(COUNTIF(TradeInNames,_xlpm.p)>0,"
+        "IFERROR(XLOOKUP(_xlpm.p,_xlpm.namesY,_xlpm.salsInY,0),0),"
         "IFERROR(XLOOKUP(_xlpm.p,_xlpm.namesY,_xlpm.salsY,0),0)"
+        ")"
         f"{sign_close}"
         "))"
         ")"

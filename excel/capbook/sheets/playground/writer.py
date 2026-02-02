@@ -332,40 +332,111 @@ def write_playground_sheet(
     worksheet.write_formula(
         input_row,
         COL_INPUT,
-        formulas.sum_names_salary_yearly("TradeInNames", year_expr="MetaBaseYear", team_scoped=False),
+        formulas.sum_names_salary_yearly(
+            "TradeInNames",
+            year_expr="MetaBaseYear",
+            team_scoped=False,
+            salary_col="incoming_cap_amount",
+        ),
         fmts["trade_value"],
     )
     workbook.define_name("TradeInSalary", f"=PLAYGROUND!$B${input_row + 1}")
     input_row += 1
 
-    worksheet.write(input_row, COL_SECTION_LABEL, "Match:", fmts["trade_label"])
-    # Match % as numeric (not TEXT) so conditional formatting works
-    # Trade rules: incoming salary must be within ~75-125% of outgoing (simplified)
+    # Post-trade apron total for SelectedTeam (baseline - outgoing + incoming)
+    out_apron_expr = formulas._as_expr(
+        formulas.sum_names_salary_yearly(
+            "TradeOutNames",
+            year_expr="MetaBaseYear",
+            team_scoped=True,
+            salary_col="outgoing_apron_amount",
+        )
+    )
+    in_apron_expr = formulas._as_expr(
+        formulas.sum_names_salary_yearly(
+            "TradeInNames",
+            year_expr="MetaBaseYear",
+            team_scoped=False,
+            salary_col="incoming_apron_amount",
+        )
+    )
+
+    worksheet.write(input_row, COL_SECTION_LABEL, "Apron Post:", fmts["trade_label"])
     worksheet.write_formula(
         input_row,
         COL_INPUT,
-        '=IF(TradeOutSalary=0,0,TradeInSalary/TradeOutSalary)',
-        fmts["trade_match"],
+        "=LET("  # noqa: ISC003
+        "_xlpm.base,"
+        "XLOOKUP(SelectedTeam&MetaBaseYear,"
+        "tbl_team_salary_warehouse[team_code]&tbl_team_salary_warehouse[salary_year],"
+        "tbl_team_salary_warehouse[apron_total]),"
+        f"_xlpm.out,{out_apron_expr},"
+        f"_xlpm.in,{in_apron_expr},"
+        "_xlpm.base-_xlpm.out+_xlpm.in"
+        ")",
+        fmts["trade_value"],
     )
-    match_cell = f"B{input_row + 1}"
-    # Valid trade match: 0% (no trade) or between 75% and 125%
-    worksheet.conditional_format(
-        match_cell,
-        {
-            "type": "formula",
-            "criteria": f"=OR({match_cell}=0,AND({match_cell}>=0.75,{match_cell}<=1.25))",
-            "format": fmts["trade_match_valid"],
-        },
+    workbook.define_name("TradePostApronTotal", f"=PLAYGROUND!$B${input_row + 1}")
+    input_row += 1
+
+    # 250K padding is removed if post-trade apron total exceeds the First Apron.
+    worksheet.write(input_row, COL_SECTION_LABEL, "Pad:", fmts["trade_label"])
+    worksheet.write_formula(
+        input_row,
+        COL_INPUT,
+        "=LET("  # noqa: ISC003
+        "_xlpm.first,IFERROR(XLOOKUP(MetaBaseYear,tbl_system_values[salary_year],tbl_system_values[tax_apron_amount]),0),"
+        "IF(_xlpm.first=0,250000,IF(TradePostApronTotal>_xlpm.first,0,250000))"
+        ")",
+        fmts["trade_value"],
     )
-    # Invalid: outside 75-125% range (and not zero)
-    worksheet.conditional_format(
-        match_cell,
-        {
-            "type": "formula",
-            "criteria": f"=AND({match_cell}<>0,OR({match_cell}<0.75,{match_cell}>1.25))",
-            "format": fmts["trade_match_invalid"],
-        },
+    workbook.define_name("TradePadAmount", f"=PLAYGROUND!$B${input_row + 1}")
+    input_row += 1
+
+    # Max incoming (Expanded matching; matches pcms.fn_tpe_trade_math semantics)
+    worksheet.write(input_row, COL_SECTION_LABEL, "Max:", fmts["trade_label"])
+    worksheet.write_formula(
+        input_row,
+        COL_INPUT,
+        "=LET("  # noqa: ISC003
+        "_xlpm.out,TradeOutSalary,"
+        "_xlpm.tpe,IFERROR(XLOOKUP(MetaBaseYear,tbl_system_values[salary_year],tbl_system_values[tpe_dollar_allowance]),0),"
+        "_xlpm.pad,TradePadAmount,"
+        "IF(_xlpm.out=0,0,"
+        "MAX("
+        "MIN(_xlpm.out*2+_xlpm.pad,_xlpm.out+_xlpm.tpe),"
+        "ROUNDUP(_xlpm.out*1.25,0)+_xlpm.pad"
+        ")"
+        ")"
+        ")",
+        fmts["trade_value"],
     )
+    workbook.define_name("TradeMaxIncoming", f"=PLAYGROUND!$B${input_row + 1}")
+    input_row += 1
+
+    worksheet.write(input_row, COL_SECTION_LABEL, "Rem:", fmts["trade_label"])
+    worksheet.write_formula(
+        input_row,
+        COL_INPUT,
+        "=TradeMaxIncoming-TradeInSalary",
+        fmts["trade_value"],
+    )
+    rem_cell = f"B{input_row + 1}"
+    worksheet.conditional_format(rem_cell, {"type": "cell", "criteria": ">=", "value": 0, "format": fmts["trade_delta_pos"]})
+    worksheet.conditional_format(rem_cell, {"type": "cell", "criteria": "<", "value": 0, "format": fmts["trade_delta_neg"]})
+    workbook.define_name("TradeRemaining", f"=PLAYGROUND!$B${input_row + 1}")
+    input_row += 1
+
+    worksheet.write(input_row, COL_SECTION_LABEL, "Legal:", fmts["trade_label"])
+    worksheet.write_formula(
+        input_row,
+        COL_INPUT,
+        "=IF(TradeInSalary=0,\"—\",IF(TradeOutSalary=0,\"FAIL\",IF(TradeInSalary<=TradeMaxIncoming,\"PASS\",\"FAIL\")))",
+        fmts["trade_status"],
+    )
+    status_cell = f"B{input_row + 1}"
+    worksheet.conditional_format(status_cell, {"type": "formula", "criteria": f"={status_cell}=\"PASS\"", "format": fmts["trade_status_valid"]})
+    worksheet.conditional_format(status_cell, {"type": "formula", "criteria": f"={status_cell}=\"FAIL\"", "format": fmts["trade_status_invalid"]})
 
     # ---------------------------------------------------------------------
     # Roster grid (reactive)

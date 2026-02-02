@@ -262,6 +262,11 @@ def extract_salary_book_yearly(
         "tax_amount",
         "apron_amount",
         "is_two_way",
+        # Trade-context amounts (includes trade bonus/kicker where applicable)
+        "incoming_cap_amount",
+        "incoming_tax_amount",
+        "outgoing_apron_amount",
+        "incoming_apron_amount",
     ]
 
     sql = """
@@ -273,7 +278,11 @@ def extract_salary_book_yearly(
             cap_amount,
             tax_amount,
             apron_amount,
-            is_two_way
+            is_two_way,
+            incoming_cap_amount,
+            incoming_tax_amount,
+            outgoing_apron_amount,
+            incoming_apron_amount
         FROM pcms.salary_book_yearly
         WHERE league_lk = %(league)s
           AND salary_year BETWEEN %(base_year)s AND %(base_year)s + 5

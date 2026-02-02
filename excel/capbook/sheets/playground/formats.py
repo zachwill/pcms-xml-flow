@@ -120,10 +120,20 @@ def create_playground_formats(workbook, shared: dict[str, Any]) -> dict[str, Any
 
     fmts["trade_label"] = workbook.add_format({**base_font, "font_color": "#6B7280", "font_size": 9})
     fmts["trade_value"] = workbook.add_format({**base_font, "num_format": "#,##0", "font_size": 9})
+
+    # Trade math helpers
+    fmts["trade_delta_pos"] = workbook.add_format({**base_font, "font_size": 9, "font_color": "#16A34A", "num_format": "#,##0"})
+    fmts["trade_delta_neg"] = workbook.add_format({**base_font, "font_size": 9, "font_color": "#DC2626", "num_format": "#,##0"})
+
+    fmts["trade_status"] = workbook.add_format({**base_font, "font_size": 9, "bold": True, "align": "center"})
+    fmts["trade_status_valid"] = workbook.add_format({**base_font, "font_size": 9, "bold": True, "font_color": "#16A34A", "align": "center"})
+    fmts["trade_status_invalid"] = workbook.add_format({**base_font, "font_size": 9, "bold": True, "font_color": "#DC2626", "align": "center"})
+
+    # Deprecated (kept for now; older builds used a simplistic match %)
     fmts["trade_match"] = workbook.add_format({**base_font, "font_size": 9, "num_format": "0%"})
     fmts["trade_match_valid"] = workbook.add_format({**base_font, "font_size": 9, "font_color": "#16A34A", "num_format": "0%"})
     fmts["trade_match_invalid"] = workbook.add_format({**base_font, "font_size": 9, "font_color": "#DC2626", "num_format": "0%"})
-    
+
     # Base year display (left-aligned to match team input)
     fmts["base_value"] = workbook.add_format({**base_font, "bold": True, "font_size": 14, "align": "left"})
 

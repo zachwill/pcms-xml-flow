@@ -110,17 +110,33 @@ def stretch_dead_money_yearly(*, year_expr: str, amount_col: str = "cap_amount")
 def scenario_roster_count(*, year_expr: str) -> str:
     """Scenario roster count for a year.
 
-    base - trade_out - waive - stretch + trade_in + sign
+    Semantics:
+    - Base count is derived from tbl_salary_book_yearly rows for SelectedTeam + year
+      (excluding two-way, and requiring a non-blank cap_amount so we only count
+      true contract rows).
+    - Adjustments:
+        base - trade_out - waive - stretch + trade_in + sign
+      where sign applies to the base year only.
+
+    Note: We intentionally do NOT use tbl_team_salary_warehouse[roster_row_count]
+    here. That warehouse rollup can include modeling artifacts; this count should
+    match what the roster grid is actually showing for each year.
     """
 
     return (
         "=LET("  # noqa: ISC003
-        f"_xlpm.base,{_xlookup_team_warehouse('roster_row_count', year_expr=year_expr)},"
+        f"_xlpm.y,{year_expr},"
+        "_xlpm.team,SelectedTeam,"
+        "_xlpm.mask,(tbl_salary_book_yearly[team_code]=_xlpm.team)"
+        "*(tbl_salary_book_yearly[salary_year]=_xlpm.y)"
+        "*(tbl_salary_book_yearly[cap_amount]<>\"\")"
+        "*(tbl_salary_book_yearly[is_two_way]<>TRUE),"
+        "_xlpm.base,IFERROR(ROWS(UNIQUE(FILTER(tbl_salary_book_yearly[player_name],_xlpm.mask))),0),"
         f"_xlpm.out,{_count_unique_nonblank('TradeOutNames')},"
         f"_xlpm.waive,{_count_unique_nonblank('WaivedNames')},"
         f"_xlpm.stretch,{_count_unique_nonblank('StretchNames')},"
         f"_xlpm.in,{_count_unique_nonblank('TradeInNames')},"
-        f"_xlpm.sign,{_count_unique_nonblank('SignNames')},"
+        f"_xlpm.sign,IF(_xlpm.y=MetaBaseYear,{_count_unique_nonblank('SignNames')},0),"
         "MAX(0,_xlpm.base-_xlpm.out-_xlpm.waive-_xlpm.stretch+_xlpm.in+_xlpm.sign)"
         ")"
     )

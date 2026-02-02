@@ -206,7 +206,16 @@ def create_playground_formats(workbook, shared: dict[str, Any]) -> dict[str, Any
     fmts["trade_delta_neg"] = workbook.add_format({**base_font, "font_size": 9, "font_color": "#DC2626", "num_format": "#,##0"})
 
     fmts["trade_status"] = workbook.add_format({**base_font, "font_size": 9, "bold": True, "align": "center"})
-    fmts["trade_status_valid"] = workbook.add_format({**base_font, "font_size": 9, "bold": True, "font_color": "#16A34A", "align": "center"})
+    fmts["trade_status_valid"] = workbook.add_format(
+        {
+            **base_font,
+            "font_size": 9,
+            "bold": True,
+            "font_color": "#16A34A",
+            "bg_color": "#DCFCE7",
+            "align": "center",
+        }
+    )
     fmts["trade_status_invalid"] = workbook.add_format({**base_font, "font_size": 9, "bold": True, "font_color": "#DC2626", "align": "center"})
 
     # Deprecated (kept for now; older builds used a simplistic match %)

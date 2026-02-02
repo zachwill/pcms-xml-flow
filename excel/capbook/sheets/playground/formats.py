@@ -111,6 +111,12 @@ def create_playground_formats(workbook, shared: dict[str, Any]) -> dict[str, Any
     fmts["status_waived"] = workbook.add_format({**base_font, "font_color": "#9CA3AF", "font_strikeout": True})
     fmts["status_stretch"] = workbook.add_format({**base_font, "font_color": "#9CA3AF", "font_strikeout": True})
 
+    # Contract option highlights (conditional formatting)
+    # Team Option (TO) - purple background matching web
+    fmts["option_team"] = workbook.add_format({**base_font, "bg_color": "#EDE9FE", "font_color": "#7C3AED"})
+    # Player Option (PO) - blue background matching web
+    fmts["option_player"] = workbook.add_format({**base_font, "bg_color": "#DBEAFE", "font_color": "#1D4ED8"})
+
     # Totals section
     fmts["totals_section"] = workbook.add_format({**base_font, "bold": True, "font_size": 10, "top": 2, "top_color": "#9CA3AF"})
     fmts["totals_label"] = workbook.add_format({**base_font, "font_size": 10})

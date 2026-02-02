@@ -14,6 +14,7 @@ Before writing any formula, verify:
 - [ ] Spill refs use `ANCHORARRAY(F2)` not `F2#`
 - [ ] Complex formulas: closing parens are commented and/or balance is asserted
 - [ ] Defined names with dynamic/future functions use cell indirection
+- [ ] Conditional formatting formulas use INDEX/MATCH (not XLOOKUP) with absolute sheet refs
 
 ---
 
@@ -153,6 +154,37 @@ Functions commonly needing manual prefix (not in xlsxwriter's list):
 - `GREATEST`, `LEAST`
 - `VSTACK`, `HSTACK`, `TOCOL`, `TOROW`, `WRAPCOLS`, `WRAPROWS`
 
+### 3.7 Conditional Formatting Formulas
+
+Conditional formatting formulas have two major gotchas:
+
+1. **`use_future_functions` doesn't apply** - must manually prefix with `_xlfn.`
+2. **Table structured references can cause repair warnings** - even with correct prefixes
+
+**Recommended pattern:** Use INDEX/MATCH with absolute sheet references instead of XLOOKUP with table references.
+
+```python
+# ❌ BAD: XLOOKUP + table refs cause Excel repair warnings
+worksheet.conditional_format("F4:F23", {
+    "type": "formula",
+    "criteria": '=_xlfn.XLOOKUP($E4,tbl_warehouse[name],tbl_warehouse[status])="Active"',
+    "format": fmt
+})
+
+# ✅ GOOD: INDEX/MATCH with absolute sheet references
+worksheet.conditional_format("F4:F23", {
+    "type": "formula",
+    "criteria": '=INDEX(DATA_warehouse!$C:$C,MATCH($E4,DATA_warehouse!$B:$B,0))="Active"',
+    "format": fmt
+})
+```
+
+Key points:
+- Use `$E4` (absolute column, relative row) for the lookup value
+- Reference DATA sheets with absolute column refs: `DATA_sheet!$B:$B`
+- INDEX/MATCH are legacy functions that work reliably in CF formulas
+- Avoid XLOOKUP, FILTER, and other future functions in CF formulas
+
 ---
 
 ## 4. Error Diagnosis
@@ -168,6 +200,7 @@ Functions commonly needing manual prefix (not in xlsxwriter's list):
 | Spill cells unformatted | Anchor format doesn't propagate | Use `set_column(..., format)` |
 | `0` in non-Excel viewers | No recalc capability | Pass `value=` param with precomputed result |
 | Excel warnings on open | Future function in defined name | Use cell indirection pattern |
+| CF removed on open | XLOOKUP/table refs in CF formula | Use INDEX/MATCH with sheet refs (§3.7) |
 
 **Debug command** (inspect stored formula):
 ```bash

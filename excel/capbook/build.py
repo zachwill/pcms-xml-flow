@@ -299,6 +299,7 @@ def build_capbook(
                 formats,
                 team_codes=team_codes,
                 calc_worksheet=ui_worksheets["CALC"],
+                base_year=base_year,
             )
         except Exception as e:
             _mark_failed(build_meta, f"PLAYGROUND writer crashed: {e}\n{traceback.format_exc()}")

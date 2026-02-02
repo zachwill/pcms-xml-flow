@@ -53,6 +53,7 @@ def write_playground_sheet(
     team_codes: list[str],
     *,
     calc_worksheet: Worksheet,
+    base_year: int = 2025,
 ) -> None:
     """Write the PLAYGROUND sheet."""
 
@@ -554,6 +555,70 @@ def write_playground_sheet(
         roster_range,
         {"type": "formula", "criteria": f"=COUNTIF(SignNames,${col_letter(COL_PLAYER)}{roster_start + 1})>0", "format": fmts["status_sign"]},
     )
+
+    # -------------------------------------------------------------------------
+    # Contract option conditional formatting (Team Option / Player Option)
+    #
+    # Apply per-column since each salary column maps to a specific year.
+    # Looks up option status from DATA_salary_book_warehouse.
+    #
+    # NOTE: Skip base year (offset 0) since those options have already been
+    # exercised/decided for the current season.
+    #
+    # IMPORTANT: Conditional formatting formulas have quirks:
+    # - use_future_functions doesn't apply (must manually prefix _xlfn.)
+    # - Table structured references may cause Excel repair warnings
+    #
+    # We use INDEX/MATCH with absolute sheet references to avoid both issues.
+    # The DATA_salary_book_warehouse sheet has:
+    #   - Column B: player_name (col 2)
+    #   - Columns for option_YYYY at ordinal positions 27-32 (AA-AF in Excel)
+    #
+    # Column mapping (0-indexed): option_2025=26 (col AA), option_2026=27 (col AB), etc.
+    # -------------------------------------------------------------------------
+    # Map year offset to option column letter in DATA_salary_book_warehouse
+    # Column A=1 (player_id), B=2 (player_name), ..., AA=27 (option_2025), AB=28 (option_2026), etc.
+    option_col_letters = {
+        0: "AA",  # option_2025
+        1: "AB",  # option_2026
+        2: "AC",  # option_2027
+        3: "AD",  # option_2028
+    }
+
+    for i, off in enumerate(YEAR_OFFSETS):
+        # Skip base year - options already decided for current season
+        if off == 0:
+            continue
+
+        sal_col = [COL_SAL_Y0, COL_SAL_Y1, COL_SAL_Y2, COL_SAL_Y3][i]
+        col_range = f"{col_letter(sal_col)}{roster_start + 1}:{col_letter(sal_col)}{roster_end + 1}"
+        player_ref = f"${col_letter(COL_PLAYER)}{roster_start + 1}"
+        opt_col = option_col_letters[off]
+
+        # Use INDEX/MATCH pattern with absolute references to avoid CF formula issues
+        # MATCH finds the row, INDEX retrieves the option value
+        # Formula: =INDEX(DATA_salary_book_warehouse!$AA:$AA,MATCH($E4,DATA_salary_book_warehouse!$B:$B,0))="TEAM"
+        match_formula = f"MATCH({player_ref},DATA_salary_book_warehouse!$B:$B,0)"
+
+        # Team Option (TO) - purple
+        worksheet.conditional_format(
+            col_range,
+            {
+                "type": "formula",
+                "criteria": f'=INDEX(DATA_salary_book_warehouse!${opt_col}:${opt_col},{match_formula})="TEAM"',
+                "format": fmts["option_team"],
+            },
+        )
+
+        # Player Option (PO) - blue
+        worksheet.conditional_format(
+            col_range,
+            {
+                "type": "formula",
+                "criteria": f'=INDEX(DATA_salary_book_warehouse!${opt_col}:${opt_col},{match_formula})="PLYR"',
+                "format": fmts["option_player"],
+            },
+        )
 
     # ---------------------------------------------------------------------
     # Totals block (scenario-adjusted) below roster

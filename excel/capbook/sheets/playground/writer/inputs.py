@@ -109,6 +109,95 @@ def write_inputs(
 
     input_row += 1
 
+    # ROSTER FILL (pricing assumptions)
+    worksheet.write(input_row, COL_SECTION_LABEL, "FILL", fmts["section"])
+    input_row += 1
+
+    # Mode presets:
+    # - IMMEDIATE: price fills as-of FillEventDate, delay=0, fill-to-12=ROOKIE, fill-to-14=VET
+    # - TRADE (+14): Matrix-style assumption: price fill-to-14 as-of event+14, fill-to-12=VET
+    # - CUSTOM: use the manual overrides in column C
+    worksheet.write(input_row, COL_SECTION_LABEL, "Mode:", fmts["trade_label"])
+    worksheet.write(input_row, COL_INPUT, "IMMEDIATE", fmts["input"])
+    worksheet.data_validation(input_row, COL_INPUT, input_row, COL_INPUT, {"validate": "list", "source": ["IMMEDIATE", "TRADE (+14)", "CUSTOM"]})
+    workbook.define_name("FillMode", f"=PLAYGROUND!$B${input_row + 1}")
+    input_row += 1
+
+    worksheet.write(input_row, COL_SECTION_LABEL, "Custom →", fmts["trade_label"])
+    worksheet.write(input_row, COL_INPUT, "(use col C)", fmts["trade_label"])
+    input_row += 1
+
+    # Fill pricing "event" date (e.g. trade date). We default to MetaAsOfDate.
+    worksheet.write(input_row, COL_SECTION_LABEL, "Event:", fmts["trade_label"])
+    worksheet.write_formula(input_row, COL_INPUT, "=DATEVALUE(MetaAsOfDate)", fmts["input_date"])
+    worksheet.data_validation(
+        input_row,
+        COL_INPUT,
+        input_row,
+        COL_INPUT,
+        {"validate": "date", "criteria": "between", "minimum": "1990-01-01", "maximum": "2100-12-31"},
+    )
+    workbook.define_name("FillEventDate", f"=PLAYGROUND!$B${input_row + 1}")
+    input_row += 1
+
+    # Delay window (0–14) for pricing the fill-to-14 minimums.
+    # If mode is preset, we compute the effective delay; if CUSTOM, read override from col C.
+    worksheet.write(input_row, COL_SECTION_LABEL, "Delay:", fmts["trade_label"])
+    worksheet.write_formula(
+        input_row,
+        COL_INPUT,
+        "=IF(FillMode=\"TRADE (+14)\",14,IF(FillMode=\"IMMEDIATE\",0,IF($C{r}=\"\",0,$C{r})))".format(r=input_row + 1),
+        fmts["input_int"],
+    )
+    worksheet.write_number(input_row, COL_INPUT_SALARY, 0, fmts["input_int"])
+    worksheet.data_validation(
+        input_row,
+        COL_INPUT,
+        input_row,
+        COL_INPUT,
+        {"validate": "integer", "criteria": "between", "minimum": 0, "maximum": 14},
+    )
+    worksheet.data_validation(
+        input_row,
+        COL_INPUT_SALARY,
+        input_row,
+        COL_INPUT_SALARY,
+        {"validate": "integer", "criteria": "between", "minimum": 0, "maximum": 14},
+    )
+    workbook.define_name("FillDelayDays", f"=PLAYGROUND!$B${input_row + 1}")
+    workbook.define_name("FillDelayDaysCustom", f"=PLAYGROUND!$C${input_row + 1}")
+    input_row += 1
+
+    # Fill-to-12 minimum type (rookie vs vet).
+    worksheet.write(input_row, COL_SECTION_LABEL, "To 12:", fmts["trade_label"])
+    worksheet.write_formula(
+        input_row,
+        COL_INPUT,
+        "=IF(FillMode=\"TRADE (+14)\",\"VET\",IF(FillMode=\"IMMEDIATE\",\"ROOKIE\",IF($C{r}=\"\",\"ROOKIE\",$C{r})))".format(r=input_row + 1),
+        fmts["input"],
+    )
+    worksheet.write(input_row, COL_INPUT_SALARY, "ROOKIE", fmts["input"])
+    worksheet.data_validation(input_row, COL_INPUT_SALARY, input_row, COL_INPUT_SALARY, {"validate": "list", "source": ["ROOKIE", "VET"]})
+    workbook.define_name("FillTo12MinType", f"=PLAYGROUND!$B${input_row + 1}")
+    workbook.define_name("FillTo12MinTypeCustom", f"=PLAYGROUND!$C${input_row + 1}")
+    input_row += 1
+
+    # Fill-to-14 minimum type (defaults to VET in all presets; custom override allowed).
+    worksheet.write(input_row, COL_SECTION_LABEL, "To 14:", fmts["trade_label"])
+    worksheet.write_formula(
+        input_row,
+        COL_INPUT,
+        "=IF(FillMode=\"CUSTOM\",IF($C{r}=\"\",\"VET\",$C{r}),\"VET\")".format(r=input_row + 1),
+        fmts["input"],
+    )
+    worksheet.write(input_row, COL_INPUT_SALARY, "VET", fmts["input"])
+    worksheet.data_validation(input_row, COL_INPUT_SALARY, input_row, COL_INPUT_SALARY, {"validate": "list", "source": ["VET", "ROOKIE"]})
+    workbook.define_name("FillTo14MinType", f"=PLAYGROUND!$B${input_row + 1}")
+    workbook.define_name("FillTo14MinTypeCustom", f"=PLAYGROUND!$C${input_row + 1}")
+    input_row += 1
+
+    input_row += 1
+
     # TRADE MATH (base year)
     worksheet.write(input_row, COL_SECTION_LABEL, "TRADE MATH", fmts["section"])
     input_row += 1

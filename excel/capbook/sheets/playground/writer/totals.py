@@ -85,17 +85,17 @@ def write_totals(worksheet: Worksheet, fmts: dict[str, Any]) -> None:
         worksheet.write_formula(row, col, f"=ScnDeadMoney{off}", fmts["totals_value"])
     row += 1
 
-    # Roster fill (Sean convention)
-    worksheet.write(row, COL_PLAYER, "Fill (Rookie to 12)", fmts["totals_label"])
+    # Roster fill (Sean convention, with configurable assumptions via the left rail)
+    worksheet.write(row, COL_PLAYER, "Fill (to 12)", fmts["totals_label"])
     for i, off in enumerate(YEAR_OFFSETS):
         col = [COL_SAL_Y0, COL_SAL_Y1, COL_SAL_Y2, COL_SAL_Y3][i]
-        worksheet.write_formula(row, col, f"=ScnRookieFillAmount{off}", fmts["totals_value"])
+        worksheet.write_formula(row, col, f"=ScnFill12Amount{off}", fmts["totals_value"])
     row += 1
 
-    worksheet.write(row, COL_PLAYER, "Fill (Vet to 14)", fmts["totals_label"])
+    worksheet.write(row, COL_PLAYER, "Fill (to 14)", fmts["totals_label"])
     for i, off in enumerate(YEAR_OFFSETS):
         col = [COL_SAL_Y0, COL_SAL_Y1, COL_SAL_Y2, COL_SAL_Y3][i]
-        worksheet.write_formula(row, col, f"=ScnVetFillAmount{off}", fmts["totals_value"])
+        worksheet.write_formula(row, col, f"=ScnFill14Amount{off}", fmts["totals_value"])
     row += 1
 
     worksheet.write(row, COL_PLAYER, "Fill Total", fmts["totals_label"])

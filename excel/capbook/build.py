@@ -60,7 +60,7 @@ DATA_SHEETS = [
     "DATA_draft_picks_warehouse",
 ]
 
-DATA_CONTRACT_VERSION = "v4-2026-02-01"
+DATA_CONTRACT_VERSION = "v5-2026-02-03"
 
 
 def get_git_sha() -> str:

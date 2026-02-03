@@ -1,4 +1,6 @@
-# Kuzma Buyout Spec
+# Example: Kuzma Buyout
+
+This is a **worked example** (a customized copy of the Buyout Calculator) showing trade kicker + trade-date proration + stretch-style thinking. Canonical waiver/buyout/stretches logic is documented in **[buyout-waiver-math.md](buyout-waiver-math.md)**.
 
 **Source:** `reference/warehouse/kuzma_buyout.json`  
 **Related:** `buyout_calculator.json` (simpler base template)

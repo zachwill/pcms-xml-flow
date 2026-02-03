@@ -70,10 +70,12 @@ def extract_system_values(
         "maximum_salary_35_pct",
         "average_salary_amount",
         "max_trade_cash_amount",
-        # Season calendar
+        # Season calendar (league year + regular season)
         "days_in_season",
         "season_start_at",
         "season_end_at",
+        "playing_start_at",
+        "playing_end_at",
     ]
 
     sql = """
@@ -104,7 +106,9 @@ def extract_system_values(
             -- Season calendar
             days_in_season,
             season_start_at,
-            season_end_at
+            season_end_at,
+            playing_start_at,
+            playing_end_at
         FROM pcms.league_system_values
         WHERE league_lk = %(league)s
           AND salary_year BETWEEN %(base_year)s AND %(base_year)s + 5

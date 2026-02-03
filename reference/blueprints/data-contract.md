@@ -78,6 +78,7 @@ CBA thresholds and constants.
 - `salary_year`
 - `salary_cap_amount`, `tax_level_amount`, `tax_apron_amount`, `tax_apron2_amount`
 - Exception amounts: `non_taxpayer_mid_level_amount`, `taxpayer_mid_level_amount`, etc.
+- Season calendar (proration): `days_in_season`, `playing_start_at`, `playing_end_at` (plus league-year bounds `season_start_at`, `season_end_at`)
 
 ---
 
@@ -124,3 +125,5 @@ If there's a mismatch, `META.validation_status = FAILED` and the delta is record
 - **Renames/removals:** Requires contract update + workbook generator update
 
 Extractors live in `excel/capbook/extract.py`.
+
+**Current contract version:** see `excel/capbook/build.py` (`DATA_CONTRACT_VERSION`).

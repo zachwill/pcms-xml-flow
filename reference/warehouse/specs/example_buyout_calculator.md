@@ -1,4 +1,6 @@
-# Buyout Calculator Spec
+# Example: Buyout Calculator
+
+This is a **template-style scenario worksheet** (an analyst scratchpad). Canonical waiver/buyout/stretches logic is documented in **[buyout-waiver-math.md](buyout-waiver-math.md)**.
 
 **Source:** `reference/warehouse/buyout_calculator.json`  
 **Related:** `kuzma_buyout.json` (extended example with trade kicker + stretch)

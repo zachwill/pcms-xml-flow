@@ -10,58 +10,90 @@ from ..layout import YEAR_OFFSETS, col_letter
 
 
 def write_calc_sheet(workbook: Workbook, calc_worksheet: Worksheet) -> None:
-    """Write the CALC worksheet formulas + defined names."""
+    """Write the CALC worksheet formulas + defined names.
 
-    # Simple grid: each year offset gets its own row; each metric gets its own column.
-    #
-    #   Row:  off (0..3)
-    #   Cols:
-    #     B=RosterCount
-    #     C=CapTotal
-    #     D=TaxTotal
-    #     E=ApronTotal
-    #     F=DeadMoney
-    #     G=RookieFillCount (fill-to-12)
-    #     H=VetFillCount (fill-to-14)
-    #     I=ProrationFactor (base year only)
-    #     J=RookieMin (YOS 0)
-    #     K=VetMin (YOS 2)
-    #     L=RookieFillAmount
-    #     M=VetFillAmount
-    #     N=FillAmount
-    #     O=CapTotalFilled
-    #     P=TaxTotalFilled
-    #     Q=ApronTotalFilled
-    #     R=TaxPayment
+    CALC is a simple scalar grid.
 
-    calc_worksheet.write(0, 1, "ScnRosterCount")
-    calc_worksheet.write(0, 2, "ScnCapTotal")
-    calc_worksheet.write(0, 3, "ScnTaxTotal")
-    calc_worksheet.write(0, 4, "ScnApronTotal")
-    calc_worksheet.write(0, 5, "ScnDeadMoney")
+    Each year offset gets its own row. Each metric gets its own column.
 
-    calc_worksheet.write(0, 6, "ScnRookieFillCount")
-    calc_worksheet.write(0, 7, "ScnVetFillCount")
-    calc_worksheet.write(0, 8, "ScnProrationFactor")
+    Column map (0-indexed):
+      B=RosterCount
+      C=CapTotal
+      D=TaxTotal
+      E=ApronTotal
+      F=DeadMoney
 
-    calc_worksheet.write(0, 9, "ScnRookieMin")
-    calc_worksheet.write(0, 10, "ScnVetMin")
+      G=Fill12Count
+      H=Fill14Count
+      I=Fill12ProrationFactor   (base year only)
+      J=Fill14ProrationFactor   (base year only; can be delayed by FillDelayDays)
 
-    calc_worksheet.write(0, 11, "ScnRookieFillAmount")
-    calc_worksheet.write(0, 12, "ScnVetFillAmount")
-    calc_worksheet.write(0, 13, "ScnFillAmount")
+      K=RookieMin (YOS 0)
+      L=VetMin    (YOS 2)
+      M=Fill12Min (ROOKIE vs VET)
+      N=Fill14Min (default VET)
 
-    calc_worksheet.write(0, 14, "ScnCapTotalFilled")
-    calc_worksheet.write(0, 15, "ScnTaxTotalFilled")
-    calc_worksheet.write(0, 16, "ScnApronTotalFilled")
-    calc_worksheet.write(0, 17, "ScnTaxPayment")
+      O=Fill12Amount
+      P=Fill14Amount
+      Q=FillAmount
+
+      R=CapTotalFilled
+      S=TaxTotalFilled
+      T=ApronTotalFilled
+      U=TaxPayment
+
+    Naming convention: all CALC scalars are surfaced via defined names like:
+      ScnCapTotal0, ScnFill12Amount0, etc.
+    """
+
+    # Header row (for debugging when CALC sheet is inspected)
+    headers = [
+        (1, "ScnRosterCount"),
+        (2, "ScnCapTotal"),
+        (3, "ScnTaxTotal"),
+        (4, "ScnApronTotal"),
+        (5, "ScnDeadMoney"),
+        (6, "ScnFill12Count"),
+        (7, "ScnFill14Count"),
+        (8, "ScnFill12ProrationFactor"),
+        (9, "ScnFill14ProrationFactor"),
+        (10, "ScnRookieMin"),
+        (11, "ScnVetMin"),
+        (12, "ScnFill12Min"),
+        (13, "ScnFill14Min"),
+        (14, "ScnFill12Amount"),
+        (15, "ScnFill14Amount"),
+        (16, "ScnFillAmount"),
+        (17, "ScnCapTotalFilled"),
+        (18, "ScnTaxTotalFilled"),
+        (19, "ScnApronTotalFilled"),
+        (20, "ScnTaxPayment"),
+    ]
+
+    for col0, label in headers:
+        calc_worksheet.write(0, col0, label)
 
     def _define_calc_name(name: str, row0: int, col0: int, formula: str) -> None:
+        """Write formula into CALC and define a stable named range."""
+
         # Write the scalar formula into CALC.
         calc_worksheet.write_formula(row0, col0, formula)
         # Define name as a pure cell reference.
         colA = col_letter(col0)
         workbook.define_name(name, f"=CALC!${colA}${row0 + 1}")
+
+    # Shared proration helper fragments (base-year only)
+    #
+    # Note: MetaAsOfDate is stored as a text ISO date in META, so DATEVALUE() is
+    # required when using it as a date.
+    base_year_end_expr = (
+        "IFERROR("  # noqa: ISC003
+        "XLOOKUP(_xlpm.y,tbl_system_values[salary_year],tbl_system_values[playing_end_at]),"
+        "IFERROR(XLOOKUP(_xlpm.y,tbl_system_values[salary_year],tbl_system_values[season_end_at]),0)"
+        ")"
+    )
+
+    base_year_days_expr = "IFERROR(XLOOKUP(_xlpm.y,tbl_system_values[salary_year],tbl_system_values[days_in_season]),0)"
 
     for off in YEAR_OFFSETS:
         year_expr = f"MetaBaseYear+{off}" if off else "MetaBaseYear"
@@ -74,69 +106,104 @@ def write_calc_sheet(workbook: Workbook, calc_worksheet: Worksheet) -> None:
         _define_calc_name(f"ScnApronTotal{off}", r0, 4, formulas.scenario_apron_total(year_expr=year_expr, year_offset=off))
         _define_calc_name(f"ScnDeadMoney{off}", r0, 5, formulas.scenario_dead_money(year_expr=year_expr))
 
-        # Roster fill semantics:
-        # - fill-to-12 at rookie min (YOS 0)
-        # - fill-to-14 at vet min (YOS 2)
-        _define_calc_name(f"ScnRookieFillCount{off}", r0, 6, f"=MAX(0,12-ScnRosterCount{off})")
-        _define_calc_name(f"ScnVetFillCount{off}", r0, 7, f"=MAX(0,14-ScnRosterCount{off})-ScnRookieFillCount{off}")
+        # Roster fill counts
+        # - Fill12Count: number of missing roster slots to reach 12
+        # - Fill14Count: additional missing slots to reach 14 (12–14 only)
+        _define_calc_name(f"ScnFill12Count{off}", r0, 6, f"=MAX(0,12-ScnRosterCount{off})")
+        _define_calc_name(f"ScnFill14Count{off}", r0, 7, f"=MAX(0,14-ScnRosterCount{off})-ScnFill12Count{off}")
 
-        # Base-year-only fill proration: days_remaining / days_in_season.
+        # Base-year-only fill proration
+        #
+        # Sean parity:
+        # - Fill-to-12 pricing date = FillEventDate (immediate)
+        # - Fill-to-14 pricing date = FillEventDate + FillDelayDays (defaults to 0; Matrix-style is 14)
         if off == 0:
             _define_calc_name(
-                f"ScnProrationFactor{off}",
+                f"ScnFill12ProrationFactor{off}",
                 r0,
                 8,
                 "=LET("  # noqa: ISC003
                 "_xlpm.y,MetaBaseYear,"
-                "_xlpm.asof,DATEVALUE(MetaAsOfDate),"
-                "_xlpm.end,IFERROR(XLOOKUP(_xlpm.y,tbl_system_values[salary_year],tbl_system_values[season_end_at]),0),"
-                "_xlpm.d,IFERROR(XLOOKUP(_xlpm.y,tbl_system_values[salary_year],tbl_system_values[days_in_season]),0),"
-                "_xlpm.rem,MAX(0,MIN(_xlpm.d,INT(_xlpm.end-_xlpm.asof+1))),"
+                "_xlpm.dt,IF(FillEventDate=\"\",DATEVALUE(MetaAsOfDate),FillEventDate),"
+                f"_xlpm.end,{base_year_end_expr},"
+                f"_xlpm.d,{base_year_days_expr},"
+                "_xlpm.rem,MAX(0,MIN(_xlpm.d,INT(_xlpm.end-_xlpm.dt+1))),"
+                "IF(OR(_xlpm.end=0,_xlpm.d=0),1,_xlpm.rem/_xlpm.d)"
+                ")",
+            )
+
+            _define_calc_name(
+                f"ScnFill14ProrationFactor{off}",
+                r0,
+                9,
+                "=LET("  # noqa: ISC003
+                "_xlpm.y,MetaBaseYear,"
+                "_xlpm.baseDt,IF(FillEventDate=\"\",DATEVALUE(MetaAsOfDate),FillEventDate),"
+                "_xlpm.delay,IF(FillDelayDays=\"\",0,FillDelayDays),"
+                "_xlpm.dt,_xlpm.baseDt+_xlpm.delay,"
+                f"_xlpm.end,{base_year_end_expr},"
+                f"_xlpm.d,{base_year_days_expr},"
+                "_xlpm.rem,MAX(0,MIN(_xlpm.d,INT(_xlpm.end-_xlpm.dt+1))),"
                 "IF(OR(_xlpm.end=0,_xlpm.d=0),1,_xlpm.rem/_xlpm.d)"
                 ")",
             )
         else:
-            _define_calc_name(f"ScnProrationFactor{off}", r0, 8, "=1")
+            _define_calc_name(f"ScnFill12ProrationFactor{off}", r0, 8, "=1")
+            _define_calc_name(f"ScnFill14ProrationFactor{off}", r0, 9, "=1")
 
-        # Minimum salaries
+        # Minimum salaries (Year 1 minimums by YOS)
         _define_calc_name(
             f"ScnRookieMin{off}",
             r0,
-            9,
-            f"=XLOOKUP(({year_expr})&0,tbl_minimum_scale[salary_year]&tbl_minimum_scale[years_of_service],tbl_minimum_scale[minimum_salary_amount])",
+            10,
+            f"=IFERROR(XLOOKUP(({year_expr})&0,tbl_minimum_scale[salary_year]&tbl_minimum_scale[years_of_service],tbl_minimum_scale[minimum_salary_amount]),0)",
         )
         _define_calc_name(
             f"ScnVetMin{off}",
             r0,
-            10,
-            f"=XLOOKUP(({year_expr})&2,tbl_minimum_scale[salary_year]&tbl_minimum_scale[years_of_service],tbl_minimum_scale[minimum_salary_amount])",
+            11,
+            f"=IFERROR(XLOOKUP(({year_expr})&2,tbl_minimum_scale[salary_year]&tbl_minimum_scale[years_of_service],tbl_minimum_scale[minimum_salary_amount]),0)",
+        )
+
+        # Fill pricing: allow fill-to-12 basis selection (ROOKIE vs VET). Fill-to-14 defaults to VET.
+        _define_calc_name(
+            f"ScnFill12Min{off}",
+            r0,
+            12,
+            f"=IF(FillTo12MinType=\"VET\",ScnVetMin{off},ScnRookieMin{off})",
+        )
+        _define_calc_name(
+            f"ScnFill14Min{off}",
+            r0,
+            13,
+            f"=IF(FillTo14MinType=\"ROOKIE\",ScnRookieMin{off},ScnVetMin{off})",
         )
 
         # Fill amounts
         _define_calc_name(
-            f"ScnRookieFillAmount{off}",
+            f"ScnFill12Amount{off}",
             r0,
-            11,
-            f"=ScnRookieFillCount{off}*ScnRookieMin{off}*ScnProrationFactor{off}",
+            14,
+            f"=ScnFill12Count{off}*ScnFill12Min{off}*ScnFill12ProrationFactor{off}",
         )
         _define_calc_name(
-            f"ScnVetFillAmount{off}",
+            f"ScnFill14Amount{off}",
             r0,
-            12,
-            f"=ScnVetFillCount{off}*ScnVetMin{off}*ScnProrationFactor{off}",
+            15,
+            f"=ScnFill14Count{off}*ScnFill14Min{off}*ScnFill14ProrationFactor{off}",
         )
-        _define_calc_name(f"ScnFillAmount{off}", r0, 13, f"=ScnRookieFillAmount{off}+ScnVetFillAmount{off}")
+        _define_calc_name(f"ScnFillAmount{off}", r0, 16, f"=ScnFill12Amount{off}+ScnFill14Amount{off}")
 
         # Filled totals (layer-aware)
-        _define_calc_name(f"ScnCapTotalFilled{off}", r0, 14, f"=ScnCapTotal{off}+ScnFillAmount{off}")
-        _define_calc_name(f"ScnTaxTotalFilled{off}", r0, 15, f"=ScnTaxTotal{off}+ScnFillAmount{off}")
-        _define_calc_name(f"ScnApronTotalFilled{off}", r0, 16, f"=ScnApronTotal{off}+ScnFillAmount{off}")
+        _define_calc_name(f"ScnCapTotalFilled{off}", r0, 17, f"=ScnCapTotal{off}+ScnFillAmount{off}")
+        _define_calc_name(f"ScnTaxTotalFilled{off}", r0, 18, f"=ScnTaxTotal{off}+ScnFillAmount{off}")
+        _define_calc_name(f"ScnApronTotalFilled{off}", r0, 19, f"=ScnApronTotal{off}+ScnFillAmount{off}")
 
         # Luxury tax payment (progressive via tbl_tax_rates)
         _define_calc_name(
             f"ScnTaxPayment{off}",
             r0,
-            17,
+            20,
             "=LET("  # noqa: ISC003
             f"_xlpm.y,{year_expr},"
             "_xlpm.taxLvl,IFERROR(XLOOKUP(_xlpm.y,tbl_system_values[salary_year],tbl_system_values[tax_level_amount]),0),"

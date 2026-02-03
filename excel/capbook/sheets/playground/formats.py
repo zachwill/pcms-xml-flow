@@ -231,5 +231,7 @@ def create_playground_formats(workbook, shared: dict[str, Any]) -> dict[str, Any
     # Carry through shared formats we depend on
     fmts["input"] = shared["input"]
     fmts["input_money"] = shared["input_money"]
+    fmts["input_date"] = shared["input_date"]
+    fmts["input_int"] = shared["input_int"]
 
     return fmts

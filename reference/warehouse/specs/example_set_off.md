@@ -1,4 +1,6 @@
-# Set-Off Calculator Spec
+# Example: Set-Off (waiver + stretch)
+
+This is a **worked example** of the CBA set-off rule on a stretched contract. Canonical waiver/buyout/stretches logic is documented in **[buyout-waiver-math.md](buyout-waiver-math.md)**.
 
 **Source:** `reference/warehouse/set-off.json`  
 **Related:** `buyout_calculator.json`, `kuzma_buyout.json` (other waiver/stretch tools)

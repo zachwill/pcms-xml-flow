@@ -1,8 +1,12 @@
 # AGENTS.md — `reference/warehouse/`
 
-**Updated: 2026-01-30**
+**Updated: 2026-02-03**
 
 This folder contains Sean's **current Excel workbook** exported as JSON. These are the newest analyst sheets — use these as the primary **evidence** for *how the workbook currently behaves* (formulas, layouts, dependencies).
+
+**Start here (workbook map):** `reference/warehouse/specs/00-index.md`
+
+**If you want the fastest path to “think like Sean” (tiered reading order):** `reference/warehouse/specs/AGENTS.md`
 
 For design intent / mental models / a proposed from-scratch rebuild, see: `reference/blueprints/README.md`.
 

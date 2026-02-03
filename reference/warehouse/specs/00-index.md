@@ -15,6 +15,8 @@ Sean's workbook is the canonical analyst reference for NBA salary cap modeling. 
 - **Trade tools** - trade machine, exceptions, salary matching logic
 - **Calculators** - extensions, buyouts, rookie scale, projections
 
+Shared formula patterns (roster lists, fill-to-12/14, proration, tax) are documented in: **[patterns.md](patterns.md)**
+
 ---
 
 ## Sheet Inventory
@@ -43,9 +45,9 @@ Sean's workbook is the canonical analyst reference for NBA salary cap modeling. 
 | The Matrix | `the_matrix.json` | Multi-team trade scenario tool | [the_matrix.md](the_matrix.md) |
 | High Low | `high_low.json` | Player salary ranking / band search tool | [high_low.md](high_low.md) |
 | Tax Array | `tax_array.json` | Luxury tax bracket calculations | [tax_array.md](tax_array.md) |
-| Buyout Calculator | `buyout_calculator.json` | Buyout scenario calculator | [buyout_calculator.md](buyout_calculator.md) |
-| Kuzma Buyout | `kuzma_buyout.json` | Specific buyout example | [kuzma_buyout.md](kuzma_buyout.md) |
-| Set-Off | `set-off.json` | Waiver set-off calculations | [set-off.md](set-off.md) |
+| Buyout Calculator | `buyout_calculator.json` | Buyout scenario calculator | [example_buyout_calculator.md](example_buyout_calculator.md) |
+| Kuzma Buyout | `kuzma_buyout.json` | Specific buyout example | [example_kuzma_buyout.md](example_kuzma_buyout.md) |
+| Set-Off | `set-off.json` | Waiver set-off calculations | [example_set_off.md](example_set_off.md) |
 
 ---
 

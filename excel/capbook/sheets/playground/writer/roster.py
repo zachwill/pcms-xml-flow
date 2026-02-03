@@ -81,12 +81,18 @@ def write_roster(worksheet: Worksheet, fmts: dict[str, Any], *, base_year: int) 
         cap_level = f"XLOOKUP({year_expr},tbl_system_values[salary_year],tbl_system_values[salary_cap_amount])"
         sal_anchor = f"{col_letter(sal_col)}{roster_start + 1}"
         sal_arr = f"ANCHORARRAY({sal_anchor})"
+        # % of cap (web parity): for true minimum contracts (min_contract_code=1OR2,
+        # exposed as salary_book_warehouse.is_min_contract), show "MIN" instead of a
+        # numeric percent.
         worksheet.write_dynamic_array_formula(
             roster_start,
             pct_col,
             roster_start,
             pct_col,
-            f"=IFERROR({sal_arr}/{cap_level},0)",
+            # If salary is 0 we treat it as a non-contract display cell ("-")
+            # or a Two-Way display cell (salary column is CF-overridden to "Two-Way").
+            # In both cases, pct-cap should display "-" (not 0.0%).
+            f"=LET(_xlpm.sal,{sal_arr},_xlpm.cap,{cap_level},_xlpm.isMin,IFERROR(XLOOKUP({names_spill},tbl_salary_book_warehouse[player_name],tbl_salary_book_warehouse[is_min_contract],FALSE),FALSE),IF(_xlpm.sal=0,\"-\",IF(_xlpm.isMin,\"MIN\",IFERROR(_xlpm.sal/_xlpm.cap,0))))",
             fmts["pct"],
         )
 

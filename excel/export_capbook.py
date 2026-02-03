@@ -3,14 +3,23 @@
 # requires-python = ">=3.11"
 # dependencies = ["xlsxwriter", "psycopg[binary]"]
 # ///
-"""
-Export the NBA cap workbook to Excel.
+"""Export the NBA cap workbook to Excel.
 
 Generates a self-contained .xlsx workbook from Postgres (pcms.* warehouses).
 
+Defaults are intentionally ergonomic:
+- out:      shared/capbook.xlsx
+- baseYear: 2025
+- asOf:     today
+
 Usage:
-    uv run excel/export_capbook.py --out shared/capbook.xlsx --base-year 2025 --as-of 2026-01-31
+    uv run excel/export_capbook.py
     uv run excel/export_capbook.py --help
+
+Examples:
+    uv run excel/export_capbook.py
+    uv run excel/export_capbook.py --out shared/capbook.xlsx
+    uv run excel/export_capbook.py --base-year 2025 --as-of 2026-01-31
 
 Design reference:
     reference/blueprints/README.md
@@ -18,10 +27,16 @@ Design reference:
     reference/blueprints/data-contract.md
 """
 
+from __future__ import annotations
+
 import argparse
 import sys
 from datetime import date
 from pathlib import Path
+
+
+DEFAULT_OUT = Path("shared/capbook.xlsx")
+DEFAULT_BASE_YEAR = 2025
 
 
 def parse_date(s: str) -> date:
@@ -36,10 +51,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Export NBA cap workbook to Excel.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
+        epilog=f"""
+Defaults:
+    --out      {DEFAULT_OUT}
+    --base-year {DEFAULT_BASE_YEAR}
+    --as-of     today
+
 Examples:
-    uv run excel/export_capbook.py --out shared/capbook.xlsx --base-year 2025 --as-of 2026-01-31
-    uv run excel/export_capbook.py --out shared/capbook.xlsx --base-year 2025 --as-of today
+    uv run excel/export_capbook.py
+    uv run excel/export_capbook.py --out shared/capbook.xlsx
+    uv run excel/export_capbook.py --base-year 2025 --as-of 2026-01-31
 
 Design reference:
     reference/blueprints/excel-cap-book-blueprint.md
@@ -48,20 +69,20 @@ Design reference:
     parser.add_argument(
         "--out",
         type=Path,
-        required=True,
-        help="Output file path (.xlsx)",
+        default=DEFAULT_OUT,
+        help=f"Output file path (.xlsx) (default: {DEFAULT_OUT})",
     )
     parser.add_argument(
         "--base-year",
         type=int,
-        required=True,
-        help="Base salary year (e.g., 2025)",
+        default=DEFAULT_BASE_YEAR,
+        help=f"Base salary year (default: {DEFAULT_BASE_YEAR})",
     )
     parser.add_argument(
         "--as-of",
         type=str,
-        required=True,
-        help="As-of date (YYYY-MM-DD or 'today')",
+        default="today",
+        help="As-of date (YYYY-MM-DD or 'today') (default: today)",
     )
     parser.add_argument(
         "--league",
@@ -77,10 +98,10 @@ Design reference:
     args = parser.parse_args()
 
     # Parse as-of date
-    if args.as_of.lower() == "today":
+    if str(args.as_of).lower() == "today":
         as_of_date = date.today()
     else:
-        as_of_date = parse_date(args.as_of)
+        as_of_date = parse_date(str(args.as_of))
 
     # Ensure output directory exists
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -88,14 +109,13 @@ Design reference:
     # Import build module (after parsing args to avoid import errors on --help)
     from capbook.build import build_capbook
 
-    print(f"Building cap workbook...")
+    print("Building cap workbook...")
     print(f"  Output:    {args.out}")
     print(f"  Base year: {args.base_year}")
     print(f"  As-of:     {as_of_date}")
     print(f"  League:    {args.league}")
     print()
 
-    # Build the workbook
     meta = build_capbook(
         out_path=args.out,
         base_year=args.base_year,
@@ -104,7 +124,6 @@ Design reference:
         skip_assertions=args.skip_assertions,
     )
 
-    # Report results
     print(f"Workbook generated: {args.out}")
     print(f"  Refreshed at: {meta['refreshed_at']}")
     print(f"  Git SHA:      {meta['exporter_git_sha']}")

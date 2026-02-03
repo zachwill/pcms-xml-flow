@@ -91,8 +91,8 @@ def _mark_failed(build_meta: dict[str, Any], message: str) -> None:
 
 def build_capbook(
     out_path: Path,
-    base_year: int,
-    as_of: date,
+    base_year: int = 2025,
+    as_of: date | None = None,
     league: str = "NBA",
     *,
     skip_assertions: bool = False,
@@ -109,6 +109,9 @@ def build_capbook(
     Returns:
         Build metadata dict with validation status
     """
+
+    if as_of is None:
+        as_of = date.today()
 
     build_meta: dict[str, Any] = {
         "refreshed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),

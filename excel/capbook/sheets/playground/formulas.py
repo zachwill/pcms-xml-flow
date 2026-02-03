@@ -175,7 +175,7 @@ def scenario_roster_count(*, year_expr: str) -> str:
     )
 
 
-def _as_expr(formula: str) -> str:
+def as_expr(formula: str) -> str:
     """Convert a standalone formula string into an expression for nesting.
 
     XlsxWriter `define_name()` stores formulas without the leading `=` in the
@@ -208,8 +208,8 @@ def scenario_team_total(*, year_expr: str, year_offset: int) -> str:
     base = _xlookup_team_warehouse("cap_total", year_expr=year_expr)
 
     # IMPORTANT: sub-formulas must be embedded as expressions (no leading `=`).
-    out_ = _as_expr(sum_names_salary_yearly("TradeOutNames", year_expr=year_expr, team_scoped=True))
-    in_ = _as_expr(
+    out_ = as_expr(sum_names_salary_yearly("TradeOutNames", year_expr=year_expr, team_scoped=True))
+    in_ = as_expr(
         sum_names_salary_yearly(
             "TradeInNames",
             year_expr=year_expr,
@@ -219,8 +219,8 @@ def scenario_team_total(*, year_expr: str, year_offset: int) -> str:
     )
 
     # For stretch: remove original salaries (team-scoped) and add stretched per-year amounts.
-    stretch_removed = _as_expr(sum_names_salary_yearly("StretchNames", year_expr=year_expr, team_scoped=True))
-    stretch_dead = _as_expr(stretch_dead_money_yearly(year_expr=year_expr))
+    stretch_removed = as_expr(sum_names_salary_yearly("StretchNames", year_expr=year_expr, team_scoped=True))
+    stretch_dead = as_expr(stretch_dead_money_yearly(year_expr=year_expr))
 
     # Sign (base year only)
     sign = "SUM(SignSalaries)" if year_offset == 0 else "0"
@@ -248,7 +248,7 @@ def scenario_tax_total(*, year_expr: str, year_offset: int) -> str:
     base = _xlookup_team_warehouse("tax_total", year_expr=year_expr)
 
     # IMPORTANT: sub-formulas must be embedded as expressions (no leading `=`).
-    out_ = _as_expr(
+    out_ = as_expr(
         sum_names_salary_yearly(
             "TradeOutNames",
             year_expr=year_expr,
@@ -256,7 +256,7 @@ def scenario_tax_total(*, year_expr: str, year_offset: int) -> str:
             salary_col="tax_amount",
         )
     )
-    in_ = _as_expr(
+    in_ = as_expr(
         sum_names_salary_yearly(
             "TradeInNames",
             year_expr=year_expr,
@@ -266,7 +266,7 @@ def scenario_tax_total(*, year_expr: str, year_offset: int) -> str:
     )
 
     # For stretch: remove original salaries (team-scoped) and add stretched per-year amounts.
-    stretch_removed = _as_expr(
+    stretch_removed = as_expr(
         sum_names_salary_yearly(
             "StretchNames",
             year_expr=year_expr,
@@ -274,7 +274,7 @@ def scenario_tax_total(*, year_expr: str, year_offset: int) -> str:
             salary_col="tax_amount",
         )
     )
-    stretch_dead = _as_expr(stretch_dead_money_yearly(year_expr=year_expr, amount_col="tax_amount"))
+    stretch_dead = as_expr(stretch_dead_money_yearly(year_expr=year_expr, amount_col="tax_amount"))
 
     # Sign (base year only)
     sign = "SUM(SignSalaries)" if year_offset == 0 else "0"
@@ -307,7 +307,7 @@ def scenario_apron_total(*, year_expr: str, year_offset: int) -> str:
 
     base = _xlookup_team_warehouse("apron_total", year_expr=year_expr)
 
-    out_ = _as_expr(
+    out_ = as_expr(
         sum_names_salary_yearly(
             "TradeOutNames",
             year_expr=year_expr,
@@ -315,7 +315,7 @@ def scenario_apron_total(*, year_expr: str, year_offset: int) -> str:
             salary_col="outgoing_apron_amount",
         )
     )
-    in_ = _as_expr(
+    in_ = as_expr(
         sum_names_salary_yearly(
             "TradeInNames",
             year_expr=year_expr,
@@ -324,7 +324,7 @@ def scenario_apron_total(*, year_expr: str, year_offset: int) -> str:
         )
     )
 
-    stretch_removed = _as_expr(
+    stretch_removed = as_expr(
         sum_names_salary_yearly(
             "StretchNames",
             year_expr=year_expr,
@@ -332,7 +332,7 @@ def scenario_apron_total(*, year_expr: str, year_offset: int) -> str:
             salary_col="apron_amount",
         )
     )
-    stretch_dead = _as_expr(stretch_dead_money_yearly(year_expr=year_expr, amount_col="apron_amount"))
+    stretch_dead = as_expr(stretch_dead_money_yearly(year_expr=year_expr, amount_col="apron_amount"))
 
     sign = "SUM(SignSalaries)" if year_offset == 0 else "0"
 
@@ -359,8 +359,8 @@ def scenario_dead_money(*, year_expr: str) -> str:
 
     base_term = _xlookup_team_warehouse("cap_term", year_expr=year_expr)
 
-    waived = _as_expr(sum_names_salary_yearly("WaivedNames", year_expr=year_expr, team_scoped=True))
-    stretched = _as_expr(stretch_dead_money_yearly(year_expr=year_expr))
+    waived = as_expr(sum_names_salary_yearly("WaivedNames", year_expr=year_expr, team_scoped=True))
+    stretched = as_expr(stretch_dead_money_yearly(year_expr=year_expr))
 
     return (
         "=LET("  # noqa: ISC003

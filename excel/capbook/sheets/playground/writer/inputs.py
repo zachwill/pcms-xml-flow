@@ -129,7 +129,7 @@ def write_inputs(workbook: Workbook, worksheet: Worksheet, fmts: dict[str, Any])
     input_row += 1
 
     # Post-trade apron total for SelectedTeam (baseline - outgoing + incoming)
-    out_apron_expr = formulas._as_expr(
+    out_apron_expr = formulas.as_expr(
         formulas.sum_names_salary_yearly(
             "TradeOutNames",
             year_expr="MetaBaseYear",
@@ -137,7 +137,7 @@ def write_inputs(workbook: Workbook, worksheet: Worksheet, fmts: dict[str, Any])
             salary_col="outgoing_apron_amount",
         )
     )
-    in_apron_expr = formulas._as_expr(
+    in_apron_expr = formulas.as_expr(
         formulas.sum_names_salary_yearly(
             "TradeInNames",
             year_expr="MetaBaseYear",

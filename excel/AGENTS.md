@@ -19,7 +19,7 @@ excel/
     └── sheets/
         ├── meta.py              # META sheet (base year, as-of date)
         └── playground/
-            ├── writer.py        # Main sheet writer
+            ├── writer/          # PLAYGROUND writer package (setup/calc/inputs/roster/totals)
             ├── formulas.py      # Formula builders (LET/LAMBDA/etc)
             ├── formats.py       # Cell formats
             └── layout.py        # Grid constants (rows, columns)
@@ -30,14 +30,17 @@ excel/
 ## CLI
 
 ```bash
-# Build workbook
-uv run excel/export_capbook.py \
-  --out shared/capbook.xlsx \
-  --base-year 2025 \
-  --as-of today
+# Build workbook (defaults: out=shared/capbook.xlsx, base-year=2025, as-of=today)
+uv run excel/export_capbook.py
+
+# Override output
+uv run excel/export_capbook.py --out shared/capbook.xlsx
+
+# Override snapshot parameters
+uv run excel/export_capbook.py --base-year 2025 --as-of 2026-02-01
 
 # Skip SQL assertions (faster iteration)
-uv run excel/export_capbook.py --out shared/capbook.xlsx --skip-assertions
+uv run excel/export_capbook.py --skip-assertions
 ```
 
 Requires `POSTGRES_URL` environment variable.

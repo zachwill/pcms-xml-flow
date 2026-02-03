@@ -309,6 +309,7 @@ def build_capbook(
                 team_codes=team_codes,
                 calc_worksheet=ui_worksheets["CALC"],
                 base_year=base_year,
+                as_of=as_of,
                 salary_book_yearly_nrows=salary_book_yearly_nrows,
                 salary_book_warehouse_nrows=salary_book_warehouse_nrows,
             )

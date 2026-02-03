@@ -199,6 +199,9 @@ def create_playground_formats(workbook, shared: dict[str, Any]) -> dict[str, Any
     fmts["totals_delta_neg"] = workbook.add_format({**base_font, "font_size": 10, "align": "right", "font_color": "#DC2626", "num_format": '+#,##0;-#,##0;"-"'})
 
     fmts["trade_label"] = workbook.add_format({**base_font, "font_color": "#6B7280", "font_size": 9})
+    fmts["trade_header"] = workbook.add_format({**base_font, "font_color": "#6B7280", "font_size": 9, "bold": True})
+    fmts["trade_text"] = workbook.add_format({**base_font, "font_size": 9})
+    fmts["trade_date"] = workbook.add_format({**base_font, "font_size": 9, "align": "right", "num_format": "yyyy-mm-dd"})
     fmts["trade_value"] = workbook.add_format({**base_font, "num_format": "#,##0", "font_size": 9})
 
     # Trade math helpers
@@ -233,5 +236,11 @@ def create_playground_formats(workbook, shared: dict[str, Any]) -> dict[str, Any
     fmts["input_money"] = shared["input_money"]
     fmts["input_date"] = shared["input_date"]
     fmts["input_int"] = shared["input_int"]
+
+    # FILL section wants consistent *right* alignment so dropdown text lines up with dates.
+    # (We avoid changing shared input formats globally since other blocks prefer left alignment.)
+    fmts["input_right"] = workbook.add_format({**base_font, "bg_color": "#FFFDE7", "locked": False, "align": "right"})
+    fmts["input_int_right"] = workbook.add_format({**base_font, "bg_color": "#FFFDE7", "locked": False, "align": "right", "num_format": "0"})
+    fmts["input_date_right"] = workbook.add_format({**base_font, "bg_color": "#FFFDE7", "locked": False, "align": "right", "num_format": "yyyy-mm-dd"})
 
     return fmts

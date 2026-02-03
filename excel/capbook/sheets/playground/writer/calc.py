@@ -139,7 +139,8 @@ def write_calc_sheet(workbook: Workbook, calc_worksheet: Worksheet) -> None:
                 "=LET("  # noqa: ISC003
                 "_xlpm.y,MetaBaseYear,"
                 "_xlpm.baseDt,IF(FillEventDate=\"\",DATEVALUE(MetaAsOfDate),FillEventDate),"
-                "_xlpm.delay,IF(FillDelayDays=\"\",0,FillDelayDays),"
+                "_xlpm.delayLbl,FillDelayDays,"
+                "_xlpm.delay,IF(ISNUMBER(_xlpm.delayLbl),_xlpm.delayLbl,IF(_xlpm.delayLbl=\"Immediate\",0,IFERROR(VALUE(LEFT(_xlpm.delayLbl,FIND(\" \",_xlpm.delayLbl&\" \")-1)),0))),"
                 "_xlpm.dt,_xlpm.baseDt+_xlpm.delay,"
                 f"_xlpm.end,{base_year_end_expr},"
                 f"_xlpm.d,{base_year_days_expr},"

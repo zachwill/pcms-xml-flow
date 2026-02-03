@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from xlsxwriter.workbook import Workbook
@@ -25,6 +26,7 @@ def write_playground_sheet(
     *,
     calc_worksheet: Worksheet,
     base_year: int = 2025,
+    as_of: "date | None" = None,
     salary_book_yearly_nrows: int = 20000,
     salary_book_warehouse_nrows: int = 5000,
 ) -> None:
@@ -34,7 +36,14 @@ def write_playground_sheet(
 
     write_setup(workbook, worksheet, fmts, team_codes)
     write_calc_sheet(workbook, calc_worksheet)
-    write_inputs(workbook, worksheet, fmts, salary_book_yearly_nrows=salary_book_yearly_nrows)
+    write_inputs(
+        workbook,
+        worksheet,
+        fmts,
+        salary_book_yearly_nrows=salary_book_yearly_nrows,
+        salary_book_warehouse_nrows=salary_book_warehouse_nrows,
+        as_of=as_of,
+    )
     write_roster(
         worksheet,
         fmts,

@@ -13,12 +13,16 @@ from ..layout import (
     COL_PCT_Y1,
     COL_PCT_Y2,
     COL_PCT_Y3,
+    COL_PCT_Y4,
+    COL_PCT_Y5,
     COL_PLAYER,
     COL_RANK,
     COL_SAL_Y0,
     COL_SAL_Y1,
     COL_SAL_Y2,
     COL_SAL_Y3,
+    COL_SAL_Y4,
+    COL_SAL_Y5,
     COL_STATUS,
     COL_TOTAL,
     ROSTER_RESERVED,
@@ -43,6 +47,9 @@ def write_roster(
     # ---------------------------------------------------------------------
     roster_start = ROW_BODY_START
     roster_end = roster_start + ROSTER_RESERVED - 1
+
+    salary_cols = [COL_SAL_Y0, COL_SAL_Y1, COL_SAL_Y2, COL_SAL_Y3, COL_SAL_Y4, COL_SAL_Y5]
+    pct_cols = [COL_PCT_Y0, COL_PCT_Y1, COL_PCT_Y2, COL_PCT_Y3, COL_PCT_Y4, COL_PCT_Y5]
 
     # Names anchor (E4#)
     worksheet.write_dynamic_array_formula(
@@ -69,12 +76,12 @@ def write_roster(
         fmts["rank"],
     )
 
-    # Salaries Y0..Y3 and % columns
+    # Salaries Y0..Y5 and % columns
     for i, off in enumerate(YEAR_OFFSETS):
         year_expr = f"MetaBaseYear+{off}" if off else "MetaBaseYear"
 
-        sal_col = [COL_SAL_Y0, COL_SAL_Y1, COL_SAL_Y2, COL_SAL_Y3][i]
-        pct_col = [COL_PCT_Y0, COL_PCT_Y1, COL_PCT_Y2, COL_PCT_Y3][i]
+        sal_col = salary_cols[i]
+        pct_col = pct_cols[i]
 
         worksheet.write_dynamic_array_formula(
             roster_start,
@@ -104,11 +111,9 @@ def write_roster(
         )
 
     # Total contract value (warehouse), fallback to visible years when missing.
-    y0 = f"ANCHORARRAY({col_letter(COL_SAL_Y0)}{roster_start + 1})"
-    y1 = f"ANCHORARRAY({col_letter(COL_SAL_Y1)}{roster_start + 1})"
-    y2 = f"ANCHORARRAY({col_letter(COL_SAL_Y2)}{roster_start + 1})"
-    y3 = f"ANCHORARRAY({col_letter(COL_SAL_Y3)}{roster_start + 1})"
-    total_visible = f"IFERROR({y0}+{y1}+{y2}+{y3},0)"
+    total_visible_parts = [f"ANCHORARRAY({col_letter(c)}{roster_start + 1})" for c in salary_cols]
+    total_visible = "IFERROR(" + "+".join(total_visible_parts) + ",0)"
+
     worksheet.write_dynamic_array_formula(
         roster_start,
         COL_TOTAL,
@@ -229,11 +234,9 @@ def write_roster(
 
     trade_in_flag = f"COUNTIF(TradeInNames,{player_ref})>0"
 
-    # NOTE: player_ref is defined above (used for both restriction + two-way logic)
-
     for i, off in enumerate(YEAR_OFFSETS):
         year_expr = f"MetaBaseYear+{off}" if off else "MetaBaseYear"
-        sal_col = [COL_SAL_Y0, COL_SAL_Y1, COL_SAL_Y2, COL_SAL_Y3][i]
+        sal_col = salary_cols[i]
 
         col_range = f"{col_letter(sal_col)}{roster_start + 1}:{col_letter(sal_col)}{roster_end + 1}"
         sal_cell = f"{col_letter(sal_col)}{roster_start + 1}"  # relative row in CF
@@ -245,9 +248,7 @@ def write_roster(
         tw_cond_team = (
             f"SUMPRODUCT(({rng_team}=SelectedTeam)*({rng_name}={player_ref})*({rng_year}={year_expr})*({rng_tw}=TRUE)*({rng_cap}<>\"\"))>0"
         )
-        tw_cond_any = (
-            f"SUMPRODUCT(({rng_name}={player_ref})*({rng_year}={year_expr})*({rng_tw}=TRUE)*({rng_cap}<>\"\"))>0"
-        )
+        tw_cond_any = f"SUMPRODUCT(({rng_name}={player_ref})*({rng_year}={year_expr})*({rng_tw}=TRUE)*({rng_cap}<>\"\"))>0"
 
         # Two-Way contracts can be trade restricted / consent-required in the current season.
         # In web/ we render the Two-Way badge red in that case; replicate here by using a
@@ -321,7 +322,7 @@ def write_roster(
         year_num = base_year + off
         year_expr = f"MetaBaseYear+{off}" if off else "MetaBaseYear"
 
-        sal_col = [COL_SAL_Y0, COL_SAL_Y1, COL_SAL_Y2, COL_SAL_Y3][i]
+        sal_col = salary_cols[i]
         col_range = f"{col_letter(sal_col)}{roster_start + 1}:{col_letter(sal_col)}{roster_end + 1}"
 
         # Only color true contract years (avoid tinting trailing '-' years).
@@ -331,8 +332,8 @@ def write_roster(
         # Option value from DATA_salary_book_warehouse (schema evolves; lookup by header name).
         opt_expr = f'INDEX({sbw_data},0,MATCH("option_{year_num}",{sbw_hdr},0))'
 
-        has_team_option = f'SUMPRODUCT(({sbw_name}={player_ref})*({opt_expr}="TEAM"))>0'
-        has_player_option = f'SUMPRODUCT(({sbw_name}={player_ref})*({opt_expr}="PLYR"))>0'
+        has_team_option = f'SUMPRODUCT(({sbw_name}={player_ref})*({opt_expr}=\"TEAM\"))>0'
+        has_player_option = f'SUMPRODUCT(({sbw_name}={player_ref})*({opt_expr}=\"PLYR\"))>0'
 
         # Team Option (TO) - purple
         worksheet.conditional_format(
@@ -366,7 +367,7 @@ def write_roster(
     # -------------------------------------------------------------------------
     for i, off in enumerate(YEAR_OFFSETS):
         year_expr = f"MetaBaseYear+{off}" if off else "MetaBaseYear"
-        sal_col = [COL_SAL_Y0, COL_SAL_Y1, COL_SAL_Y2, COL_SAL_Y3][i]
+        sal_col = salary_cols[i]
         col_range = f"{col_letter(sal_col)}{roster_start + 1}:{col_letter(sal_col)}{roster_end + 1}"
 
         has_contract = f"SUMPRODUCT(({rng_name}={player_ref})*({rng_year}={year_expr})*({rng_cap}<>\"\"))>0"
@@ -388,7 +389,7 @@ def write_roster(
     # -------------------------------------------------------------------------
     for i, off in enumerate(YEAR_OFFSETS):
         year_expr = f"MetaBaseYear+{off}" if off else "MetaBaseYear"
-        sal_col = [COL_SAL_Y0, COL_SAL_Y1, COL_SAL_Y2, COL_SAL_Y3][i]
+        sal_col = salary_cols[i]
         col_range = f"{col_letter(sal_col)}{roster_start + 1}:{col_letter(sal_col)}{roster_end + 1}"
 
         has_contract = f"SUMPRODUCT(({rng_name}={player_ref})*({rng_year}={year_expr})*({rng_cap}<>\"\"))>0"

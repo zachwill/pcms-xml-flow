@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date, datetime
 from typing import Any
 
 from xlsxwriter.workbook import Workbook
@@ -27,6 +28,8 @@ def write_inputs(
     fmts: dict[str, Any],
     *,
     salary_book_yearly_nrows: int,
+    salary_book_warehouse_nrows: int,
+    as_of: "date | None" = None,
 ) -> None:
     """Write the scenario input rail and trade math helpers."""
 
@@ -37,13 +40,15 @@ def write_inputs(
 
     # Player list for data validation dropdowns.
     #
-    # Use the *actual* extracted table size instead of hard-coded headroom.
-    # Large fixed ranges slow down recalculation and conditional formatting.
-    yearly_rows = max(int(salary_book_yearly_nrows), 1)
-    player_list_end = yearly_rows + 1  # header is row 1; data starts at row 2
-    player_list_source = f"=DATA_salary_book_yearly!$B$2:$B${player_list_end}"
+    # Important UX: use the wide warehouse (1 row per player) so the dropdown is
+    # not polluted by duplicate names across years.
+    sbw_rows = max(int(salary_book_warehouse_nrows), 1)
+    sbw_end = sbw_rows + 1  # header is row 1; data starts at row 2
+    player_list_source = f"=DATA_salary_book_warehouse!$B$2:$B${sbw_end}"
 
+    # ---------------------------------------------------------------------
     # TRADE OUT
+    # ---------------------------------------------------------------------
     worksheet.write(input_row, COL_SECTION_LABEL, "TRADE OUT", fmts["section"])
     input_row += 1
     trade_out_start = input_row
@@ -56,7 +61,9 @@ def write_inputs(
 
     input_row += 1
 
+    # ---------------------------------------------------------------------
     # TRADE IN
+    # ---------------------------------------------------------------------
     worksheet.write(input_row, COL_SECTION_LABEL, "TRADE IN", fmts["section"])
     input_row += 1
     trade_in_start = input_row
@@ -69,7 +76,9 @@ def write_inputs(
 
     input_row += 1
 
+    # ---------------------------------------------------------------------
     # WAIVE
+    # ---------------------------------------------------------------------
     worksheet.write(input_row, COL_SECTION_LABEL, "WAIVE", fmts["section"])
     input_row += 1
     waive_start = input_row
@@ -82,7 +91,9 @@ def write_inputs(
 
     input_row += 1
 
+    # ---------------------------------------------------------------------
     # STRETCH
+    # ---------------------------------------------------------------------
     worksheet.write(input_row, COL_SECTION_LABEL, "STRETCH", fmts["section"])
     input_row += 1
     stretch_start = input_row
@@ -95,7 +106,9 @@ def write_inputs(
 
     input_row += 1
 
+    # ---------------------------------------------------------------------
     # SIGN (v1: base-year only)
+    # ---------------------------------------------------------------------
     worksheet.write(input_row, COL_SECTION_LABEL, "SIGN", fmts["section"])
     input_row += 1
     sign_start = input_row
@@ -109,27 +122,20 @@ def write_inputs(
 
     input_row += 1
 
+    # ---------------------------------------------------------------------
     # ROSTER FILL (pricing assumptions)
+    # ---------------------------------------------------------------------
     worksheet.write(input_row, COL_SECTION_LABEL, "FILL", fmts["section"])
     input_row += 1
 
-    # Mode presets:
-    # - IMMEDIATE: price fills as-of FillEventDate, delay=0, fill-to-12=ROOKIE, fill-to-14=VET
-    # - TRADE (+14): Matrix-style assumption: price fill-to-14 as-of event+14, fill-to-12=VET
-    # - CUSTOM: use the manual overrides in column C
-    worksheet.write(input_row, COL_SECTION_LABEL, "Mode:", fmts["trade_label"])
-    worksheet.write(input_row, COL_INPUT, "IMMEDIATE", fmts["input"])
-    worksheet.data_validation(input_row, COL_INPUT, input_row, COL_INPUT, {"validate": "list", "source": ["IMMEDIATE", "TRADE (+14)", "CUSTOM"]})
-    workbook.define_name("FillMode", f"=PLAYGROUND!$B${input_row + 1}")
-    input_row += 1
+    # Fill pricing "trade" date. Default to workbook as-of date (better UX than a formula).
+    worksheet.write(input_row, COL_SECTION_LABEL, "Trade Date:", fmts["trade_label"])
 
-    worksheet.write(input_row, COL_SECTION_LABEL, "Custom →", fmts["trade_label"])
-    worksheet.write(input_row, COL_INPUT, "(use col C)", fmts["trade_label"])
-    input_row += 1
-
-    # Fill pricing "event" date (e.g. trade date). We default to MetaAsOfDate.
-    worksheet.write(input_row, COL_SECTION_LABEL, "Event:", fmts["trade_label"])
-    worksheet.write_formula(input_row, COL_INPUT, "=DATEVALUE(MetaAsOfDate)", fmts["input_date"])
+    if as_of is None:
+        # Fallback to META if not provided (should be rare).
+        worksheet.write_formula(input_row, COL_INPUT, "=DATEVALUE(MetaAsOfDate)", fmts["input_date_right"])
+    else:
+        worksheet.write_datetime(input_row, COL_INPUT, datetime(as_of.year, as_of.month, as_of.day), fmts["input_date_right"])
     worksheet.data_validation(
         input_row,
         COL_INPUT,
@@ -140,65 +146,34 @@ def write_inputs(
     workbook.define_name("FillEventDate", f"=PLAYGROUND!$B${input_row + 1}")
     input_row += 1
 
-    # Delay window (0–14) for pricing the fill-to-14 minimums.
-    # If mode is preset, we compute the effective delay; if CUSTOM, read override from col C.
-    worksheet.write(input_row, COL_SECTION_LABEL, "Delay:", fmts["trade_label"])
-    worksheet.write_formula(
-        input_row,
-        COL_INPUT,
-        "=IF(FillMode=\"TRADE (+14)\",14,IF(FillMode=\"IMMEDIATE\",0,IF($C{r}=\"\",0,$C{r})))".format(r=input_row + 1),
-        fmts["input_int"],
-    )
-    worksheet.write_number(input_row, COL_INPUT_SALARY, 0, fmts["input_int"])
-    worksheet.data_validation(
-        input_row,
-        COL_INPUT,
-        input_row,
-        COL_INPUT,
-        {"validate": "integer", "criteria": "between", "minimum": 0, "maximum": 14},
-    )
-    worksheet.data_validation(
-        input_row,
-        COL_INPUT_SALARY,
-        input_row,
-        COL_INPUT_SALARY,
-        {"validate": "integer", "criteria": "between", "minimum": 0, "maximum": 14},
-    )
-    workbook.define_name("FillDelayDays", f"=PLAYGROUND!$B${input_row + 1}")
-    workbook.define_name("FillDelayDaysCustom", f"=PLAYGROUND!$C${input_row + 1}")
-    input_row += 1
-
-    # Fill-to-12 minimum type (rookie vs vet).
+    # Fill-to-12 minimum type (rookie vs vet). Default: ROOKIE.
     worksheet.write(input_row, COL_SECTION_LABEL, "To 12:", fmts["trade_label"])
-    worksheet.write_formula(
-        input_row,
-        COL_INPUT,
-        "=IF(FillMode=\"TRADE (+14)\",\"VET\",IF(FillMode=\"IMMEDIATE\",\"ROOKIE\",IF($C{r}=\"\",\"ROOKIE\",$C{r})))".format(r=input_row + 1),
-        fmts["input"],
-    )
-    worksheet.write(input_row, COL_INPUT_SALARY, "ROOKIE", fmts["input"])
-    worksheet.data_validation(input_row, COL_INPUT_SALARY, input_row, COL_INPUT_SALARY, {"validate": "list", "source": ["ROOKIE", "VET"]})
+    worksheet.write(input_row, COL_INPUT, "ROOKIE", fmts["input_right"])
+    worksheet.data_validation(input_row, COL_INPUT, input_row, COL_INPUT, {"validate": "list", "source": ["ROOKIE", "VET"]})
     workbook.define_name("FillTo12MinType", f"=PLAYGROUND!$B${input_row + 1}")
-    workbook.define_name("FillTo12MinTypeCustom", f"=PLAYGROUND!$C${input_row + 1}")
     input_row += 1
 
-    # Fill-to-14 minimum type (defaults to VET in all presets; custom override allowed).
+    # Fill-to-14 minimum type. Default: VET.
     worksheet.write(input_row, COL_SECTION_LABEL, "To 14:", fmts["trade_label"])
-    worksheet.write_formula(
-        input_row,
-        COL_INPUT,
-        "=IF(FillMode=\"CUSTOM\",IF($C{r}=\"\",\"VET\",$C{r}),\"VET\")".format(r=input_row + 1),
-        fmts["input"],
-    )
-    worksheet.write(input_row, COL_INPUT_SALARY, "VET", fmts["input"])
-    worksheet.data_validation(input_row, COL_INPUT_SALARY, input_row, COL_INPUT_SALARY, {"validate": "list", "source": ["VET", "ROOKIE"]})
+    worksheet.write(input_row, COL_INPUT, "VET", fmts["input_right"])
+    worksheet.data_validation(input_row, COL_INPUT, input_row, COL_INPUT, {"validate": "list", "source": ["VET", "ROOKIE"]})
     workbook.define_name("FillTo14MinType", f"=PLAYGROUND!$B${input_row + 1}")
-    workbook.define_name("FillTo14MinTypeCustom", f"=PLAYGROUND!$C${input_row + 1}")
+    input_row += 1
+
+    # Delay to 14: for pricing the fill-to-14 minimums (Matrix-style +14 supported).
+    # UX: dropdown labels like "Immediate", "1 Day", ..., "14 Days".
+    worksheet.write(input_row, COL_SECTION_LABEL, "Delay To 14:", fmts["trade_label"])
+    delay_opts = ["Immediate"] + ["1 Day"] + [f"{d} Days" for d in range(2, 15)]
+    worksheet.write(input_row, COL_INPUT, "14 Days", fmts["input_right"])
+    worksheet.data_validation(input_row, COL_INPUT, input_row, COL_INPUT, {"validate": "list", "source": delay_opts})
+    workbook.define_name("FillDelayDays", f"=PLAYGROUND!$B${input_row + 1}")
     input_row += 1
 
     input_row += 1
 
+    # ---------------------------------------------------------------------
     # TRADE MATH (base year)
+    # ---------------------------------------------------------------------
     worksheet.write(input_row, COL_SECTION_LABEL, "TRADE MATH", fmts["section"])
     input_row += 1
 
@@ -277,7 +252,12 @@ def write_inputs(
     workbook.define_name("TradePadAmount", f"=PLAYGROUND!$B${input_row + 1}")
     input_row += 1
 
-    # Max incoming (Expanded matching; matches pcms.fn_tpe_trade_math semantics)
+    # Max incoming:
+    # - Under the First Apron: expanded matching (2x / +TPE / 125% + padding)
+    # - Over the First Apron ("apron team" for matching): 1:1 (can only take back 100%)
+    #
+    # This aligns with Sean's Machine / Matrix behavior and fixes cases where an
+    # apron team incorrectly appears to have +TPE headroom.
     worksheet.write(input_row, COL_SECTION_LABEL, "Max:", fmts["trade_label"])
     worksheet.write_formula(
         input_row,
@@ -286,10 +266,15 @@ def write_inputs(
         "_xlpm.out,TradeOutSalary,"
         "_xlpm.tpe,IFERROR(XLOOKUP(MetaBaseYear,tbl_system_values[salary_year],tbl_system_values[tpe_dollar_allowance]),0),"
         "_xlpm.pad,TradePadAmount,"
+        "_xlpm.first,IFERROR(XLOOKUP(MetaBaseYear,tbl_system_values[salary_year],tbl_system_values[tax_apron_amount]),0),"
+        "_xlpm.isApron,IF(_xlpm.first=0,FALSE,TradePostApronTotal>_xlpm.first),"
         "IF(_xlpm.out=0,0,"
+        "IF(_xlpm.isApron,"
+        "_xlpm.out,"
         "MAX("
         "MIN(_xlpm.out*2+_xlpm.pad,_xlpm.out+_xlpm.tpe),"
         "ROUNDUP(_xlpm.out*1.25,0)+_xlpm.pad"
+        ")"
         ")"
         ")"
         ")",

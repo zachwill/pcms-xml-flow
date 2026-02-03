@@ -1,6 +1,6 @@
 # Excel Workbook Progress
 
-**Last updated:** 2026-02-01
+**Last updated:** 2026-02-03
 
 ---
 
@@ -16,10 +16,10 @@
 
 **KPI Bar (Row 1)**
 - ROSTER count, TWO-WAY count, TOTAL salary (filled to 14)
-- CAP/TAX/APR1 room with conditional formatting (green/red)
+- CAP/TAX/APR1/APR2 room with conditional formatting (green/red)
 
 **Roster Grid**
-- 4-year salary columns with % of cap
+- 6-year salary columns with % of cap
 - Trade In + Sign additions appear; Trade Out/Waive show strikethrough
 - Sorted by base-year salary descending
 
@@ -34,8 +34,9 @@
 ### 🚧 Remaining
 
 **Multi-Year**
-- [ ] 6-year view (currently 4)
-- [ ] Option year coloring (PO/TO/ETO)
+- [x] 6-year view (base year + 5)
+- [x] Option year coloring (PO/TO)
+- [ ] Early termination option (ETO) coloring
 
 **Totals Completeness**
 - [ ] Minimum Level and +/- Minimum
@@ -44,9 +45,9 @@
 - [ ] Net Cost, Cost Savings
 
 **Roster Fill Controls (Sean parity)**
-- [ ] Inputs for a *fill pricing date* (event date + delay days; e.g. trade date + 14)
-- [ ] Allow fill-to-12 basis selection (rookie min vs vet min) for realistic midseason modeling
-- [ ] Default fill-to-14 basis = vet min
+- [x] Inputs for a *fill pricing date* (event date + delay days; e.g. trade date + 14)
+- [x] Allow fill-to-12 basis selection (rookie min vs vet min) for realistic midseason modeling
+- [x] Default fill-to-14 basis = vet min
 
 **Additional Sections**
 - [ ] Exceptions inventory

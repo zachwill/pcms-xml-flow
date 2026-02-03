@@ -116,7 +116,6 @@ All formulas follow patterns in `XLSXWRITER.md`. Key rules:
 | `TradeOutNames` / `TradeInNames` | Trade scenario inputs |
 | `WaivedNames` / `StretchNames` | Waive/stretch inputs |
 | `SignNames` / `SignSalaries` | Signing inputs |
-| `FillMode` | Fill preset mode: `IMMEDIATE`, `TRADE (+14)`, `CUSTOM` |
 | `FillEventDate` / `FillDelayDays` | Roster-fill pricing date + delay window (Matrix-style +14 supported) |
 | `FillTo12MinType` / `FillTo14MinType` | Roster-fill basis selection (rookie vs vet minimum assumptions) |
 | `MetaBaseYear` / `MetaAsOfDate` | From META sheet |

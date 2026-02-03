@@ -6,7 +6,7 @@ The main entrypoint is build_capbook(), which:
 1) (Optionally) runs SQL assertions (validations)
 2) Extracts datasets from Postgres
 3) Generates a self-contained workbook with DATA_* tables
-4) Writes UI sheets (META, PLAYGROUND)
+4) Writes UI sheets (META + multiple Playground scenario sheets)
 """
 
 from __future__ import annotations
@@ -34,13 +34,33 @@ from .extract import (
     extract_exceptions_warehouse,
     extract_draft_picks_warehouse,
 )
-from .xlsx import create_standard_formats, write_table, set_workbook_default_font
+from .xlsx import (
+    COLOR_OPTION_PO,
+    COLOR_OPTION_TO,
+    COLOR_OPTION_ETO,
+    create_standard_formats,
+    write_table,
+    set_workbook_default_font,
+)
 from .sheets import write_meta_sheet, write_playground_sheet
 
 
 # UI sheets
-UI_SHEETS = [
-    "PLAYGROUND",
+#
+# We default to multiple scenario sheets so analysts can keep multiple
+# what-if states in a single workbook (duplicate/play with each tab).
+#
+# Tab colors intentionally match the option colors used elsewhere:
+# - A = Player Option blue
+# - B = Team Option purple
+# - C = ETO orange
+PLAYGROUND_TABS: list[tuple[str, str]] = [
+    ("Playground A", COLOR_OPTION_PO),
+    ("Playground B", COLOR_OPTION_TO),
+    ("Playground C", COLOR_OPTION_ETO),
+]
+
+UI_SHEETS = [name for name, _ in PLAYGROUND_TABS] + [
     "META",
 ]
 
@@ -137,9 +157,21 @@ def build_capbook(
         formats = create_standard_formats(workbook)
 
         # Create UI sheets first (so they appear at the front)
+        tab_colors = {name: color for name, color in PLAYGROUND_TABS}
+
         ui_worksheets: dict[str, Any] = {}
-        for name in UI_SHEETS:
-            ui_worksheets[name] = workbook.add_worksheet(name)
+        for idx, name in enumerate(UI_SHEETS):
+            ws = workbook.add_worksheet(name)
+
+            if name in tab_colors:
+                ws.set_tab_color(tab_colors[name])
+
+                # Make the first Playground tab the default active/visible sheet.
+                if idx == 0:
+                    ws.activate()
+                    ws.set_first_sheet()
+
+            ui_worksheets[name] = ws
 
         # Create DATA sheets (hidden)
         data_worksheets: dict[str, Any] = {}
@@ -278,7 +310,7 @@ def build_capbook(
 
         # Step 4: Write UI sheets
 
-        # Extract team codes for PLAYGROUND dropdown
+        # Extract team codes for Playground dropdowns
         team_codes = sorted(
             set(
                 row.get("team_code")
@@ -287,26 +319,27 @@ def build_capbook(
             )
         )
 
-        # PLAYGROUND - the reactive working surface
-        try:
-            # Performance: shrink any fixed-range formulas (conditional formatting,
-            # validation lists) to the actual extracted table sizes instead of
-            # hard-coded headroom.
-            salary_book_yearly_nrows = max(len(extracted.get("salary_book_yearly", ([], []))[1]), 1)
-            salary_book_warehouse_nrows = max(len(extracted.get("salary_book_warehouse", ([], []))[1]), 1)
+        # Performance: shrink any fixed-range formulas (conditional formatting,
+        # validation lists) to the actual extracted table sizes instead of
+        # hard-coded headroom.
+        salary_book_yearly_nrows = max(len(extracted.get("salary_book_yearly", ([], []))[1]), 1)
+        salary_book_warehouse_nrows = max(len(extracted.get("salary_book_warehouse", ([], []))[1]), 1)
 
-            write_playground_sheet(
-                workbook,
-                ui_worksheets["PLAYGROUND"],
-                formats,
-                team_codes=team_codes,
-                base_year=base_year,
-                as_of=as_of,
-                salary_book_yearly_nrows=salary_book_yearly_nrows,
-                salary_book_warehouse_nrows=salary_book_warehouse_nrows,
-            )
-        except Exception as e:
-            _mark_failed(build_meta, f"PLAYGROUND writer crashed: {e}\n{traceback.format_exc()}")
+        # PLAYGROUND tabs - independent scenario surfaces
+        for pg_name, _color in PLAYGROUND_TABS:
+            try:
+                write_playground_sheet(
+                    workbook,
+                    ui_worksheets[pg_name],
+                    formats,
+                    team_codes=team_codes,
+                    base_year=base_year,
+                    as_of=as_of,
+                    salary_book_yearly_nrows=salary_book_yearly_nrows,
+                    salary_book_warehouse_nrows=salary_book_warehouse_nrows,
+                )
+            except Exception as e:
+                _mark_failed(build_meta, f"{pg_name} writer crashed: {e}\n{traceback.format_exc()}")
 
         # META - build metadata (write last to capture any failures)
         try:

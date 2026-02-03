@@ -68,7 +68,15 @@ All filter to 6-year horizon (base_year through base_year + 5).
 
 ---
 
-## PLAYGROUND Sheet Structure
+## Playground Scenario Sheets
+
+By default, each generated workbook includes **three independent scenario tabs**:
+- `Playground A` (blue)
+- `Playground B` (purple)
+- `Playground C` (orange)
+
+Each tab is self-contained (inputs + hidden calc block) and can be duplicated in Excel
+(`Move or Copy…` → `Create a copy`) to create additional scenarios.
 
 ### Frozen Regions
 - **Rows 1-3:** Team context, KPI bar, column headers
@@ -76,14 +84,14 @@ All filter to 6-year horizon (base_year through base_year + 5).
 
 ### Key Patterns
 
-**Scenario calculations live in a hidden CALC block on each PLAYGROUND sheet:**
+**Scenario calculations live in a hidden CALC block on each Playground sheet:**
 ```python
-# Write scalar formulas into hidden columns on PLAYGROUND (implementation detail;
+# Write scalar formulas into hidden columns on the sheet (implementation detail;
 # current exporter starts the block at column AE)
 ws.write_formula("AG2", "=LET(...complex scenario formula...)")
 
 # Define worksheet-scoped names so duplicating the sheet creates a new scenario
-wb.define_name("PLAYGROUND!ScnCapTotal0", "='PLAYGROUND'!$AG$2")
+wb.define_name("Playground A!ScnCapTotal0", "='Playground A'!$AG$2")
 ```
 
 **Spill formatting uses column formats:**
@@ -114,8 +122,8 @@ All formulas follow patterns in `XLSXWRITER.md`. Key rules:
 
 ## Key Named Ranges
 
-**All scenario names are worksheet-scoped** (e.g. `PLAYGROUND!SelectedTeam`, `PLAYGROUND!ScnCapTotal0`).
-This is what makes “duplicate PLAYGROUND” work for multiple scenarios.
+**All scenario names are worksheet-scoped** (e.g. `Playground A!SelectedTeam`, `Playground A!ScnCapTotal0`).
+This is what makes “duplicate a Playground tab” work for multiple scenarios.
 
 | Name | Purpose |
 |------|---------|

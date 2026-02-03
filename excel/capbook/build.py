@@ -296,6 +296,12 @@ def build_capbook(
 
         # PLAYGROUND - the reactive working surface
         try:
+            # Performance: shrink any fixed-range formulas (conditional formatting,
+            # validation lists) to the actual extracted table sizes instead of
+            # hard-coded headroom.
+            salary_book_yearly_nrows = max(len(extracted.get("salary_book_yearly", ([], []))[1]), 1)
+            salary_book_warehouse_nrows = max(len(extracted.get("salary_book_warehouse", ([], []))[1]), 1)
+
             write_playground_sheet(
                 workbook,
                 ui_worksheets["PLAYGROUND"],
@@ -303,6 +309,8 @@ def build_capbook(
                 team_codes=team_codes,
                 calc_worksheet=ui_worksheets["CALC"],
                 base_year=base_year,
+                salary_book_yearly_nrows=salary_book_yearly_nrows,
+                salary_book_warehouse_nrows=salary_book_warehouse_nrows,
             )
         except Exception as e:
             _mark_failed(build_meta, f"PLAYGROUND writer crashed: {e}\n{traceback.format_exc()}")

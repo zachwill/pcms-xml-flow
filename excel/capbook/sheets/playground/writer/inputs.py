@@ -21,7 +21,13 @@ from ..layout import (
 )
 
 
-def write_inputs(workbook: Workbook, worksheet: Worksheet, fmts: dict[str, Any]) -> None:
+def write_inputs(
+    workbook: Workbook,
+    worksheet: Worksheet,
+    fmts: dict[str, Any],
+    *,
+    salary_book_yearly_nrows: int,
+) -> None:
     """Write the scenario input rail and trade math helpers."""
 
     # ---------------------------------------------------------------------
@@ -29,9 +35,13 @@ def write_inputs(workbook: Workbook, worksheet: Worksheet, fmts: dict[str, Any])
     # ---------------------------------------------------------------------
     input_row = ROW_BODY_START
 
-    # Player list: use the yearly table name list (600 is arbitrary headroom).
-    # Keep this large enough to cover league-wide rows in DATA_salary_book_yearly.
-    player_list_source = "=DATA_salary_book_yearly!$B$2:$B$20000"
+    # Player list for data validation dropdowns.
+    #
+    # Use the *actual* extracted table size instead of hard-coded headroom.
+    # Large fixed ranges slow down recalculation and conditional formatting.
+    yearly_rows = max(int(salary_book_yearly_nrows), 1)
+    player_list_end = yearly_rows + 1  # header is row 1; data starts at row 2
+    player_list_source = f"=DATA_salary_book_yearly!$B$2:$B${player_list_end}"
 
     # TRADE OUT
     worksheet.write(input_row, COL_SECTION_LABEL, "TRADE OUT", fmts["section"])

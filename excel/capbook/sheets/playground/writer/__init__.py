@@ -25,6 +25,8 @@ def write_playground_sheet(
     *,
     calc_worksheet: Worksheet,
     base_year: int = 2025,
+    salary_book_yearly_nrows: int = 20000,
+    salary_book_warehouse_nrows: int = 5000,
 ) -> None:
     """Write the PLAYGROUND sheet."""
 
@@ -32,6 +34,12 @@ def write_playground_sheet(
 
     write_setup(workbook, worksheet, fmts, team_codes)
     write_calc_sheet(workbook, calc_worksheet)
-    write_inputs(workbook, worksheet, fmts)
-    write_roster(worksheet, fmts, base_year=base_year)
+    write_inputs(workbook, worksheet, fmts, salary_book_yearly_nrows=salary_book_yearly_nrows)
+    write_roster(
+        worksheet,
+        fmts,
+        base_year=base_year,
+        salary_book_yearly_nrows=salary_book_yearly_nrows,
+        salary_book_warehouse_nrows=salary_book_warehouse_nrows,
+    )
     write_totals(worksheet, fmts)

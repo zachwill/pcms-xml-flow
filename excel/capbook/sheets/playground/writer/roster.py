@@ -28,7 +28,14 @@ from ..layout import (
 )
 
 
-def write_roster(worksheet: Worksheet, fmts: dict[str, Any], *, base_year: int) -> None:
+def write_roster(
+    worksheet: Worksheet,
+    fmts: dict[str, Any],
+    *,
+    base_year: int,
+    salary_book_yearly_nrows: int,
+    salary_book_warehouse_nrows: int,
+) -> None:
     """Write the reactive roster grid and conditional formatting."""
 
     # ---------------------------------------------------------------------
@@ -177,7 +184,10 @@ def write_roster(worksheet: Worksheet, fmts: dict[str, Any], *, base_year: int) 
 
     player_ref = f"${col_letter(COL_PLAYER)}{roster_start + 1}"  # e.g. $E4
 
-    sbw_end = 5000
+    # Performance: shrink fixed sheet ranges to the actual table size instead of
+    # scanning thousands of blank rows in conditional formatting formulas.
+    sbw_rows = max(int(salary_book_warehouse_nrows), 1)
+    sbw_end = sbw_rows + 1  # header is row 1; data starts at row 2
     sbw_hdr = "DATA_salary_book_warehouse!$1:$1"
     sbw_data = f"DATA_salary_book_warehouse!$A$2:$ZZ${sbw_end}"
 
@@ -209,7 +219,8 @@ def write_roster(worksheet: Worksheet, fmts: dict[str, Any], *, base_year: int) 
     # exists for that year. Otherwise we'd show the pill for projected years
     # where the player isn't actually under contract.
     # -------------------------------------------------------------------------
-    data_end = 20000
+    yearly_rows = max(int(salary_book_yearly_nrows), 1)
+    data_end = yearly_rows + 1  # header is row 1; data starts at row 2
     rng_name = f"DATA_salary_book_yearly!$B$2:$B${data_end}"
     rng_team = f"DATA_salary_book_yearly!$C$2:$C${data_end}"
     rng_year = f"DATA_salary_book_yearly!$D$2:$D${data_end}"

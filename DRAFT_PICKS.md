@@ -1,366 +1,321 @@
-# Draft Picks Data Documentation
+# Draft Picks (PCMS + Endnotes + Shorthand)
 
-Last updated: 2026-01-16
+Last updated: 2026-02-04
 
-This document covers NBA draft pick data in PCMS, including the `draft_pick_summaries` extract and strategies for tracking pick ownership and lineage.
+This repo needs to answer two related questions:
 
----
+1) **What does PCMS say each team owns right now?** (provenance-first, text-heavy, conditional)
+2) **How do we express the *net* pick logic cleanly?** (swap pools, protections, “result pick” cascades)
 
-## Overview
-
-PCMS provides two draft-pick-related extracts:
-
-| Extract | File | Contents |
-|---------|------|----------|
-| `dp-extract` | `draft_picks.json` | Individual draft picks (DLG/WNBA only — no NBA!) |
-| `dps-extract` | `draft_pick_summaries.json` | Per-team-per-year summaries with ownership descriptions |
-
-**Key insight:** NBA draft picks are NOT in `draft_picks.json`. The only source of NBA draft pick ownership data is `draft_pick_summaries.json`.
+PCMS provides (1). Sean’s workbook shorthand provides (2). Our approach is to keep both, with clean joins.
 
 ---
 
-## Draft Pick Summaries (`dps-extract`)
+## TL;DR — Conclusions we’ve reached
 
-### Source Data
+- **NBA picks are not in `draft_picks.json`** (the `dp-extract`); NBA pick ownership only comes from **`draft_pick_summaries.json`** (`dps-extract`).
 
-```bash
-# 450 total records (30 teams × 15 years)
-jq 'length' draft_pick_summaries.json
-# 450
+- The parenthetical numbers in PCMS summary text (e.g. `To SAS(58)`) are best treated as **Draft List Endnote IDs** (the NBA’s published endnote corpus), not `trade_id`/`transaction_id`.
+  - PCMS does not ship a lookup table.
+  - We ingest/curate the endnote corpus into **`pcms.endnotes`**, and treat these numbers as join keys.
 
-# Year range: 2018-2032
-jq '[.[].draft_year] | unique | sort' draft_pick_summaries.json
-# [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032]
+- **PCMS summaries are provenance-first** and use patterns like `Own`, `To`, `Has`, `May have`, `via`, `or to`, plus `|` and `;` separators.
+  - They often describe branching outcomes but do **not** provide a compact MF/LF pool representation.
 
-# Future picks (2026+): 210 records
-jq '[.[] | select(.draft_year >= 2026)] | length' draft_pick_summaries.json
-# 210
-```
+- Sean’s workbook uses a compact “pick shorthand” language for the *net logic*:
+  - `MF [ ... ]` and `LF [ ... ]` pools
+  - protections like `WAS (p. 1-8)`
+  - nested pools to represent sequential swap rights
+  - ordinals like `1st MF`, `2nd MF`, `3rd MF` when multiple picks come from one pool
 
-### Record Structure
+- We will adopt a **Sean-style pick shorthand**, but with two strong rules:
+  1) **Do not embed endnote numbers in the shorthand string** (so parentheses are reserved for protections).
+  2) **Do not collapse/shortcut ownership** (e.g. avoid display-driven collapsing like “1st MF + 2nd MF → 2 MF …”).
 
-```json
-{
-  "team_id": 1610612737,
-  "draft_year": 2027,
-  "first_round": "To SAS(58) | May have MIL(202) (via NOP(8)); may have NOP(202)",
-  "second_round": "To POR(285) (via MEM(160) via BOS(113))",
-  "active_flg": true,
-  "create_date": "2025-08-18T17:36:11.883-04:00",
-  "last_change_date": "2025-08-18T17:36:12.087-04:00",
-  "record_change_date": "2025-08-18T17:36:12.087-04:00"
-}
-```
+- Shorthand must live in its own durable table (not a refresh-truncated warehouse). That table is:
+  - **`pcms.draft_pick_shorthand_assets`** (migration `065_draft_pick_shorthand_assets.sql`)
 
-### Text Field Format
+---
 
-The `first_round` and `second_round` fields contain human-readable descriptions with embedded reference IDs.
+## Data sources
 
-#### Ownership Patterns
+### 1) PCMS (authoritative snapshot)
+
+- **`draft_pick_summaries.json`** (`dps-extract`)
+  - Per-team-per-year text describing pick assets (NBA).
+
+- **`draft_pick_trades`** (PCMS)
+  - Trade movement rows that can be aggregated into “possible outcomes” per original pick.
+
+### 2) Endnotes corpus (human-readable trade rules)
+
+- Source files live in: `~/blazers/cba-docs/endnotes/{original,revised}`
+- We ingest them into: **`pcms.endnotes`**
+  - Including dependencies (`depends_on_endnotes`) and split-out fields like `conveyance_text`, `protections_text`, `exercise_text`, etc.
+
+### 3) Sean workbook shorthand (net-effect representation)
+
+- Exported evidence/spec:
+  - `reference/warehouse/draft_picks.json`
+  - `reference/warehouse/specs/draft_picks.md`
+
+This is a great *seed* for shorthand, but it is messy (spacing inconsistencies, occasional bracket mismatches, analyst notes embedded in strings).
+
+---
+
+## PCMS `draft_pick_summaries` format (what we parse)
+
+PCMS provides two fields per team/year:
+- `first_round`
+- `second_round`
+
+Common patterns:
 
 | Pattern | Meaning | Example |
-|---------|---------|---------|
-| `Own` | Team owns their own pick | `"Own"` |
-| `To TEAM(N)` | Pick traded away to TEAM | `"To SAS(58)"` |
-| `Has TEAM(N)` | Team acquired pick from TEAM | `"Has HOU(81)"` |
-| `(via TEAM(N))` | Pick was routed through TEAM | `"(via LAC(78))"` |
-| `May have TEAM(N)` | Conditional ownership | `"May have MIL(202)"` |
-| `or to TEAM(N)` | Alternative destination | `"or to MIA(124)"` |
-| `\|` | Separates multiple picks/scenarios | `"Own \| Has DAL(70)"` |
-| `;` | Separates conditional branches | `"may have NOP(89); may have POR(89)"` |
+|---|---|---|
+| `Own` | Team owns its own pick | `Own` |
+| `To TEAM(N)` | pick traded away to TEAM | `To SAS(58)` |
+| `Has TEAM(N)` | acquired pick from TEAM | `Has HOU(81)` |
+| `May have TEAM(N)` | conditional ownership | `May have MIL(202)` |
+| `(via TEAM(N))` | provenance routing | `(via PHX(173))` |
+| `or to TEAM(N)` | alternative destination branch | `or to DET(317)` |
+| `|` | separates multiple asset “slots” | `Own | Has DAL(70)` |
+| `;` | separates conditional branches inside a slot | `may have ORL(...); may have PHX(...)` |
 
-#### Reference Numbers (Endnotes)
+### Important: parenthetical numbers
 
-The numbers in parentheses like `(58)`, `(81)`, `(202)` are **internal PCMS reference IDs**.
+The numeric ids like `(58)` in `To SAS(58)` are treated as **endnote IDs**.
 
-**What we know:**
-- 325 unique reference numbers in the data (ranging from 1 to ~370)
-- They serve as "endnotes" pointing to the trade/transaction that moved the pick
-- Multiple entries can share the same reference (same trade affected multiple picks)
-- The `(via TEAM(N))` chains show pick provenance through multiple trades
+- PCMS does not ship an official mapping.
+- Our working assumption (validated on many complex cases) is:
+  - these ids correspond to the “Draft List Endnotes” corpus,
+  - which we ingest into `pcms.endnotes`.
 
-**What we DON'T have:**
-- The reference/endnote lookup table is NOT in the PCMS extract
-- We cannot resolve `(58)` to a specific `trade_id` or `transaction_id`
-- These are opaque correlation markers for external consumers
+When an id is present in summaries but missing from `pcms.endnotes`, we treat it as **needs review**.
 
-**Investigation results:**
-- `trade_id` values range from 327 to 20,253,014 — don't match
-- `transaction_id` small values (58, 81) are ancient 1986-1990 transactions — don't match
-- `draft_pick_id` values are for DLG/WNBA picks only — don't match
-- No "endnotes" table exists in the extract
+---
 
-#### Complex Examples
+## Postgres tables (what exists / how it’s used)
 
+### Raw
+
+- `pcms.draft_pick_summaries`
+  - Stores PCMS snapshot text per team/year.
+
+- `pcms.draft_pick_trades`
+  - Trade movements (provenance/movement granularity).
+
+### PCMS-derived warehouses (refreshable, do not hand-edit)
+
+- `pcms.draft_picks_warehouse`
+  - Explodes `draft_pick_summaries.first_round/second_round` by literal `|` into `asset_slot` rows.
+  - Extracts numeric ids in parentheses into `endnote_refs`.
+
+- `pcms.draft_assets_warehouse`
+  - Further explodes each `raw_fragment` by `;` into `sub_asset_slot` parts.
+  - Extracts:
+    - `counterparty_team_codes` (teams mentioned after To/Has/May have)
+    - `via_team_codes` (provenance chains)
+  - Joins `primary_endnote_id` (first extracted id) to `pcms.endnotes`.
+
+- `pcms.draft_pick_trade_claims_warehouse`
+  - Aggregates `pcms.draft_pick_trades` into `trade_claims_json` outcomes.
+
+> Design note: these warehouses intentionally **do not resolve** protections/swaps into a deterministic final pick. They surface the text + refs for humans/tools.
+
+### Curated shorthand (durable, hand-authored or imported)
+
+- `pcms.draft_pick_shorthand_assets`
+  - One row per `(team_code, draft_year, draft_round, asset_slot)`.
+  - Stores:
+    - `shorthand_input` (raw, messy)
+    - `shorthand` (canonical pretty-printed)
+    - `endnote_ids int[]` (kept *out* of shorthand string)
+    - `referenced_team_codes text[]` (search/filter)
+    - `notes`, `source_lk`, `needs_review`
+
+Migration:
+- `migrations/065_draft_pick_shorthand_assets.sql`
+
+---
+
+## Pick Shorthand language (Sean-style) — what we’re adopting
+
+### Atoms
+
+- `Own` = the current row team’s own pick
+- `BKN`, `SAS`, `PHX`, etc = another team’s pick
+- Protections use parentheses:
+  - `WAS (p. 1-8)`
+  - `POR (p. 1-14)`
+  - `MIN (p. 1)`
+
+### Operators
+
+- `MF [ ... ]` = **Most Favorable** pick in the pool
+- `LF [ ... ]` = **Least Favorable** pick in the pool
+
+Semantics:
+- “More favorable” == earlier pick (smaller pick number).
+- Applies to both rounds (e.g. pick 31 is the most favorable 2nd).
+
+### Ordinals (multiple picks out of one pool)
+
+- `1st MF [A, B, C]`
+- `2nd MF [A, B, C]`
+- `3rd MF [A, B, C]`
+
+We keep ordinals explicitly per asset slot; we do **not** compress them into display-only hacks.
+
+### Nesting
+
+Nested pools represent sequential swap rights.
+
+Key mental model:
+- If Team X has a swap right between pick A and pick B and will exercise when favorable:
+  - X’s outcome is typically `MF [A, B]`
+  - the counterparty’s outcome is typically `LF [A, B]`
+
+“Result Pick” cascades (multiple swaps into the same pick) often become a multi-team `LF [...]`.
+
+### Canonical formatting
+
+We accept messy input but canonicalize to:
+
+- `MF [A, B]`
+- `LF [A, MF [B, C]]`
+
+Spacing rules:
+- Always `MF [ ... ]` / `LF [ ... ]`
+- Comma+space between elements
+- Protections: `TEAM (p. 1-8)` (normalize `p.1-8` → `p. 1-8`)
+
+Team codes:
+- Canonical NBA abbreviations (e.g. `BKN`, `SAS`).
+- Import-time alias mapping allowed (e.g. `BRK→BKN`, `SAN→SAS`).
+- DB gotcha: `pcms.teams.team_code` is **not globally unique** (NBA/WNBA/UNK share codes). When joining by `team_code`, filter `pcms.teams.league_lk='NBA'` (or prefer `team_id` where available).
+
+---
+
+## Why shorthand is separate from endnotes
+
+Endnotes contain a lot of information that is *not* pick-ranking logic:
+- notice windows
+- deadlines
+- “not prior to the lottery” constraints
+- cash contingencies
+- descriptive “Result Pick” definitions
+
+Shorthand is meant to encode **ranking resolution** (MF/LF + protections).
+
+Therefore:
+- **Do not embed endnote numbers in shorthand strings.**
+- Store the join keys in `endnote_ids`.
+- Store extra narrative constraints in `notes` (or by joining to `pcms.endnotes.*_text`).
+
+---
+
+## Worked examples (endnotes → shorthand)
+
+These are representative of the “hard” cases and validate the MF/LF approach.
+
+### Endnote 264 (Nurkic/Martin/Micic)
+
+Endnote: Phoenix conveys to Charlotte the “Result Pick”, but WAS/ORL/MEM can swap into it first.
+
+Shorthand (CHA 2026 1st):
+
+```text
+LF [PHX, ORL, WAS (p. 1-8), MEM]
 ```
-# ATL's 2027 first round pick situation:
-"To SAS(58) | May have MIL(202) (via NOP(8)); may have NOP(202)"
 
-Interpretation:
-- ATL's own 1st: Traded to SAS (trade ref 58)
-- ATL may get MIL's 1st (trade ref 202), which came via NOP (trade ref 8)
-- ATL may get NOP's 1st (trade ref 202) — same trade, different outcome
+Endnotes to attach:
+
+```text
+{264, 102, 145, 173}
 ```
 
-```
-# OKC's 2027 second round pick:
-"Own or to MIA(124) | May have HOU(47) (via UTA(30) via OKC(19) via DET(10)) or to MIA(124)"
+### Endnote 268 (LeVert/Hunter)
 
-Interpretation:
-- OKC owns their 2nd OR it goes to MIA (trade ref 124)
-- OKC may get HOU's 2nd (ref 47), which went DET→OKC→UTA→current (refs 10,19,30)
-- That pick could also go to MIA (ref 124)
+Endnote: ATL can swap ATL/SAS pick for CLE/UTA/MIN pick, but both sides have upstream swap logic.
+
+Shorthand (ATL 2026 1st, conceptual):
+
+```text
+MF [
+  LF [Own, SAS],
+  LF [CLE, MF [UTA (p. 1-8), MIN]]
+]
+```
+
+### Endnote 183 (Dillingham)
+
+MIN conveys to SAS a swap right vs MIN 2030 1st; the “Result Pick” is SAS 2030 unless SAS upgrades to DAL.
+
+Shorthand (SAS 2030 1st, conceptual):
+
+```text
+MF [Own, DAL, MIN (p. 1)]
+```
+
+### Endnote 134 (Brooks/Garuba/Mills)
+
+HOU gets LAC 2026 2nd unless MEM swaps, in which case HOU gets the “Result Pick” from a MF/LF chain.
+
+Shorthand (BRK 2026 2nd in Sean workbook; similar structure):
+
+```text
+LF [LAC, MF [BOS, IND, MIA]]
 ```
 
 ---
 
-## Proposed Database Schema
+## Import strategy (Sean → `draft_pick_shorthand_assets`)
 
-### Table 1: `pcms.draft_pick_summaries` (Raw Data)
+Recommendation: **hybrid**.
 
-Store the PCMS data as-is, preserving the original text descriptions.
+- Import Sean to seed the table quickly (he’s already composed the hardest swap stacks).
+- Then selectively rewrite/override rows using `pcms.endnotes` as the audit trail.
 
-```sql
-CREATE TABLE pcms.draft_pick_summaries (
-  draft_year integer NOT NULL,
-  team_id integer NOT NULL,
-  team_code text,                      -- Denormalized for convenience
-  first_round text,                    -- Raw description with endnote refs
-  second_round text,                   -- Raw description with endnote refs
-  is_active boolean,
-  created_at timestamptz,
-  updated_at timestamptz,
-  record_changed_at timestamptz,
-  ingested_at timestamptz DEFAULT now(),
-  PRIMARY KEY (draft_year, team_id)
-);
+High-level import steps:
 
-CREATE INDEX idx_draft_pick_summaries_team_code ON pcms.draft_pick_summaries(team_code);
-CREATE INDEX idx_draft_pick_summaries_draft_year ON pcms.draft_pick_summaries(draft_year);
-```
-
-### Table 2: `pcms.draft_pick_ownership` (Enriched/Parsed Data)
-
-A normalized table for structured queries on pick ownership. Can be populated by:
-1. Parsing the summary text programmatically
-2. Manual curation/verification
-3. External data sources
-
-```sql
-CREATE TABLE pcms.draft_pick_ownership (
-  id serial PRIMARY KEY,
-  draft_year integer NOT NULL,
-  round integer NOT NULL,              -- 1 or 2
-  original_team_id integer NOT NULL,   -- Team whose pick this originally was
-  original_team_code text,
-  current_team_id integer,             -- Team that currently owns/controls it
-  current_team_code text,
-  ownership_status text NOT NULL,      -- 'owns', 'traded', 'conditional', 'swap_rights'
-  destination_team_id integer,         -- If traded, who owns it now
-  destination_team_code text,
-  is_conditional boolean DEFAULT false,
-  condition_description text,          -- Human-readable condition
-  protection_description text,         -- e.g., "top-10 protected"
-  swap_rights_team_id integer,         -- Team with swap rights (if any)
-  swap_rights_team_code text,
-  provenance_chain jsonb,              -- Array of {team_code, endnote_ref} showing path
-  endnote_refs integer[],              -- All PCMS endnote references involved
-  source text DEFAULT 'parsed',        -- 'parsed', 'manual', 'external'
-  confidence text DEFAULT 'high',      -- 'high', 'medium', 'low' for parsed data
-  notes text,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
-  UNIQUE (draft_year, round, original_team_id)
-);
-
-CREATE INDEX idx_draft_pick_ownership_year ON pcms.draft_pick_ownership(draft_year);
-CREATE INDEX idx_draft_pick_ownership_current_team ON pcms.draft_pick_ownership(current_team_id);
-CREATE INDEX idx_draft_pick_ownership_status ON pcms.draft_pick_ownership(ownership_status);
-
-COMMENT ON TABLE pcms.draft_pick_ownership IS 'Normalized draft pick ownership data, parsed from summaries or manually curated';
-COMMENT ON COLUMN pcms.draft_pick_ownership.provenance_chain IS 'JSON array showing how pick moved, e.g., [{"team":"DET","ref":10},{"team":"OKC","ref":19}]';
-COMMENT ON COLUMN pcms.draft_pick_ownership.endnote_refs IS 'PCMS internal reference IDs from the summary text';
-```
-
-### Table 3: `pcms.draft_pick_endnotes` (Reference Mapping - Optional)
-
-If we ever get access to the endnote reference table, or want to manually document known mappings:
-
-```sql
-CREATE TABLE pcms.draft_pick_endnotes (
-  endnote_ref integer PRIMARY KEY,
-  trade_id integer,                    -- If we can map to pcms.trades
-  transaction_id integer,              -- If we can map to pcms.transactions
-  trade_date date,
-  description text,                    -- Human-readable description of the trade
-  teams_involved text[],               -- Array of team codes
-  source text DEFAULT 'manual',        -- 'manual', 'inferred', 'official'
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-
-COMMENT ON TABLE pcms.draft_pick_endnotes IS 'Mapping of PCMS endnote references to trades (manually curated or inferred)';
-```
+1) Read Sean `reference/warehouse/draft_picks.json` **Pick Details** (column `F`) — not the display shorthand column.
+2) Normalize team codes (BRK→BKN, SAN→SAS).
+3) Canonicalize formatting (spacing, commas, `p.` spacing).
+4) Map rows to `(team_code, draft_year, draft_round, asset_slot)`.
+   - attach endnotes by copying `pcms.draft_picks_warehouse.endnote_refs` into `endnote_ids`.
+5) Insert with `source_lk='imported_sean'`.
+6) Mark `needs_review=true` if the string is malformed (e.g. unbalanced brackets) or if mapping is ambiguous.
 
 ---
 
-## Parsing Strategy
+## Rewrite strategy (endnotes-first)
 
-### Regex Patterns for Text Extraction
+Rewriting from scratch is feasible and desirable for:
+- **our team’s picks**
+- the most complicated/high-leverage endnotes
 
-```typescript
-// Extract all endnote references
-const endnotePattern = /\((\d+)\)/g;
-// "To SAS(58)" → [58]
+Rewriting the entire league from scratch implies building a full evaluator that:
+- resolves global dependency chains across many endnotes
+- handles protection rollovers
+- models notice windows / conditional exercise rules
 
-// Extract "To TEAM(N)" patterns
-const tradedToPattern = /To ([A-Z]{3})\((\d+)\)/g;
-// "To SAS(58)" → [{team: "SAS", ref: 58}]
-
-// Extract "Has TEAM(N)" patterns  
-const hasPattern = /Has ([A-Z]{3})\((\d+)\)/g;
-// "Has HOU(81)" → [{team: "HOU", ref: 81}]
-
-// Extract "via TEAM(N)" chains
-const viaPattern = /via ([A-Z]{3})\((\d+)\)/g;
-// "(via LAC(78) via BOS(9))" → [{team: "LAC", ref: 78}, {team: "BOS", ref: 9}]
-
-// Extract "May have TEAM(N)" conditionals
-const mayHavePattern = /[Mm]ay have ([A-Z]{3})\((\d+)\)/g;
-// "May have MIL(202)" → [{team: "MIL", ref: 202, conditional: true}]
-
-// Detect if team owns their pick
-const ownsPattern = /^Own(?:\s|$|\|)/;
-// "Own | Has DAL(70)" → true
-```
-
-### Parsing Complexity Levels
-
-| Level | Description | Example |
-|-------|-------------|---------|
-| Simple | Team owns or single trade | `"Own"`, `"To SAS(58)"` |
-| Medium | Multiple acquisitions | `"Own \| Has DAL(70); Has MIN(19)"` |
-| Complex | Conditional + chains | `"May have HOU(47) (via UTA(30) via OKC(19))"` |
-| Very Complex | Multiple conditionals + alternatives | Full 2027 examples above |
-
-**Recommendation:** Start with simple cases, flag complex ones for manual review.
+That is possible but is a distinct project.
 
 ---
 
-## Data Quality Notes
+## Open questions / next steps
 
-### What's in the Extract
+- Implement a minimal parser/pretty-printer that:
+  - accepts messy shorthand input
+  - outputs canonical `shorthand`
+  - extracts `referenced_team_codes`
+  - optionally builds `shorthand_ast`
 
-- ✅ All 30 NBA teams
-- ✅ Years 2018-2032 (15 years)
-- ✅ Both rounds (1st and 2nd)
-- ✅ Historical data (resolved picks)
-- ✅ Future picks with current ownership
-- ✅ Conditional scenarios
+- Decide how we want to represent true branching (“or … if …”) in shorthand:
+  - keep it out of shorthand and in `notes`?
+  - or allow an explicit branch operator in AST?
 
-### What's Missing
-
-- ❌ Endnote reference table (can't resolve `(N)` to trades)
-- ❌ Protection details (only in text, not structured)
-- ❌ Specific conditions for "May have" scenarios
-- ❌ NBA picks in `draft_picks.json` (only DLG/WNBA)
-- ❌ Historical pick ownership (only current snapshot)
-
-### Caveats
-
-1. **Point-in-time snapshot**: The summaries reflect ownership as of extract date
-2. **Conditional picks**: "May have" scenarios depend on outcomes not yet determined
-3. **Text parsing is imperfect**: Edge cases and unusual formatting exist
-4. **Endnotes are opaque**: We can correlate but not resolve them
-
----
-
-## Use Cases
-
-### Query Examples (Once Tables Exist)
-
-```sql
--- Which teams have the most future 1st round picks?
-SELECT current_team_code, COUNT(*) as picks
-FROM pcms.draft_pick_ownership
-WHERE draft_year >= 2026 AND round = 1 AND ownership_status = 'owns'
-GROUP BY current_team_code
-ORDER BY picks DESC;
-
--- Show all of OKC's draft assets
-SELECT draft_year, round, original_team_code, ownership_status, condition_description
-FROM pcms.draft_pick_ownership
-WHERE current_team_id = 1610612760
-ORDER BY draft_year, round;
-
--- Find picks with swap rights
-SELECT *
-FROM pcms.draft_pick_ownership
-WHERE swap_rights_team_id IS NOT NULL;
-
--- Search raw summaries for specific team mentions
-SELECT team_code, draft_year, first_round, second_round
-FROM pcms.draft_pick_summaries
-WHERE first_round ILIKE '%LAL%' OR second_round ILIKE '%LAL%';
-```
-
----
-
-## Implementation Plan
-
-### Phase 1: Schema & Raw Data
-1. ✅ Run `migrations/004_draft_pick_tables.sql` (creates both tables)
-2. Create import script `draft_pick_summaries.inline_script.ts`
-3. Add step to `flow.yaml`
-
-### Phase 2: Parse & Enrich
-1. Build parser for simple/medium complexity cases
-2. Populate `draft_pick_ownership` with parsed data
-3. Flag uncertain cases with `confidence = 'low'`
-
-### Phase 3: Manual Curation (Optional)
-1. Review flagged/complex cases
-2. Create `pcms.draft_pick_endnotes` table if patterns emerge
-3. Cross-reference with external sources (e.g., RealGM, Spotrac)
-
----
-
-## Files Reference
-
-| File | Purpose |
-|------|---------|
-| `draft_pick_summaries.json` | Clean JSON from lineage step |
-| `draft_picks.json` | DLG/WNBA picks only (not NBA) |
-| `migrations/004_draft_pick_tables.sql` | Schema for both tables (summaries + ownership) |
-| `draft_pick_summaries.inline_script.ts` | Import script for summaries |
-
----
-
-## Appendix: Sample Data
-
-### Simple Case (2018 ATL)
-```json
-{
-  "team_id": 1610612737,
-  "draft_year": 2018,
-  "first_round": "Own | Has HOU(81) (via LAC(78)); Has MIN(19)",
-  "second_round": "Own"
-}
-```
-
-### Complex Case (2027 OKC)
-```json
-{
-  "team_id": 1610612760,
-  "draft_year": 2027,
-  "first_round": "Own or to LAC(152) | May have DEN(53) or to LAC(152); may have LAC(152); may have PHI(16); may have SAS(287) (via SAC(236))",
-  "second_round": "Own or to SAS(47) (via UTA(30)) or to MIA(124) (via SAS(47) via UTA(30)) or to NYK(187) or to NYK(188) | May have CHA(287) (via SAC(235) via SAS(59) via ATL(41) via NYK(28)); may have HOU(19) (via DET(10)) or to SAS(47) (via UTA(30)) or to MIA(124) (via SAS(47) via UTA(30)) or to NYK(187) or to NYK(188); ..."
-}
-```
-
-### All Endnote References
-```bash
-# Extract unique endnote refs
-grep -o '([0-9]\+)' draft_pick_summaries.json | sort -t'(' -k2 -n | uniq
-# Returns 325 unique references from (1) to (370)
-```
+- Add a tool/view that overlays shorthand on top of PCMS warehouse output:
+  - prefer `pcms.draft_pick_shorthand_assets` when present
+  - fall back to `pcms.draft_picks_warehouse.raw_fragment` when not

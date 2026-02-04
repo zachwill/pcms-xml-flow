@@ -17,12 +17,17 @@ excel/
     ├── extract.py               # Dataset extraction
     ├── xlsx.py                  # XlsxWriter helpers + shared formats
     └── sheets/
-        ├── meta.py              # META sheet (base year, as-of date)
-        └── playground/
-            ├── writer/          # PLAYGROUND writer package (setup/calc/inputs/roster/totals)
-            ├── formulas.py      # Formula builders (LET/LAMBDA/etc)
-            ├── formats.py       # Cell formats
-            └── layout.py        # Grid constants (rows, columns)
+        ├── contract_calculator.py   # Contract Calculator sheet
+        ├── meta.py                  # META sheet (base year, as-of date)
+        ├── matrix/                  # MATRIX sheet package
+        │   ├── writer/              # MATRIX writer package (setup/calc/inputs/roster)
+        │   ├── formulas.py          # Formula builders
+        │   └── layout.py            # Grid constants
+        └── playground/              # PLAYGROUND sheet package
+            ├── writer/              # PLAYGROUND writer package (setup/calc/inputs/roster/totals)
+            ├── formulas.py          # Formula builders (LET/LAMBDA/etc)
+            ├── formats.py           # Cell formats
+            └── layout.py            # Grid constants (rows, columns)
 ```
 
 ---
@@ -71,12 +76,17 @@ All filter to 6-year horizon (base_year through base_year + 5).
 ## Playground Scenario Sheets
 
 By default, each generated workbook includes **three independent scenario tabs**:
-- `Playground A` (blue)
-- `Playground B` (purple)
-- `Playground C` (orange)
+- `Playground A` (Player Option blue tint)
+- `Playground B` (Team Option purple tint)
+- `Playground C` (Trade Bonus / Kicker orange tint)
 
 Each tab is self-contained (inputs + hidden calc block) and can be duplicated in Excel
 (`Move or Copy…` → `Create a copy`) to create additional scenarios.
+
+Other UI sheets:
+- `Contract Calculator` — standalone deal stream helper
+- `Matrix` — multi-team trade planner
+- `META` — build metadata + validation status
 
 ### Frozen Regions
 - **Rows 1-3:** Team context, KPI bar, column headers
@@ -122,8 +132,10 @@ All formulas follow patterns in `XLSXWRITER.md`. Key rules:
 
 ## Key Named Ranges
 
-**All scenario names are worksheet-scoped** (e.g. `Playground A!SelectedTeam`, `Playground A!ScnCapTotal0`).
+**Scenario names are worksheet-scoped** (e.g. `Playground A!SelectedTeam`, `Playground A!ScnCapTotal0`).
 This is what makes “duplicate a Playground tab” work for multiple scenarios.
+
+The `Contract Calculator` sheet also uses worksheet-scoped names (e.g. `Contract Calculator!CcStartSeason`) so you can duplicate it for multiple deal comps.
 
 | Name | Purpose |
 |------|---------|
@@ -131,7 +143,7 @@ This is what makes “duplicate a Playground tab” work for multiple scenarios.
 | `TradeOutNames` / `TradeInNames` | Trade scenario inputs |
 | `WaivedNames` / `StretchNames` | Waive/stretch inputs |
 | `SignYears` / `SignNames` / `SignSalaries` | Signing inputs (multi-year; defaults to next season) |
-| `CcStartSeason` / `CcYears` / `CcRaisePct` / `CcStartSalaryIn` / `CcTotalIn` / `CcSalary{0-5}` / `CcTotal` | Contract calculator inputs + computed salary stream (aligned to 6-year horizon) |
+| `CcStartSeason` / `CcYears` / `CcRaisePct` / `CcStartSalaryIn` / `CcTotalIn` / `CcSalary{0-5}` / `CcTotal` | Contract calculator inputs + computed salary stream (**worksheet-scoped on `Contract Calculator`**) |
 | `FillEventDate` / `FillDelayDays` | Roster-fill pricing date + delay window (Matrix-style +14 supported) |
 | `FillTo12MinType` / `FillTo14MinType` | Roster-fill basis selection (rookie vs vet minimum assumptions) |
 | `MetaBaseYear` / `MetaAsOfDate` | From META sheet |

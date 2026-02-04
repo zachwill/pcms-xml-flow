@@ -1,4 +1,12 @@
-"""MATRIX trade input zones (outgoing/incoming players) + per-team summaries."""
+"""MATRIX trade input zones (stacked v2).
+
+Each team gets its own vertical section:
+- Trade inputs (Outgoing / Incoming)
+- Per-team summary rows (totals, allowed-in, legality, fill amounts)
+
+Named ranges follow the v1 convention so the calc block can stay formula-based:
+- MxT{n}OutNames / MxT{n}InNames
+"""
 
 from __future__ import annotations
 
@@ -9,17 +17,28 @@ from xlsxwriter.worksheet import Worksheet
 
 from .. import formulas
 from ..layout import (
-    TRADE_ALLOWED_ROW,
-    TRADE_APRON1_ROOM_ROW,
-    TRADE_APRON2_ROOM_ROW,
-    TRADE_FILL12_ROW,
-    TRADE_FILL14_ROW,
-    TRADE_FILL_TOTAL_ROW,
+    COL_IN_APRON,
+    COL_IN_CAP,
+    COL_IN_NAME,
+    COL_IN_TAX,
+    COL_OUT_APRON,
+    COL_OUT_CAP,
+    COL_OUT_NAME,
+    COL_OUT_TAX,
+    TEAM_HDR_OFF,
+    TEAM_INPUTS,
+    TRADE_ALLOWED_OFF,
+    TRADE_APRON1_ROOM_OFF,
+    TRADE_APRON2_ROOM_OFF,
+    TRADE_FILL12_OFF,
+    TRADE_FILL14_OFF,
+    TRADE_FILL_TOTAL_OFF,
+    TRADE_HDR_OFF,
+    TRADE_INPUT_OFF,
     TRADE_INPUT_ROWS,
-    TRADE_INPUT_START_ROW,
-    TRADE_STATUS_ROW,
-    TRADE_TOTAL_ROW,
-    TEAM_BLOCKS,
+    TRADE_STATUS_OFF,
+    TRADE_TOTAL_OFF,
+    team_row,
     col_letter,
 )
 
@@ -35,7 +54,7 @@ def write_trade_inputs(
     *,
     salary_book_warehouse_nrows: int,
 ) -> None:
-    """Write the trade input blocks for all 4 teams."""
+    """Write the trade input blocks for all teams (stacked vertically)."""
 
     sheet_name = worksheet.get_name()
     sheet_ref = _quote_sheet(sheet_name)
@@ -45,67 +64,86 @@ def write_trade_inputs(
     sbw_end = sbw_rows + 1  # header is row 1; data starts at row 2
     player_list_source = f"=DATA_salary_book_warehouse!$B$2:$B${sbw_end}"
 
-    # Header row (Excel row 3): section labels for each team block
-    header_row = TRADE_INPUT_START_ROW - 1
+    for ti in TEAM_INPUTS:
+        idx = ti.idx
 
-    for tb in TEAM_BLOCKS:
-        worksheet.write(header_row, tb.trade.out_name_col, "Buildup Out:", fmts["trade_header"])
-        worksheet.write(header_row, tb.trade.out_cap_col, "Cap", fmts["trade_header"])
-        worksheet.write(header_row, tb.trade.out_tax_col, "Tax", fmts["trade_header"])
-        worksheet.write(header_row, tb.trade.out_apron_col, "Apron", fmts["trade_header"])
+        r_team_hdr = team_row(idx, TEAM_HDR_OFF)
+        r_hdr = team_row(idx, TRADE_HDR_OFF)
+        r_in_start = team_row(idx, TRADE_INPUT_OFF)
+        r_in_end = r_in_start + TRADE_INPUT_ROWS - 1
 
-        worksheet.write(header_row, tb.trade.in_name_col, "Buildup In:", fmts["trade_header"])
-        worksheet.write(header_row, tb.trade.in_cap_col, "Cap", fmts["trade_header"])
-        worksheet.write(header_row, tb.trade.in_tax_col, "Tax", fmts["trade_header"])
-        worksheet.write(header_row, tb.trade.in_apron_col, "Apron", fmts["trade_header"])
+        r_total = team_row(idx, TRADE_TOTAL_OFF)
+        r_allowed = team_row(idx, TRADE_ALLOWED_OFF)
+        r_status = team_row(idx, TRADE_STATUS_OFF)
 
-    # Input rows
-    for tb in TEAM_BLOCKS:
-        out_start = TRADE_INPUT_START_ROW
-        out_end = TRADE_INPUT_START_ROW + TRADE_INPUT_ROWS - 1
+        r_fill12 = team_row(idx, TRADE_FILL12_OFF)
+        r_fill14 = team_row(idx, TRADE_FILL14_OFF)
+        r_fill_total = team_row(idx, TRADE_FILL_TOTAL_OFF)
+        r_apr1 = team_row(idx, TRADE_APRON1_ROOM_OFF)
+        r_apr2 = team_row(idx, TRADE_APRON2_ROOM_OFF)
 
-        in_start = TRADE_INPUT_START_ROW
-        in_end = TRADE_INPUT_START_ROW + TRADE_INPUT_ROWS - 1
+        # ------------------------------------------------------------------
+        # Team header (reactive KPIs)
+        # ------------------------------------------------------------------
 
-        # Outgoing name inputs
-        for r in range(out_start, out_end + 1):
-            worksheet.write(r, tb.trade.out_name_col, "", fmts["input"])
-            worksheet.data_validation(
-                r,
-                tb.trade.out_name_col,
-                r,
-                tb.trade.out_name_col,
-                {"validate": "list", "source": player_list_source},
-            )
+        worksheet.write(r_team_hdr, COL_OUT_NAME, f"TEAM {idx}", fmts["trade_header"])
+        worksheet.write_formula(r_team_hdr, COL_OUT_CAP, f"=MxTeam{idx}Code", fmts["kpi_value"])
 
-        # Incoming name inputs
-        for r in range(in_start, in_end + 1):
-            worksheet.write(r, tb.trade.in_name_col, "", fmts["input"])
-            worksheet.data_validation(
-                r,
-                tb.trade.in_name_col,
-                r,
-                tb.trade.in_name_col,
-                {"validate": "list", "source": player_list_source},
-            )
+        worksheet.write(r_team_hdr, COL_OUT_TAX, "MODE", fmts["trade_header"])
+        worksheet.write_formula(r_team_hdr, COL_OUT_APRON, f"=MxTeam{idx}Mode", fmts["trade_text"])
 
-        # Define ranges (worksheet-scoped)
-        out_col = col_letter(tb.trade.out_name_col)
-        in_col = col_letter(tb.trade.in_name_col)
+        worksheet.write(r_team_hdr, COL_IN_NAME, "WORKS?", fmts["trade_header"])
+        worksheet.write_formula(r_team_hdr, COL_IN_CAP, f"=MxT{idx}Works", fmts["trade_status"])
 
-        out_rng = f"${out_col}${out_start + 1}:${out_col}${out_end + 1}"
-        in_rng = f"${in_col}${in_start + 1}:${in_col}${in_end + 1}"
+        worksheet.write(r_team_hdr, COL_IN_TAX, "ALLOWED", fmts["trade_header"])
+        worksheet.write_formula(r_team_hdr, COL_IN_APRON, f"=MxT{idx}AllowedInCap", fmts["trade_value"])
 
-        workbook.define_name(
-            f"{sheet_name}!MxT{tb.idx}OutNames",
-            f"={sheet_ref}!{out_rng}",
+        works_hdr_cell = f"{col_letter(COL_IN_CAP)}{r_team_hdr + 1}"
+        worksheet.conditional_format(
+            works_hdr_cell,
+            {"type": "formula", "criteria": f'={works_hdr_cell}="Yes"', "format": fmts["trade_status_valid"]},
         )
-        workbook.define_name(
-            f"{sheet_name}!MxT{tb.idx}InNames",
-            f"={sheet_ref}!{in_rng}",
+        worksheet.conditional_format(
+            works_hdr_cell,
+            {"type": "formula", "criteria": f'={works_hdr_cell}="No"', "format": fmts["trade_status_invalid"]},
         )
 
-        team_code_name = f"MxTeam{tb.idx}Code"
+        # ------------------------------------------------------------------
+        # Trade input header row
+        # ------------------------------------------------------------------
+
+        worksheet.write(r_hdr, COL_OUT_NAME, "Outgoing", fmts["trade_header"])
+        worksheet.write(r_hdr, COL_OUT_CAP, "Cap", fmts["trade_header"])
+        worksheet.write(r_hdr, COL_OUT_TAX, "Tax", fmts["trade_header"])
+        worksheet.write(r_hdr, COL_OUT_APRON, "Apron", fmts["trade_header"])
+
+        worksheet.write(r_hdr, COL_IN_NAME, "Incoming", fmts["trade_header"])
+        worksheet.write(r_hdr, COL_IN_CAP, "Cap", fmts["trade_header"])
+        worksheet.write(r_hdr, COL_IN_TAX, "Tax", fmts["trade_header"])
+        worksheet.write(r_hdr, COL_IN_APRON, "Apron", fmts["trade_header"])
+
+        # ------------------------------------------------------------------
+        # Name input rows + validation
+        # ------------------------------------------------------------------
+
+        for r in range(r_in_start, r_in_end + 1):
+            worksheet.write(r, COL_OUT_NAME, "", fmts["input"])
+            worksheet.data_validation(r, COL_OUT_NAME, r, COL_OUT_NAME, {"validate": "list", "source": player_list_source})
+
+            worksheet.write(r, COL_IN_NAME, "", fmts["input"])
+            worksheet.data_validation(r, COL_IN_NAME, r, COL_IN_NAME, {"validate": "list", "source": player_list_source})
+
+        # Define named ranges (worksheet-scoped)
+        out_col = col_letter(COL_OUT_NAME)
+        in_col = col_letter(COL_IN_NAME)
+
+        out_rng = f"${out_col}${r_in_start + 1}:${out_col}${r_in_end + 1}"
+        in_rng = f"${in_col}${r_in_start + 1}:${in_col}${r_in_end + 1}"
+
+        workbook.define_name(f"{sheet_name}!MxT{idx}OutNames", f"={sheet_ref}!{out_rng}")
+        workbook.define_name(f"{sheet_name}!MxT{idx}InNames", f"={sheet_ref}!{in_rng}")
+
+        team_code_name = f"MxTeam{idx}Code"
 
         # ------------------------------------------------------------------
         # Spilled amount columns (computed from the input ranges)
@@ -113,12 +151,12 @@ def write_trade_inputs(
 
         # Outgoing (team-scoped)
         worksheet.write_dynamic_array_formula(
-            TRADE_INPUT_START_ROW,
-            tb.trade.out_cap_col,
-            TRADE_INPUT_START_ROW,
-            tb.trade.out_cap_col,
+            r_in_start,
+            COL_OUT_CAP,
+            r_in_start,
+            COL_OUT_CAP,
             formulas.map_input_names_to_amount(
-                names_range=f"MxT{tb.idx}OutNames",
+                names_range=f"MxT{idx}OutNames",
                 team_code_expr=team_code_name,
                 year_expr="MxYear",
                 amount_col="cap_amount",
@@ -127,12 +165,12 @@ def write_trade_inputs(
             fmts["trade_value"],
         )
         worksheet.write_dynamic_array_formula(
-            TRADE_INPUT_START_ROW,
-            tb.trade.out_tax_col,
-            TRADE_INPUT_START_ROW,
-            tb.trade.out_tax_col,
+            r_in_start,
+            COL_OUT_TAX,
+            r_in_start,
+            COL_OUT_TAX,
             formulas.map_input_names_to_amount(
-                names_range=f"MxT{tb.idx}OutNames",
+                names_range=f"MxT{idx}OutNames",
                 team_code_expr=team_code_name,
                 year_expr="MxYear",
                 amount_col="tax_amount",
@@ -141,12 +179,12 @@ def write_trade_inputs(
             fmts["trade_value"],
         )
         worksheet.write_dynamic_array_formula(
-            TRADE_INPUT_START_ROW,
-            tb.trade.out_apron_col,
-            TRADE_INPUT_START_ROW,
-            tb.trade.out_apron_col,
+            r_in_start,
+            COL_OUT_APRON,
+            r_in_start,
+            COL_OUT_APRON,
             formulas.map_input_names_to_amount(
-                names_range=f"MxT{tb.idx}OutNames",
+                names_range=f"MxT{idx}OutNames",
                 team_code_expr=team_code_name,
                 year_expr="MxYear",
                 amount_col="outgoing_apron_amount",
@@ -157,12 +195,12 @@ def write_trade_inputs(
 
         # Incoming (league-wide)
         worksheet.write_dynamic_array_formula(
-            TRADE_INPUT_START_ROW,
-            tb.trade.in_cap_col,
-            TRADE_INPUT_START_ROW,
-            tb.trade.in_cap_col,
+            r_in_start,
+            COL_IN_CAP,
+            r_in_start,
+            COL_IN_CAP,
             formulas.map_input_names_to_amount(
-                names_range=f"MxT{tb.idx}InNames",
+                names_range=f"MxT{idx}InNames",
                 team_code_expr=team_code_name,
                 year_expr="MxYear",
                 amount_col="incoming_cap_amount",
@@ -171,12 +209,12 @@ def write_trade_inputs(
             fmts["trade_value"],
         )
         worksheet.write_dynamic_array_formula(
-            TRADE_INPUT_START_ROW,
-            tb.trade.in_tax_col,
-            TRADE_INPUT_START_ROW,
-            tb.trade.in_tax_col,
+            r_in_start,
+            COL_IN_TAX,
+            r_in_start,
+            COL_IN_TAX,
             formulas.map_input_names_to_amount(
-                names_range=f"MxT{tb.idx}InNames",
+                names_range=f"MxT{idx}InNames",
                 team_code_expr=team_code_name,
                 year_expr="MxYear",
                 amount_col="incoming_tax_amount",
@@ -185,12 +223,12 @@ def write_trade_inputs(
             fmts["trade_value"],
         )
         worksheet.write_dynamic_array_formula(
-            TRADE_INPUT_START_ROW,
-            tb.trade.in_apron_col,
-            TRADE_INPUT_START_ROW,
-            tb.trade.in_apron_col,
+            r_in_start,
+            COL_IN_APRON,
+            r_in_start,
+            COL_IN_APRON,
             formulas.map_input_names_to_amount(
-                names_range=f"MxT{tb.idx}InNames",
+                names_range=f"MxT{idx}InNames",
                 team_code_expr=team_code_name,
                 year_expr="MxYear",
                 amount_col="incoming_apron_amount",
@@ -200,27 +238,26 @@ def write_trade_inputs(
         )
 
         # ------------------------------------------------------------------
-        # Per-team summary rows (totals, allowed, posture)
+        # Summary rows
         # ------------------------------------------------------------------
 
-        worksheet.write(TRADE_TOTAL_ROW, tb.trade.out_name_col, "Outgoing", fmts["trade_label"])
-        worksheet.write_formula(TRADE_TOTAL_ROW, tb.trade.out_cap_col, f"=MxT{tb.idx}OutCapTotal", fmts["trade_value"])
-        worksheet.write_formula(TRADE_TOTAL_ROW, tb.trade.out_tax_col, f"=MxT{tb.idx}OutTaxTotal", fmts["trade_value"])
-        worksheet.write_formula(TRADE_TOTAL_ROW, tb.trade.out_apron_col, f"=MxT{tb.idx}OutApronTotal", fmts["trade_value"])
+        worksheet.write(r_total, COL_OUT_NAME, "Outgoing", fmts["trade_label"])
+        worksheet.write_formula(r_total, COL_OUT_CAP, f"=MxT{idx}OutCapTotal", fmts["trade_value"])
+        worksheet.write_formula(r_total, COL_OUT_TAX, f"=MxT{idx}OutTaxTotal", fmts["trade_value"])
+        worksheet.write_formula(r_total, COL_OUT_APRON, f"=MxT{idx}OutApronTotal", fmts["trade_value"])
 
-        worksheet.write(TRADE_TOTAL_ROW, tb.trade.in_name_col, "Incoming", fmts["trade_label"])
-        worksheet.write_formula(TRADE_TOTAL_ROW, tb.trade.in_cap_col, f"=MxT{tb.idx}InCapTotal", fmts["trade_value"])
-        worksheet.write_formula(TRADE_TOTAL_ROW, tb.trade.in_tax_col, f"=MxT{tb.idx}InTaxTotal", fmts["trade_value"])
-        worksheet.write_formula(TRADE_TOTAL_ROW, tb.trade.in_apron_col, f"=MxT{tb.idx}InApronTotal", fmts["trade_value"])
+        worksheet.write(r_total, COL_IN_NAME, "Incoming", fmts["trade_label"])
+        worksheet.write_formula(r_total, COL_IN_CAP, f"=MxT{idx}InCapTotal", fmts["trade_value"])
+        worksheet.write_formula(r_total, COL_IN_TAX, f"=MxT{idx}InTaxTotal", fmts["trade_value"])
+        worksheet.write_formula(r_total, COL_IN_APRON, f"=MxT{idx}InApronTotal", fmts["trade_value"])
 
-        worksheet.write(TRADE_ALLOWED_ROW, tb.trade.out_name_col, "Allowed In", fmts["trade_label"])
-        worksheet.write_formula(TRADE_ALLOWED_ROW, tb.trade.out_cap_col, f"=MxT{tb.idx}AllowedInCap", fmts["trade_value"])
+        worksheet.write(r_allowed, COL_OUT_NAME, "Allowed In", fmts["trade_label"])
+        worksheet.write_formula(r_allowed, COL_OUT_CAP, f"=MxT{idx}AllowedInCap", fmts["trade_value"])
 
-        worksheet.write(TRADE_STATUS_ROW, tb.trade.out_name_col, "Works?", fmts["trade_label"])
-        worksheet.write_formula(TRADE_STATUS_ROW, tb.trade.out_cap_col, f"=MxT{tb.idx}Works", fmts["trade_status"])
+        worksheet.write(r_status, COL_OUT_NAME, "Works?", fmts["trade_label"])
+        worksheet.write_formula(r_status, COL_OUT_CAP, f"=MxT{idx}Works", fmts["trade_status"])
 
-        # Works cell badge styling (green/red)
-        works_cell = f"{col_letter(tb.trade.out_cap_col)}{TRADE_STATUS_ROW + 1}"
+        works_cell = f"{col_letter(COL_OUT_CAP)}{r_status + 1}"
         worksheet.conditional_format(
             works_cell,
             {"type": "formula", "criteria": f'={works_cell}="Yes"', "format": fmts["trade_status_valid"]},
@@ -230,25 +267,22 @@ def write_trade_inputs(
             {"type": "formula", "criteria": f'={works_cell}="No"', "format": fmts["trade_status_invalid"]},
         )
 
-        # Fill posture (Sean convention, knobs live in Trade Details)
-        worksheet.write(TRADE_FILL12_ROW, tb.trade.out_name_col, "Fill (to 12)", fmts["trade_label"])
-        worksheet.write_formula(TRADE_FILL12_ROW, tb.trade.out_cap_col, f"=MxT{tb.idx}Fill12Amount", fmts["trade_value"])
+        worksheet.write(r_fill12, COL_OUT_NAME, "Fill (to 12)", fmts["trade_label"])
+        worksheet.write_formula(r_fill12, COL_OUT_CAP, f"=MxT{idx}Fill12Amount", fmts["trade_value"])
 
-        worksheet.write(TRADE_FILL14_ROW, tb.trade.out_name_col, "Fill (to 14)", fmts["trade_label"])
-        worksheet.write_formula(TRADE_FILL14_ROW, tb.trade.out_cap_col, f"=MxT{tb.idx}Fill14Amount", fmts["trade_value"])
+        worksheet.write(r_fill14, COL_OUT_NAME, "Fill (to 14)", fmts["trade_label"])
+        worksheet.write_formula(r_fill14, COL_OUT_CAP, f"=MxT{idx}Fill14Amount", fmts["trade_value"])
 
-        worksheet.write(TRADE_FILL_TOTAL_ROW, tb.trade.out_name_col, "Fill Total", fmts["trade_label"])
-        worksheet.write_formula(TRADE_FILL_TOTAL_ROW, tb.trade.out_cap_col, f"=MxT{tb.idx}FillAmount", fmts["trade_value"])
+        worksheet.write(r_fill_total, COL_OUT_NAME, "Fill Total", fmts["trade_label"])
+        worksheet.write_formula(r_fill_total, COL_OUT_CAP, f"=MxT{idx}FillAmount", fmts["trade_value"])
 
-        # Apron room (post trade, with fill)
-        worksheet.write(TRADE_APRON1_ROOM_ROW, tb.trade.out_name_col, "Apron1 Room", fmts["trade_label"])
-        worksheet.write_formula(TRADE_APRON1_ROOM_ROW, tb.trade.out_cap_col, f"=MxT{tb.idx}RoomUnderApron1Post", fmts["trade_value"])
+        worksheet.write(r_apr1, COL_OUT_NAME, "Apron1 Room", fmts["trade_label"])
+        worksheet.write_formula(r_apr1, COL_OUT_CAP, f"=MxT{idx}RoomUnderApron1Post", fmts["trade_value"])
 
-        worksheet.write(TRADE_APRON2_ROOM_ROW, tb.trade.out_name_col, "Apron2 Room", fmts["trade_label"])
-        worksheet.write_formula(TRADE_APRON2_ROOM_ROW, tb.trade.out_cap_col, f"=MxT{tb.idx}RoomUnderApron2Post", fmts["trade_value"])
+        worksheet.write(r_apr2, COL_OUT_NAME, "Apron2 Room", fmts["trade_label"])
+        worksheet.write_formula(r_apr2, COL_OUT_CAP, f"=MxT{idx}RoomUnderApron2Post", fmts["trade_value"])
 
-        # Conditional formatting: green if >=0, red if <0
-        for rr in [TRADE_APRON1_ROOM_ROW, TRADE_APRON2_ROOM_ROW]:
-            cell = f"{col_letter(tb.trade.out_cap_col)}{rr + 1}"
+        for rr in [r_apr1, r_apr2]:
+            cell = f"{col_letter(COL_OUT_CAP)}{rr + 1}"
             worksheet.conditional_format(cell, {"type": "cell", "criteria": ">=", "value": 0, "format": fmts["trade_delta_pos"]})
             worksheet.conditional_format(cell, {"type": "cell", "criteria": "<", "value": 0, "format": fmts["trade_delta_neg"]})

@@ -35,14 +35,19 @@ from .extract import (
     extract_draft_picks_warehouse,
 )
 from .xlsx import (
-    COLOR_OPTION_PO,
-    COLOR_OPTION_TO,
-    COLOR_OPTION_ETO,
+    COLOR_OPTION_PO_BG,
+    COLOR_OPTION_TO_BG,
+    COLOR_TRADE_KICKER_BG,
     create_standard_formats,
     write_table,
     set_workbook_default_font,
 )
-from .sheets import write_meta_sheet, write_playground_sheet, write_matrix_sheet
+from .sheets import (
+    write_meta_sheet,
+    write_playground_sheet,
+    write_contract_calculator_sheet,
+    write_matrix_sheet,
+)
 
 
 # UI sheets
@@ -50,17 +55,19 @@ from .sheets import write_meta_sheet, write_playground_sheet, write_matrix_sheet
 # We default to multiple scenario sheets so analysts can keep multiple
 # what-if states in a single workbook (duplicate/play with each tab).
 #
-# Tab colors intentionally match the option colors used elsewhere:
-# - A = Player Option blue
-# - B = Team Option purple
-# - C = ETO orange
+# Tab colors intentionally match the *highlight background* colors used elsewhere
+# (see the Legend on each Playground sheet).
+# - A = Player Option (blue tint)
+# - B = Team Option (purple tint)
+# - C = Trade Bonus / Kicker (orange tint)
 PLAYGROUND_TABS: list[tuple[str, str]] = [
-    ("Playground A", COLOR_OPTION_PO),
-    ("Playground B", COLOR_OPTION_TO),
-    ("Playground C", COLOR_OPTION_ETO),
+    ("Playground A", COLOR_OPTION_PO_BG),
+    ("Playground B", COLOR_OPTION_TO_BG),
+    ("Playground C", COLOR_TRADE_KICKER_BG),
 ]
 
 UI_SHEETS = [name for name, _ in PLAYGROUND_TABS] + [
+    "Contract Calculator",
     "Matrix",
     "META",
 ]
@@ -341,6 +348,17 @@ def build_capbook(
                 )
             except Exception as e:
                 _mark_failed(build_meta, f"{pg_name} writer crashed: {e}\n{traceback.format_exc()}")
+
+        # CONTRACT CALCULATOR - standalone deal stream helper
+        try:
+            write_contract_calculator_sheet(
+                workbook,
+                ui_worksheets["Contract Calculator"],
+                formats,
+                base_year=base_year,
+            )
+        except Exception as e:
+            _mark_failed(build_meta, f"Contract Calculator writer crashed: {e}\n{traceback.format_exc()}")
 
         # MATRIX - multi-team trade planner (single tab for now)
         try:

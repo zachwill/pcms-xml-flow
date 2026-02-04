@@ -4,11 +4,10 @@ Includes:
 - Scenario totals + room vs thresholds
 - Exceptions inventory
 - Draft pick ownership summary (team-facing)
-- Contract calculator (hypothetical deal stream + % of cap)
 
 Design:
-- All new inputs/outputs are exposed via **worksheet-scoped names** so analysts
-  can duplicate Playground tabs in Excel and get independent calculators.
+- All outputs remain worksheet-scoped so duplicating a Playground tab stays
+  self-contained.
 """
 
 from __future__ import annotations
@@ -50,8 +49,6 @@ def write_totals(
     workbook: Workbook,
     worksheet: Worksheet,
     fmts: dict[str, Any],
-    *,
-    base_year: int,
 ) -> None:
     """Write the totals block below the roster grid."""
 
@@ -74,14 +71,6 @@ def write_totals(
                 o=off,
                 o1=off + 1,
             )
-        )
-
-    def define_local(name: str, row0: int, col0: int) -> None:
-        """Define a worksheet-scoped name pointing at a single cell."""
-
-        workbook.define_name(
-            f"{sheet_name}!{name}",
-            f"={sheet_ref}!${col_letter(col0)}${row0 + 1}",
         )
 
     # ---------------------------------------------------------------------
@@ -285,20 +274,25 @@ def write_totals(
     worksheet.write(row, COL_PLAYER, "DRAFT PICKS", fmts["totals_section"])
     row += 1
 
-    # Header row: Year + two merged columns for 1st/2nd round text.
+    # Layout: similar to EXCEPTIONS (Type rows + season columns).
+    # Note: the "25-26" season corresponds to the **2026 Draft** (MetaBaseYear+1).
     picks_hdr = row
-    worksheet.write(picks_hdr, COL_RANK, "Year", fmts["trade_header"])
+    worksheet.write(picks_hdr, COL_RANK, "Type", fmts["trade_header"])
 
-    # 1st round block: E..K (wide merged cell)
-    worksheet.merge_range(picks_hdr, COL_PLAYER, picks_hdr, COL_PCT_Y2, "1st Round", fmts["trade_header"])
-
-    # 2nd round block: L..R (wide merged cell)
-    worksheet.merge_range(picks_hdr, COL_SAL_Y3, picks_hdr, COL_TOTAL, "2nd Round", fmts["trade_header"])
+    for i, off in enumerate(YEAR_OFFSETS):
+        worksheet.merge_range(
+            picks_hdr,
+            salary_cols[i],
+            picks_hdr,
+            pct_cols[i],
+            year_label(off),
+            fmts["trade_header"],
+        )
 
     row += 1
 
     def picks_cell(*, year_expr: str, round_num: int) -> str:
-        """Return a TEXTJOIN'd pick ownership string for (SelectedTeam, year, round).
+        """Return a TEXTJOIN'd pick ownership string for (SelectedTeam, draft_year, round).
 
         Adds a small "(!)" suffix if any matching rows are flagged needs_review.
         """
@@ -321,159 +315,26 @@ def write_totals(
             ")"
         )
 
-    pick_years = list(range(7))  # MetaBaseYear+1 .. +7 (e.g. 2026-2032)
-    for i, _ in enumerate(pick_years):
-        r = row + i
-        year_expr = f"MetaBaseYear+{i + 1}"
+    for label, round_num in [("FRP", 1), ("SRP", 2)]:
+        r = row
 
-        # Year label
-        worksheet.write_formula(r, COL_RANK, f"={year_expr}", fmts["trade_label"])
+        worksheet.write(r, COL_RANK, label, fmts["trade_label"])
 
-        # 1st round
-        worksheet.merge_range(
-            r,
-            COL_PLAYER,
-            r,
-            COL_PCT_Y2,
-            picks_cell(year_expr=year_expr, round_num=1),
-            fmts["picks_text"],
-        )
+        for i, off in enumerate(YEAR_OFFSETS):
+            draft_year_expr = f"MetaBaseYear+{off + 1}"
 
-        # 2nd round
-        worksheet.merge_range(
-            r,
-            COL_SAL_Y3,
-            r,
-            COL_TOTAL,
-            picks_cell(year_expr=year_expr, round_num=2),
-            fmts["picks_text"],
-        )
+            worksheet.merge_range(
+                r,
+                salary_cols[i],
+                r,
+                pct_cols[i],
+                picks_cell(year_expr=draft_year_expr, round_num=round_num),
+                fmts["picks_text"],
+            )
 
         # Long text tends to wrap; give it some headroom.
-        worksheet.set_row(r, 30)
+        worksheet.set_row(r, 32)
 
-    row = row + len(pick_years) + 1
+        row += 1
 
-    # ---------------------------------------------------------------------
-    # CONTRACT CALCULATOR (hypothetical stream)
-    # ---------------------------------------------------------------------
-
-    worksheet.write(row, COL_PLAYER, "CONTRACT CALCULATOR", fmts["totals_section"])
-    for i, off in enumerate(YEAR_OFFSETS):
-        worksheet.write_formula(row, salary_cols[i], year_label(off), fmts["totals_section"])
     row += 1
-
-    # Inputs (worksheet-scoped)
-    season_labels = [f"{(base_year + off) % 100:02d}-{(base_year + off + 1) % 100:02d}" for off in range(6)]
-    default_season = season_labels[1] if len(season_labels) > 1 else season_labels[0]
-
-    input_row = row
-
-    # Start season
-    worksheet.write(input_row, COL_RANK, "Start:", fmts["trade_label"])
-    worksheet.write(input_row, COL_PLAYER, default_season, fmts["input_season"])
-    worksheet.data_validation(input_row, COL_PLAYER, input_row, COL_PLAYER, {"validate": "list", "source": season_labels})
-    define_local("CcStartSeason", input_row, COL_PLAYER)
-    input_row += 1
-
-    # Contract years
-    worksheet.write(input_row, COL_RANK, "Yrs:", fmts["trade_label"])
-    worksheet.write(input_row, COL_PLAYER, 4, fmts["input_int_right"])
-    worksheet.data_validation(input_row, COL_PLAYER, input_row, COL_PLAYER, {"validate": "integer", "criteria": "between", "minimum": 1, "maximum": 6})
-    define_local("CcYears", input_row, COL_PLAYER)
-    input_row += 1
-
-    # Raise %
-    worksheet.write(input_row, COL_RANK, "Raise:", fmts["trade_label"])
-    worksheet.write(input_row, COL_PLAYER, 0.08, fmts["input_pct"])
-    worksheet.data_validation(input_row, COL_PLAYER, input_row, COL_PLAYER, {"validate": "decimal", "criteria": "between", "minimum": 0, "maximum": 0.25})
-    define_local("CcRaisePct", input_row, COL_PLAYER)
-    input_row += 1
-
-    # Start salary (optional)
-    worksheet.write(input_row, COL_RANK, "Start $:", fmts["trade_label"])
-    worksheet.write(input_row, COL_PLAYER, "", fmts["input_money"])
-    define_local("CcStartSalaryIn", input_row, COL_PLAYER)
-    input_row += 1
-
-    # Contract total (optional)
-    worksheet.write(input_row, COL_RANK, "Total $:", fmts["trade_label"])
-    worksheet.write(input_row, COL_PLAYER, "", fmts["input_money"])
-    define_local("CcTotalIn", input_row, COL_PLAYER)
-    input_row += 1
-
-    # Output row (aligned to salary/% columns)
-    output_row = input_row + 1
-
-    # Parse helpers (inline expressions)
-    start_year_expr = "IFERROR(2000+VALUE(LEFT(TRIM(CcStartSeason),2)),0)"
-
-    def parse_amount_expr(cell_name: str) -> str:
-        # Supports numeric, "15000000", and "15M".
-        return (
-            "LET(_xlpm.v," + cell_name + ","
-            "IF(_xlpm.v=\"\",0,"
-            "IF(ISNUMBER(_xlpm.v),_xlpm.v,"
-            "LET(_xlpm.t,TRIM(_xlpm.v),_xlpm.last,RIGHT(_xlpm.t,1),"
-            "IF(OR(_xlpm.last=\"M\",_xlpm.last=\"m\"),"
-            "IFERROR(VALUE(LEFT(_xlpm.t,LEN(_xlpm.t)-1))*1000000,0),"
-            "IFERROR(VALUE(_xlpm.t),0)"
-            ")"
-            ")"
-            ")"
-            ")"
-            ")"
-        )
-
-    start_salary_amt = parse_amount_expr("CcStartSalaryIn")
-    total_amt = parse_amount_expr("CcTotalIn")
-
-    def salary_stream_cell(*, year_expr: str) -> str:
-        """Return cap salary for the hypothetical contract in a given salary_year."""
-
-        return (
-            "=LET("  # noqa: ISC003
-            f"_xlpm.y,{year_expr},"
-            f"_xlpm.start,{start_year_expr},"
-            "_xlpm.n,MAX(1,MIN(6,IFERROR(INT(CcYears),0))),"
-            "_xlpm.r,IFERROR(CcRaisePct,0),"
-            f"_xlpm.startIn,{start_salary_amt},"
-            f"_xlpm.totIn,{total_amt},"
-            "_xlpm.coeff,_xlpm.n+_xlpm.r*(_xlpm.n*(_xlpm.n-1)/2),"
-            "_xlpm.s0,IF(_xlpm.startIn>0,_xlpm.startIn,IF(AND(_xlpm.totIn>0,_xlpm.coeff>0),_xlpm.totIn/_xlpm.coeff,0)),"
-            "_xlpm.t,_xlpm.y-_xlpm.start,"
-            "IF(OR(_xlpm.start=0,_xlpm.t<0,_xlpm.t>=_xlpm.n),0,_xlpm.s0*(1+_xlpm.t*_xlpm.r))"
-            ")"
-        )
-
-    # Label + Total (sum of visible horizon)
-    worksheet.write(output_row, COL_PLAYER, "Stream", fmts["totals_label"])
-
-    salary_cells: list[str] = []
-    for i, off in enumerate(YEAR_OFFSETS):
-        year_expr = f"MetaBaseYear+{off}" if off else "MetaBaseYear"
-
-        sal_col = salary_cols[i]
-        pct_col = pct_cols[i]
-
-        # Salary
-        worksheet.write_formula(output_row, sal_col, salary_stream_cell(year_expr=year_expr), fmts["money_m"])
-
-        sal_a1 = f"{col_letter(sal_col)}{output_row + 1}"
-        salary_cells.append(sal_a1)
-
-        # % of cap
-        cap_level = f"XLOOKUP({year_expr},tbl_system_values[salary_year],tbl_system_values[salary_cap_amount])"
-        worksheet.write_formula(
-            output_row,
-            pct_col,
-            f"=IF({sal_a1}=0,\"-\",IFERROR({sal_a1}/{cap_level},0))",
-            fmts["pct"],
-        )
-
-        # Worksheet-scoped names for each horizon year (easy to reference from SIGN)
-        define_local(f"CcSalary{off}", output_row, sal_col)
-
-    # Total across the visible horizon (not necessarily full contract if it extends beyond base+5)
-    worksheet.write_formula(output_row, COL_TOTAL, "=SUM(" + ",".join(salary_cells) + ")", fmts["money_m"])
-    define_local("CcTotal", output_row, COL_TOTAL)

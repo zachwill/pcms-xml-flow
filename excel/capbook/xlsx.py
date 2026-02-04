@@ -50,6 +50,13 @@ COLOR_OPTION_PO = "#3B82F6"  # blue-500-ish
 COLOR_OPTION_TO = "#8B5CF6"  # purple-500-ish
 COLOR_OPTION_ETO = "#F97316"  # orange-500-ish
 
+# Highlight background tints (table cell fills, Excel tab colors)
+# web: option/trade highlight backgrounds in SalaryBook tables
+COLOR_OPTION_PO_BG = "#DBEAFE"  # blue-100
+COLOR_OPTION_TO_BG = "#EDE9FE"  # purple-100
+COLOR_TRADE_KICKER_BG = "#FFEDD5"  # orange-100
+COLOR_TRADE_RESTRICTION_BG = "#FEE2E2"  # red-100
+
 # Guarantee badge colors
 # web: GuaranteeBadge.tsx
 COLOR_GTD_FULL = "#16A34A"  # green-600-ish

@@ -8,7 +8,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from ...xlsx import DEFAULT_FONT, DEFAULT_FONT_SIZE
+from ...xlsx import (
+    DEFAULT_FONT,
+    DEFAULT_FONT_SIZE,
+    COLOR_OPTION_PO_BG,
+    COLOR_OPTION_TO_BG,
+    COLOR_TRADE_KICKER_BG,
+    COLOR_TRADE_RESTRICTION_BG,
+)
 
 
 def create_playground_formats(workbook, shared: dict[str, Any]) -> dict[str, Any]:
@@ -130,17 +137,17 @@ def create_playground_formats(workbook, shared: dict[str, Any]) -> dict[str, Any
 
     # Contract option highlights (conditional formatting)
     # Team Option (TO) - purple background matching web
-    fmts["option_team"] = workbook.add_format({**base_font, "bg_color": "#EDE9FE", "font_color": "#7C3AED"})
+    fmts["option_team"] = workbook.add_format({**base_font, "bg_color": COLOR_OPTION_TO_BG, "font_color": "#7C3AED"})
     # Player Option (PO) - blue background matching web
-    fmts["option_player"] = workbook.add_format({**base_font, "bg_color": "#DBEAFE", "font_color": "#1D4ED8"})
+    fmts["option_player"] = workbook.add_format({**base_font, "bg_color": COLOR_OPTION_PO_BG, "font_color": "#1D4ED8"})
 
     # Trade restrictions (conditional formatting)
     # Web uses red-100/60 + red-700 for no-trade / consent / trade restricted.
-    fmts["trade_restriction"] = workbook.add_format({**base_font, "bg_color": "#FEE2E2", "font_color": "#B91C1C"})
+    fmts["trade_restriction"] = workbook.add_format({**base_font, "bg_color": COLOR_TRADE_RESTRICTION_BG, "font_color": "#B91C1C"})
 
     # Trade kicker / trade bonus (conditional formatting)
     # Web uses orange for trade kickers.
-    fmts["trade_kicker"] = workbook.add_format({**base_font, "bg_color": "#FFEDD5", "font_color": "#C2410C"})
+    fmts["trade_kicker"] = workbook.add_format({**base_font, "bg_color": COLOR_TRADE_KICKER_BG, "font_color": "#C2410C"})
 
     # Two-way salary display (conditional formatting): show "Two-Way" instead of "-".
     fmts["two_way_salary"] = workbook.add_format(
@@ -162,7 +169,7 @@ def create_playground_formats(workbook, shared: dict[str, Any]) -> dict[str, Any
             "font_size": 9,
             "align": "right",
             "bold": True,
-            "bg_color": "#EDE9FE",
+            "bg_color": COLOR_OPTION_TO_BG,
             "font_color": "#7C3AED",
             "num_format": '"Two-Way";"Two-Way";"Two-Way";"Two-Way"',
         }

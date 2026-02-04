@@ -12,6 +12,8 @@ from ..layout import (
     COL_TRADE_LABEL,
     COL_TRADE_VALUE,
     ROW_DAYS_IN_SEASON,
+    ROW_FILL_TO_12_TYPE,
+    ROW_FILL_TO_14_TYPE,
     ROW_IN_DAYS,
     ROW_OUT_DAYS,
     ROW_SIGN_DATE,
@@ -59,12 +61,17 @@ def write_setup(
     worksheet.set_column(COL_TRADE_LABEL, COL_TRADE_LABEL, 16, fmts["trade_label"])
     worksheet.set_column(COL_TRADE_VALUE, COL_TRADE_VALUE, 14, fmts["trade_value"])
 
-    # Trade input blocks: set widths for the key name + cap columns.
+    # Trade input blocks: set widths for name + cap/tax/apron columns.
     for tb in TEAM_BLOCKS:
         worksheet.set_column(tb.trade.out_name_col, tb.trade.out_name_col, 18, fmts["player"])
         worksheet.set_column(tb.trade.out_cap_col, tb.trade.out_cap_col, 12, fmts["trade_value"])
+        worksheet.set_column(tb.trade.out_tax_col, tb.trade.out_tax_col, 12, fmts["trade_value"])
+        worksheet.set_column(tb.trade.out_apron_col, tb.trade.out_apron_col, 12, fmts["trade_value"])
+
         worksheet.set_column(tb.trade.in_name_col, tb.trade.in_name_col, 18, fmts["player"])
         worksheet.set_column(tb.trade.in_cap_col, tb.trade.in_cap_col, 12, fmts["trade_value"])
+        worksheet.set_column(tb.trade.in_tax_col, tb.trade.in_tax_col, 12, fmts["trade_value"])
+        worksheet.set_column(tb.trade.in_apron_col, tb.trade.in_apron_col, 12, fmts["trade_value"])
 
     # ------------------------------------------------------------------
     # Freeze top 2 rows (team labels + small header bar)
@@ -184,18 +191,23 @@ def write_setup(
         f"={sheet_ref}!${col_letter(COL_TRADE_VALUE)}${ROW_TRADE_DATE + 1}",
     )
 
-    # Sign delay (days) input (Matrix-style default = 14)
-    worksheet.write(ROW_SIGN_DELAY, COL_TRADE_LABEL, "Sign Delay (days):", fmts["trade_label"])
-    worksheet.write(ROW_SIGN_DELAY, COL_TRADE_VALUE, 14, fmts["input_int_right"])
+    # Delay to 14: for pricing the fill-to-14 minimums (Matrix-style +14).
+    # Keep the same "knob" UX as PLAYGROUND.
+    worksheet.write(ROW_SIGN_DELAY, COL_TRADE_LABEL, "Delay To 14:", fmts["trade_label"])
+
+    delay_opts = ["Immediate", "1 Day"] + [f"{d} Days" for d in range(2, 15)]
+    worksheet.write(ROW_SIGN_DELAY, COL_TRADE_VALUE, "14 Days", fmts["input_right"])
     worksheet.data_validation(
         ROW_SIGN_DELAY,
         COL_TRADE_VALUE,
         ROW_SIGN_DELAY,
         COL_TRADE_VALUE,
-        {"validate": "integer", "criteria": "between", "minimum": 0, "maximum": 30},
+        {"validate": "list", "source": delay_opts},
     )
+
+    # Store the label; numeric delay days are derived in the hidden calc block.
     workbook.define_name(
-        f"{sheet_name}!MxSignDelayDays",
+        f"{sheet_name}!MxSignDelayLabel",
         f"={sheet_ref}!${col_letter(COL_TRADE_VALUE)}${ROW_SIGN_DELAY + 1}",
     )
 
@@ -241,6 +253,48 @@ def write_setup(
         f"={sheet_ref}!${col_letter(COL_TRADE_VALUE)}${ROW_IN_DAYS + 1}",
     )
 
+    # ------------------------------------------------------------------
+    # Fill assumptions (Sean parity knobs, same as PLAYGROUND)
+    # ------------------------------------------------------------------
+
+    worksheet.write(ROW_FILL_TO_12_TYPE, COL_TRADE_LABEL, "To 12:", fmts["trade_label"])
+    worksheet.write(ROW_FILL_TO_12_TYPE, COL_TRADE_VALUE, "ROOKIE", fmts["input_right"])
+    worksheet.data_validation(
+        ROW_FILL_TO_12_TYPE,
+        COL_TRADE_VALUE,
+        ROW_FILL_TO_12_TYPE,
+        COL_TRADE_VALUE,
+        {"validate": "list", "source": ["ROOKIE", "VET"]},
+    )
+    workbook.define_name(
+        f"{sheet_name}!MxFillTo12MinType",
+        f"={sheet_ref}!${col_letter(COL_TRADE_VALUE)}${ROW_FILL_TO_12_TYPE + 1}",
+    )
+
+    worksheet.write(ROW_FILL_TO_14_TYPE, COL_TRADE_LABEL, "To 14:", fmts["trade_label"])
+    worksheet.write(ROW_FILL_TO_14_TYPE, COL_TRADE_VALUE, "VET", fmts["input_right"])
+    worksheet.data_validation(
+        ROW_FILL_TO_14_TYPE,
+        COL_TRADE_VALUE,
+        ROW_FILL_TO_14_TYPE,
+        COL_TRADE_VALUE,
+        {"validate": "list", "source": ["VET", "ROOKIE"]},
+    )
+    workbook.define_name(
+        f"{sheet_name}!MxFillTo14MinType",
+        f"={sheet_ref}!${col_letter(COL_TRADE_VALUE)}${ROW_FILL_TO_14_TYPE + 1}",
+    )
+
     # Verdict display cell
     worksheet.write(0, COL_TRADE_LABEL - 1, "Verdict", fmts["trade_header"])
     worksheet.write_formula(0, COL_TRADE_LABEL, "=MxVerdict", fmts["trade_status"])
+
+    verdict_cell = f"{col_letter(COL_TRADE_LABEL)}1"
+    worksheet.conditional_format(
+        verdict_cell,
+        {"type": "formula", "criteria": f'={verdict_cell}="Trade Works"', "format": fmts["trade_status_valid"]},
+    )
+    worksheet.conditional_format(
+        verdict_cell,
+        {"type": "formula", "criteria": f'={verdict_cell}="Does Not Work"', "format": fmts["trade_status_invalid"]},
+    )

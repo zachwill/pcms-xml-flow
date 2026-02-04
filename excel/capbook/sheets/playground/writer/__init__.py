@@ -51,4 +51,4 @@ def write_playground_sheet(
         salary_book_yearly_nrows=salary_book_yearly_nrows,
         salary_book_warehouse_nrows=salary_book_warehouse_nrows,
     )
-    write_totals(worksheet, fmts)
+    write_totals(workbook, worksheet, fmts, base_year=base_year)

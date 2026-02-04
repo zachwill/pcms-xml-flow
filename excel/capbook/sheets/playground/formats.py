@@ -252,4 +252,21 @@ def create_playground_formats(workbook, shared: dict[str, Any]) -> dict[str, Any
         "font_size": 10,
     })
 
+    # Percent input (used in Contract Calculator blocks)
+    fmts["input_pct"] = workbook.add_format({
+        **base_font,
+        "bg_color": "#FFFDE7",
+        "locked": False,
+        "align": "right",
+        "num_format": "0.0%",
+    })
+
+    # Draft picks display (long text)
+    fmts["picks_text"] = workbook.add_format({
+        **base_font,
+        "font_size": 9,
+        "text_wrap": True,
+        "valign": "top",
+    })
+
     return fmts

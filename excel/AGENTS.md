@@ -131,6 +131,7 @@ This is what makes “duplicate a Playground tab” work for multiple scenarios.
 | `TradeOutNames` / `TradeInNames` | Trade scenario inputs |
 | `WaivedNames` / `StretchNames` | Waive/stretch inputs |
 | `SignYears` / `SignNames` / `SignSalaries` | Signing inputs (multi-year; defaults to next season) |
+| `CcStartSeason` / `CcYears` / `CcRaisePct` / `CcStartSalaryIn` / `CcTotalIn` / `CcSalary{0-5}` / `CcTotal` | Contract calculator inputs + computed salary stream (aligned to 6-year horizon) |
 | `FillEventDate` / `FillDelayDays` | Roster-fill pricing date + delay window (Matrix-style +14 supported) |
 | `FillTo12MinType` / `FillTo14MinType` | Roster-fill basis selection (rookie vs vet minimum assumptions) |
 | `MetaBaseYear` / `MetaAsOfDate` | From META sheet |

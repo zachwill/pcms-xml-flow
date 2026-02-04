@@ -27,6 +27,7 @@ def write_inputs(
     worksheet: Worksheet,
     fmts: dict[str, Any],
     *,
+    base_year: int,
     salary_book_yearly_nrows: int,
     salary_book_warehouse_nrows: int,
     as_of: "date | None" = None,
@@ -48,6 +49,12 @@ def write_inputs(
     sbw_rows = max(int(salary_book_warehouse_nrows), 1)
     sbw_end = sbw_rows + 1  # header is row 1; data starts at row 2
     player_list_source = f"=DATA_salary_book_warehouse!$B$2:$B${sbw_end}"
+
+    # Season labels for multi-year SIGN inputs.
+    # Example (base_year=2025): ["25-26","26-27",...]
+    season_labels = [
+        f"{(base_year + off) % 100:02d}-{(base_year + off + 1) % 100:02d}" for off in range(6)
+    ]
 
     # ---------------------------------------------------------------------
     # TRADE OUT
@@ -122,16 +129,46 @@ def write_inputs(
     input_row += 1
 
     # ---------------------------------------------------------------------
-    # SIGN (v1: base-year only)
+    # SIGN (multi-year)
     # ---------------------------------------------------------------------
     worksheet.write(input_row, COL_SECTION_LABEL, "SIGN", fmts["section"])
     input_row += 1
     sign_start = input_row
+
+    # Default to *next* cap year for a better planning workflow.
+    default_sign_season = season_labels[1] if len(season_labels) > 1 else season_labels[0]
+
     for _ in range(SIGN_SLOTS):
+        # Season selector (Column A)
+        worksheet.write(input_row, COL_SECTION_LABEL, default_sign_season, fmts["input_season"])
+        worksheet.data_validation(
+            input_row,
+            COL_SECTION_LABEL,
+            input_row,
+            COL_SECTION_LABEL,
+            {"validate": "list", "source": season_labels},
+        )
+
+        # Player name (Column B)
         worksheet.write(input_row, COL_INPUT, "", fmts["input"])
+        worksheet.data_validation(
+            input_row,
+            COL_INPUT,
+            input_row,
+            COL_INPUT,
+            {"validate": "list", "source": player_list_source},
+        )
+
+        # Salary input (Column C): allow numbers (15000000) or text like "15M".
         worksheet.write(input_row, COL_INPUT_SALARY, "", fmts["input_money"])
         input_row += 1
+
     sign_end = input_row - 1
+
+    workbook.define_name(
+        f"{sheet_name}!SignYears",
+        f"={sheet_ref}!$A${sign_start + 1}:$A${sign_end + 1}",
+    )
     workbook.define_name(
         f"{sheet_name}!SignNames",
         f"={sheet_ref}!$B${sign_start + 1}:$B${sign_end + 1}",

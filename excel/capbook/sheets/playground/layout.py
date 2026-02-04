@@ -42,7 +42,7 @@ TRADE_OUT_SLOTS = 6
 TRADE_IN_SLOTS = 6
 WAIVE_SLOTS = 3
 STRETCH_SLOTS = 3
-SIGN_SLOTS = 2
+SIGN_SLOTS = 3
 
 # Visible year offsets in the grid
 YEAR_OFFSETS = [0, 1, 2, 3, 4, 5]

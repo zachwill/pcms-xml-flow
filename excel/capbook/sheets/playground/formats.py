@@ -243,4 +243,13 @@ def create_playground_formats(workbook, shared: dict[str, Any]) -> dict[str, Any
     fmts["input_int_right"] = workbook.add_format({**base_font, "bg_color": "#FFFDE7", "locked": False, "align": "right", "num_format": "0"})
     fmts["input_date_right"] = workbook.add_format({**base_font, "bg_color": "#FFFDE7", "locked": False, "align": "right", "num_format": "yyyy-mm-dd"})
 
+    # Season selector (used in SIGN rows, Column A)
+    fmts["input_season"] = workbook.add_format({
+        **base_font,
+        "bg_color": "#FFFDE7",
+        "locked": False,
+        "align": "center",
+        "font_size": 10,
+    })
+
     return fmts

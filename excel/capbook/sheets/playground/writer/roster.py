@@ -67,12 +67,19 @@ def write_roster(
     names_spill = f"ANCHORARRAY({names_anchor})"
 
     # Rank (D4 spill) - skips traded/waived/stretched players
+    #
+    # We key off the *base-year salary column* so future-year-only signings
+    # (and other 0-salary placeholder rows) don't inflate the base-year roster
+    # count.
+    sal_y0_anchor = f"{col_letter(COL_SAL_Y0)}{roster_start + 1}"  # e.g. F4
+    sal_y0_spill = f"ANCHORARRAY({sal_y0_anchor})"
+
     worksheet.write_dynamic_array_formula(
         roster_start,
         COL_RANK,
         roster_start,
         COL_RANK,
-        formulas.roster_rank_column(names_spill=names_spill),
+        formulas.roster_rank_column(names_spill=names_spill, base_salary_spill=sal_y0_spill),
         fmts["rank"],
     )
 

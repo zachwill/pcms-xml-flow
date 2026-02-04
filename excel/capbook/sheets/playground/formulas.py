@@ -120,8 +120,8 @@ def scenario_roster_count(*, year_expr: str) -> str:
         - TradeIn adds ONLY if the player has an incoming contract row in that year
           (incoming_cap_amount non-blank). Also avoids double-counting names already
           present on the team that year.
-        - Sign applies to base year only and avoids double-counting names already
-          on the team in base year.
+        - Sign adds players in the selected SignYears season (year-aware) and avoids
+          double-counting names already on the team in that year.
 
     Note: We intentionally do NOT use tbl_team_salary_warehouse[roster_row_count]
     here. That warehouse rollup can include modeling artifacts; this count should
@@ -164,12 +164,9 @@ def scenario_roster_count(*, year_expr: str) -> str:
         "--ISNUMBER(MATCH(_xlpm.inNames,_xlpm.inYearNames,0))"
         "*IF(_xlpm.baseN=0,1,--ISNA(MATCH(_xlpm.inNames,_xlpm.baseNames,0)))"
         "),0)),"
-        "_xlpm.signNames,IF(_xlpm.y=MetaBaseYear,IFERROR(UNIQUE(FILTER(SignNames,SignNames<>\"\")),\"\"),\"\"),"
-        "_xlpm.sign,IF(_xlpm.y<>MetaBaseYear,0,"
-        "IF(_xlpm.signNames=\"\",0,"
-        "IF(_xlpm.baseN=0,ROWS(_xlpm.signNames),IFERROR(SUM(--ISNA(MATCH(_xlpm.signNames,_xlpm.baseNames,0))),0))"
-        ")"
-        "),"
+        f"_xlpm.signY,{_sign_year_numbers_expr()},"
+        "_xlpm.signNames,IFERROR(UNIQUE(FILTER(SignNames,(SignNames<>\"\")*(SignSalaries<>\"\")*(_xlpm.signY=_xlpm.y))),\"\"),"
+        "_xlpm.sign,IF(OR(_xlpm.signNames=\"\"),0,IF(_xlpm.baseN=0,ROWS(_xlpm.signNames),IFERROR(SUM(--ISNA(MATCH(_xlpm.signNames,_xlpm.baseNames,0))),0))),"
         "MAX(0,_xlpm.baseN-_xlpm.out-_xlpm.waive-_xlpm.stretch+_xlpm.in+_xlpm.sign)"
         ")"
     )
@@ -193,12 +190,75 @@ def as_expr(formula: str) -> str:
     return formula
 
 
+# -----------------------------------------------------------------------------
+# SIGN helpers (multi-year)
+# -----------------------------------------------------------------------------
+
+
+def _sign_year_numbers_expr() -> str:
+    """Expression: map SignYears labels (e.g. "26-27") to numeric salary years (e.g. 2026)."""
+
+    # Heuristic: treat "25-26" as 2025 via 2000 + LEFT(2).
+    # This is sufficient for modern NBA cap years.
+    return (
+        "MAP(SignYears,LAMBDA(_xlpm.v,"
+        "IF(_xlpm.v=\"\",0,"
+        "IF(ISNUMBER(_xlpm.v),INT(_xlpm.v),"
+        "IFERROR(2000+VALUE(LEFT(TRIM(_xlpm.v),2)),0)"
+        ")"
+        ")"
+        "))"
+    )
+
+
+def _sign_salary_amounts_expr() -> str:
+    """Expression: map SignSalaries to numeric dollars.
+
+    Supports:
+    - numeric inputs (15000000)
+    - text with M suffix ("15M" or "15.5m")
+    """
+
+    return (
+        "MAP(SignSalaries,LAMBDA(_xlpm.v,"
+        "IF(_xlpm.v=\"\",0,"
+        "IF(ISNUMBER(_xlpm.v),_xlpm.v,"
+        "LET("
+        "_xlpm.t,TRIM(_xlpm.v),"
+        "_xlpm.last,RIGHT(_xlpm.t,1),"
+        "IF(OR(_xlpm.last=\"M\",_xlpm.last=\"m\"),"
+        "IFERROR(VALUE(LEFT(_xlpm.t,LEN(_xlpm.t)-1))*1000000,0),"
+        "IFERROR(VALUE(_xlpm.t),0)"
+        ")"
+        ")"
+        ")"
+        ")"
+        "))"
+    )
+
+
+def _sign_salary_sum_expr(*, year_expr: str) -> str:
+    """Expression: total sign salary amount for a given salary year."""
+
+    years = _sign_year_numbers_expr()
+    amts = _sign_salary_amounts_expr()
+
+    return (
+        "LET("
+        f"_xlpm.y,{year_expr},"
+        f"_xlpm.signY,{years},"
+        f"_xlpm.signAmt,{amts},"
+        "IFERROR(SUM(FILTER(_xlpm.signAmt,(SignNames<>\"\")*(_xlpm.signY=_xlpm.y)*(_xlpm.signAmt>0))),0)"
+        ")"
+    )
+
+
 def scenario_team_total(*, year_expr: str, year_offset: int) -> str:
     """Scenario cap_total for a year (cap layer).
 
     - Trade Out removes salary (team-scoped)
     - Trade In adds salary (league-wide)
-    - Sign adds salary (base year only)
+    - Sign adds salary (multi-year via SignYears)
     - Waive reclassifies to dead money (net 0 to cap_total)
     - Stretch re-times salary: remove original salaries and add stretched dead money
 
@@ -222,8 +282,8 @@ def scenario_team_total(*, year_expr: str, year_offset: int) -> str:
     stretch_removed = as_expr(sum_names_salary_yearly("StretchNames", year_expr=year_expr, team_scoped=True))
     stretch_dead = as_expr(stretch_dead_money_yearly(year_expr=year_expr))
 
-    # Sign (base year only)
-    sign = "SUM(SignSalaries)" if year_offset == 0 else "0"
+    # Sign (multi-year via SignYears)
+    sign = _sign_salary_sum_expr(year_expr=year_expr)
 
     return (
         "=LET("  # noqa: ISC003
@@ -276,8 +336,8 @@ def scenario_tax_total(*, year_expr: str, year_offset: int) -> str:
     )
     stretch_dead = as_expr(stretch_dead_money_yearly(year_expr=year_expr, amount_col="tax_amount"))
 
-    # Sign (base year only)
-    sign = "SUM(SignSalaries)" if year_offset == 0 else "0"
+    # Sign (multi-year via SignYears)
+    sign = _sign_salary_sum_expr(year_expr=year_expr)
 
     return (
         "=LET("  # noqa: ISC003
@@ -299,7 +359,7 @@ def scenario_apron_total(*, year_expr: str, year_offset: int) -> str:
     - Base: tbl_team_salary_warehouse[apron_total]
     - Trade Out: subtract outgoing_apron_amount (team-scoped)
     - Trade In: add incoming_apron_amount (NOT team-scoped)
-    - Sign: base year only (treated as counting everywhere)
+    - Sign: multi-year via SignYears
     - Waive: v1 semantics (reclassification; net 0)
     - Stretch: remove original apron_amount stream and add stretched dead money
       stream computed from apron_amount.
@@ -334,7 +394,7 @@ def scenario_apron_total(*, year_expr: str, year_offset: int) -> str:
     )
     stretch_dead = as_expr(stretch_dead_money_yearly(year_expr=year_expr, amount_col="apron_amount"))
 
-    sign = "SUM(SignSalaries)" if year_offset == 0 else "0"
+    sign = _sign_salary_sum_expr(year_expr=year_expr)
 
     return (
         "=LET("  # noqa: ISC003
@@ -393,9 +453,10 @@ def roster_names_anchor(*, max_rows: int) -> str:
         "_xlpm.namesY,FILTER(tbl_salary_book_yearly[player_name],tbl_salary_book_yearly[salary_year]=_xlpm.y),"
         "_xlpm.salsY,FILTER(tbl_salary_book_yearly[cap_amount],tbl_salary_book_yearly[salary_year]=_xlpm.y),"
         "_xlpm.salsInY,FILTER(tbl_salary_book_yearly[incoming_cap_amount],tbl_salary_book_yearly[salary_year]=_xlpm.y),"
+        f"_xlpm.signAmt,{_sign_salary_amounts_expr()},"
         "_xlpm.sortSal,MAP(_xlpm.u,LAMBDA(_xlpm.p,"
         "LET("
-        "_xlpm.ss,IFERROR(XLOOKUP(_xlpm.p,SignNames,SignSalaries,0),0),"
+        "_xlpm.ss,IFERROR(XLOOKUP(_xlpm.p,SignNames,_xlpm.signAmt,0),0),"
         "_xlpm.db,IF(COUNTIF(TradeInNames,_xlpm.p)>0,IFERROR(XLOOKUP(_xlpm.p,_xlpm.namesY,_xlpm.salsInY,0),0),IFERROR(XLOOKUP(_xlpm.p,_xlpm.namesY,_xlpm.salsY,0),0)),"
         "IF(_xlpm.ss>0,_xlpm.ss,_xlpm.db)"
         ")"  # close inner LET
@@ -415,29 +476,24 @@ def roster_salary_column(*, names_spill: str, year_expr: str, year_offset: int) 
         `ANCHORARRAY(E4)`, not `E4#`.
     """
 
-    # Sign salaries only apply in base year.
-    if year_offset == 0:
-        sign_override = (
-            "IF(COUNTIF(SignNames,_xlpm.p)>0,IFERROR(XLOOKUP(_xlpm.p,SignNames,SignSalaries,0),0),"
-        )
-        sign_close = ")"
-    else:
-        sign_override = ""
-        sign_close = ""
-
     return (
         "=LET("  # noqa: ISC003
         f"_xlpm.y,{year_expr},"
         "_xlpm.namesY,FILTER(tbl_salary_book_yearly[player_name],tbl_salary_book_yearly[salary_year]=_xlpm.y),"
         "_xlpm.salsY,FILTER(tbl_salary_book_yearly[cap_amount],tbl_salary_book_yearly[salary_year]=_xlpm.y),"
         "_xlpm.salsInY,FILTER(tbl_salary_book_yearly[incoming_cap_amount],tbl_salary_book_yearly[salary_year]=_xlpm.y),"
+        f"_xlpm.signY,{_sign_year_numbers_expr()},"
+        f"_xlpm.signAmt,{_sign_salary_amounts_expr()},"
         f"MAP({names_spill},LAMBDA(_xlpm.p,"
-        f"{sign_override}"
+        "LET("
+        "_xlpm.ss,IFERROR(SUMPRODUCT((SignNames=_xlpm.p)*(_xlpm.signY=_xlpm.y)*(_xlpm.signAmt)),0),"
+        "IF(_xlpm.ss>0,_xlpm.ss,"
         "IF(COUNTIF(TradeInNames,_xlpm.p)>0,"
         "IFERROR(XLOOKUP(_xlpm.p,_xlpm.namesY,_xlpm.salsInY,0),0),"
         "IFERROR(XLOOKUP(_xlpm.p,_xlpm.namesY,_xlpm.salsY,0),0)"
         ")"
-        f"{sign_close}"
+        ")"
+        ")"  # close inner LET
         "))"
         ")"
     )
@@ -460,7 +516,7 @@ def roster_status_column(*, names_spill: str) -> str:
     )
 
 
-def roster_rank_column(*, names_spill: str) -> str:
+def roster_rank_column(*, names_spill: str, base_salary_spill: str) -> str:
     """Roster rank column that matches the roster KPI semantics.
 
     - Blanks OUT/WAIVED/STRETCH players.
@@ -471,14 +527,11 @@ def roster_rank_column(*, names_spill: str) -> str:
     return (
         "=LET("  # noqa: ISC003
         f"_xlpm.names,{names_spill},"
-        "_xlpm.y,MetaBaseYear,"
-        "_xlpm.namesY,IFERROR(FILTER(tbl_salary_book_yearly[player_name],tbl_salary_book_yearly[salary_year]=_xlpm.y),\"\"),"
-        "_xlpm.twY,IFERROR(FILTER(tbl_salary_book_yearly[is_two_way],tbl_salary_book_yearly[salary_year]=_xlpm.y),FALSE),"
-        "_xlpm.counted,MAP(_xlpm.names,LAMBDA(_xlpm.p,"
+        f"_xlpm.sals,{base_salary_spill},"
+        "_xlpm.counted,MAP(_xlpm.names,_xlpm.sals,LAMBDA(_xlpm.p,_xlpm.sal,"
         "LET("
         "_xlpm.isOut,OR(COUNTIF(TradeOutNames,_xlpm.p)>0,COUNTIF(WaivedNames,_xlpm.p)>0,COUNTIF(StretchNames,_xlpm.p)>0),"
-        "_xlpm.isTwoWay,SUMPRODUCT((_xlpm.namesY=_xlpm.p)*(_xlpm.twY=TRUE))>0,"
-        "IF(OR(_xlpm.isOut,_xlpm.isTwoWay),0,1)"
+        "IF(OR(_xlpm.isOut,_xlpm.sal=0),0,1)"
         "))),"
         "_xlpm.cum,SCAN(0,_xlpm.counted,LAMBDA(_xlpm.acc,_xlpm.v,_xlpm.acc+_xlpm.v)),"
         "IF(_xlpm.counted=1,_xlpm.cum,\"\")"

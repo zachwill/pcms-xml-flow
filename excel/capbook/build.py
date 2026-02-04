@@ -42,7 +42,7 @@ from .xlsx import (
     write_table,
     set_workbook_default_font,
 )
-from .sheets import write_meta_sheet, write_playground_sheet
+from .sheets import write_meta_sheet, write_playground_sheet, write_matrix_sheet
 
 
 # UI sheets
@@ -61,6 +61,7 @@ PLAYGROUND_TABS: list[tuple[str, str]] = [
 ]
 
 UI_SHEETS = [name for name, _ in PLAYGROUND_TABS] + [
+    "Matrix",
     "META",
 ]
 
@@ -340,6 +341,21 @@ def build_capbook(
                 )
             except Exception as e:
                 _mark_failed(build_meta, f"{pg_name} writer crashed: {e}\n{traceback.format_exc()}")
+
+        # MATRIX - multi-team trade planner (single tab for now)
+        try:
+            write_matrix_sheet(
+                workbook,
+                ui_worksheets["Matrix"],
+                formats,
+                team_codes=team_codes,
+                base_year=base_year,
+                as_of=as_of,
+                salary_book_yearly_nrows=salary_book_yearly_nrows,
+                salary_book_warehouse_nrows=salary_book_warehouse_nrows,
+            )
+        except Exception as e:
+            _mark_failed(build_meta, f"Matrix writer crashed: {e}\n{traceback.format_exc()}")
 
         # META - build metadata (write last to capture any failures)
         try:

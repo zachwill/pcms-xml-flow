@@ -22,6 +22,7 @@ This directory is intentionally isolated from the repo's Python code.
 | **`TODO.md`** | Current work items with status |
 | **`specs/00-ui-philosophy.md`** | Core invariants + scroll-driven model |
 | **`specs/01-salary-book.md`** | Full interaction spec |
+| **`RAILS_TODO.md`** | Migration memo: how to turn this React app into **Rails + Datastar** |
 
 ## Mental model (read this first)
 

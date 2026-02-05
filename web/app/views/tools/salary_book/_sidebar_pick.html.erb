@@ -36,7 +36,15 @@
 <%# Origin team(s) %>
 <%
   origin_codes = picks.map { |p| p["origin_team_code"] }.compact.uniq.reject { |c| c == team_code }
-  via_codes = picks.flat_map { |p| p["via_team_codes"] || [] }.compact.uniq
+
+  # Parse PostgreSQL array strings like "{BKN,DET}" into Ruby arrays
+  parse_pg_array = ->(val) {
+    return [] if val.nil? || val == "{}"
+    return val if val.is_a?(Array)
+    val.to_s.gsub(/[{}"]/, "").split(",").map(&:strip).reject(&:blank?)
+  }
+
+  via_codes = picks.flat_map { |p| parse_pg_array.call(p["via_team_codes"]) }.compact.uniq
 %>
 
 <%# Collect unique descriptions %>

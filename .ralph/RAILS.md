@@ -31,21 +31,6 @@ Tool URL: `/tools/salary-book`
 
 ## Backlog
 
-- [ ] Add Pick overlay endpoint (v1 scaffold + wire click)
-  - Route: `GET /tools/salary-book/sidebar/pick?team=:code&year=:year&round=:round` → patches `#rightpanel-overlay`
-  - Data source (start simple; expand later):
-    - `pcms.draft_pick_summary_assets` rows for (team_code, draft_year, draft_round)
-    - optional v1+: join `pcms.teams` for names/logos, and `pcms.endnotes` for protections text when present
-  - View: new partial `_sidebar_pick.html.erb`
-    - Must render a single stable root: `<div id="rightpanel-overlay">…</div>`
-    - Back button should `@get('/tools/salary-book/sidebar/clear')`
-    - Header (year/round + destination team)
-    - Origin/destination + flags (swap/conditional) if available
-    - Raw description (from summary assets) + basic protections section (if any)
-  - Wiring:
-    - Replace the `console.log` placeholder in `tools/salary_book/_draft_assets_section.html.erb`
-    - Use the pick row’s `team_code`, `year`, and `round` query params (route does not take the composite pick `id`)
-
 - [ ] Filter Toggles parity (Financials + Contracts) (client-only lenses)
   - Add new flatcase signals + UI checkboxes:
     - Financials: `displaytaxaprons` (default **true**), `displaycashvscap` (false), `displayluxurytax` (false)
@@ -72,18 +57,23 @@ NOTE: BrickLink-style **entity pages** now have their own backlog + agent:
 
 ## Done
 
+- [x] Add Pick overlay endpoint (v1 scaffold + wire click)
+  - Route: `GET /tools/salary-book/sidebar/pick?team=:code&year=:year&round=:round` → patches `#rightpanel-overlay`
+  - New partial: `_sidebar_pick.html.erb` (pick identity badge, status badges, provenance, PCMS description, protections)
+  - Wired pick pill clicks in `_draft_assets_section.html.erb`
+
 - [x] Add Agent overlay endpoint (v1 scaffold + wire click)
   - Route: `GET /tools/salary-book/sidebar/agent/:id` → patches `#rightpanel-overlay`
   - New partial: `_sidebar_agent.html.erb` (agent header + client roster)
   - Wired agent clicks in `_player_row.html.erb` and `_sidebar_player.html.erb`
 
 - [x] Unify displayed year horizon across table + sub-sections + totals footer
-  - Canonical horizon is now **2025–2030** everywhere (table, sub-sections, totals footer).
+  - Canonical horizon is now **2025-2030** everywhere (table, sub-sections, totals footer).
   - Removed the old subsection-year split; all views use `SALARY_YEARS`.
   - Updated controller SQL pivots (cap_holds, exceptions, dead_money) to include 2030.
 
 - [x] Team section parity: Team Header KPIs + Totals Footer
-  - Bulk fetch `pcms.team_salary_warehouse` across the displayed years (don’t recompute totals in Ruby).
+  - Bulk fetch `pcms.team_salary_warehouse` across the displayed years (don't recompute totals in Ruby).
   - `GET /tools/salary-book/teams/:teamcode/section` renders the full team section (header + players + sub-sections + totals footer).
 
 - [x] Expand team sidebar context (`#rightpanel-base`) to match spec

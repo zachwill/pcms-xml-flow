@@ -2829,59 +2829,90 @@ a:hover {
   padding: 16px;
 }
 
-.sidebar-pick-info {
+.sidebar-pick-identity {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
-.sidebar-pick-logo {
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
-  background: var(--muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.sidebar-pick-logo img {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-}
-
-.sidebar-pick-logo-fallback {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--muted-foreground);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.sidebar-pick-details {
+.sidebar-pick-badge {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
+  border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
-.sidebar-pick-title {
-  font-size: 18px;
+.dark .sidebar-pick-badge {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.sidebar-pick-badge-year {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  color: rgb(59, 130, 246);
+}
+
+.dark .sidebar-pick-badge-year {
+  color: rgb(96, 165, 250);
+}
+
+.sidebar-pick-badge-round {
+  font-size: 12px;
   font-weight: 600;
-  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
 }
 
 .sidebar-pick-team {
-  font-size: 13px;
-  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.sidebar-pick-card {
+.sidebar-pick-team-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.sidebar-pick-team-fallback {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+.sidebar-pick-team-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.sidebar-pick-status {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.sidebar-pick-provenance {
   background: var(--muted);
   border-radius: 8px;
   padding: 12px;
@@ -2890,62 +2921,220 @@ a:hover {
   gap: 8px;
 }
 
-.sidebar-pick-flags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.sidebar-pick-details-list {
+.sidebar-pick-descriptions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
-.sidebar-pick-detail-row {
+.sidebar-pick-description {
+  font-size: 12px;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  color: var(--foreground);
+  line-height: 1.5;
+  padding: 10px 12px;
+  background: var(--muted);
+  border-radius: 6px;
+  word-break: break-word;
+}
+
+.sidebar-pick-explanations {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-pick-explanation {
+  font-size: 12px;
+  color: var(--foreground);
+  line-height: 1.7;
+  padding: 12px;
+  background: var(--muted);
+  border-radius: 6px;
+  white-space: pre-wrap;
+  opacity: 0.95;
+}
+
+.sidebar-pick-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-pick-row-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--muted);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+}
+
+.sidebar-pick-row-slot {
+  color: var(--muted-foreground);
+  min-width: 60px;
+}
+
+.sidebar-pick-row-type {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.sidebar-pick-row-origin {
+  color: rgb(59, 130, 246);
+}
+
+.dark .sidebar-pick-row-origin {
+  color: rgb(96, 165, 250);
+}
+
+
+/* Pick Identity (badge + team) */
+.sidebar-pick-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sidebar-pick-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.25));
+  border: 2px solid rgba(59, 130, 246, 0.4);
+  border-radius: 10px;
+  padding: 10px 20px;
+}
+
+.dark .sidebar-pick-badge {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.3));
+}
+
+.sidebar-pick-badge-year {
+  font-size: 24px;
+  font-weight: 700;
+  color: rgb(59, 130, 246);
+  line-height: 1.1;
+}
+
+.dark .sidebar-pick-badge-year {
+  color: rgb(96, 165, 250);
+}
+
+.sidebar-pick-badge-round {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}
+
+.sidebar-pick-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-pick-team-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.sidebar-pick-team-fallback {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  background: var(--muted);
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-pick-team-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+/* Pick Status Badges */
+.sidebar-pick-status {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+/* Provenance section */
+.sidebar-pick-provenance {
   background: var(--muted);
   border-radius: 8px;
   padding: 12px;
 }
 
-.sidebar-pick-description {
-  font-size: 13px;
-  font-family: 'Geist Mono', ui-monospace, monospace;
-  color: var(--foreground);
-  line-height: 1.5;
-  margin-bottom: 8px;
+/* Descriptions list */
+.sidebar-pick-descriptions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.sidebar-pick-description:last-child {
-  margin-bottom: 0;
+/* Explanations (protections) */
+.sidebar-pick-explanations {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.sidebar-pick-protections {
-  border-top: 1px solid var(--border);
-  padding-top: 10px;
-  margin-top: 4px;
-}
-
-.sidebar-pick-protections-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted-foreground);
-  margin-bottom: 6px;
-}
-
-.sidebar-pick-trade-date {
-  font-weight: 400;
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-.sidebar-pick-protections-text {
+.sidebar-pick-explanation {
   font-size: 12px;
   color: var(--foreground);
   line-height: 1.6;
   white-space: pre-wrap;
+  background: var(--muted);
+  border-radius: 8px;
+  padding: 12px;
   opacity: 0.9;
+}
+
+/* Asset Rows (debug/detail) */
+.sidebar-pick-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-pick-row-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 8px 10px;
+  background: var(--muted);
+  border-radius: 6px;
+}
+
+.sidebar-pick-row-slot {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  color: var(--muted-foreground);
+}
+
+.sidebar-pick-row-type {
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.sidebar-pick-row-origin {
+  margin-left: auto;
+  font-weight: 600;
+  color: var(--muted-foreground);
 }
 

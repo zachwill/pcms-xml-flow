@@ -7,4 +7,7 @@ class ApplicationController < ActionController::Base
 
   # Entity pages also use a few shared formatting helpers (ex: format_salary).
   helper SalaryBookHelper
+
+  # Canonical slug-first URLs w/ numeric fallbacks.
+  helper EntityLinksHelper
 end

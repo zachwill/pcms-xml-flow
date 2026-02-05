@@ -38,7 +38,7 @@
         <div class="text-xs text-muted-foreground">Team (current)</div>
         <% if team_code.present? %>
           <div class="mt-1">
-            <a href="/teams/<%= team_code.to_s.downcase %>" class="font-medium hover:underline"><%= team_code %></a>
+            <a href="<%= team_href(team_code: team_code, team_id: team_id) %>" class="font-medium hover:underline"><%= team_code %></a>
             <% if team_name.present? %>
               <div class="text-sm text-muted-foreground truncate"><%= team_name %></div>
             <% end %>
@@ -60,7 +60,7 @@
         <div class="text-xs text-muted-foreground">Agent</div>
         <% if agent_id.present? && agent_name.present? %>
           <div class="mt-1">
-            <a href="/agents/<%= agent_id %>" class="font-medium hover:underline"><%= agent_name %></a>
+            <a href="<%= agent_href(agent_id) %>" class="font-medium hover:underline"><%= agent_name %></a>
           </div>
         <% elsif agent_name.present? %>
           <div class="mt-1 font-medium"><%= agent_name %></div>
@@ -70,7 +70,7 @@
 
         <div class="mt-2 text-xs text-muted-foreground">Agency</div>
         <% if agency_id.present? && agency_name.present? %>
-          <a href="/agencies/<%= agency_id %>" class="text-sm hover:underline"><%= agency_name %></a>
+          <a href="<%= agency_href(agency_id) %>" class="text-sm hover:underline"><%= agency_name %></a>
         <% elsif agency_name.present? %>
           <div class="text-sm"><%= agency_name %></div>
         <% else %>
@@ -89,7 +89,7 @@
             drafting_team: <%= ds["drafting_team_code"] || "—" %>
           </div>
           <div class="mt-2 text-xs text-muted-foreground">
-            <a href="/draft-selections/<%= ds['transaction_id'] %>" class="hover:underline">Open draft page</a>
+            <a href="<%= draft_selection_href(ds['transaction_id']) %>" class="hover:underline">Open draft page</a>
           </div>
         <% else %>
           <div class="mt-1 text-sm text-muted-foreground italic">Unknown</div>

@@ -43,7 +43,7 @@
       <div class="p-4 rounded-lg border border-border bg-background">
         <div class="text-xs text-muted-foreground">Player</div>
         <div class="mt-1">
-          <a href="/players/<%= ds['player_id'] %>" class="font-medium hover:underline"><%= player_name.presence || ds['player_id'] %></a>
+          <a href="<%= player_href(ds['player_id']) %>" class="font-medium hover:underline"><%= player_name.presence || ds['player_id'] %></a>
         </div>
       </div>
 
@@ -51,7 +51,7 @@
         <div class="text-xs text-muted-foreground">Drafting team</div>
         <% if ds["drafting_team_id"].present? %>
           <div class="mt-1">
-            <a href="/teams/<%= drafting_team_code.to_s.downcase %>" class="font-medium hover:underline"><%= drafting_team_code.presence || "—" %></a>
+            <a href="<%= team_href(team_code: drafting_team_code, team_id: ds['drafting_team_id']) %>" class="font-medium hover:underline"><%= drafting_team_code.presence || "—" %></a>
             <% if ds["team_name"].present? %>
               <div class="text-sm text-muted-foreground"><%= ds["team_name"] %></div>
             <% end %>

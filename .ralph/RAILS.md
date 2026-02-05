@@ -1,107 +1,189 @@
-# Rails — What to do next (canonical backlog)
+# Rails — Entity Explorer Roadmap (web/)
 
 This is the **single source of truth** for Rails work in this repo.
 
 Scope:
 - `web/` Rails + Datastar app
-- Bricklink-style **entity explorer** (players/teams/agents/picks…)
+- Bricklink-style **entity explorer** (players/teams/agents/agencies/drafts/picks…)
 - Keep the Salary Book tool healthy, but treat it as *maintenance* unless explicitly expanding it.
 
 Non-goals:
 - Re-implementing cap/trade/CBA logic in Ruby/JS (it belongs in Postgres: `pcms.*` warehouses + `pcms.fn_*`).
 - Turning entity pages into prose/documentation pages.
 
+---
+
 ## Reading order (before coding)
 
 1) `web/AGENTS.md` — conventions + URL rules + Datastar posture
-2) `reference/sites/bricklink.txt` — information architecture inspiration
-3) `reference/datastar/basecamp.md` + `reference/datastar/insights.md` — patterns + gotchas (only if enhancing)
-4) Prototype reference (read-only): `prototypes/salary-book-react/`
-5) PCMS mental models (reference implementation): `reference/pcms/MENTAL_MODELS.md`
+2) `web/specs/00-ui-philosophy.md` — scroll position as state, shallow navigation
+3) `reference/sites/bricklink.txt` — link-rich, data-dense entity hub model
+4) `reference/sites/puckpedia.txt` — team workspace model (tabs, vitals, drill-ins)
+5) `reference/sites/builtwith.txt` — search-first index + slices + pivots
+6) Prototype reference (read-only): `prototypes/salary-book-react/`
 
-## Current direction
+---
 
-We are moving from “tool parity work” to “**entity navigation** work”.
+## Mental model (keep this consistent)
 
-**Primary goal:** link-rich, slug-first entity pages that make Postgres warehouses explorable.
+### Tools vs Entities (two representations of the same object)
 
-## Hard rules (treat as constraints)
+We intentionally maintain **two surfaces** for the same underlying entities:
+
+**Tools (ex: Salary Book)**
+- job: “answer the next question without losing your place”
+- interaction: scroll-driven; sidebar overlays; shallow stack (Back pops)
+- data: optimized slices, not exhaustive
+- URLs: under `/tools/*` (not canonical)
+
+**Entities (catalog / hubs)**
+- job: “this is the object; explore its neighborhood”
+- interaction: link graph; dense modules; multiple views/tabs later
+- data: can be deep and multi-section (Spotrac/PuckPedia-like)
+- URLs: clean, top-level, shareable and canonical
+
+Rule: **Tools should link outward to entity pages**, and entity pages should offer “open in tool” backlinks.
+
+### Why Bricklink works (and what we’re copying)
+
+Bricklink doesn’t “render everything.” It:
+- anchors identity in a compact hero
+- exposes a few high-leverage slices (inventory/market/history)
+- makes nearly every datum a **pivot**
+
+We want the same for PCMS/NBA data.
+
+---
+
+## URL rules (hard constraints)
 
 - Canonical entity routes are **slug-only**.
-- Keep numeric fallbacks that 301 → canonical slug.
-- Slugs live in the `Slug` table (aliases allowed; one canonical slug per `(entity_type, entity_id)`).
-- HTML-first; progressive enhancement (Datastar optional).
-- Don’t duplicate cap/trade math in Ruby.
+- Keep **numeric fallbacks** that 301 → canonical slug.
+- Slugs live in `web.slugs` (`Slug` model): aliases allowed; one canonical slug per `(entity_type, entity_id)`.
+- Progressive enhancement: plain `<a href>` navigation first.
+
+### Special-case: Teams
+
+Teams have a stable natural identifier: `team_code`.
+
+We treat `teams/:slug` where `slug == team_code.downcase` as the canonical intent.
+If the slug registry doesn’t have the record yet, we **bootstrap it from `pcms.teams`** on first request.
+
+### Special-case: Draft pick “groups”
+
+Future pick assets are naturally keyed today by `(team_code, draft_year, draft_round)`.
+We expose them as:
+
+- `/draft-picks/:team_code/:year/:round`
+
+No slug registry for these yet; we can add one later if we need short/pretty pick URLs.
+
+---
+
+## Entity types & keys (current)
+
+| Entity | Canonical URL | Key | Primary sources |
+|---|---|---:|---|
+| Player | `/players/:slug` | `pcms.people.person_id` | `pcms.people`, `pcms.salary_book_warehouse`, `pcms.draft_selections` |
+| Team | `/teams/:slug` | `pcms.teams.team_id` | `pcms.teams`, `pcms.salary_book_warehouse`, `pcms.draft_pick_summary_assets` |
+| Agent | `/agents/:slug` | `pcms.agents.agent_id` | `pcms.agents`, `pcms.salary_book_warehouse`, `pcms.agencies` |
+| Agency | `/agencies/:slug` | `pcms.agencies.agency_id` | `pcms.agencies`, `pcms.agents` |
+| Draft selection | `/draft-selections/:slug` | `pcms.draft_selections.transaction_id` | `pcms.draft_selections`, `pcms.people`, `pcms.teams` |
+| Draft pick group | `/draft-picks/:team_code/:year/:round` | natural key | `pcms.draft_pick_summary_assets`, `pcms.teams` |
+
+---
+
+## Current implementation status (Feb 2026)
+
+Implemented in `web/`:
+
+- Players
+  - `/players` index (search-first)
+  - `/players/:id` numeric fallback → slug (creates canonical on demand)
+  - `/players/:slug` show
+
+- Teams
+  - `/teams` index
+  - `/teams/:id` numeric fallback → slug
+  - `/teams/:slug` show (bootstraps from `team_code`)
+
+- Agents
+  - `/agents` index (search-first)
+  - `/agents/:id` numeric fallback → slug
+  - `/agents/:slug` show
+
+- Agencies
+  - `/agencies` index (search-first)
+  - `/agencies/:id` numeric fallback → slug
+  - `/agencies/:slug` show
+
+- Draft selections (historical picks)
+  - `/draft-selections` index (+ search by player name)
+  - `/draft-selections/:id` numeric fallback → slug
+  - `/draft-selections/:slug` show
+
+- Draft picks (future pick assets)
+  - `/draft-picks/:team_code/:year/:round` show (grouped asset rows)
+
+- Salary Book → Entity linking
+  - Sidebar overlays expose “Open team/agent/pick page” links
+  - Entity pages expose “Open in Salary Book” backlinks
 
 ---
 
 ## Backlog (ordered)
 
-### A) Entity explorer (main workstream)
+### A) Make linking *effortless* (highest leverage)
 
-(Imported from the previous `.ralph/ENTITIES.md` backlog; that file should be considered deprecated.)
+- [x] Add canonical link helper(s) so we stop hardcoding `/agents/:id` everywhere
+  - `web/app/helpers/entity_links_helper.rb` (request-local slug cache + prefetch helper)
+  - API: `entity_href(entity_type:, entity_id:)` + convenience helpers (`player_href`, `agent_href`, ...)
+  - Behavior: if canonical slug exists → use `/players/:slug`; else use numeric fallback `/players/:id`
 
-#### Teams
-- [ ] Add Teams entity routes + controller (canonical + numeric fallback)
-  - Routes:
-    - `GET /teams/:slug` → `Entities::TeamsController#show`
-    - `GET /teams/:id` (numeric) → `#redirect` (301 → canonical; create default slug on-demand)
-  - Slug registry:
-    - `Slug.entity_type = 'team'`
-    - `Slug.entity_id = pcms.teams.team_id`
-    - Default slug: `team_code.downcase` (e.g. `BOS` → `bos`)
-  - Data source: `pcms.teams` (NBA only)
-  - View: `web/app/views/entities/teams/show.html.erb`
-    - Hero: team name, team code, conference/division
-    - Action link: `/tools/salary-book?team=BOS`
-    - “Known slugs” list
+- [ ] Add a shared “entity header” partial (Bricklink/BuiltWith-style)
+  - breadcrumbs
+  - scoped search (Players/Teams/Agents/Agencies)
+  - quick links back to `/tools/salary-book`
 
-- [ ] Add `/teams` index page (conference-grouped)
-  - Route: `GET /teams` → `Entities::TeamsController#index`
-  - Query `pcms.teams`, group Eastern/Western
-  - Links can use numeric fallback until canonical slugs exist
+### B) Densify entity pages (v1 modules, still minimal UI)
 
-#### Agents
-- [ ] Add Agents entity routes + controller (canonical + numeric fallback)
-  - Routes:
-    - `GET /agents/:slug` → `Entities::AgentsController#show`
-    - `GET /agents/:id` (numeric) → `#redirect` (301 → canonical; create default slug on-demand)
-  - Slug registry:
-    - `Slug.entity_type = 'agent'`
-    - `Slug.entity_id = pcms.agents.agent_id`
-    - Default slug: parameterized agent name; fallback `agent-<id>`
-  - Data sources:
-    - `pcms.agents` (identity)
-    - `pcms.salary_book_warehouse` (client list via `agent_id`)
-  - View: `web/app/views/entities/agents/show.html.erb`
-    - Hero: agent name, agency
-    - Client list: group by current team, show counts + cap totals (2025)
-    - Cross-links: players + teams
+These should feel more like “hubs” and less like “debug pages,” but still stay compact and link-rich.
 
-- [ ] Add `/agents` index page with simple search
-  - Route: `GET /agents` → `Entities::AgentsController#index`
-  - Query param: `?q=` (case-insensitive match)
+- [ ] Player page modules
+  - contract snapshot (salary book horizon)
+  - team history (needs a warehouse)
+  - stats/percentiles scaffolding (needs tables or NBA API ingestion)
 
-#### Link helpers
-- [ ] Add helper(s) to generate canonical entity hrefs when available
-  - New helper: `web/app/helpers/entity_links_helper.rb`
-  - For each entity type: if canonical slug exists → use it; else numeric fallback
+- [ ] Team page modules (PuckPedia-inspired)
+  - cap vitals (from `pcms.team_salary_warehouse`)
+  - roster breakdown table (cap hit toggle later)
+  - draft pick provenance modules
 
-#### Upgrade Player page
-- [ ] Expand Player entity page (v1) to be link-rich (not just slug debug)
-  - Pull minimal snapshot from `pcms.salary_book_warehouse`:
-    - current `team_code`, `agent_id`, `agent_name`, `cap_2025..cap_2030`
-  - Add cross-links to team + agent pages
+- [ ] Agent/Agency pages
+  - client totals by team
+  - agency → top clients
 
-### B) Salary Book (maintenance)
+### C) Data primitives (do the work in Postgres)
 
-- [ ] Visual QA pass vs prototype
-  - Scroll spy correctness
-  - Overlay layering/back behavior
-  - Horizontal scroll sync
+- [ ] Add/extend warehouses or `pcms.fn_*` functions to support entity pages without Ruby parsing.
+  - examples:
+    - `pcms.player_team_history_warehouse`
+    - `pcms.agent_clients_warehouse`
+    - `pcms.draft_pick_timeline_warehouse` (turn `raw_part` into structured timeline JSON)
+
+### D) Salary Book maintenance only
+
+- [ ] Continue UI parity / QA vs prototype as needed (but don’t let this block entity work).
 
 ---
 
 ## Done
 
-(keep this section short; delete items instead of letting it become a graveyard)
+- [x] Teams entity routes + controller + index
+- [x] Agents entity routes + controller + search index
+- [x] Agencies entity routes + controller + search index
+- [x] Draft selections entity routes + controller + search index
+- [x] Draft pick group entity page (natural key route)
+- [x] Upgrade Player entity page to show core connections (team/agent/agency/draft)
+- [x] Add Salary Book sidebar “Open entity page” links (team/agent/pick)
+- [x] Add canonical entity link helpers (slug-first links w/ numeric fallback) + refactor entity views/tool overlays to use them

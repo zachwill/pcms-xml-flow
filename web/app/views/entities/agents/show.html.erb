@@ -3,6 +3,9 @@
 <% agent_name = @agent&.fetch("full_name", nil).to_s %>
 <% agency_name = @agent&.fetch("agency_name", nil).to_s %>
 
+<%# Avoid N+1 slug lookups in client table %>
+<% prefetch_canonical_slugs(entity_type: "player", entity_ids: @clients.map { |c| c["player_id"] }) %>
+
 <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
   <header class="flex items-start justify-between gap-6 border-b border-border pb-4">
     <div class="min-w-0">
@@ -26,7 +29,7 @@
         <div class="mt-2 text-sm text-muted-foreground">
           Agency:
           <% if @agent["agency_id"].present? %>
-            <a href="/agencies/<%= @agent['agency_id'] %>" class="hover:underline"><%= agency_name %></a>
+            <a href="<%= agency_href(@agent['agency_id']) %>" class="hover:underline"><%= agency_name %></a>
           <% else %>
             <span><%= agency_name %></span>
           <% end %>
@@ -59,11 +62,11 @@
             <% @clients.each do |c| %>
               <tr class="hover:bg-muted/30">
                 <td class="px-3 py-2">
-                  <a href="/players/<%= c['player_id'] %>" class="font-medium hover:underline"><%= c["player_name"] %></a>
+                  <a href="<%= player_href(c['player_id']) %>" class="font-medium hover:underline"><%= c["player_name"] %></a>
                 </td>
                 <td class="px-3 py-2">
                   <% if c["team_code"].present? %>
-                    <a href="/teams/<%= c['team_code'].to_s.downcase %>" class="hover:underline"><%= c["team_code"] %></a>
+                    <a href="<%= team_href(team_code: c['team_code'], team_id: c['team_id']) %>" class="hover:underline"><%= c["team_code"] %></a>
                     <% if c["team_name"].present? %>
                       <div class="text-xs text-muted-foreground truncate"><%= c["team_name"] %></div>
                     <% end %>

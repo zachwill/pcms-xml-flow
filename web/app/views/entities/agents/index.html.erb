@@ -1,5 +1,9 @@
 <% content_for :title, "Agents" %>
 
+<%# Avoid N+1 slug lookups in results table %>
+<% prefetch_canonical_slugs(entity_type: "agent", entity_ids: @agents.map { |a| a["agent_id"] }) %>
+<% prefetch_canonical_slugs(entity_type: "agency", entity_ids: @agents.map { |a| a["agency_id"] }) %>
+
 <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
   <header class="flex items-start justify-between gap-6 border-b border-border pb-4">
     <div class="min-w-0">
@@ -56,14 +60,14 @@
             <% @agents.each do |a| %>
               <tr class="hover:bg-muted/30">
                 <td class="px-3 py-2">
-                  <a href="/agents/<%= a['agent_id'] %>" class="font-medium hover:underline"><%= a["full_name"] %></a>
+                  <a href="<%= agent_href(a['agent_id']) %>" class="font-medium hover:underline"><%= a["full_name"] %></a>
                   <% if a["is_active"] == false %>
                     <span class="ml-2 text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">inactive</span>
                   <% end %>
                 </td>
                 <td class="px-3 py-2">
                   <% if a["agency_id"].present? && a["agency_name"].present? %>
-                    <a href="/agencies/<%= a['agency_id'] %>" class="hover:underline"><%= a["agency_name"] %></a>
+                    <a href="<%= agency_href(a['agency_id']) %>" class="hover:underline"><%= a["agency_name"] %></a>
                   <% elsif a["agency_name"].present? %>
                     <span><%= a["agency_name"] %></span>
                   <% else %>
@@ -78,7 +82,7 @@
       </div>
 
       <p class="text-xs text-muted-foreground">
-        Agent links use the numeric fallback (<code>/agents/:id</code>) which creates/promotes a canonical slug on demand.
+        Links prefer canonical slugs when known; otherwise they use the numeric fallback (<code>/agents/:id</code>) which creates/promotes a canonical slug on demand.
       </p>
     <% end %>
   </section>

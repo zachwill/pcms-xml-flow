@@ -73,7 +73,7 @@
     </div>
 
     <a
-      href="/teams/<%= team_code.to_s.downcase %>"
+      href="<%= team_href(team_code: team_code, team_id: team_id) %>"
       class="text-xs text-muted-foreground hover:text-foreground hover:underline whitespace-nowrap"
     >Open team page</a>
   </div>

@@ -1,5 +1,9 @@
 <% content_for :title, "Players" %>
 
+<%# Avoid N+1 slug lookups in the results table %>
+<% prefetch_canonical_slugs(entity_type: "player", entity_ids: @players.map { |p| p["player_id"] }) %>
+<% prefetch_canonical_slugs(entity_type: "agent", entity_ids: @players.map { |p| p["agent_id"] }) %>
+
 <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
   <header class="flex items-start justify-between gap-6 border-b border-border pb-4">
     <div class="min-w-0">
@@ -61,7 +65,7 @@
             <% @players.each do |p| %>
               <tr class="hover:bg-muted/30">
                 <td class="px-3 py-2">
-                  <a href="/players/<%= p['player_id'] %>" class="font-medium hover:underline">
+                  <a href="<%= player_href(p['player_id']) %>" class="font-medium hover:underline">
                     <%= p["player_name"] %>
                   </a>
                   <div class="text-xs text-muted-foreground">id: <code><%= p["player_id"] %></code></div>
@@ -69,7 +73,7 @@
 
                 <td class="px-3 py-2">
                   <% if p["team_code"].present? %>
-                    <a href="/teams/<%= p['team_code'].to_s.downcase %>" class="hover:underline">
+                    <a href="<%= team_href(team_code: p['team_code']) %>" class="hover:underline">
                       <%= p["team_code"] %>
                     </a>
                     <% if p["team_name"].present? %>
@@ -82,7 +86,7 @@
 
                 <td class="px-3 py-2">
                   <% if p["agent_id"].present? && p["agent_name"].present? %>
-                    <a href="/agents/<%= p['agent_id'] %>" class="hover:underline"><%= p["agent_name"] %></a>
+                    <a href="<%= agent_href(p['agent_id']) %>" class="hover:underline"><%= p["agent_name"] %></a>
                   <% elsif p["agent_name"].present? %>
                     <span><%= p["agent_name"] %></span>
                   <% else %>
@@ -100,7 +104,7 @@
       </div>
 
       <p class="text-xs text-muted-foreground">
-        Note: player links use the numeric fallback (<code>/players/:id</code>) which creates/promotes a canonical slug on demand.
+        Links prefer canonical slugs when known; otherwise they use the numeric fallback (<code>/players/:id</code>) which creates/promotes a canonical slug on demand.
       </p>
     <% end %>
   </section>

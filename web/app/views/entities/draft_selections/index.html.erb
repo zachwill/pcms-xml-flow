@@ -1,5 +1,9 @@
 <% content_for :title, "Draft selections" %>
 
+<%# Avoid N+1 slug lookups in search results table %>
+<% prefetch_canonical_slugs(entity_type: "draft_selection", entity_ids: @results.map { |r| r["transaction_id"] }) %>
+<% prefetch_canonical_slugs(entity_type: "player", entity_ids: @results.map { |r| r["player_id"] }) %>
+
 <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
   <header class="flex items-start justify-between gap-6 border-b border-border pb-4">
     <div class="min-w-0">
@@ -62,16 +66,16 @@
               <% @results.each do |r| %>
                 <tr class="hover:bg-muted/30">
                   <td class="px-3 py-2 font-mono tabular-nums">
-                    <a href="/draft-selections/<%= r['transaction_id'] %>" class="font-medium hover:underline">
+                    <a href="<%= draft_selection_href(r['transaction_id']) %>" class="font-medium hover:underline">
                       <%= r["draft_year"] %>-R<%= r["draft_round"] %>-P<%= r["pick_number"] %>
                     </a>
                   </td>
                   <td class="px-3 py-2">
-                    <a href="/players/<%= r['player_id'] %>" class="hover:underline"><%= r["player_name"] %></a>
+                    <a href="<%= player_href(r['player_id']) %>" class="hover:underline"><%= r["player_name"] %></a>
                   </td>
                   <td class="px-3 py-2">
                     <% if r["drafting_team_code"].present? %>
-                      <a href="/teams/<%= r['drafting_team_code'].to_s.downcase %>" class="hover:underline"><%= r["drafting_team_code"] %></a>
+                      <a href="<%= team_href(team_code: r['drafting_team_code']) %>" class="hover:underline"><%= r["drafting_team_code"] %></a>
                     <% else %>
                       <span class="text-muted-foreground">—</span>
                     <% end %>
@@ -86,7 +90,7 @@
         </div>
 
         <p class="text-xs text-muted-foreground">
-          Draft selection links use the numeric fallback (<code>/draft-selections/:id</code>) which creates/promotes a canonical slug on demand.
+          Links prefer canonical slugs when known; otherwise they use the numeric fallback (<code>/draft-selections/:id</code>) which creates/promotes a canonical slug on demand.
         </p>
       <% end %>
     <% else %>

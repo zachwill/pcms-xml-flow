@@ -193,7 +193,7 @@ Note: there are currently **no 5-row clusters**; the largest clusters are 4 rows
 All entries below are currently tied at 4 rows; ordered by endnote_id desc.
 
 - [x] Endnote 241 (4 rows) - NOP/OKC/ORL 2031 2nd
-- [ ] Endnote 212 (4 rows) - SAC/SAS 2031 1st
+- [x] Endnote 212 (4 rows) - SAC/SAS 2031 1st
 - [ ] Endnote 193 (4 rows) - NOP/OKC/ORL 2031 2nd
 - [ ] Endnote 192 (4 rows) - NOP/ORL 2030 2nd
 - [ ] Endnote 163 (4 rows) - DAL/OKC 2028 1st
@@ -340,3 +340,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 283 — NOP→ATL "Resulting Pick" (Newell-Queen trade, 6/25/2025). ATL receives MF [MIL, NOP] 2026 1st: NOP either keeps their own or swaps for MIL's via endnote 9 (Holiday trade), conveying the more favorable to ATL. Shorthands: `MIL`/`NOP` for ATL MAY_HAVE origin rows, `MIL`/`NOP` for MIL OWN and NOP TO outgoing. Direction-aware: `To ATL: NOP` for NOP outgoing.
 - Endnote 256 — GSW→DET "Resulting Pick" 2031 2nd (massive trade, 2/6/2025). DET receives either GSW's own 2031 2nd or MIN's 2031 2nd (if MIN exercises swap right via endnote 211). Shorthands: `GSW`/`MIN` for DET MAY_HAVE rows, `GSW` for GSW TO (outgoing), `MIN` for MIN OWN. Direction-aware: `To DET: GSW` for GSW outgoing.
 - Endnote 241 — NOP→OKC "Result Pick" 2031 2nd (Theis trade, 2/5/2025). OKC receives either NOP's own 2031 2nd or ORL's 2031 2nd (if ORL exercises swap right per endnote 193 Reeves trade). Shorthands: `NOP` for NOP TO and OKC MAY_HAVE NOP rows, `ORL` for OKC MAY_HAVE ORL and ORL OWN rows. Direction-aware: `To OKC: NOP` for NOP outgoing.
+- Endnote 212 — SAC→SAS swap right for 2031 1st (DeRozan trade, 7/8/2024). SAS has the right to swap their 2031 1st for SAC's 2031 1st (auto-exercise if SAC pick more favorable). Shorthands: `SAC` for SAC OWN and SAS MAY_HAVE SAC rows, `SAS` for SAS OWN and SAC MAY_HAVE SAS rows.

@@ -184,7 +184,7 @@ Guideline: one checkbox = one endnote cluster.
 
 ### Top clusters (4-row clusters) (refreshed 2026-02-05)
 
-As of this refresh: **205 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
+As of this refresh: **193 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
 
 Ordered by rows in `pcms.vw_draft_pick_shorthand_todo` where `primary_todo_reason='missing_shorthand'` and `draft_year >= 2026`.
 
@@ -192,12 +192,8 @@ Note: there are currently **no 5-row clusters**; the largest clusters are 4 rows
 
 All entries below are currently tied at 4 rows; ordered by endnote_id desc.
 
-- [x] Endnote 304 (4 rows) - ATL/HOU 2031 2nd (swap rights)
-- [x] Endnote 283 (4 rows) - ATL/MIL/NOP 2026 1st ("Resulting Pick" swap/conditional chain)
-- [x] Endnote 256 (4 rows) - DET/GSW/MIN 2031 2nd
 - [ ] Endnote 241 (4 rows) - NOP/OKC/ORL 2031 2nd
 - [ ] Endnote 212 (4 rows) - SAC/SAS 2031 1st
-- [ ] Endnote 211 (4 rows) - DET/GSW/MIN 2031 2nd
 - [ ] Endnote 193 (4 rows) - NOP/OKC/ORL 2031 2nd
 - [ ] Endnote 192 (4 rows) - NOP/ORL 2030 2nd
 - [ ] Endnote 163 (4 rows) - DAL/OKC 2028 1st
@@ -218,7 +214,6 @@ All entries below are currently tied at 4 rows; ordered by endnote_id desc.
 - [ ] Endnote 33 (4 rows) - LAC/MEM/POR 2026 2nd
 - [ ] Endnote 26 (4 rows) - POR/SAS 2026 2nd
 - [ ] Endnote 17 (4 rows) - BKN/HOU 2027 1st
-- [ ] Endnote 9 (4 rows) - ATL/MIL/NOP 2026 1st
 
 #### Next up (3-row clusters)
 
@@ -254,7 +249,6 @@ All entries below are currently tied at 2 rows; ordered by endnote_id desc.
 - [ ] Endnote 273 (2 rows) - Atlanta conveys to LAC: → MEM 2026 2nd (via endnote 130)
 - [ ] Endnote 262 (2 rows) - Toronto conveys to Indiana: → TOR 2026 2nd
 - [ ] Endnote 258 (2 rows) - Miami conveys to Utah: → The Resulting Pick
-- [ ] Endnote 246 (2 rows) - Houston conveys to Boston: → HOU 2031 2nd
 - [ ] Endnote 244 (2 rows) - Boston conveys to Houston: → LF [NOP, POR] 2027 2nds (via endnote 176)
 - [ ] Endnote 242 (2 rows) - Sacramento conveys to Washington: → DEN 2028 2nd (via endnote 238)
 - [ ] Endnote 238 (2 rows) - San Antonio conveys to Sacramento: → DEN 2028 2nd (via endnote 42)
@@ -285,9 +279,12 @@ All entries below are currently tied at 2 rows; ordered by endnote_id desc.
 
 ### One-offs (1-row clusters)
 
-There are currently many 1-row endnote clusters (124 as of this refresh). Use the work-queue query to pull the next one when you're done with the 2-row clusters.
+There are currently many 1-row endnote clusters (127 as of this refresh). Use the work-queue query to pull the next one when you're done with the 2-row clusters.
 
+- [ ] Endnote 246 (1 row) - BOS 2031 2nd MAY_HAVE: `may have HOU(246)`
+- [ ] Endnote 211 (1 row) - MIN 2031 2nd MAY_HAVE: `May have GSW(211)`
 - [ ] Endnote 50 (1 row) - BOS 2028 2nd outgoing row: "Own or to SAS(50) or to NYK(194)" (likely shorthand `BOS`)
+- [ ] Endnote 9 (1 row) - MIL 2026 1st MAY_HAVE: `May have NOP(9)`
 
 ---
 
@@ -298,6 +295,8 @@ When you complete a cluster, add a bullet here with:
 - 1-2 sentence description
 - key shorthand(s)
 - quick verification query link/snippet (optional)
+
+Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_pick_assets.display_text` (direction-aware rendering), not the underlying `shorthand` value.
 
 - Endnote 125 - DET→WAS conveys the MF of BKN/DAL 2027 2nds (via DET); DET retains the LF. Added shorthands: `MF [BKN, DAL]` (WAS) and `LF [BKN, DAL]` (DET), plus origin rows `BKN`/`DAL` for direction-aware outgoing display.
 - Endnote 64 - NYK conveys to DET the MF of NYK/MIN 2026 2nds (Burks/Noel, 7/11/2022). Added origin shorthands `NYK` and `MIN` (including the NYK "may have MIN" branch) so outgoing rows render direction-aware `To ...` display.

@@ -187,7 +187,7 @@ Guideline: one checkbox = one endnote cluster.
 Ordered by rows in `pcms.vw_draft_pick_shorthand_todo` where `primary_todo_reason='missing_shorthand'` and `draft_year >= 2026`.
 
 - [x] Endnote 320 (5 rows) - BOS→UTA MF [BOS, ORL] 2027 2nd
-- [ ] Endnote 319 (5 rows) - SAS→WAS LF [DAL, SAS, TOR] 2027 2nd
+- [x] Endnote 319 (5 rows) - SAS→WAS LF [DAL, SAS, TOR] 2027 2nd
 - [ ] Endnote 316 (5 rows) - DET→SAC LF [DET, NYK, WAS] 2029 2nd
 - [ ] Endnote 310 (5 rows) - PHX→MIN MF [HOU, PHX] 2032 2nd
 - [ ] Endnote 307 (5 rows) - HOU→PHX 2nd MF [DAL, HOU, UTA] 2027 2nd
@@ -249,3 +249,4 @@ When you complete a cluster, add a bullet here with:
 - Endnote 16 — PHI→OKC Horford trade (12/8/2020). PHI conveys conditional 1st (2026/2027 top-4 protected); fallback is PHI 2027 2nd unconditionally. Shorthands: `PHI (p. 1-4)` for 1st round rows, `PHI` for 2nd round fallback.
 - Endnote 321 — BOS→UTA Luis/Niang trade (8/6/2025). UTA receives MF [BOS, CLE] 2031 2nd. CLE pick flows via ATL (endnote 272) then BOS (endnote 313). Shorthands: `MF [BOS, CLE]` for UTA's primary MAY_HAVE, `BOS`/`CLE` for origin picks.
 - Endnote 320 — BOS→UTA Luis/Niang trade (8/6/2025). UTA receives MF [BOS, ORL] 2027 2nd. BOS pick originally went to ORL (endnote 23), then ORL/BOS pool via endnote 291. Shorthands: `MF [BOS, ORL]` for UTA's MAY_HAVE rows, `BOS`/`ORL` for origin picks.
+- Endnote 319 — SAS→WAS Olynyk/Branham trade (7/9/2025). WAS receives LF [DAL, OKC, PHI] 2026 2nd (via SAS→MIA→OKC chain). OKC holds 3-pick pool (own, DAL via endnote 14, PHI via endnote 21): MF stays with OKC, 2nd MF to PHX (endnote 307 via HOU/endnote 70), LF to WAS. Shorthands: `OKC`/`DAL`/`PHI` for origin rows, direction-aware `To WAS: DAL`/`To WAS: PHI` for outgoing.

@@ -192,7 +192,7 @@ Note: there are currently **no 5-row clusters**; the largest clusters are 4 rows
 
 All entries below are currently tied at 4 rows; ordered by endnote_id desc.
 
-- [ ] Endnote 241 (4 rows) - NOP/OKC/ORL 2031 2nd
+- [x] Endnote 241 (4 rows) - NOP/OKC/ORL 2031 2nd
 - [ ] Endnote 212 (4 rows) - SAC/SAS 2031 1st
 - [ ] Endnote 193 (4 rows) - NOP/OKC/ORL 2031 2nd
 - [ ] Endnote 192 (4 rows) - NOP/ORL 2030 2nd
@@ -339,3 +339,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 304 — HOU→ATL swap rights for 2031 2nd (massive trade, 7/6/2025). ATL has right to swap their 2031 2nd for HOU's, but only if HOU's pick is in picks 31-55. Shorthands: `ATL` for ATL OWN and HOU MAY_HAVE ATL rows, `HOU (p. 31-55)` for ATL MAY_HAVE HOU (reflects protection), `HOU` for HOU OWN.
 - Endnote 283 — NOP→ATL "Resulting Pick" (Newell-Queen trade, 6/25/2025). ATL receives MF [MIL, NOP] 2026 1st: NOP either keeps their own or swaps for MIL's via endnote 9 (Holiday trade), conveying the more favorable to ATL. Shorthands: `MIL`/`NOP` for ATL MAY_HAVE origin rows, `MIL`/`NOP` for MIL OWN and NOP TO outgoing. Direction-aware: `To ATL: NOP` for NOP outgoing.
 - Endnote 256 — GSW→DET "Resulting Pick" 2031 2nd (massive trade, 2/6/2025). DET receives either GSW's own 2031 2nd or MIN's 2031 2nd (if MIN exercises swap right via endnote 211). Shorthands: `GSW`/`MIN` for DET MAY_HAVE rows, `GSW` for GSW TO (outgoing), `MIN` for MIN OWN. Direction-aware: `To DET: GSW` for GSW outgoing.
+- Endnote 241 — NOP→OKC "Result Pick" 2031 2nd (Theis trade, 2/5/2025). OKC receives either NOP's own 2031 2nd or ORL's 2031 2nd (if ORL exercises swap right per endnote 193 Reeves trade). Shorthands: `NOP` for NOP TO and OKC MAY_HAVE NOP rows, `ORL` for OKC MAY_HAVE ORL and ORL OWN rows. Direction-aware: `To OKC: NOP` for NOP outgoing.

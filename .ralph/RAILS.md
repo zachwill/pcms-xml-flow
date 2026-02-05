@@ -31,30 +31,18 @@ Tool URL: `/tools/salary-book`
 
 ## Backlog
 
-- [x] Port the Team Selector Grid to the command bar
-  - Two blocks: Eastern / Western
-  - Teams in a grid (match prototype: 3 rows × 5 teams per conference)
-  - Active team highlighted (driven by `$activeteam` signal)
-  - Click scrolls `#maincanvas` to `#teamsection-<CODE>` (prefer smooth)
-  - Data source: `pcms.teams` has `conference_name` (see `migrations/009_nba_team_metadata.sql`)
-
-- [x] Upgrade scroll spy (v1)
-  - Keep custom JS tiny (this is still the only "real" JS need)
-  - Continue emitting a `salarybook-activeteam` CustomEvent → Datastar updates `$activeteam`
-  - Make "active team" align with the sticky header threshold (top of `#maincanvas`)
-  - Add a small programmatic-scroll lock so clicking a team doesn't flicker
-  - (Optional later) expose `sectionprogress` + `scrollstate` as signals for animations
-
-- [x] Add Filter Toggles UI (client-only lenses; no server round-trips)
-  - Signals (flatcase): `displaycapholds`, `displayexceptions`, `displaydraftpicks`, `displaydeadmoney`
-  - Defaults per spec: Cap Holds OFF, Exceptions ON, Draft Picks ON, Dead Money OFF
-  - Use `data-bind` on inputs + `data-show` / `data-class` to hide/show sections
-
 - [ ] Render team sub-sections in the main canvas (toggle-controlled)
-  - Cap Holds (`pcms.cap_holds_warehouse`)
-  - Exceptions (`pcms.exceptions_warehouse`)
-  - Dead Money (`pcms.dead_money_warehouse`)
-  - Draft Assets row (start with `pcms.draft_assets_warehouse`; fall back to `pcms.draft_pick_summary_assets` if needed)
+  - [ ] Cap Holds (`pcms.cap_holds_warehouse`)
+  - [ ] Exceptions (`pcms.exceptions_warehouse`)
+  - [ ] Dead Money (`pcms.dead_money_warehouse`)
+  - [ ] Draft Assets row + pick pills (start with `pcms.draft_assets_warehouse`; fall back to `pcms.draft_pick_summary_assets` if needed)
+  - Notes:
+    - Prefer **bulk fetch per warehouse** (all `team_code` in one query) and `group_by { |r| r["team_code"] }` to avoid N+1.
+    - Prototype SQL reference: `prototypes/salary-book-react/src/api/routes/salary-book.ts` (`/cap-holds`, `/exceptions`, `/dead-money`, `/picks`).
+
+- [ ] Filter toggle UX: preserve context after layout changes
+  - When toggles hide/show sections, rebuild scroll-spy cache and snap back to current `$activeteam` (instant scroll) so the user doesn’t “jump teams”.
+  - (Implementation idea) expose `window.__salaryBookRebuildCache()` from the scroll-spy script and call it from `data-on:change` on filter inputs.
 
 - [ ] Add per-team Totals Footer
   - Total salary by year
@@ -77,6 +65,11 @@ Tool URL: `/tools/salary-book`
   - `GET /tools/salary-book/sidebar/pick?...` → patches `#rightpanel-overlay`
   - Wire draft pick pills in the table
 
+- [ ] Add remaining Filter Toggles (Financials + Contracts) to match spec (client-only lenses)
+  - Financials: Tax/Aprons (default ON), Cash vs Cap (OFF), Luxury Tax (OFF)
+  - Contracts: Options (ON), Incentives (ON), Two-Way (ON)
+  - Use flatcase signals (e.g. `displaytaxaprons`, `displayoptions`, `displaytwoway`)
+
 ---
 
 ## Later (after parity)
@@ -98,5 +91,7 @@ Tool URL: `/tools/salary-book`
 - [x] Port the real Salary Book table layout (double-row players, years 2025-2030)
 - [x] Implement iOS Contacts sticky headers (CSS)
 - [x] Fragment endpoints exist (team section, team sidebar, player overlay)
-- [x] Basic scroll spy → `$activeteam` → sidebar patch loop
+- [x] Scroll spy (v1) → `salarybook-activeteam` CustomEvent → Datastar updates `$activeteam` → sidebar patch loop
+- [x] Port the Team Selector Grid to the command bar
+- [x] Add Filter Toggles UI (Display group; client-only lenses)
 - [x] Player rows are real links enhanced to patch overlay

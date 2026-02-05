@@ -1,21 +1,31 @@
-# PCMS UI Notes
+# Reference site notes (`reference/sites/`)
 
-This folder contains notes from external sites that display contract and salary-cap data clearly.
+This folder contains lightweight notes from external sites that present dense “catalog + finance + constraints” data clearly.
 
-These notes are here to:
-- capture useful **information architecture** patterns (filters, timelines, rollups)
-- identify what end-users expect to search and compare
-- help guide which queries the Postgres schema should support well
+These notes exist to:
+- capture useful **information architecture / interaction** patterns (filters, timelines, rollups, drill-ins)
+- identify what end-users expect to search, compare, and pivot between
+- guide which Postgres warehouses/functions the product should support well
 
 ## Files
 
+Source notes:
+- `bricklink.txt`
+- `builtwith.txt`
 - `capfriendly.txt`
-- `puckpedia.txt`
-- `spotrac.txt`
-- `salaryswish.txt`
 - `pcms.txt`
+- `puckpedia.txt`
+- `salaryswish.txt`
+- `spotrac.txt`
 
-## Important Caveat
+Synthesis:
+- `INTERACTION_MODELS.md` — repo-specific takeaways (tools vs entity workspaces vs catalog/inbox)
+
+## Important caveat
 
 These sources are **not authoritative** for PCMS semantics.
-Use them as product/UI inspiration, while validating any derived calculations or terminology against PCMS artifacts and (when relevant) the CBA.
+
+Use them as product inspiration, while validating any derived calculations or terminology against:
+- PCMS artifacts
+- our modeled `pcms.*` fields/warehouses
+- and (when relevant) the CBA

@@ -1,21 +1,17 @@
 <% content_for :title, "Teams" %>
 
 <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
-  <header class="flex items-start justify-between gap-6 border-b border-border pb-4">
-    <div class="min-w-0">
-      <h1 class="text-2xl font-semibold truncate">Teams</h1>
-      <p class="mt-1 text-sm text-muted-foreground">NBA teams from <code>pcms.teams</code>.</p>
-    </div>
-
-    <nav class="shrink-0 flex items-center gap-4">
-      <a href="/players" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Players</a>
-      <a href="/agents" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Agents</a>
-      <a href="/tools/salary-book" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Salary Book</a>
-    </nav>
-  </header>
+  <%= render partial: "entities/shared/entity_header", locals: {
+    title: "Teams",
+    subtitle: "NBA teams from pcms.teams.",
+    breadcrumbs: [["Teams", nil]],
+    search_scope: "teams",
+    search_query: @query,
+    search_placeholder: "Search teams (code, name, conference)…"
+  } %>
 
   <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">All teams</h2>
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground"><%= @query.present? ? "Results" : "All teams" %></h2>
 
     <div class="overflow-x-auto rounded-lg border border-border">
       <table class="min-w-full text-sm">
@@ -32,10 +28,10 @@
             <% code = t["team_code"].to_s %>
             <tr class="hover:bg-muted/30">
               <td class="px-3 py-2 font-mono tabular-nums">
-                <a href="/teams/<%= code.downcase %>" class="font-medium hover:underline"><%= code %></a>
+                <a href="<%= team_href(team_code: code, team_id: t['team_id']) %>" class="font-medium hover:underline"><%= code %></a>
               </td>
               <td class="px-3 py-2">
-                <a href="/teams/<%= code.downcase %>" class="hover:underline"><%= t["team_name"] %></a>
+                <a href="<%= team_href(team_code: code, team_id: t['team_id']) %>" class="hover:underline"><%= t["team_name"] %></a>
               </td>
               <td class="px-3 py-2 text-muted-foreground"><%= t["conference_name"] || "—" %></td>
               <td class="px-3 py-2 text-right font-mono tabular-nums text-muted-foreground"><%= t["team_id"] %></td>

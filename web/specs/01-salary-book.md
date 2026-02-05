@@ -465,7 +465,7 @@ When no entity is selected, sidebar shows the **active team from scroll-spy**:
 
 ### Patch boundaries + DOM stability (Datastar)
 
-- Prefer **stable IDs** and patch whole regions (`#teamsection-BOS`, `#rightpanel-base`, `#rightpanel-overlay`).
+- Prefer **stable IDs** and patch whole regions (`#<TEAM_CODE>` team sections (e.g. `#BOS`), `#rightpanel-base`, `#rightpanel-overlay`).
 - Avoid patching focused/typing regions (composer inputs) from background updates.
 
 ### Server-side caching (Rails)

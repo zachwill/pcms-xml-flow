@@ -76,7 +76,7 @@ Prefer big, stable regions (Datastar “in morph we trust”):
 
 - `#commandbar`
 - `#maincanvas`
-- `#teamsection-<TEAM>` (per-team boundary)
+- `#<TEAM_CODE>` (per-team boundary; ex: `#BOS`)
 - `#rightpanel-base`
 - `#rightpanel-overlay`
 - `#flash`
@@ -153,18 +153,18 @@ Suggested starting signals:
 
 ### Filters (lenses)
 
-Mirror `prototypes/salary-book-react/src/state/filters/types.ts`:
+Current Rails implementation uses:
 
 - `displaycapholds`
 - `displayexceptions`
 - `displaydraftpicks`
 - `displaydeadmoney`
-- `financialstaxaprons`
-- `financialscashvscap`
-- `financialsluxurytax`
-- `contractsoptions`
-- `contractsincentives`
-- `contractstwoway`
+- `displaytaxaprons`
+- `displaycashvscap`
+- `displayluxurytax`
+- `displayoptions`
+- `displayincentives`
+- `displaytwoway`
 
 ### Scroll context (local; driven by JS)
 
@@ -220,11 +220,11 @@ Think in **UI regions**, not “REST JSON resources”.
 ### Team sections
 
 - `GET /tools/salary-book/teams/:teamcode/section`
-  - returns `<section id="teamsection-BOS">…</section>`
+  - returns `<section id="BOS" data-teamcode="BOS">…</section>`
 
 ### Right panel base
 
-- `GET /tools/salary-book/sidebar/team?team=BOS&tab=cap`
+- `GET /tools/salary-book/sidebar/team?team=BOS&year=2025`
   - returns `<div id="rightpanel-base">…</div>`
 
 ### Right panel overlay entities
@@ -255,7 +255,7 @@ You will still run a JS scroll spy (the current `useScrollSpy` logic, rewritten 
 
 Instead of setting React state, it should:
 
-- set `data-faded` attributes on sections (same as today)
+- (optional) set `data-faded` attributes on non-active sections (fade headers)
 - dispatch a bubbling `CustomEvent` when the active team changes
 
 Example event payload:
@@ -276,25 +276,30 @@ Then Datastar can listen:
 
 This matches the “custom event bus” pattern in `reference/datastar/insights.md`.
 
-### 6.2 Registering team sections after morph
+### 6.2 Team section identity + registration after morph
 
-When a team section is patched in, the scroll spy must register its element.
+The scroll spy and command bar both need a stable way to identify a team section.
 
-Simplest: put a `data-init` on the section root:
+Current convention in `web/`:
+- Team section root `id` is the team code (for anchors): `id="BOS"`
+- Team section root also carries `data-teamcode="BOS"` (for scroll spy queries)
+
+Example:
 
 ```html
-<section
-  id="teamsection-BOS"
-  data-team="BOS"
-  data-init="window.salaryBook.registerSection('BOS', el)"
->
+<section id="BOS" data-teamcode="BOS">
+  …
+</section>
 ```
 
-Datastar will run `data-init` whenever that element is created/patched.
+If you patch/morph team sections in via Datastar, re-run your section discovery after morph.
+
+In the current Rails implementation we do this with a `MutationObserver` on `#maincanvas`
+(see `web/app/javascript/tools/salary_book.js`).
 
 ### 6.3 Horizontal scroll sync
 
-Same idea: keep a tiny JS helper and call it from `data-init` inside each section.
+Keep a tiny JS helper that discovers each table via `[data-salarytable]` and binds header/body scroll syncing.
 
 Key rule: helpers must be **idempotent** (don’t double-bind listeners on morph).
 
@@ -322,7 +327,7 @@ Example:
   Cap Holds
 </label>
 
-<div id="teamsection-BOS-capholds" data-show="$displaycapholds">
+<div data-show="$displaycapholds">
   …cap holds rows…
 </div>
 ```
@@ -340,7 +345,7 @@ Example pattern for a player row:
 ```html
 <a
   href="/players/123"
-  data-on:click__prevent="@get('/tools/salary-book/sidebar/player/123')"
+  data-on:click.prevent="@get('/tools/salary-book/sidebar/player/123')"
 >
   …row…
 </a>

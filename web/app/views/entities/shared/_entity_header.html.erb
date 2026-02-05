@@ -1,0 +1,109 @@
+<%#
+  EntityHeader — shared header chrome for the entity explorer.
+
+  locals:
+  - title: (String) required
+  - title_badge: (String) optional (ex: team code)
+  - subtitle: (String) optional
+  - breadcrumbs: (Array[[label, href]]) optional
+      ex: [["Players", "/players"], ["LeBron James", nil]]
+  - salary_book_href: (String) optional (default: /tools/salary-book)
+  - salary_book_label: (String) optional (default: "Salary Book")
+  - right_links: (Array[[label, href]]) optional
+  - search_scope: (String) optional (players|teams|agents|agencies)
+  - search_query: (String) optional
+  - search_placeholder: (String) optional
+  - search_enabled: (Boolean) optional (default: true)
+%>
+
+<% title = title.to_s %>
+<% title_badge = local_assigns[:title_badge].to_s.strip.presence %>
+<% subtitle = local_assigns[:subtitle].to_s.strip.presence %>
+
+<% breadcrumbs = local_assigns[:breadcrumbs] %>
+<% breadcrumbs = [[title, nil]] unless breadcrumbs.is_a?(Array) && breadcrumbs.any? %>
+
+<% salary_book_href = local_assigns[:salary_book_href].to_s.strip.presence || "/tools/salary-book" %>
+<% salary_book_label = local_assigns[:salary_book_label].to_s.strip.presence || "Salary Book" %>
+<% right_links = Array(local_assigns[:right_links]).select { |pair| pair.is_a?(Array) && pair.size == 2 } %>
+
+<% search_enabled = local_assigns.key?(:search_enabled) ? !!local_assigns[:search_enabled] : true %>
+<% search_scope = local_assigns[:search_scope].to_s.strip.presence || "players" %>
+<% search_query = local_assigns[:search_query].to_s %>
+<% search_placeholder = local_assigns[:search_placeholder].to_s.strip.presence || "Search…" %>
+
+<%
+  scopes = [
+    ["players", "Players", "/players"],
+    ["teams", "Teams", "/teams"],
+    ["agents", "Agents", "/agents"],
+    ["agencies", "Agencies", "/agencies"]
+  ]
+
+  default_action = scopes.find { |s| s[0] == search_scope }&.[](2) || "/players"
+%>
+
+<header class="border-b border-border pb-4 space-y-3">
+  <div class="flex items-start justify-between gap-6">
+    <div class="min-w-0">
+      <div class="text-xs text-muted-foreground">
+        <% breadcrumbs.each_with_index do |(label, href), idx| %>
+          <% is_last = idx == breadcrumbs.length - 1 %>
+          <% if idx > 0 %>
+            <span class="mx-1">/</span>
+          <% end %>
+
+          <% if href.present? && !is_last %>
+            <a href="<%= href %>" class="hover:underline"><%= label %></a>
+          <% else %>
+            <span class="<%= is_last ? 'text-foreground' : '' %>"><%= label %></span>
+          <% end %>
+        <% end %>
+      </div>
+
+      <h1 class="mt-1 text-2xl font-semibold truncate">
+        <%= title %>
+        <% if title_badge.present? %>
+          <span class="ml-2 text-sm font-mono text-muted-foreground"><%= title_badge %></span>
+        <% end %>
+      </h1>
+
+      <% if subtitle.present? %>
+        <p class="mt-1 text-sm text-muted-foreground"><%= subtitle %></p>
+      <% end %>
+    </div>
+
+    <nav class="shrink-0 flex flex-col items-end gap-1">
+      <a href="<%= salary_book_href %>" class="text-sm text-muted-foreground hover:text-foreground hover:underline"><%= salary_book_label %></a>
+      <% right_links.each do |(label, href)| %>
+        <a href="<%= href %>" class="text-sm text-muted-foreground hover:text-foreground hover:underline"><%= label %></a>
+      <% end %>
+    </nav>
+  </div>
+
+  <% if search_enabled %>
+    <form action="<%= default_action %>" method="get" class="flex flex-col sm:flex-row sm:items-center gap-2">
+      <input
+        type="text"
+        name="q"
+        value="<%= search_query %>"
+        placeholder="<%= search_placeholder %>"
+        class="w-full px-3 py-2 rounded-md border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
+        autocomplete="off"
+      />
+
+      <div class="inline-flex rounded-md border border-border bg-background overflow-hidden">
+        <% scopes.each do |(scope, label, href)| %>
+          <% active = scope == search_scope %>
+          <button
+            type="submit"
+            formaction="<%= href %>"
+            class="cursor-pointer px-3 py-2 text-xs font-medium border-r border-border last:border-r-0
+                   <%= active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/40' %>"
+            title="Search <%= label %>"
+          ><%= label %></button>
+        <% end %>
+      </div>
+    </form>
+  <% end %>
+</header>

@@ -3,27 +3,14 @@
 <% content_for :title, full_name.presence || "Player" %>
 
 <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
-  <header class="flex items-start justify-between gap-6 border-b border-border pb-4">
-    <div class="min-w-0">
-      <div class="text-xs text-muted-foreground">
-        <a href="/players" class="hover:underline">Players</a>
-        <span class="mx-1">/</span>
-        <span class="text-foreground"><%= full_name.presence || "Player" %></span>
-      </div>
-
-      <h1 class="mt-1 text-2xl font-semibold truncate"><%= full_name.presence || "Player" %></h1>
-
-      <div class="mt-2 text-sm text-muted-foreground flex gap-4 flex-wrap">
-        <span>player_id: <code><%= @player_id %></code></span>
-        <span>slug: <code><%= @player_slug %></code></span>
-      </div>
-    </div>
-
-    <nav class="shrink-0 flex flex-col items-end gap-1">
-      <a href="/tools/salary-book" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Open Salary Book</a>
-      <a href="/teams" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Browse Teams</a>
-    </nav>
-  </header>
+  <%= render partial: "entities/shared/entity_header", locals: {
+    title: (full_name.presence || "Player"),
+    subtitle: "player_id: #{@player_id} · slug: #{@player_slug}",
+    breadcrumbs: [["Players", "/players"], [full_name.presence || "Player", nil]],
+    search_scope: "players",
+    salary_book_label: "Open Salary Book",
+    right_links: [["Browse Teams", "/teams"]]
+  } %>
 
   <%# Relationship scaffolding %>
   <section class="space-y-3">

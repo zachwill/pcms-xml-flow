@@ -4,13 +4,32 @@ module Entities
     def index
       conn = ActiveRecord::Base.connection
 
-      @teams = conn.exec_query(<<~SQL).to_a
-        SELECT team_id, team_code, team_name, conference_name
-        FROM pcms.teams
-        WHERE league_lk = 'NBA'
-          AND team_name NOT LIKE 'Non-NBA%'
-        ORDER BY team_code
-      SQL
+      q = params[:q].to_s.strip
+      @query = q
+
+      if q.present?
+        q_sql = conn.quote("%#{q}%")
+        @teams = conn.exec_query(<<~SQL).to_a
+          SELECT team_id, team_code, team_name, conference_name
+          FROM pcms.teams
+          WHERE league_lk = 'NBA'
+            AND team_name NOT LIKE 'Non-NBA%'
+            AND (
+              team_code ILIKE #{q_sql}
+              OR team_name ILIKE #{q_sql}
+              OR conference_name ILIKE #{q_sql}
+            )
+          ORDER BY team_code
+        SQL
+      else
+        @teams = conn.exec_query(<<~SQL).to_a
+          SELECT team_id, team_code, team_name, conference_name
+          FROM pcms.teams
+          WHERE league_lk = 'NBA'
+            AND team_name NOT LIKE 'Non-NBA%'
+          ORDER BY team_code
+        SQL
+      end
 
       render :index
     end

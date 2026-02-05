@@ -9,37 +9,16 @@
 <% prefetch_canonical_slugs(entity_type: "agent", entity_ids: @roster.map { |r| r["agent_id"] }) %>
 
 <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
-  <header class="flex items-start justify-between gap-6 border-b border-border pb-4">
-    <div class="min-w-0">
-      <div class="text-xs text-muted-foreground">
-        <a href="/teams" class="hover:underline">Teams</a>
-        <span class="mx-1">/</span>
-        <span class="text-foreground"><%= team_code.presence || "Team" %></span>
-      </div>
-
-      <h1 class="mt-1 text-2xl font-semibold truncate">
-        <%= team_name.presence || team_code.presence || "Team" %>
-        <% if team_code.present? %>
-          <span class="ml-2 text-sm font-mono text-muted-foreground"><%= team_code %></span>
-        <% end %>
-      </h1>
-
-      <div class="mt-2 text-sm text-muted-foreground flex gap-4 flex-wrap">
-        <span>team_id: <code><%= @team_id %></code></span>
-        <span>slug: <code><%= @team_slug %></code></span>
-        <% if conference.present? %>
-          <span>conference: <%= conference %></span>
-        <% end %>
-      </div>
-    </div>
-
-    <nav class="shrink-0 flex flex-col items-end gap-1">
-      <% if team_code.present? %>
-        <a href="/tools/salary-book?team=<%= team_code %>#<%= team_code %>" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Open in Salary Book</a>
-      <% end %>
-      <a href="/players" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Find a player</a>
-    </nav>
-  </header>
+  <%= render partial: "entities/shared/entity_header", locals: {
+    title: (team_name.presence || team_code.presence || "Team"),
+    title_badge: team_code.presence,
+    subtitle: ("team_id: #{@team_id} · slug: #{@team_slug}" + (conference.present? ? " · conference: #{conference}" : "")),
+    breadcrumbs: [["Teams", "/teams"], [team_code.presence || "Team", nil]],
+    search_scope: "teams",
+    salary_book_href: (team_code.present? ? "/tools/salary-book?team=#{team_code}##{team_code}" : "/tools/salary-book"),
+    salary_book_label: (team_code.present? ? "Open in Salary Book" : "Salary Book"),
+    right_links: [["Find a player", "/players"]]
+  } %>
 
   <section class="space-y-3">
     <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Roster (salary book horizon)</h2>

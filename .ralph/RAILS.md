@@ -140,7 +140,8 @@ Implemented in `web/`:
   - API: `entity_href(entity_type:, entity_id:)` + convenience helpers (`player_href`, `agent_href`, ...)
   - Behavior: if canonical slug exists → use `/players/:slug`; else use numeric fallback `/players/:id`
 
-- [ ] Add a shared “entity header” partial (Bricklink/BuiltWith-style)
+- [x] Add a shared “entity header” partial (Bricklink/BuiltWith-style)
+  - `web/app/views/entities/shared/_entity_header.html.erb`
   - breadcrumbs
   - scoped search (Players/Teams/Agents/Agencies)
   - quick links back to `/tools/salary-book`
@@ -187,3 +188,4 @@ These should feel more like “hubs” and less like “debug pages,” but stil
 - [x] Upgrade Player entity page to show core connections (team/agent/agency/draft)
 - [x] Add Salary Book sidebar “Open entity page” links (team/agent/pick)
 - [x] Add canonical entity link helpers (slug-first links w/ numeric fallback) + refactor entity views/tool overlays to use them
+- [x] Add shared entity header partial (breadcrumbs + scoped search + Salary Book link) + refactor entity pages to use it

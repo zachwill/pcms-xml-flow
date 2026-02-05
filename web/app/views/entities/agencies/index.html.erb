@@ -4,35 +4,14 @@
 <% prefetch_canonical_slugs(entity_type: "agency", entity_ids: @agencies.map { |a| a["agency_id"] }) %>
 
 <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
-  <header class="flex items-start justify-between gap-6 border-b border-border pb-4">
-    <div class="min-w-0">
-      <h1 class="text-2xl font-semibold truncate">Agencies</h1>
-      <p class="mt-1 text-sm text-muted-foreground">Agency directory (from <code>pcms.agencies</code>).</p>
-    </div>
-
-    <nav class="shrink-0 flex items-center gap-4">
-      <a href="/agents" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Agents</a>
-      <a href="/players" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Players</a>
-      <a href="/tools/salary-book" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Salary Book</a>
-    </nav>
-  </header>
-
-  <section class="space-y-3">
-    <form action="/agencies" method="get" class="flex items-center gap-2">
-      <input
-        type="text"
-        name="q"
-        value="<%= @query %>"
-        placeholder="Search agencies…"
-        class="w-full px-3 py-2 rounded-md border border-border bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
-        autocomplete="off"
-      />
-      <button
-        type="submit"
-        class="cursor-pointer px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium"
-      >Search</button>
-    </form>
-  </section>
+  <%= render partial: "entities/shared/entity_header", locals: {
+    title: "Agencies",
+    subtitle: "Agency directory (from pcms.agencies).",
+    breadcrumbs: [["Agencies", nil]],
+    search_scope: "agencies",
+    search_query: @query,
+    search_placeholder: "Search agencies…"
+  } %>
 
   <section class="space-y-3">
     <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Results</h2>

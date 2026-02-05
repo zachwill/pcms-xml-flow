@@ -43,7 +43,7 @@ Tool URL: `/tools/salary-book`
     - tax/apron status badges (and luxury tax row later if available)
   - **Important:** `GET /tools/salary-book/teams/:teamcode/section` should render the *full* team section (players + subsections + totals). Right now it only reloads players.
 
-- [ ] Expand team sidebar context (`#rightpanel-base`) to match spec
+- [x] Expand team sidebar context (`#rightpanel-base`) to match spec
   - KPI cards: room under tax, first apron, second apron, roster count
   - Add lightweight tabs (Cap Outlook / Team Stats) - Team Stats can be placeholder
   - Keep base panel patchable by stable ID (`#rightpanel-base`)

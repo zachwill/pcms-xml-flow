@@ -417,4 +417,21 @@ module SalaryBookHelper
 
     { label: "Under Tax", value: format_room_amount(room_tax), variant: "positive" }
   end
+
+  # Get color class for "room under" values:
+  # - Green if under by $10M+
+  # - Neutral (no color) if under by less than $10M
+  # - Red if negative (over)
+  def room_under_color_class(value)
+    return "" if value.nil?
+
+    val = value.to_f
+    if val < 0
+      "sidebar-stat-value--negative"
+    elsif val >= 10_000_000
+      "sidebar-stat-value--positive"
+    else
+      "" # neutral
+    end
+  end
 end

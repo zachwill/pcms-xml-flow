@@ -1922,3 +1922,343 @@ a:hover {
   color: #71717a;
 }
 
+/* ------------------------------
+   Team Sidebar (rightpanel-base)
+   ------------------------------ */
+
+.sidebar-team {
+  padding: 16px;
+}
+
+/* Team Header */
+.sidebar-team-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sidebar-team-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sidebar-team-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sidebar-team-logo-fallback {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  color: var(--muted-foreground);
+}
+
+.sidebar-team-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sidebar-team-name {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--foreground);
+}
+
+.sidebar-team-conference {
+  font-size: 13px;
+  line-height: 1;
+  color: var(--muted-foreground);
+}
+
+/* Tab Toggle */
+.sidebar-tab-toggle {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.sidebar-tab-button {
+  position: relative;
+  z-index: 1;
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color 150ms;
+}
+
+.sidebar-tab-button:hover {
+  color: var(--foreground);
+}
+
+.sidebar-tab-button--active {
+  color: var(--foreground);
+}
+
+.sidebar-tab-indicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 6px);
+  border-radius: 6px;
+  background: var(--background);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  transition: transform 150ms ease-out;
+  pointer-events: none;
+}
+
+.sidebar-tab-indicator--right {
+  transform: translateX(calc(100% + 4px));
+}
+
+/* Tab Content */
+.sidebar-tab-content {
+  /* Hidden by default, shown via data-show */
+}
+
+/* Sections */
+.sidebar-section {
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-section:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.sidebar-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.sidebar-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  margin-bottom: 12px;
+}
+
+.sidebar-section-header .sidebar-section-label {
+  margin-bottom: 0;
+}
+
+/* Tax Status Badge */
+.sidebar-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.sidebar-status-badge--positive {
+  background: color-mix(in srgb, #dcfce7 80%, var(--background));
+  color: #16a34a;
+}
+
+.dark .sidebar-status-badge--positive {
+  background: color-mix(in srgb, #14532d 60%, var(--background));
+  color: #4ade80;
+}
+
+.sidebar-status-badge--negative {
+  background: color-mix(in srgb, #fef2f2 80%, var(--background));
+  color: #dc2626;
+}
+
+.dark .sidebar-status-badge--negative {
+  background: color-mix(in srgb, #7f1d1d 50%, var(--background));
+  color: #f87171;
+}
+
+.sidebar-status-badge--muted {
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+
+/* Stat Rows */
+.sidebar-stats {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+}
+
+.sidebar-stat-label {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.sidebar-stat-value {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.sidebar-stat-value--positive {
+  color: #16a34a;
+}
+
+.dark .sidebar-stat-value--positive {
+  color: #4ade80;
+}
+
+.sidebar-stat-value--negative {
+  color: #dc2626;
+}
+
+.dark .sidebar-stat-value--negative {
+  color: #f87171;
+}
+
+/* Muted stats (for placeholders) */
+.sidebar-stats--muted {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.sidebar-stats--muted .sidebar-stat-value {
+  color: var(--muted-foreground);
+}
+
+/* Salary Projections Bar Chart */
+.sidebar-projections {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 80px;
+}
+
+.sidebar-projection-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+}
+
+.sidebar-projection-bar-track {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.sidebar-projection-bar-fill {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  background: color-mix(in srgb, #3b82f6 80%, transparent);
+  transition: height 300ms ease-out;
+}
+
+.sidebar-projection-bar-fill--empty {
+  background: var(--muted);
+}
+
+.sidebar-projection-label {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Empty State */
+.sidebar-empty {
+  padding: 16px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+/* Placeholder (for Team Stats) */
+.sidebar-placeholder {
+  padding: 24px 16px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--muted) 30%, var(--background));
+  border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.sidebar-placeholder-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+
+.sidebar-placeholder-svg {
+  width: 20px;
+  height: 20px;
+  color: var(--muted-foreground);
+}
+
+.sidebar-placeholder-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--foreground);
+  margin-bottom: 4px;
+}
+
+.sidebar-placeholder-text {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.sidebar-preview {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Metadata */
+.sidebar-meta {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+

@@ -30,6 +30,8 @@ module Tools
       end
 
       @initial_team_summary = @initial_team ? fetch_team_summary(@initial_team, @salary_year) : nil
+      @initial_team_meta = @initial_team ? (@team_meta_by_code[@initial_team] || {}) : {}
+      @initial_team_summaries_by_year = @initial_team ? (@team_summaries[@initial_team] || {}) : {}
     rescue ActiveRecord::StatementInvalid => e
       # Useful when a dev DB hasn't been hydrated with the pcms.* schema yet.
       @boot_error = e.message
@@ -46,6 +48,8 @@ module Tools
       @team_meta_by_code = {}
       @initial_team = nil
       @initial_team_summary = nil
+      @initial_team_meta = {}
+      @initial_team_summaries_by_year = {}
     end
 
     # GET /tools/salary-book/teams/:teamcode/section
@@ -85,9 +89,22 @@ module Tools
       team_code = normalize_team_code(params[:team])
       year = salary_year_param
 
+      # Current year summary
       summary = fetch_team_summary(team_code, year)
 
-      render partial: "tools/salary_book/sidebar_team", locals: { team_code:, summary:, year: }, layout: false
+      # Team metadata (name, conference, logo)
+      team_meta = fetch_team_meta(team_code)
+
+      # Multi-year summaries for projections bar chart
+      summaries_by_year = fetch_all_team_summaries([team_code])[team_code] || {}
+
+      render partial: "tools/salary_book/sidebar_team", locals: {
+        team_code:,
+        summary:,
+        team_meta:,
+        summaries_by_year:,
+        year:
+      }, layout: false
     end
 
     # GET /tools/salary-book/sidebar/player/:id

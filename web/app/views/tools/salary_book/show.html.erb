@@ -137,7 +137,13 @@
 
     <aside id="rightpanel">
       <% if @initial_team %>
-        <%= render partial: "tools/salary_book/sidebar_team", locals: { team_code: @initial_team, summary: @initial_team_summary, year: @salary_year } %>
+        <%= render partial: "tools/salary_book/sidebar_team", locals: {
+          team_code: @initial_team,
+          summary: @initial_team_summary,
+          team_meta: @initial_team_meta,
+          summaries_by_year: @initial_team_summaries_by_year,
+          year: @salary_year
+        } %>
       <% else %>
         <div id="rightpanel-base" class="panel">
           <header class="panel-header">

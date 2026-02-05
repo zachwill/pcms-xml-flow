@@ -1,53 +1,231 @@
+<%#
+  Team Sidebar — Default mode showing active team from scroll-spy
+
+  Shows:
+  - Team header (logo, name, conference)
+  - Tab toggle (Cap Outlook / Team Stats)
+  - Cap Outlook: KPIs, cap space, room under thresholds, projections bar chart
+  - Team Stats: placeholder for future phase
+%>
+
+<% team_meta ||= {} %>
+<% summaries_by_year ||= {} %>
+<% summary ||= summaries_by_year[year] || {} %>
+
+<%# Extract team info %>
+<% team_name = team_meta["team_name"] || "Team #{team_code}" %>
+<% conference = team_meta["conference_name"] || "—" %>
+<% team_id = team_meta["team_id"] %>
+<% logo_url = team_logo_url(team_id) %>
+
+<%# Current year data %>
+<% cap_total = summary["cap_total"] %>
+<% cap_space = summary["cap_space"] %>
+<% room_tax = summary["room_under_tax"] %>
+<% room_a1 = summary["room_under_first_apron"] %>
+<% room_a2 = summary["room_under_second_apron"] %>
+<% roster_count = summary["roster_row_count"] %>
+<% two_way_count = summary["two_way_row_count"] %>
+<% is_over_tax = summary["is_over_tax"] %>
+<% is_over_a1 = summary["is_over_first_apron"] %>
+<% is_over_a2 = summary.dig("apron_level_lk") == "2" %>
+
+<%# Money formatting helper %>
 <% money = ->(v) { v.nil? ? "—" : number_to_currency(v.to_i, precision: 0) } %>
 
-<div id="rightpanel-base" class="panel">
-  <header class="panel-header">
-    <div class="panel-header-left">
-      <div class="panel-title">Team <%= team_code %> — <%= year %></div>
-      <div class="panel-subtitle">Scroll/click sets <code>$activeteam</code>; this panel patches via Datastar.</div>
+<div id="rightpanel-base"
+     class="sidebar-team"
+     data-signals="{ sidebartab: 'cap' }">
+  <%# Team Header %>
+  <header class="sidebar-team-header">
+    <%# Logo %>
+    <div class="sidebar-team-logo">
+      <% if logo_url %>
+        <img
+          src="<%= logo_url %>"
+          alt="<%= team_name %> logo"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+        />
+        <span class="sidebar-team-logo-fallback" style="display: none;">
+          <%= team_code %>
+        </span>
+      <% else %>
+        <span class="sidebar-team-logo-fallback">
+          <%= team_code %>
+        </span>
+      <% end %>
+    </div>
+
+    <%# Name + Conference %>
+    <div class="sidebar-team-info">
+      <div class="sidebar-team-name"><%= team_name %></div>
+      <div class="sidebar-team-conference"><%= conference %> Conference</div>
     </div>
   </header>
 
-  <% if summary.nil? %>
-    <div class="panel-body">
-      <div class="panel-muted">No <code>pcms.team_salary_warehouse</code> row found for <%= team_code %> / <%= year %>.</div>
-    </div>
-  <% else %>
-    <div class="panel-body">
-      <dl class="kv">
-        <div class="kv-row">
-          <dt>Cap total (holds)</dt>
-          <dd><%= money.call(summary["cap_total_hold"]) %></dd>
-        </div>
-        <div class="kv-row">
-          <dt>Tax total</dt>
-          <dd><%= money.call(summary["tax_total"]) %></dd>
-        </div>
-        <div class="kv-row">
-          <dt>Apron total</dt>
-          <dd><%= money.call(summary["apron_total"]) %></dd>
-        </div>
-        <div class="kv-row">
-          <dt>Room under tax</dt>
-          <dd><%= money.call(summary["room_under_tax"]) %></dd>
-        </div>
-        <div class="kv-row">
-          <dt>Room under apron 1</dt>
-          <dd><%= money.call(summary["room_under_apron1"]) %></dd>
-        </div>
-        <div class="kv-row">
-          <dt>Room under apron 2</dt>
-          <dd><%= money.call(summary["room_under_apron2"]) %></dd>
-        </div>
-        <div class="kv-row">
-          <dt>Roster rows</dt>
-          <dd><%= summary["roster_row_count"] || "—" %></dd>
-        </div>
-      </dl>
+  <%# Tab Toggle %>
+  <div class="sidebar-tab-toggle">
+    <button
+      type="button"
+      class="sidebar-tab-button"
+      data-class="{ 'sidebar-tab-button--active': $sidebartab === 'cap' }"
+      data-on:click="$sidebartab = 'cap'"
+    >Cap Outlook</button>
+    <button
+      type="button"
+      class="sidebar-tab-button"
+      data-class="{ 'sidebar-tab-button--active': $sidebartab === 'stats' }"
+      data-on:click="$sidebartab = 'stats'"
+    >Team Stats</button>
+    <%# Sliding indicator %>
+    <div class="sidebar-tab-indicator" data-class="{ 'sidebar-tab-indicator--right': $sidebartab === 'stats' }"></div>
+  </div>
 
-      <div class="panel-meta">
+  <%# Cap Outlook Tab %>
+  <div class="sidebar-tab-content" data-show="$sidebartab === 'cap'">
+    <% if summary.empty? %>
+      <div class="sidebar-empty">
+        No <code>pcms.team_salary_warehouse</code> data for <%= team_code %> / <%= year %>.
+      </div>
+    <% else %>
+      <%# Tax Status Badge %>
+      <div class="sidebar-section">
+        <div class="sidebar-section-header">
+          <span class="sidebar-section-label"><%= year %>–<%= year + 1 %> Cap Outlook</span>
+          <% status = tax_status(summary) %>
+          <span class="sidebar-status-badge sidebar-status-badge--<%= status[:variant] %>">
+            <%= status[:label] %>
+          </span>
+        </div>
+
+        <%# Key Stats %>
+        <div class="sidebar-stats">
+          <div class="sidebar-stat-row">
+            <span class="sidebar-stat-label">Total Salary</span>
+            <span class="sidebar-stat-value"><%= format_compact_currency(cap_total) %></span>
+          </div>
+          <div class="sidebar-stat-row">
+            <span class="sidebar-stat-label">Cap Space</span>
+            <% cs_class = cap_space.to_f >= 0 ? "sidebar-stat-value--positive" : "sidebar-stat-value--negative" %>
+            <span class="sidebar-stat-value <%= cs_class %>"><%= format_room_amount(cap_space) %></span>
+          </div>
+          <div class="sidebar-stat-row">
+            <span class="sidebar-stat-label">Room Under Tax</span>
+            <% tax_class = room_under_color_class(room_tax) %>
+            <span class="sidebar-stat-value <%= tax_class %>"><%= format_room_amount(room_tax) %></span>
+          </div>
+          <div class="sidebar-stat-row">
+            <span class="sidebar-stat-label">Room Under 1st Apron</span>
+            <% a1_class = room_under_color_class(room_a1) %>
+            <span class="sidebar-stat-value <%= a1_class %>"><%= format_room_amount(room_a1) %></span>
+          </div>
+          <div class="sidebar-stat-row">
+            <span class="sidebar-stat-label">Room Under 2nd Apron</span>
+            <% a2_class = room_under_color_class(room_a2) %>
+            <span class="sidebar-stat-value <%= a2_class %>"><%= format_room_amount(room_a2) %></span>
+          </div>
+        </div>
+      </div>
+
+      <%# Salary Projections Bar Chart %>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Salary Projection</div>
+        <div class="sidebar-projections">
+          <%
+            projection_years = (2025..2030).to_a
+            cap_totals = projection_years.map { |y| (summaries_by_year[y] || {})["cap_total"].to_f }
+            max_val = [cap_totals.max || 1, 1].max
+          %>
+          <% projection_years.each_with_index do |proj_year, i| %>
+            <%
+              val = cap_totals[i] || 0
+              height_pct = [(val / max_val * 100).round, 4].max
+            %>
+            <div class="sidebar-projection-bar">
+              <div class="sidebar-projection-bar-track">
+                <div
+                  class="sidebar-projection-bar-fill<%= val > 0 ? '' : ' sidebar-projection-bar-fill--empty' %>"
+                  style="height: <%= height_pct %>%;"
+                ></div>
+              </div>
+              <span class="sidebar-projection-label"><%= format_year_label(proj_year) %></span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <%# Two-Way Section %>
+      <% if roster_count || two_way_count %>
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">Roster</div>
+          <div class="sidebar-stats">
+            <% if roster_count %>
+              <div class="sidebar-stat-row">
+                <span class="sidebar-stat-label">Standard Contracts</span>
+                <span class="sidebar-stat-value"><%= roster_count %></span>
+              </div>
+            <% end %>
+            <% if two_way_count %>
+              <div class="sidebar-stat-row">
+                <span class="sidebar-stat-label">Two-Way Contracts</span>
+                <span class="sidebar-stat-value"><%= two_way_count %></span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <%# Metadata %>
+      <div class="sidebar-meta">
         refreshed_at: <code><%= summary["refreshed_at"] || "—" %></code>
       </div>
+    <% end %>
+  </div>
+
+  <%# Team Stats Tab (placeholder) %>
+  <div class="sidebar-tab-content" data-show="$sidebartab === 'stats'">
+    <div class="sidebar-placeholder">
+      <div class="sidebar-placeholder-icon">
+        <svg class="sidebar-placeholder-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.5"
+            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+          />
+        </svg>
+      </div>
+      <div class="sidebar-placeholder-title">Team Stats Coming Soon</div>
+      <div class="sidebar-placeholder-text">
+        Record, standings, and efficiency metrics will be available in a future update.
+      </div>
     </div>
-  <% end %>
+
+    <%# Preview (grayed out) %>
+    <div class="sidebar-preview">
+      <div class="sidebar-section-label">Preview</div>
+      <div class="sidebar-stats sidebar-stats--muted">
+        <div class="sidebar-stat-row">
+          <span class="sidebar-stat-label">Record</span>
+          <span class="sidebar-stat-value">— — —</span>
+        </div>
+        <div class="sidebar-stat-row">
+          <span class="sidebar-stat-label">Conference Rank</span>
+          <span class="sidebar-stat-value">—</span>
+        </div>
+        <div class="sidebar-stat-row">
+          <span class="sidebar-stat-label">Offensive Rating</span>
+          <span class="sidebar-stat-value">—</span>
+        </div>
+        <div class="sidebar-stat-row">
+          <span class="sidebar-stat-label">Defensive Rating</span>
+          <span class="sidebar-stat-value">—</span>
+        </div>
+        <div class="sidebar-stat-row">
+          <span class="sidebar-stat-label">Net Rating</span>
+          <span class="sidebar-stat-value">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

@@ -36,7 +36,7 @@ begin
   select count(*) into c
   from pcms.vw_draft_pick_assets
   where not has_shorthand
-    and raw_part !~* E'^to\\s'
+    and raw_part !~* '^to\s'
     and display_text <> raw_part;
 
   if c <> 0 then
@@ -51,8 +51,8 @@ begin
   select count(*) into c2
   from pcms.vw_draft_pick_assets
   where not has_shorthand
-    and raw_part ~* E'^to\\s'
-    and display_text !~* E'^to\\s';
+    and raw_part ~* '^to\s'
+    and display_text !~* '^to\s';
 
   if c2 <> 0 then
     raise exception 'Expected outgoing rows without shorthand to have display_text prefixed with "To" (bad rows=%)', c2;

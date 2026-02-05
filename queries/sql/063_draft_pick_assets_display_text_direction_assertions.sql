@@ -18,8 +18,8 @@ declare
 begin
   select count(*) into bad_count
   from pcms.vw_draft_pick_assets v
-  where v.raw_part ~* E'^to\\s'
-    and v.display_text !~* E'^to\\s';
+  where v.raw_part ~* '^to\s'
+    and v.display_text !~* '^to\s';
 
   if bad_count > 0 then
     raise exception 'vw_draft_pick_assets display_text is missing "To" prefix for % outgoing rows', bad_count;

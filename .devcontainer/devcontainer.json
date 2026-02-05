@@ -2,7 +2,10 @@
   "name": "pcms-xml",
   "image": "mcr.microsoft.com/devcontainers/base:bullseye",
   "features": {
-    "ghcr.io/devcontainers/features/common-utils:2": {}
+    "ghcr.io/devcontainers/features/common-utils:2": {},
+    "ghcr.io/devcontainers/features/ruby:1": {
+      "version": "3.4.8"
+    }
   },
   "customizations": {
     "vscode": {
@@ -11,7 +14,7 @@
       ]
     }
   },
-  "postCreateCommand": "set -e && curl -fsSL https://bun.sh/install | bash && export BUN_INSTALL=\"$HOME/.bun\" && export PATH=\"$BUN_INSTALL/bin:$PATH\" && ln -s $(which bun) $BUN_INSTALL/bin/node && bun install -g @mariozechner/pi-coding-agent && echo 'export BUN_INSTALL=\"$HOME/.bun\"' >> ~/.bashrc && echo 'export PATH=\"$BUN_INSTALL/bin:$PATH\"' >> ~/.bashrc",
+  "postCreateCommand": "set -e && curl -fsSL https://bun.sh/install | bash && export BUN_INSTALL=\"$HOME/.bun\" && export PATH=\"$BUN_INSTALL/bin:$PATH\" && ln -s $(which bun) $BUN_INSTALL/bin/node && bun install -g @mariozechner/pi-coding-agent && echo 'export BUN_INSTALL=\"$HOME/.bun\"' >> ~/.bashrc && echo 'export PATH=\"$BUN_INSTALL/bin:$PATH\"' >> ~/.bashrc && cd web && bundle install",
   "postStartCommand": "export BUN_INSTALL=\"$HOME/.bun\" && export PATH=\"$BUN_INSTALL/bin:$PATH\" && bun --version && pi-coding-agent --version || true",
   "remoteUser": "vscode"
 }

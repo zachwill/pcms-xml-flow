@@ -181,7 +181,7 @@ Team header + table header behave as **one sticky group**. When the next team ar
 
 **Column Layout:**
 - **Sticky left:** Player name/info (w-52 = 208px)
-- **Scrollable center:** 5-year salary horizon (2025–2029), each column 96px
+- **Scrollable center:** 6-year salary horizon (2025–2030), each column 96px
 - **Scrollable right:** Total column, Agent column
 
 Horizontal scroll syncs between header and body.
@@ -416,7 +416,7 @@ When no entity is selected, sidebar shows the **active team from scroll-spy**:
 - Total salary
 - Cap space
 - Room under thresholds (Tax, First Apron, Second Apron)
-- Salary projections bar chart (5-year horizon)
+- Salary projections bar chart (6-year horizon)
 - Two-way player capacity (games remaining based on roster count)
 
 **Team Stats Tab:**

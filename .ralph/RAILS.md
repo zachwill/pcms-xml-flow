@@ -31,24 +31,42 @@ Tool URL: `/tools/salary-book`
 
 ## Backlog
 
-- [x] Unify displayed year horizon across table + sub-sections + totals footer
-  - **Resolved:** All partials now use `SalaryBookHelper::SALARY_YEARS` (2025–2030) as the canonical source.
-  - Controller constant documented; all render calls pass `salary_years` explicitly.
-  - SQL pivots for cap_holds, exceptions, dead_money already include 2030.
-  - Removed inline `(2025..2030).to_a` from all view partials.
-
 - [ ] Add Agent overlay endpoint (v1 scaffold + wire click)
-  - `GET /tools/salary-book/sidebar/agent/:id` → patches `#rightpanel-overlay`
-  - Wire agent name clicks (currently placeholder behavior)
+  - Route: `GET /tools/salary-book/sidebar/agent/:id` → patches `#rightpanel-overlay`
+  - Data source (mirror prototype route):
+    - Agent: `pcms.agents` (agent_id, full_name, agency_name)
+    - Clients: `pcms.salary_book_warehouse` rows where `agent_id = :id`
+      - include `player_id`, `player_name`, `team_code`, `age`, `cap_2025..cap_2030`, `is_two_way`
+      - optional: `LEFT JOIN pcms.people` for display names + `years_of_service`
+  - View: new partial `_sidebar_agent.html.erb`
+    - Must render a single stable root: `<div id="rightpanel-overlay">…</div>`
+    - Back button should `@get('/tools/salary-book/sidebar/clear')`
+    - Client rows should be clickable → `@get('/tools/salary-book/sidebar/player/:id')` (replaces overlay)
+  - Wiring:
+    - Replace the placeholder agent click in `tools/salary_book/_player_row.html.erb`
+    - Wire the Agent button inside `tools/salary_book/_sidebar_player.html.erb`
 
 - [ ] Add Pick overlay endpoint (v1 scaffold + wire click)
-  - `GET /tools/salary-book/sidebar/pick?...` → patches `#rightpanel-overlay`
-  - Wire draft pick pills in the table (replace `console.log` placeholder)
+  - Route: `GET /tools/salary-book/sidebar/pick?team=:code&year=:year&round=:round` → patches `#rightpanel-overlay`
+  - Data source (start simple; expand later):
+    - `pcms.draft_pick_summary_assets` rows for (team_code, draft_year, draft_round)
+    - optional v1+: join `pcms.teams` for names/logos, and `pcms.endnotes` for protections text when present
+  - View: new partial `_sidebar_pick.html.erb`
+    - Header (year/round + destination team)
+    - Origin/destination + flags (swap/conditional) if available
+    - Raw description (from summary assets) + basic protections section (if any)
+  - Wiring:
+    - Replace the `console.log` placeholder in `tools/salary_book/_draft_assets_section.html.erb`
 
-- [ ] Add remaining Filter Toggles (Financials + Contracts) to match spec (client-only lenses)
-  - Financials: Tax/Aprons (default ON), Cash vs Cap (OFF), Luxury Tax (OFF)
-  - Contracts: Options (ON), Incentives (ON), Two-Way (ON)
-  - Use flatcase signals (e.g. `displaytaxaprons`, `displayoptions`, `displaytwoway`)
+- [ ] Filter Toggles parity (Financials + Contracts) (client-only lenses)
+  - Add new flatcase signals + UI checkboxes:
+    - Financials: `displaytaxaprons` (default **true**), `displaycashvscap` (false), `displayluxurytax` (false)
+    - Contracts: `displayoptions` (true), `displayincentives` (true), `displaytwoway` (true)
+  - Preserve context on change (call `window.__salaryBookPreserveContext?.()` like the Display group)
+  - Wire v1 behavior (no server calls):
+    - `displaytaxaprons`: hide/show Tax Status row in totals footer + tax/apron KPI rows/cards where they exist
+    - `displaytwoway`: hide/show two-way players in the main table (client-side)
+    - `displayoptions` / `displayincentives`: start by gating badges/tooltips (avoid per-cell `data-class` unless needed)
 
 ---
 
@@ -63,6 +81,11 @@ Tool URL: `/tools/salary-book`
 ---
 
 ## Done
+
+- [x] Unify displayed year horizon across table + sub-sections + totals footer
+  - Canonical horizon is now **2025–2030** everywhere (table, sub-sections, totals footer).
+  - Removed the old subsection-year split; all views use `SALARY_YEARS`.
+  - Updated controller SQL pivots (cap_holds, exceptions, dead_money) to include 2030.
 
 - [x] Team section parity: Team Header KPIs + Totals Footer
   - Bulk fetch `pcms.team_salary_warehouse` across the displayed years (don’t recompute totals in Ruby).

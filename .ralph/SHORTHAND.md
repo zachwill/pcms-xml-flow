@@ -192,7 +192,7 @@ Ordered by rows in `pcms.vw_draft_pick_shorthand_todo` where `primary_todo_reaso
 - [x] Endnote 248 (5 rows) - PHI→WAS LF [LAC, OKC, HOU (p. 1-4)] 2026 1st (via PHI/endnote 156)
 - [x] Endnote 230 (5 rows) - UTA→PHX LF [CLE, MIN, UTA] 2027 1st
 - [x] Endnote 202 (5 rows) - NOP→ATL LF [NOP, MIL] 2027 1st (p. 1-4)
-- [ ] Endnote 190 (5 rows) - NYK→POR LF [IND, MIL, DEN] 2029 2nd
+- [x] Endnote 190 (5 rows) - NYK→POR LF [IND, WAS] 2029 2nd
 - [ ] Endnote 129 (5 rows) - IND→NYK LF [IND, WAS] 2029 2nd
 - [ ] Endnote 128 (5 rows) - IND→NYK LF [IND, PHX] 2028 2nd
 - [ ] Endnote 101 (5 rows) - DEN→OKC "First Allowable Draft" 1st (DEN 2029/2030 1sts)
@@ -288,3 +288,4 @@ When you complete a cluster, add a bullet here with:
 - Endnote 248 — PHI→WAS Butler-Jackson trade (2/6/2025). PHI conveys to WAS the 2026 1st they receive from OKC (per endnote 156 Harden trade). The pick is the LF of [LAC, OKC, HOU (p. 1-4)]. Added origin shorthands: `HOU (p. 1-4)` for HOU OWN and OKC MAY_HAVE HOU rows, `LAC` for LAC TO OKC and OKC MAY_HAVE LAC rows, `OKC` for OKC OWN. Direction-aware display: `To WAS: LAC` for outgoing LAC row.
 - Endnote 230 — UTA→PHX Suns-Jazz trade (1/21/2025). PHX receives LF [CLE, MIN, UTA] 2027 1st. CLE pick flows via endnote 66 (Mitchell), MIN pick flows via endnote 62 (Gobert). PHX MAY_HAVE rows already had `LF [CLE, MIN, UTA]`. Added origin shorthands: `CLE`/`MIN`/`UTA` for origin and UTA MAY_HAVE rows. Direction-aware display: `To PHX: CLE` and `To PHX: MIN` for outgoing.
 - Endnote 202 — NOP→ATL Murray trade (7/6/2024). ATL receives LF [NOP, MIL] 2027 1st (top-4 protected, obligation extinguished if not conveyed). MIL pick flows via Holiday trade (endnote 8). Shorthands: `LF [NOP, MIL] (p. 1-4)` for ATL MAY_HAVE rows, `NOP (p. 1-4)` for NOP origin, `MIL` for MIL origin. Direction-aware: `To ATL: MIL` for MIL outgoing.
+- Endnote 190 — NYK→POR Kolek trade (6/27/2024). POR receives LF [IND, WAS] 2029 2nd (via NYK). Chain: WAS→IND (endnote 109 Beal), IND→NYK (endnote 129 Toppin), NYK→POR (endnote 190 Kolek). Shorthands: `LF [IND, WAS]` for POR MAY_HAVE, `IND`/`WAS` for origin rows. Direction-aware: `To POR: WAS` for WAS outgoing.

@@ -9,6 +9,7 @@ module Tools
       @salary_years = SALARY_YEARS
 
       @team_codes = fetch_team_codes(@salary_year)
+      @teams_by_conference = fetch_teams_by_conference
       @players_by_team = fetch_players_by_team(@team_codes)
 
       requested = params[:team]
@@ -25,6 +26,7 @@ module Tools
       @salary_year = salary_year_param
       @salary_years = SALARY_YEARS
       @team_codes = []
+      @teams_by_conference = { "Eastern" => [], "Western" => [] }
       @players_by_team = {}
       @initial_team = nil
       @initial_team_summary = nil
@@ -97,6 +99,27 @@ module Tools
       conn.exec_query(
         "SELECT team_code FROM pcms.team_salary_warehouse WHERE salary_year = #{year_sql} ORDER BY team_code"
       ).rows.flatten.compact
+    end
+
+    def fetch_teams_by_conference
+      rows = conn.exec_query(<<~SQL).to_a
+        SELECT team_code, team_name, conference_name
+        FROM pcms.teams
+        WHERE league_lk = 'NBA'
+          AND team_name NOT LIKE 'Non-NBA%'
+          AND conference_name IS NOT NULL
+        ORDER BY team_code
+      SQL
+
+      result = { "Eastern" => [], "Western" => [] }
+      rows.each do |row|
+        conf = row["conference_name"]
+        next unless result.key?(conf)
+
+        result[conf] << { code: row["team_code"], name: row["team_name"] }
+      end
+
+      result
     end
 
     def fetch_players_by_team(team_codes)

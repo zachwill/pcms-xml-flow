@@ -288,6 +288,79 @@ a:hover {
 }
 
 /* ------------------------------
+   Team Selector Grid (Command Bar)
+   ------------------------------ */
+
+/*
+ * Layout: Two conference blocks side-by-side.
+ * Each conference block: label + 3×5 grid (15 teams per conference).
+ */
+
+.team-selector-grid {
+  display: flex;
+  gap: 20px;
+}
+
+.team-conf-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.team-conf-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  opacity: 0.7;
+}
+
+.team-conf-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+/* Individual team pill */
+.team-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  background: transparent;
+  text-decoration: none;
+  transition: background-color 100ms, border-color 100ms, color 100ms;
+  cursor: pointer;
+  min-width: 36px;
+}
+
+.team-pill:hover {
+  background: color-mix(in srgb, var(--muted) 60%, transparent);
+  border-color: color-mix(in srgb, var(--border) 50%, transparent);
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+/* Active state (scroll-spy highlight) */
+.team-pill--active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.team-pill--active:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* ------------------------------
    Salary Book v0 widgets
    ------------------------------ */
 

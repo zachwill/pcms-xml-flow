@@ -31,7 +31,7 @@ Tool URL: `/tools/salary-book`
 
 ## Backlog
 
-- [ ] Port the Team Selector Grid to the command bar
+- [x] Port the Team Selector Grid to the command bar
   - Two blocks: Eastern / Western
   - Teams in a grid (match prototype: 3 rows × 5 teams per conference)
   - Active team highlighted (driven by `$activeteam` signal)

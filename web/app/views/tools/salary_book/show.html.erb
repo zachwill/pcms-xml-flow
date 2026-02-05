@@ -17,20 +17,25 @@
       </nav>
     </div>
 
-    <% if @team_codes.any? %>
+    <% if @teams_by_conference["Eastern"].any? || @teams_by_conference["Western"].any? %>
       <div class="commandbar-inner commandbar-inner--teams">
-        <div class="team-selector" role="navigation" aria-label="Teams">
-          <% @team_codes.each do |code| %>
-            <a
-              href="#teamsection-<%= code %>"
-              data-on:click="$activeteam = '<%= code %>'; @get('<%= tools_salary_book_sidebar_team_path(team: code, year: @salary_year) %>')"
-              data-class="{ active: $activeteam === '<%= code %>' }"
-            ><%= code %></a>
+        <div class="team-selector-grid" role="navigation" aria-label="Teams">
+          <% %w[Eastern Western].each do |conf| %>
+            <div class="team-conf-block">
+              <div class="team-conf-label"><%= conf %></div>
+              <div class="team-conf-grid">
+                <% @teams_by_conference[conf].each do |team| %>
+                  <a
+                    href="#teamsection-<%= team[:code] %>"
+                    class="team-pill"
+                    data-on:click.prevent="$activeteam = '<%= team[:code] %>'; (() => { const el = document.getElementById('teamsection-<%= team[:code] %>'); const main = document.getElementById('maincanvas'); if (el && main) main.scrollTo({ top: el.offsetTop, behavior: 'smooth' }); })(); @get('<%= tools_salary_book_sidebar_team_path(team: team[:code], year: @salary_year) %>')"
+                    data-class="{ 'team-pill--active': $activeteam === '<%= team[:code] %>' }"
+                    title="<%= team[:name] %>"
+                  ><%= team[:code] %></a>
+                <% end %>
+              </div>
+            </div>
           <% end %>
-        </div>
-
-        <div class="team-selector-meta">
-          active: <code data-text="$activeteam"></code>
         </div>
       </div>
     <% end %>

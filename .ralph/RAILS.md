@@ -44,7 +44,7 @@ Tool URL: `/tools/salary-book`
     - See `prototypes/salary-book-react/src/features/SalaryBook/` for markup reference
     - See `web/specs/01-salary-book.md` section 2.4 for the double-row spec
 
-- [ ] Implement iOS Contacts sticky headers (CSS)
+- [x] Implement iOS Contacts sticky headers (CSS)
     - Team header + table header stick together as one unit
     - Next team's header pushes the previous one off
     - This is pure CSS (`position: sticky` with proper `top` values)

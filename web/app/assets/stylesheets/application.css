@@ -321,20 +321,7 @@ a:hover {
   white-space: nowrap;
 }
 
-.teamsection {
-  border: 1px solid var(--border);
-  background: var(--muted);
-  margin-bottom: 14px;
-}
-
-.teamsection-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-}
+/* NOTE: .teamsection layout moved to "iOS Contacts Sticky Headers" section below */
 
 .teamsection-header h2 {
   margin: 0;
@@ -566,22 +553,49 @@ a:hover {
   --salarytable-header-height: 32px;     /* h-8 */
 }
 
-/* Team section updates for new layout */
+/* ------------------------------
+   iOS Contacts Sticky Headers
+   ------------------------------ */
+
+/*
+ * How it works:
+ * 1) Each .teamsection is a positioned container (relative) - this doesn't
+ *    interfere with sticky, but allows z-index on sections.
+ * 2) .teamsection-sticky-header uses position:sticky with top:0 to stick
+ *    to the top of #maincanvas (the scrolling container).
+ * 3) z-index is handled via DOM order: later sections in the DOM naturally
+ *    paint over earlier ones when their sticky headers reach the same position.
+ * 4) The sticky header has an opaque background to prevent content bleed-through.
+ * 5) A subtle shadow gives visual separation when stuck.
+ *
+ * The "push off" effect happens automatically: as you scroll down, section B's
+ * sticky header reaches top:0 and paints over section A's header (which is
+ * still stuck but now covered by B).
+ */
+
+/* Team section container */
 .teamsection {
+  position: relative; /* Establishes stacking context for children */
   border: 1px solid var(--border);
   background: var(--background);
   margin-bottom: 14px;
-  overflow: hidden;
+  /* Remove overflow:hidden - it would break sticky positioning */
 }
 
+/* Sticky header group: Team header + Table header stick together */
 .teamsection-sticky-header {
   position: sticky;
   top: 0;
   z-index: 5;
+  /* Opaque background - critical to prevent content bleed-through */
   background: var(--background);
+  /* Shadow appears when header becomes stuck (visual cue) */
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  /* Hint browser to optimize for transform/opacity during scroll */
+  will-change: transform;
 }
 
+/* Team header (inside sticky group) */
 .teamsection-header {
   display: flex;
   align-items: baseline;
@@ -592,8 +606,9 @@ a:hover {
   background: var(--background);
 }
 
+/* Table body container */
 .teamsection-body {
-  /* Body scrolls with content */
+  /* Content flows normally under the sticky header */
 }
 
 /* Table Header */

@@ -1,0 +1,132 @@
+<%#
+  PlayerRow — Double-row player design
+
+  Each player occupies TWO visual rows that behave as ONE unit:
+  - Primary Row (Row A): Name, salary per year (monospace), total
+  - Metadata Row (Row B): Age, contract type, badges
+
+  Both rows highlight on hover as a single unit.
+  Click opens Player entity in sidebar.
+%>
+
+<% player_id = player["player_id"] %>
+<% player_name = player["player_name"] %>
+<% salary_years ||= (2025..2030).to_a %>
+
+<div
+  id="player-<%= player_id %>"
+  class="playerrow"
+  role="button"
+  tabindex="0"
+  data-on:click="@get('<%= tools_salary_book_sidebar_player_path(id: player_id) %>')"
+  data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); @get('<%= tools_salary_book_sidebar_player_path(id: player_id) %>') }"
+>
+  <div class="playerrow-inner">
+    <%# Sticky Player column (Headshot + Name + Details) %>
+    <div class="playerrow-sticky-col">
+      <div class="playerrow-sticky-grid">
+        <%# Headshot spans both sub-rows %>
+        <div class="playerrow-headshot-cell">
+          <div class="playerrow-headshot">
+            <img
+              src="<%= player_headshot_url(player_id) %>"
+              alt="<%= player_name %>"
+              loading="lazy"
+              decoding="async"
+              onerror="if (this.src !== '<%= fallback_headshot_data_uri %>') { this.src = '<%= fallback_headshot_data_uri %>'; }"
+            >
+          </div>
+        </div>
+
+        <%# Row A: Name %>
+        <div class="playerrow-name-cell">
+          <span class="playerrow-name"><%= player_name %></span>
+        </div>
+
+        <%# Row B: Details %>
+        <div class="playerrow-meta-cell">
+          <% if player["age"] %>
+            <span><%= player_age_display(player) %></span>
+          <% end %>
+          <% if player["contract_type_code"] %>
+            <span class="playerrow-meta-badge"><%= player["contract_type_code"] %></span>
+          <% end %>
+          <% if player["is_two_way"] %>
+            <span class="playerrow-meta-badge playerrow-meta-badge--twoway">2W</span>
+          <% end %>
+          <% if player["is_no_trade"] %>
+            <span class="playerrow-meta-badge playerrow-meta-badge--ntc">NTC</span>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <%# Non-sticky columns (Contract Years + Total + Agent) %>
+    <div class="playerrow-scrollable">
+      <%# Salary year columns — each spans both rows %>
+      <% salary_years.each do |year| %>
+        <% salary = player_salary(player, year) %>
+        <% cell_classes = salary_cell_classes(player, year) %>
+        <% tooltip = salary_cell_tooltip(player, year) %>
+        <% pct_cap = format_pct_cap(player, year) %>
+        <% is_empty = salary.nil? %>
+        <% is_two_way_zero = player["is_two_way"] && salary.to_f == 0 %>
+
+        <div
+          class="playerrow-year-cell <%= cell_classes %>"
+          <% if tooltip %> title="<%= tooltip %>"<% end %>
+        >
+          <% if is_two_way_zero %>
+            <div class="playerrow-twoway-badge">Two-Way</div>
+          <% elsif is_empty %>
+            <div class="playerrow-salary playerrow-salary--empty">—</div>
+          <% else %>
+            <div class="playerrow-salary-row">
+              <span class="playerrow-salary"><%= format_salary(salary) %></span>
+            </div>
+            <div class="playerrow-pctcap-row">
+              <% if player["is_min_contract"] %>
+                <span class="playerrow-pctcap">MINIMUM</span>
+              <% elsif pct_cap %>
+                <span class="playerrow-pctcap"><%= pct_cap %></span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <%# Total salary column %>
+      <% total = player["total_salary_from_2025"] %>
+      <div class="playerrow-total-cell" title="<%= player["contract_type_lookup_value"] %>">
+        <div class="playerrow-salary-row">
+          <span class="playerrow-salary playerrow-salary--total"><%= format_salary(total) %></span>
+        </div>
+        <div class="playerrow-pctcap-row">
+          <% if player["contract_type_code"] %>
+            <span class="playerrow-contract-type"><%= player["contract_type_code"] %></span>
+          <% else %>
+            <span class="playerrow-contract-type playerrow-contract-type--empty">—</span>
+          <% end %>
+        </div>
+      </div>
+
+      <%# Agent + Agency column %>
+      <div class="playerrow-agent-cell">
+        <div class="playerrow-agent-row">
+          <% if player["agent_name"] %>
+            <button
+              type="button"
+              class="playerrow-agent-link"
+              data-on:click.stop="@get('<%= tools_salary_book_sidebar_player_path(id: player_id) %>')"
+            ><%= player["agent_name"] %></button>
+          <% else %>
+            <span class="playerrow-agent-link--empty">—</span>
+          <% end %>
+        </div>
+        <div class="playerrow-agency-row">
+          <%# Agency name would go here if available %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

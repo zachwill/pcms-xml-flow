@@ -36,7 +36,7 @@ Tool URL: `/tools/salary-book`
     - Allow `unsafe-inline` for scripts/styles, or disable CSP entirely
     - This is an internal tool — don't overthink it
 
-- [ ] Port the real Salary Book table layout
+- [x] Port the real Salary Book table layout
     - Replace the toy per-team table with the full layout from the prototype
     - Years 2025–2030 as columns, sticky left name column, dense rows
     - Double-row PlayerRow: primary row (name, salaries) + metadata row (position, age, badges)

@@ -1,0 +1,33 @@
+<%# Table Header — Column labels for the salary table %>
+<%# One-row header designed to stick with TeamHeader (iOS Contacts pattern) %>
+
+<% salary_years ||= (2025..2030).to_a %>
+
+<div class="salarytable-header">
+  <div class="salarytable-header-row">
+    <%# Player column (STICKY LEFT) %>
+    <div class="salarytable-sticky-col salarytable-header-cell">
+      <div class="salarytable-sticky-col-inner">
+        <div class="salarytable-headshot-spacer"></div>
+        <div class="salarytable-name-label">Name / Details</div>
+      </div>
+    </div>
+
+    <%# Year columns %>
+    <% salary_years.each do |year| %>
+      <div class="salarytable-year-cell salarytable-header-cell">
+        <%= format_year_label(year) %>
+      </div>
+    <% end %>
+
+    <%# Total column %>
+    <div class="salarytable-total-cell salarytable-header-cell salarytable-header-total">
+      Total
+    </div>
+
+    <%# Agent column %>
+    <div class="salarytable-agent-cell salarytable-header-cell">
+      Agent
+    </div>
+  </div>
+</div>

@@ -55,7 +55,7 @@
         </div>
       <% else %>
         <% @team_codes.each do |team_code| %>
-          <%= render partial: "tools/salary_book/team_section", locals: { team_code:, players: (@players_by_team[team_code] || []), year: @salary_year } %>
+          <%= render partial: "tools/salary_book/team_section", locals: { team_code:, players: (@players_by_team[team_code] || []), year: @salary_year, salary_years: @salary_years } %>
         <% end %>
       <% end %>
     </main>
@@ -114,7 +114,7 @@
   // Minimal Salary Book scroll spy (v0): map main-canvas scroll position to
   // `salarybook-activeteam` events.
   //
-  // This is intentionally tiny and replaceable; the “real” runtime will also
+  // This is intentionally tiny and replaceable; the "real" runtime will also
   // handle sticky headers + horizontal scroll sync.
   (() => {
     const main = document.getElementById("maincanvas");

@@ -550,3 +550,453 @@ a:hover {
 .entity-note {
   color: var(--muted-foreground);
 }
+
+/* ------------------------------
+   Salary Table Layout
+   ------------------------------ */
+
+/* Column widths (matching React prototype) */
+:root {
+  --salarytable-sticky-width: 208px;     /* w-52 = 13rem = 208px */
+  --salarytable-year-width: 96px;        /* w-24 */
+  --salarytable-total-width: 96px;       /* w-24 */
+  --salarytable-agent-width: 160px;      /* w-40 */
+  --salarytable-headshot-size: 28px;     /* w-7 h-7 */
+  --salarytable-row-height: 40px;        /* Double row: 24px + 16px */
+  --salarytable-header-height: 32px;     /* h-8 */
+}
+
+/* Team section updates for new layout */
+.teamsection {
+  border: 1px solid var(--border);
+  background: var(--background);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.teamsection-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--background);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+.teamsection-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
+}
+
+.teamsection-body {
+  /* Body scrolls with content */
+}
+
+/* Table Header */
+.salarytable-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
+}
+
+.salarytable-header-row {
+  display: flex;
+  align-items: center;
+  height: var(--salarytable-header-height);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+.salarytable-header-cell {
+  flex-shrink: 0;
+}
+
+.salarytable-sticky-col {
+  width: var(--salarytable-sticky-width);
+  padding-left: 16px;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--background);
+}
+
+.salarytable-sticky-col::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--border) 50%, transparent);
+}
+
+.salarytable-sticky-col-inner {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  align-items: center;
+  height: 100%;
+}
+
+.salarytable-headshot-spacer {
+  /* Matches headshot width */
+}
+
+.salarytable-name-label {
+  padding-left: 4px;
+}
+
+.salarytable-year-cell {
+  width: var(--salarytable-year-width);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.salarytable-total-cell {
+  width: var(--salarytable-total-width);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.salarytable-header-total {
+  font-weight: 700;
+}
+
+.salarytable-agent-cell {
+  width: var(--salarytable-agent-width);
+  text-align: center;
+}
+
+/* Player Row */
+.playerrow {
+  cursor: pointer;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  transition: background-color 75ms;
+}
+
+.playerrow:hover {
+  background: color-mix(in srgb, #fef9c3 70%, var(--background));
+}
+
+.dark .playerrow:hover {
+  background: color-mix(in srgb, #422006 20%, var(--background));
+}
+
+.playerrow:focus {
+  outline: none;
+}
+
+.playerrow:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.playerrow-inner {
+  display: flex;
+  min-height: var(--salarytable-row-height);
+}
+
+/* Player Sticky Column */
+.playerrow-sticky-col {
+  width: var(--salarytable-sticky-width);
+  flex-shrink: 0;
+  padding-left: 16px;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--background);
+  transition: background-color 75ms;
+}
+
+.playerrow:hover .playerrow-sticky-col {
+  background: color-mix(in srgb, #fef9c3 70%, var(--background));
+}
+
+.dark .playerrow:hover .playerrow-sticky-col {
+  background: color-mix(in srgb, #422006 20%, var(--background));
+}
+
+.playerrow-sticky-col::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--border) 30%, transparent);
+}
+
+.playerrow-sticky-grid {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: 24px 16px;
+}
+
+.playerrow-headshot-cell {
+  grid-row: span 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.playerrow-headshot {
+  width: var(--salarytable-headshot-size);
+  height: var(--salarytable-headshot-size);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  overflow: hidden;
+}
+
+.playerrow-headshot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.playerrow-name-cell {
+  display: flex;
+  align-items: flex-end;
+  min-width: 0;
+  padding-left: 4px;
+  padding-right: 8px;
+}
+
+.playerrow-name {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 100ms;
+}
+
+.playerrow:hover .playerrow-name {
+  color: var(--primary);
+}
+
+.playerrow-meta-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  padding-left: 4px;
+  padding-right: 8px;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--muted-foreground) 80%, transparent);
+  line-height: 1;
+  margin-top: -1px;
+}
+
+.playerrow-meta-badge {
+  color: var(--muted-foreground);
+}
+
+.playerrow-meta-badge--twoway {
+  color: #2563eb;
+}
+
+.dark .playerrow-meta-badge--twoway {
+  color: #60a5fa;
+}
+
+.playerrow-meta-badge--ntc {
+  color: #dc2626;
+}
+
+.dark .playerrow-meta-badge--ntc {
+  color: #f87171;
+}
+
+/* Scrollable columns */
+.playerrow-scrollable {
+  display: flex;
+  min-width: 0;
+}
+
+/* Year cell */
+.playerrow-year-cell {
+  width: var(--salarytable-year-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.playerrow-salary-row {
+  height: 24px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.playerrow-pctcap-row {
+  height: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  margin-top: -1px;
+}
+
+.playerrow-salary {
+  font-family: 'Geist Mono', 'Fira Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  min-width: 6ch;
+  display: inline-block;
+}
+
+.playerrow-salary--total {
+  font-weight: 600;
+  min-width: 7ch;
+}
+
+.playerrow-salary--empty {
+  text-align: center;
+  color: color-mix(in srgb, var(--muted-foreground) 40%, transparent);
+  min-width: auto;
+}
+
+.playerrow-pctcap {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--muted-foreground) 80%, transparent);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.playerrow-contract-type {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.playerrow-contract-type--empty {
+  color: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
+}
+
+.playerrow-twoway-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.dark .playerrow-twoway-badge {
+  background: #374151;
+  color: #d1d5db;
+}
+
+/* Total cell */
+.playerrow-total-cell {
+  width: var(--salarytable-total-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Agent cell */
+.playerrow-agent-cell {
+  width: var(--salarytable-agent-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding-right: 16px;
+}
+
+.playerrow-agent-row {
+  height: 24px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.playerrow-agent-link {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 1px;
+  transition: color 100ms;
+}
+
+.playerrow-agent-link:hover {
+  color: var(--foreground);
+  text-decoration: underline;
+}
+
+.playerrow-agent-link--empty {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
+}
+
+.playerrow-agency-row {
+  height: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 6px;
+  min-width: 0;
+  margin-top: -1px;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--muted-foreground);
+}
+
+/* Guarantee/Option colors (applied via helper) */
+.bg-yellow-100\/60 { background: color-mix(in srgb, #fef9c3 60%, transparent); }
+.dark .bg-yellow-100\/60,
+.bg-yellow-900\/30 { background: color-mix(in srgb, #713f12 30%, transparent); }
+.text-yellow-700 { color: #a16207; }
+.dark .text-yellow-700,
+.text-yellow-300 { color: #fcd34d; }
+
+.bg-blue-100\/60 { background: color-mix(in srgb, #dbeafe 60%, transparent); }
+.dark .bg-blue-100\/60,
+.bg-blue-900\/30 { background: color-mix(in srgb, #1e3a8a 30%, transparent); }
+.text-blue-700 { color: #1d4ed8; }
+.dark .text-blue-700,
+.text-blue-300 { color: #93c5fd; }
+
+.bg-purple-100\/60 { background: color-mix(in srgb, #f3e8ff 60%, transparent); }
+.dark .bg-purple-100\/60,
+.bg-purple-900\/30 { background: color-mix(in srgb, #581c87 30%, transparent); }
+.text-purple-700 { color: #7c3aed; }
+.dark .text-purple-700,
+.text-purple-300 { color: #d8b4fe; }
+
+.bg-orange-100\/60 { background: color-mix(in srgb, #ffedd5 60%, transparent); }
+.dark .bg-orange-100\/60,
+.bg-orange-900\/30 { background: color-mix(in srgb, #7c2d12 30%, transparent); }
+.text-orange-700 { color: #c2410c; }
+.dark .text-orange-700,
+.text-orange-300 { color: #fdba74; }
+
+.bg-red-100\/60 { background: color-mix(in srgb, #fee2e2 60%, transparent); }
+.dark .bg-red-100\/60,
+.bg-red-900\/30 { background: color-mix(in srgb, #7f1d1d 30%, transparent); }
+.text-red-700 { color: #b91c1c; }
+.dark .text-red-700,
+.text-red-300 { color: #fca5a5; }

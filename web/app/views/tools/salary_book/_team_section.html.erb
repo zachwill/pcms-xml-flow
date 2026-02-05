@@ -1,50 +1,50 @@
-<% money = ->(v) { v.nil? ? "—" : number_to_currency(v.to_i, precision: 0) } %>
+<%#
+  TeamSection — Wrapper for one team's salary book
+
+  Contains:
+  - Team Header (sticky) with team name + roster count
+  - Table Header (sticky, attached to team header)
+  - Player Rows (double-height)
+  - Totals Footer
+%>
+
+<% salary_years ||= (2025..2030).to_a %>
 
 <section id="teamsection-<%= team_code %>" class="teamsection" data-teamcode="<%= team_code %>">
-  <header class="teamsection-header">
-    <h2>
-      <a
-        href="#teamsection-<%= team_code %>"
-        data-on:click="$activeteam = '<%= team_code %>'; @get('<%= tools_salary_book_sidebar_team_path(team: team_code, year: year) %>')"
-      ><%= team_code %></a>
-      <span class="teamsection-count"><%= players.length %></span>
-    </h2>
+  <%# Sticky header group (Team header + Table header) %>
+  <div class="teamsection-sticky-header">
+    <div data-header-content>
+      <%# Team header %>
+      <header class="teamsection-header">
+        <h2>
+          <a
+            href="#teamsection-<%= team_code %>"
+            data-on:click="$activeteam = '<%= team_code %>'; @get('<%= tools_salary_book_sidebar_team_path(team: team_code, year: year) %>')"
+          ><%= team_code %></a>
+          <span class="teamsection-count"><%= players.length %></span>
+        </h2>
 
-    <div class="teamsection-actions">
-      <a
-        href="<%= tools_salary_book_team_section_path(teamcode: team_code, year: year) %>"
-        data-on:click__prevent="@get('<%= tools_salary_book_team_section_path(teamcode: team_code, year: year) %>')"
-      >Reload</a>
+        <div class="teamsection-actions">
+          <a
+            href="<%= tools_salary_book_team_section_path(teamcode: team_code, year: year) %>"
+            data-on:click__prevent="@get('<%= tools_salary_book_team_section_path(teamcode: team_code, year: year) %>')"
+          >Reload</a>
+        </div>
+      </header>
+
+      <%# Table header %>
+      <%= render partial: "tools/salary_book/table_header", locals: { salary_years: salary_years } %>
     </div>
-  </header>
+  </div>
 
-  <% if players.empty? %>
-    <div class="teamsection-empty">No players found for <%= team_code %>.</div>
-  <% else %>
-    <table class="teamsection-table">
-      <thead>
-        <tr>
-          <th>Player</th>
-          <th class="money">Cap 2025</th>
-          <th class="money">Cap 2026</th>
-          <th class="money">Total (2025+)</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% players.each do |p| %>
-          <tr id="player-<%= p["player_id"] %>">
-            <td>
-              <a
-                href="/players/<%= p["player_id"] %>"
-                data-on:click__prevent="@get('<%= tools_salary_book_sidebar_player_path(id: p["player_id"]) %>')"
-              ><%= p["player_name"] %></a>
-            </td>
-            <td class="money"><%= money.call(p["cap_2025"]) %></td>
-            <td class="money"><%= money.call(p["cap_2026"]) %></td>
-            <td class="money"><%= money.call(p["total_salary_from_2025"]) %></td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
-  <% end %>
+  <%# Table body %>
+  <div class="teamsection-body">
+    <% if players.empty? %>
+      <div class="teamsection-empty">No players found for <%= team_code %>.</div>
+    <% else %>
+      <% players.each do |player| %>
+        <%= render partial: "tools/salary_book/player_row", locals: { player: player, salary_years: salary_years } %>
+      <% end %>
+    <% end %>
+  </div>
 </section>

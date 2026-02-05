@@ -184,7 +184,7 @@ Guideline: one checkbox = one endnote cluster.
 
 ### Top clusters (4-row clusters) (refreshed 2026-02-05)
 
-As of this refresh: **185 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
+As of this refresh: **173 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
 
 Ordered by rows in `pcms.vw_draft_pick_shorthand_todo` where `primary_todo_reason='missing_shorthand'` and `draft_year >= 2026`.
 
@@ -192,9 +192,6 @@ Note: there are currently **no 5-row clusters**; the largest clusters are 4 rows
 
 All entries below are currently tied at 4 rows; ordered by endnote_id desc.
 
-- [x] Endnote 192 (4 rows) - NOP/ORL 2030 2nd
-- [x] Endnote 163 (4 rows) - DAL/OKC 2028 1st
-- [x] Endnote 159 (4 rows) - CHA/MIA 2027-2028 1st
 - [ ] Endnote 154 (4 rows) - LAC/PHI 2029 1st
 - [ ] Endnote 152 (4 rows) - LAC/OKC 2027 1st
 - [ ] Endnote 148 (4 rows) - MIL/POR 2030 1st

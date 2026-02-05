@@ -190,7 +190,7 @@ Ordered by rows in `pcms.vw_draft_pick_shorthand_todo` where `primary_todo_reaso
 
 - [x] Endnote 293 (5 rows) - UTA→CHA MF [UTA, LAC] 2030 2nd
 - [x] Endnote 248 (5 rows) - PHI→WAS HOU 2026 1st (via PHI)
-- [ ] Endnote 230 (5 rows) - UTA→PHX LF [UTA 2027, 2028, 2029] 1st
+- [x] Endnote 230 (5 rows) - UTA→PHX LF [UTA 2027, 2028, 2029] 1st
 - [ ] Endnote 202 (5 rows) - NOP→ATL LF [NOP, CLE] 2028 2nd
 - [ ] Endnote 190 (5 rows) - NYK→POR LF [IND, MIL, DEN] 2029 2nd
 - [ ] Endnote 156 (5 rows) - OKC→PHI LF [LAC, OKC] 2026 1st (Harden; feeds endnote 248)
@@ -287,3 +287,4 @@ When you complete a cluster, add a bullet here with:
 - Endnote 46 — No remaining `missing_shorthand` rows for `draft_year >= 2026`; endnote fully covered by the Endnote 319 OKC→WAS chain curation.
 - Endnote 293 — UTA→CHA MF [UTA, LAC] 2030 2nd (Sexton-Nurkic trade, 6/29/2025). CHA receives the MF of UTA's own 2030 2nd and the LAC 2030 2nd (which flows to UTA via endnote 232 Eubanks trade). Shorthands: `MF [UTA, LAC]` for CHA's MAY_HAVE rows, `UTA`/`LAC` for origin picks, direction-aware `To CHA: LAC` for LAC outgoing.
 - Endnote 248 — PHI→WAS Butler-Jackson trade (2/6/2025). PHI conveys to WAS the 2026 1st they receive from OKC (per endnote 156 Harden trade). The pick is the LF of [LAC, OKC, HOU (p. 1-4)]. Added origin shorthands: `HOU (p. 1-4)` for HOU OWN and OKC MAY_HAVE HOU rows, `LAC` for LAC TO OKC and OKC MAY_HAVE LAC rows, `OKC` for OKC OWN. Direction-aware display: `To WAS: LAC` for outgoing LAC row.
+- Endnote 230 — UTA→PHX Suns-Jazz trade (1/21/2025). PHX receives LF [CLE, MIN, UTA] 2027 1st. CLE pick flows via endnote 66 (Mitchell), MIN pick flows via endnote 62 (Gobert). PHX MAY_HAVE rows already had `LF [CLE, MIN, UTA]`. Added origin shorthands: `CLE`/`MIN`/`UTA` for origin and UTA MAY_HAVE rows. Direction-aware display: `To PHX: CLE` and `To PHX: MIN` for outgoing.

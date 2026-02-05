@@ -31,31 +31,34 @@ Tool URL: `/tools/salary-book`
 
 ## Backlog
 
-- [x] Filter toggle UX: preserve context after layout changes
-  - When toggles hide/show sections, rebuild scroll-spy cache and snap back to current `$activeteam` (instant scroll) so the user doesn't "jump teams".
-  - Exposed `window.__salaryBookRebuildCache()` and `window.__salaryBookPreserveContext()` from scroll-spy script
-  - Filter checkboxes call `__salaryBookPreserveContext()` on change
-
-- [ ] Add per-team Totals Footer
-  - Total salary by year
-  - Cap space / room under thresholds (as available)
-  - Prefer `pcms.team_salary_warehouse` (don't recompute in Ruby)
+- [ ] Team section parity: Team Header KPIs + Totals Footer
+  - **Do not recompute** totals in Ruby — prefer `pcms.team_salary_warehouse`.
+  - Bulk fetch `pcms.team_salary_warehouse` for all teams across the displayed years, grouped by `team_code`.
+  - Update `TeamHeader` inside each `#teamsection-<TEAM>` sticky header to match spec:
+    - logo (NBA CDN if possible) + team name + conference label
+    - KPI cards: room under tax, apron 1, apron 2, roster count
+  - Add a Totals Footer at the bottom of each team section:
+    - total salary by year
+    - cap space by year
+    - tax/apron status badges (and luxury tax row later if available)
+  - **Important:** `GET /tools/salary-book/teams/:teamcode/section` should render the *full* team section (players + subsections + totals). Right now it only reloads players.
 
 - [ ] Expand team sidebar context (`#rightpanel-base`) to match spec
   - KPI cards: room under tax, first apron, second apron, roster count
   - Add lightweight tabs (Cap Outlook / Team Stats) - Team Stats can be placeholder
+  - Keep base panel patchable by stable ID (`#rightpanel-base`)
 
 - [ ] Expand Player overlay (`#rightpanel-overlay`) to match spec
   - Contract breakdown by year, guarantee structure, options, trade kicker info
   - Back already behaves correctly (returns to current viewport team)
 
-- [ ] Add Agent overlay endpoint
+- [ ] Add Agent overlay endpoint (v1 scaffold + wire click)
   - `GET /tools/salary-book/sidebar/agent/:id` → patches `#rightpanel-overlay`
   - Wire agent name clicks (currently placeholder behavior)
 
-- [ ] Add Pick overlay endpoint
+- [ ] Add Pick overlay endpoint (v1 scaffold + wire click)
   - `GET /tools/salary-book/sidebar/pick?...` → patches `#rightpanel-overlay`
-  - Wire draft pick pills in the table
+  - Wire draft pick pills in the table (replace `console.log` placeholder)
 
 - [ ] Add remaining Filter Toggles (Financials + Contracts) to match spec (client-only lenses)
   - Financials: Tax/Aprons (default ON), Cash vs Cap (OFF), Luxury Tax (OFF)
@@ -86,6 +89,10 @@ Tool URL: `/tools/salary-book`
 - [x] Scroll spy (v1) → `salarybook-activeteam` CustomEvent → Datastar updates `$activeteam` → sidebar patch loop
 - [x] Port the Team Selector Grid to the command bar
 - [x] Add Filter Toggles UI (Display group; client-only lenses)
+- [x] Filter toggle UX: preserve context after layout changes
+  - When toggles hide/show sections, rebuild scroll-spy cache and snap back to current `$activeteam` so the user doesn't "jump teams".
+  - Exposed `window.__salaryBookRebuildCache()` and `window.__salaryBookPreserveContext()` from scroll-spy script
+  - Filter checkboxes call `__salaryBookPreserveContext()` on change
 - [x] Player rows are real links enhanced to patch overlay
 - [x] Render team sub-sections in the main canvas (toggle-controlled)
   - Cap Holds (`pcms.cap_holds_warehouse`)

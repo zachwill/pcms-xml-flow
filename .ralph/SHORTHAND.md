@@ -184,16 +184,10 @@ Guideline: one checkbox = one endnote cluster.
 
 ### Top clusters (5-row clusters) (refreshed 2026-02-05)
 
-As of this refresh: **228 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
+As of this refresh: **218 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
 
 Ordered by rows in `pcms.vw_draft_pick_shorthand_todo` where `primary_todo_reason='missing_shorthand'` and `draft_year >= 2026`.
 
-- [x] Endnote 293 (5 rows) - UTA→CHA MF [UTA, LAC] 2030 2nd
-- [x] Endnote 248 (5 rows) - PHI→WAS LF [LAC, OKC, HOU (p. 1-4)] 2026 1st (via PHI/endnote 156)
-- [x] Endnote 230 (5 rows) - UTA→PHX LF [CLE, MIN, UTA] 2027 1st
-- [x] Endnote 202 (5 rows) - NOP→ATL LF [NOP, MIL] 2027 1st (p. 1-4)
-- [x] Endnote 190 (5 rows) - NYK→POR LF [IND, WAS] 2029 2nd
-- [ ] Endnote 129 (5 rows) - IND→NYK LF [IND, WAS] 2029 2nd
 - [ ] Endnote 128 (5 rows) - IND→NYK LF [IND, PHX] 2028 2nd
 - [ ] Endnote 101 (5 rows) - DEN→OKC "First Allowable Draft" 1st (DEN 2029/2030 1sts)
 - [ ] Endnote 47 (5 rows) - UTA→SAS LF [HOU, IND] 2027 2nd
@@ -220,7 +214,6 @@ All entries below are currently tied at 4 rows; ordered by endnote_id desc.
 - [ ] Endnote 152 (4 rows) - LAC/OKC 2027 1st
 - [ ] Endnote 148 (4 rows) - MIL/POR 2030 1st
 - [ ] Endnote 116 (4 rows) - GSW/WAS 2030 (rounds 1+2)
-- [ ] Endnote 109 (4 rows) - IND/POR/WAS 2029 2nd
 - [ ] Endnote 107 (4 rows) - IND/NYK/PHX 2028 2nd
 - [ ] Endnote 99 (4 rows) - MIL/SAS/UTA 2026 2nd
 - [ ] Endnote 89 (4 rows) - NOP/POR/SAS 2026 2nd
@@ -235,20 +228,80 @@ All entries below are currently tied at 4 rows; ordered by endnote_id desc.
 - [ ] Endnote 26 (4 rows) - POR/SAS 2026 2nd
 - [ ] Endnote 17 (4 rows) - BKN/HOU 2027 1st
 - [ ] Endnote 9 (4 rows) - ATL/MIL/NOP 2026 1st
-- [ ] Endnote 8 (4 rows) - ATL/MIL/NOP 2027 1st
 
-### Smaller clusters / follow-ups (<=2 rows) (refreshed 2026-02-05)
+#### Next up (3-row clusters)
 
-- [ ] Endnote 322 (2 rows) - BKN/MIA 2026 2nd
-- [ ] Endnote 317 (2 rows) - CHA/SAC 2026 2nd
-- [ ] Endnote 311 (2 rows) - GSW/MEM 2032 2nd
-- [ ] Endnote 244 (2 rows) - BOS→HOU LF [NOP, CLE] 2027 2nd
-- [ ] Endnote 197 (2 rows) - BOS/MIL outgoing rows to WAS in the POR 2029 1st pool chain (finish origin shorthands)
-- [ ] Endnote 194 (2 rows) - PHX→NYK BOS 2028 2nd (via PHX; overlaps endnote 50 swap chain)
-- [ ] Endnote 176 (2 rows) - POR→BOS LF [POR, UTA] 2027 2nd
-- [ ] Endnote 157 (2 rows) - DET→WAS LF [NYK, WAS] 2026 2nd
-- [ ] Endnote 63 (2 rows) - MIN→UTA MIN 2029 1st (conditional; see endnote text for protections)
-- [ ] Endnote 4 (2 rows) - HOU→OKC HOU 2026 1st (conditional)
+All entries below are currently tied at 3 rows; ordered by endnote_id desc.
+
+- [ ] Endnote 266 (3 rows) - San Antonio conveys to Milwaukee: → Utah's own 2026 2nd round pick (via endnote 99)
+- [ ] Endnote 264 (3 rows) - Phoenix conveys to Charlotte: → The "Result Pick"
+- [ ] Endnote 235 (3 rows) - San Antonio conveys to Sacramento: → The future conditional first round draft pick (Charlotte’s own) that San Antonio is entitled to receive from Atlanta (per endnote 59)
+- [ ] Endnote 173 (3 rows) - Phoenix conveys to Memphis: → Right to swap MEM 2026 1st for the "Result Pick"
+- [ ] Endnote 169 (3 rows) - Dallas conveys to Charlotte: → DAL 2027 1st
+- [ ] Endnote 146 (3 rows) - Milwaukee conveys to Portland: → Right to swap POR 2028 1st for MIL 2028 1st
+- [ ] Endnote 145 (3 rows) - Phoenix conveys to Orlando: → Right to swap ORL 2026 1st for the "Result Pick"
+- [ ] Endnote 71 (3 rows) - LAL conveys to WAS: → LF [LAL, WAS] 2028 2nd (via endnote 32)
+- [ ] Endnote 59 (3 rows) - ATL conveys to SAS: → CHA 1st (via NYK/endnote 41)
+- [ ] Endnote 41 (3 rows) - NYK conveys to ATL: → CHA 1st (via NYK/endnote 28)
+- [ ] Endnote 37 (3 rows) - POR conveys to CHI: → POR 1st (First allowable draft, 2022-2028)
+- [ ] Endnote 32 (3 rows) - WAS conveys to LAL: → WAS 2028 2nd
+- [ ] Endnote 28 (3 rows) - CHA conveys to NYK: → CHA 1st
+- [ ] Endnote 25 (3 rows) - LAC conveys to ORL: → DET 2026 2nd (via endnote 6)
+- [ ] Endnote 6 (3 rows) - DET conveys to LAC: → DET 2026 2nd
+- [ ] Endnote 5 (3 rows) - MIL conveys to ORL: → MIL 2026 2nd
+
+### Smaller clusters / follow-ups (2-row clusters) (refreshed 2026-02-05)
+
+All entries below are currently tied at 2 rows; ordered by endnote_id desc.
+
+- [ ] Endnote 322 (2 rows) - Brooklyn conveys to Miami: → Brooklyn's own 2026 2nd round pick
+- [ ] Endnote 317 (2 rows) - Sacramento conveys to Detroit: → Charlotte's own 2026 2nd round pick (via endnote 235)
+- [ ] Endnote 311 (2 rows) - Golden State conveys to Memphis: → Golden State's own 2032 2nd round pick
+- [ ] Endnote 290 (2 rows) - Orlando conveys to Boston: → MF [ORL, DET, MIL] 2026 2nds (via endnotes 25/5)
+- [ ] Endnote 288 (2 rows) - Utah conveys to Washington: → MF [IND, MIA] 2031 2nds (via endnote 258)
+- [ ] Endnote 275 (2 rows) - Orlando conveys to Memphis: → The Resulting Pick
+- [ ] Endnote 273 (2 rows) - Atlanta conveys to LAC: → MEM 2026 2nd (via endnote 130)
+- [ ] Endnote 262 (2 rows) - Toronto conveys to Indiana: → TOR 2026 2nd
+- [ ] Endnote 258 (2 rows) - Miami conveys to Utah: → The Resulting Pick
+- [ ] Endnote 246 (2 rows) - Houston conveys to Boston: → HOU 2031 2nd
+- [ ] Endnote 244 (2 rows) - Boston conveys to Houston: → LF [NOP, POR] 2027 2nds (via endnote 176)
+- [ ] Endnote 242 (2 rows) - Sacramento conveys to Washington: → DEN 2028 2nd (via endnote 238)
+- [ ] Endnote 239 (2 rows) - Charlotte conveys to OKC: → DEN 2030 2nd (via endnote 210)
+- [ ] Endnote 238 (2 rows) - San Antonio conveys to Sacramento: → DEN 2028 2nd (via endnote 42)
+- [ ] Endnote 223 (2 rows) - LAL conveys to BKN: → LAL 2027 2nd
+- [ ] Endnote 210 (2 rows) - Denver conveys to Charlotte: → DEN 2030 2nd
+- [ ] Endnote 209 (2 rows) - Denver conveys to Charlotte: → DEN 2029 2nd
+- [ ] Endnote 203 (2 rows) - Brooklyn conveys to New York: → LF [DET, MIL, ORL] 2026 2nds (via endnote 170)
+- [ ] Endnote 201 (2 rows) - Memphis conveys to Minnesota: → MEM 2030 2nd
+- [ ] Endnote 197 (2 rows) - Portland conveys to Washington: → 2nd MF [POR, BOS, MIL] 2029 1sts (origin rows outstanding)
+- [ ] Endnote 194 (2 rows) - Phoenix conveys to New York: → BOS 2028 2nd (via endnote 144)
+- [ ] Endnote 188 (2 rows) - OKC conveys to NYK: → 3rd MF [OKC, HOU, IND, MIA] 2027 2nds (via endnotes 19/12/20)
+- [ ] Endnote 187 (2 rows) - OKC conveys to NYK: → 2nd MF [OKC, HOU, IND, MIA] 2027 2nds (via endnotes 19/12/20)
+- [ ] Endnote 176 (2 rows) - Portland conveys to Boston: → LF [POR, NOP] 2027 2nds (via endnote 45)
+- [ ] Endnote 170 (2 rows) - Phoenix conveys to Brooklyn: → LF [DET, MIL, ORL] 2026 2nds (via endnote 143)
+- [ ] Endnote 157 (2 rows) - Detroit conveys to Washington: → LF [NYK/MIN 2026 2nd, NOP/POR 2026 2nd] (via endnotes 64/60)
+- [ ] Endnote 149 (2 rows) - Boston conveys to Portland: → BOS 2029 1st
+- [ ] Endnote 147 (2 rows) - Milwaukee conveys to Portland: → MIL 2029 1st
+- [ ] Endnote 144 (2 rows) - Orlando conveys to Phoenix: → BOS 2028 2nd (via endnote 48)
+- [ ] Endnote 143 (2 rows) - Orlando conveys to Phoenix: → LF [ORL, DET, MIL] 2026 2nds (via endnotes 25/5)
+- [ ] Endnote 130 (2 rows) - Utah conveys to Atlanta: → MEM 2026 2nd (via endnote 33)
+- [ ] Endnote 124 (2 rows) - San Antonio conveys to Miami: → LF [SAS 2027 2nd, LF of OKC/HOU/IND/MIA/OKC 2027 2nds] (via endnote 47)
+- [ ] Endnote 112 (2 rows) - Detroit conveys to Boston: → MF [NYK/MIN 2026 2nd, NOP/POR 2026 2nd] (via endnotes 64/60)
+- [ ] Endnote 95 (2 rows) - Portland conveys to Charlotte: → MF [POR, NOP] 2027 2nds (via endnote 45)
+- [ ] Endnote 87 (2 rows) - GSW conveys to POR: → MEM 2026 2nd (conditional; via endnote 34)
+- [ ] Endnote 63 (2 rows) - MIN conveys to UTA: → MIN 2029 1st (conditional; see endnote text for protections)
+- [ ] Endnote 49 (2 rows) - PHI conveys to BKN: → PHI "First Allowable Draft" 1st
+- [ ] Endnote 48 (2 rows) - BOS conveys to ORL: → BOS 2028 2nd
+- [ ] Endnote 42 (2 rows) - DEN conveys to SAS: → DEN 2028 2nd
+- [ ] Endnote 34 (2 rows) - UTA conveys to GSW: → MEM 2026 2nd (via endnote 33)
+- [ ] Endnote 20 (2 rows) - MIA conveys to OKC: → MIA 2027 2nd
+- [ ] Endnote 4 (2 rows) - HOU conveys to OKC: → HOU 2026 1st (conditional)
+- [ ] Endnote 1 (2 rows) - MIA conveys to IND: → MIA 2026 2nd
+
+### One-offs (1-row clusters)
+
+There are currently many 1-row endnote clusters (124 as of this refresh). Use the work-queue query to pull the next one when you're done with the 2-row clusters.
+
 - [ ] Endnote 50 (1 row) - BOS 2028 2nd outgoing row: "Own or to SAS(50) or to NYK(194)" (likely shorthand `BOS`)
 
 ---
@@ -289,3 +342,6 @@ When you complete a cluster, add a bullet here with:
 - Endnote 230 — UTA→PHX Suns-Jazz trade (1/21/2025). PHX receives LF [CLE, MIN, UTA] 2027 1st. CLE pick flows via endnote 66 (Mitchell), MIN pick flows via endnote 62 (Gobert). PHX MAY_HAVE rows already had `LF [CLE, MIN, UTA]`. Added origin shorthands: `CLE`/`MIN`/`UTA` for origin and UTA MAY_HAVE rows. Direction-aware display: `To PHX: CLE` and `To PHX: MIN` for outgoing.
 - Endnote 202 — NOP→ATL Murray trade (7/6/2024). ATL receives LF [NOP, MIL] 2027 1st (top-4 protected, obligation extinguished if not conveyed). MIL pick flows via Holiday trade (endnote 8). Shorthands: `LF [NOP, MIL] (p. 1-4)` for ATL MAY_HAVE rows, `NOP (p. 1-4)` for NOP origin, `MIL` for MIL origin. Direction-aware: `To ATL: MIL` for MIL outgoing.
 - Endnote 190 — NYK→POR Kolek trade (6/27/2024). POR receives LF [IND, WAS] 2029 2nd (via NYK). Chain: WAS→IND (endnote 109 Beal), IND→NYK (endnote 129 Toppin), NYK→POR (endnote 190 Kolek). Shorthands: `LF [IND, WAS]` for POR MAY_HAVE, `IND`/`WAS` for origin rows. Direction-aware: `To POR: WAS` for WAS outgoing.
+- Endnote 129 — No remaining `missing_shorthand` rows for `draft_year >= 2026`; endnote covered by the Endnote 190 chain curation (IND→NYK step).
+- Endnote 109 — No remaining `missing_shorthand` rows for `draft_year >= 2026`; endnote covered by the Endnote 190 chain curation (WAS→IND step).
+- Endnote 8 — No remaining `missing_shorthand` rows for `draft_year >= 2026`; endnote covered by the Endnote 202 curation (MIL pick source in the NOP/ATL pool).

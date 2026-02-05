@@ -31,21 +31,6 @@ Tool URL: `/tools/salary-book`
 
 ## Backlog
 
-- [ ] Add Agent overlay endpoint (v1 scaffold + wire click)
-  - Route: `GET /tools/salary-book/sidebar/agent/:id` → patches `#rightpanel-overlay`
-  - Data source (mirror prototype route):
-    - Agent: `pcms.agents` (agent_id, full_name, agency_name)
-    - Clients: `pcms.salary_book_warehouse` rows where `agent_id = :id`
-      - include `player_id`, `player_name`, `team_code`, `age`, `cap_2025..cap_2030`, `is_two_way`
-      - optional: `LEFT JOIN pcms.people` for display names + `years_of_service`
-  - View: new partial `_sidebar_agent.html.erb`
-    - Must render a single stable root: `<div id="rightpanel-overlay">…</div>`
-    - Back button should `@get('/tools/salary-book/sidebar/clear')`
-    - Client rows should be clickable → `@get('/tools/salary-book/sidebar/player/:id')` (replaces overlay)
-  - Wiring:
-    - Replace the placeholder agent click in `tools/salary_book/_player_row.html.erb`
-    - Wire the Agent button inside `tools/salary_book/_sidebar_player.html.erb`
-
 - [ ] Add Pick overlay endpoint (v1 scaffold + wire click)
   - Route: `GET /tools/salary-book/sidebar/pick?team=:code&year=:year&round=:round` → patches `#rightpanel-overlay`
   - Data source (start simple; expand later):
@@ -81,6 +66,11 @@ Tool URL: `/tools/salary-book`
 ---
 
 ## Done
+
+- [x] Add Agent overlay endpoint (v1 scaffold + wire click)
+  - Route: `GET /tools/salary-book/sidebar/agent/:id` → patches `#rightpanel-overlay`
+  - New partial: `_sidebar_agent.html.erb` (agent header + client roster)
+  - Wired agent clicks in `_player_row.html.erb` and `_sidebar_player.html.erb`
 
 - [x] Unify displayed year horizon across table + sub-sections + totals footer
   - Canonical horizon is now **2025–2030** everywhere (table, sub-sections, totals footer).

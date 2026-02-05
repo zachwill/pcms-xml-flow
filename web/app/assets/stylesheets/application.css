@@ -1189,6 +1189,14 @@ a:hover {
   color: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
 }
 
+.playerrow-agent-link--plain {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .playerrow-agency-row {
   height: 16px;
   display: flex;

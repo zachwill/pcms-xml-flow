@@ -191,7 +191,7 @@ Ordered by rows in `pcms.vw_draft_pick_shorthand_todo` where `primary_todo_reaso
 - [x] Endnote 316 (5 rows) - DET→SAC LF [DET, NYK, WAS] 2029 2nd
 - [x] Endnote 310 (5 rows) - PHX→MIN MF [HOU, PHX] 2032 2nd
 - [x] Endnote 307 (5 rows) - HOU→PHX 2nd MF [DAL, OKC, PHI] 2026 2nd
-- [ ] Endnote 295 (5 rows) - PHX→CHA CLE/MIN/UTA 2029 1st (via PHX)
+- [x] Endnote 295 (5 rows) - PHX→CHA CLE/MIN/UTA 2029 1st (via PHX)
 - [ ] Endnote 293 (5 rows) - UTA→CHA MF [UTA, PHX] 2030 2nd
 - [ ] Endnote 291 (5 rows) - ORL→BOS MF [ORL, POR] 2027 2nd
 - [ ] Endnote 248 (5 rows) - PHI→WAS HOU 2026 1st (via PHI)
@@ -253,3 +253,4 @@ When you complete a cluster, add a bullet here with:
 - Endnote 316 — DET→SAC Schröder trade (7/7/2025). SAC receives LF [DET, MIL, NYK] 2029 2nd; DET retains the other two. MIL pick flows via BKN→DET (endnotes 80/115), NYK pick flows via endnote 165. Shorthands: `DET`/`MIL`/`NYK` for origin rows, direction-aware `To SAC: MIL`/`To SAC: NYK` for outgoing.
 - Endnote 310 — PHX→MIN Durant trade (7/6/2025). MIN receives MF [HOU, PHX] 2032 2nd. HOU pick flows via PHX (endnote 308). Shorthands: `MF [HOU, PHX]` for MIN's MAY_HAVE rows, `PHX`/`HOU` for origin picks, direction-aware `To MIN: HOU` for outgoing.
 - Endnote 307 — Already curated as part of endnote 319 (WAS receives LF). PHX receives 2nd MF [DAL, OKC, PHI] 2026 2nd via HOU (endnote 70). All 8 rows have shorthand: PHX MAY_HAVE rows get `2nd MF [DAL, OKC, PHI]`, OKC keeps MF (own pick + DAL/PHI via endnotes 14/21), origin rows show direction-aware outgoing to WAS.
+- Endnote 295 — PHX→CHA Micic-Williams trade (6/30/2025). CHA receives the 2029 1st that PHX is entitled to from UTA (per endnote 231): the LF of [CLE, MIN, UTA] 2029 1sts. Chain: CLE→UTA (endnote 68 Mitchell), MIN→UTA (endnote 63 Gobert, conditional), UTA→PHX (endnote 231), PHX→CHA (endnote 295). CHA MAY_HAVE rows already had `LF [CLE, MIN, UTA]`. Added origin shorthands: `CLE`/`MIN`/`UTA` for direction-aware outgoing (CLE shows `To CHA: CLE`).

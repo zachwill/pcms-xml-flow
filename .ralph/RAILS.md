@@ -31,7 +31,7 @@ Tool URL: `/tools/salary-book`
 
 ## Backlog
 
-- [ ] Relax CSP for Tailwind CDN + Datastar
+- [x] Relax CSP for Tailwind CDN + Datastar
     - Edit `web/config/initializers/content_security_policy.rb`
     - Allow `unsafe-inline` for scripts/styles, or disable CSP entirely
     - This is an internal tool — don't overthink it

@@ -137,6 +137,29 @@ module Tools
       raise ActiveRecord::RecordNotFound
     end
 
+    # GET /tools/salary-book/sidebar/pick?team=BOS&year=2025&round=1
+    def sidebar_pick
+      team_code = normalize_team_code(params[:team])
+      year = Integer(params[:year])
+      round = Integer(params[:round])
+
+      picks = fetch_pick_assets(team_code, year, round)
+      raise ActiveRecord::RecordNotFound if picks.empty?
+
+      # Get team metadata for display
+      team_meta = fetch_team_meta(team_code)
+
+      render partial: "tools/salary_book/sidebar_pick", locals: {
+        team_code:,
+        year:,
+        round:,
+        picks:,
+        team_meta:
+      }, layout: false
+    rescue ArgumentError
+      raise ActiveRecord::RecordNotFound
+    end
+
     private
 
     def conn
@@ -611,6 +634,44 @@ module Tools
         LEFT JOIN pcms.teams t ON s.team_code = t.team_code AND t.league_lk = 'NBA'
         WHERE s.agent_id = #{id_sql}
         ORDER BY s.cap_2025 DESC NULLS LAST, player_name
+      SQL
+    end
+
+    # -------------------------------------------------------------------------
+    # Pick data (for sidebar overlay)
+    # -------------------------------------------------------------------------
+
+    def fetch_pick_assets(team_code, year, round)
+      team_sql = conn.quote(team_code)
+      year_sql = conn.quote(year)
+      round_sql = conn.quote(round)
+
+      conn.exec_query(<<~SQL).to_a
+        SELECT
+          team_code,
+          draft_year AS year,
+          draft_round AS round,
+          asset_slot,
+          sub_asset_slot,
+          asset_type,
+          is_conditional,
+          is_swap,
+          counterparty_team_code AS origin_team_code,
+          counterparty_team_codes,
+          via_team_codes,
+          raw_part AS description,
+          raw_round_text,
+          raw_fragment,
+          endnote_explanation,
+          endnote_trade_date,
+          endnote_is_swap,
+          endnote_is_conditional,
+          refreshed_at
+        FROM pcms.draft_pick_summary_assets
+        WHERE team_code = #{team_sql}
+          AND draft_year = #{year_sql}
+          AND draft_round = #{round_sql}
+        ORDER BY asset_slot, sub_asset_slot
       SQL
     end
   end

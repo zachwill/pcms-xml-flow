@@ -55,7 +55,7 @@
               type="button"
               class="subsection-pick-pill <%= classes[:bg] %>"
               title="<%= title %>"
-              data-on:click.stop="console.log('Pick clicked:', '<%= pick['id'] %>')"
+              data-on:click.stop="@get('<%= tools_salary_book_sidebar_pick_path(team: pick['team_code'], year: pick['year'], round: pick['round']) %>')"
             >
               <span class="subsection-pick-label"><%= label %></span>
               <span class="subsection-pick-value"><%= value %></span>

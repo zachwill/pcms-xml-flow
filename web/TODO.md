@@ -27,7 +27,7 @@ Goal: a bootable Rails app that can render a Datastar-enabled page.
 - [x] Decide Ruby + Rails versions (Ruby **3.4.8**, Rails **8.1.2**).
 - [x] Scaffold Rails in-place (Rails app root is `web/`).
 - [x] Make Rails accept repo convention `POSTGRES_URL` (wired in `config/database.yml`).
-- [ ] (Optional) Move Rails-owned tables into an `app` schema (notes, scenarios, etc).
+- [x] Keep Rails-owned tables isolated in the `web` schema (default via `RAILS_APP_SCHEMA`; see `config/database.yml`).
 - [x] Add Datastar to the default layout (CDN script).
 - [x] Fix CSP for Datastar expressions (`'unsafe-eval'`).
 - [x] Boot proof: `/tools/salary-book` renders and Datastar loads.

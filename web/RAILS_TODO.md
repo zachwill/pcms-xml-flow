@@ -97,7 +97,7 @@ If a patch boundary is stable, the UI stays sane.
 
 Render a single route initially:
 
-- `GET /salary-book` (or `/`)
+- `GET /tools/salary-book` (tool root)
 
 Layout (mirror `ThreePaneFrame`):
 
@@ -219,29 +219,29 @@ Think in **UI regions**, not “REST JSON resources”.
 
 ### Team sections
 
-- `GET /salary-book/teams/:teamcode/section`
+- `GET /tools/salary-book/teams/:teamcode/section`
   - returns `<section id="teamsection-BOS">…</section>`
 
 ### Right panel base
 
-- `GET /salary-book/sidebar/team?team=BOS&tab=cap`
+- `GET /tools/salary-book/sidebar/team?team=BOS&tab=cap`
   - returns `<div id="rightpanel-base">…</div>`
 
 ### Right panel overlay entities
 
-- `GET /salary-book/sidebar/player/:id`
-- `GET /salary-book/sidebar/agent/:id`
-- `GET /salary-book/sidebar/pick?team=BOS&year=2028&round=1`
-- `GET /salary-book/sidebar/trade`
-- `GET /salary-book/sidebar/buyout`
+- `GET /tools/salary-book/sidebar/player/:id`
+- `GET /tools/salary-book/sidebar/agent/:id`
+- `GET /tools/salary-book/sidebar/pick?team=BOS&year=2028&round=1`
+- `GET /tools/salary-book/sidebar/trade`
+- `GET /tools/salary-book/sidebar/buyout`
 
 Each returns `<div id="rightpanel-overlay">…</div>`.
 
 ### Computation endpoints (still HTML)
 
-- `POST /salary-book/trade/evaluate` → patch just the “results” module inside the trade overlay
-- `POST /salary-book/buyout/scenario` → patch results module
-- `POST /salary-book/buyout/setoff` → patch setoff module
+- `POST /tools/salary-book/trade/evaluate` → patch just the “results” module inside the trade overlay
+- `POST /tools/salary-book/buyout/scenario` → patch results module
+- `POST /tools/salary-book/buyout/setoff` → patch setoff module
 
 (These can return HTML or JSON merge-patch signals; default to HTML unless you have a strong reason.)
 
@@ -269,7 +269,7 @@ Then Datastar can listen:
 <div
   id="rightpanel"
   data-on:salarybook-activeteam="$activeteam = evt.detail.team"
-  data-on-signal-patch="@get('/salary-book/sidebar/team?team=' + $activeteam)"
+  data-on-signal-patch="@get('/tools/salary-book/sidebar/team?team=' + $activeteam)"
   data-on-signal-patch-filter="{ include: /^activeteam$/ }"
 ></div>
 ```
@@ -340,7 +340,7 @@ Example pattern for a player row:
 ```html
 <a
   href="/players/123"
-  data-on:click__prevent="@get('/salary-book/sidebar/player/123')"
+  data-on:click__prevent="@get('/tools/salary-book/sidebar/player/123')"
 >
   …row…
 </a>
@@ -378,7 +378,7 @@ Use the existing WAAPI helpers as reference:
 
 ### Phase A — Rails skeleton + styling
 
-- Create Rails app (location TBD: repo root vs `rails/` folder).
+- Create Rails app (scaffolded in-place in `web/`; Rails 8.1.2).
 - Wire Postgres connection (`POSTGRES_URL`).
 - Add Tailwind (CDN first ok; `tailwindcss-rails` later).
 - Include Datastar script.
@@ -402,7 +402,7 @@ Choose one:
 
 ### Phase D — Right panel base (team context)
 
-- Implement `/salary-book/sidebar/team` returning `#rightpanel-base`.
+- Implement `/tools/salary-book/sidebar/team` returning `#rightpanel-base`.
 - Hook scroll spy → `activeteam` signal → patch team context.
 
 ### Phase E — Entity overlays

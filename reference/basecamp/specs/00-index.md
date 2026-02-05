@@ -64,7 +64,7 @@ Then open the dump near that line number.
 
 7) **DB conventions we may want**
    - migrations, keys, multi-tenancy, sharding patterns
-   - and how we adapt to Postgres + multi-schema (`pcms` + `app`)
+   - and how we adapt to Postgres + multi-schema (`pcms` + `web`)
    - See: `07-db-conventions.md`
 
 8) **Multi-tenancy via `SCRIPT_NAME` (Fizzy pattern)**

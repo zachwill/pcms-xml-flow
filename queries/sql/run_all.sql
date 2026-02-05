@@ -31,6 +31,7 @@
 \ir 060_draft_pick_summary_assets_assertions.sql
 \ir 052_player_rights_warehouse_assertions.sql
 \ir 059_draft_pick_shorthand_assets_assertions.sql
+\ir 062_draft_pick_assets_views_assertions.sql
 
 -- Luxury tax primitives
 \ir 055_luxury_tax_assertions.sql

@@ -317,6 +317,8 @@ That is possible but is a distinct project.
   - keep it out of shorthand and in `notes`?
   - or allow an explicit branch operator in AST?
 
-- Add a tool/view that overlays shorthand on top of PCMS summary output:
-  - prefer `pcms.draft_pick_shorthand_assets` when present
-  - fall back to `pcms.draft_pick_summary_assets.raw_part` when not
+- Overlay/workbench views (implemented):
+  - `pcms.vw_draft_pick_assets` — wide overlay of summary + shorthand + endnotes
+    - `display_text = coalesce(shorthand, raw_part)`
+  - `pcms.vw_draft_pick_shorthand_todo` — work queue (missing shorthand / needs_review / missing endnotes)
+  - `pcms.vw_draft_pick_shorthand_orphans` — shorthand rows whose key no longer exists in the current summary parse

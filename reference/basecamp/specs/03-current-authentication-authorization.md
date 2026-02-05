@@ -154,4 +154,4 @@ Open design choice for us:
 
 DB adaptation reminder:
 - Read-only models mapped to `pcms.*_warehouse`.
-- Write-side models (sessions, users, annotations, scenarios) live in `app.*`.
+- Write-side models (sessions, users, annotations, scenarios) live in `web.*`.

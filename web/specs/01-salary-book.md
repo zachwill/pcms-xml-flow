@@ -1,6 +1,6 @@
 # NBA Salary Book — Interface Specification
 
-> Updated Jan 2026 to reflect actual implementation state.
+> Updated Feb 2026 to reflect Rails + Datastar implementation (React prototype archived).
 
 ## Core Thesis
 
@@ -20,39 +20,35 @@ Enable a front office user to **scan multi-team cap sheets quickly**, then **dri
 
 ## Architecture
 
-### Data Flow
+### Data Flow (current: Rails + Datastar)
 
 ```
-PostgreSQL (pcms.* warehouses)
+PostgreSQL (pcms.* warehouses + pcms.fn_*)
         │
         ▼
-   Bun API routes (/api/salary-book/*)
+Rails controllers (web/)
+  - query warehouses/functions
+  - render HTML with stable IDs
         │
         ▼
-   SWR hooks (cached, deduped)
+Datastar runtime
+  - morphs HTML into the DOM
+  - uses signals for ephemeral UI state
         │
         ▼
-   React components
+Tiny custom JS runtime
+  - scroll spy + progress
+  - sticky header + scroll sync
+  - overlay transitions
 ```
 
-The web app is a **thin consumer** of Postgres warehouse tables. API routes map nearly 1:1 to database queries. The real logic lives in SQL (migrations, refresh functions, warehouse tables).
+The web app is a **thin consumer** of Postgres warehouse tables. The real logic lives in SQL (migrations, refresh functions, warehouse tables).
 
-### Key Hooks
+Primary tool URL: `/tools/salary-book` (tool fragments live under `/tools/salary-book/*`).
 
-| Hook | Purpose | Cache Strategy |
-|------|---------|----------------|
-| `useTeams` | All NBA teams | Global, revalidate on focus |
-| `usePlayers(teamCode)` | Players for a team | Per-team cache |
-| `useTeamSalary(teamCode)` | Team totals by year | Per-team cache |
-| `usePicks(teamCode)` | Draft picks | Per-team cache |
-| `useCapHolds(teamCode)` | Cap holds | Per-team cache |
-| `useExceptions(teamCode)` | Trade/salary exceptions | Per-team cache |
-| `useDeadMoney(teamCode)` | Waiver/dead money | Per-team cache |
-| `usePlayer(playerId)` | Single player detail | Per-player cache |
-| `useAgent(agentId)` | Agent + clients | Per-agent cache |
-| `usePickDetail(params)` | Single pick detail | Per-pick cache |
+### Legacy prototype (reference only)
 
-All hooks use SWR with global config: `revalidateOnFocus: false`, `dedupingInterval: 5000`.
+The previous Bun + React implementation (including `/api/salary-book/*` routes + SWR hooks) lives in `prototypes/salary-book-react/`. Treat it as **read-only reference** while porting.
 
 ---
 
@@ -467,24 +463,21 @@ When no entity is selected, sidebar shows the **active team from scroll-spy**:
 
 ## 6. Performance Considerations
 
-### Memoization
+### Patch boundaries + DOM stability (Datastar)
 
-- **`PlayerRow`**: Wrapped in `React.memo()` with custom comparison (checks player ID + key fields + filter toggles)
-- **`SalaryTable`**: `filteredPlayers` wrapped in `useMemo()`
-- **Click handlers**: Wrapped in `useCallback()` for stable references
+- Prefer **stable IDs** and patch whole regions (`#teamsection-BOS`, `#rightpanel-base`, `#rightpanel-overlay`).
+- Avoid patching focused/typing regions (composer inputs) from background updates.
 
-### SWR Caching
+### Server-side caching (Rails)
 
-All data fetching uses SWR with:
-- Global deduplication (concurrent requests for same key = single fetch)
-- Stale-while-revalidate (cached data renders immediately)
-- Per-key caching (switching teams shows cached data while revalidating)
+- Use fragment caching for expensive partials (per-team sections, sidebar modules).
+- Key caches by warehouse `refreshed_at` timestamps (don’t invent app-level invalidation).
 
-### Future: Virtualization
+### Progressive rendering (optional)
 
-Current implementation renders all teams into the DOM. For larger datasets, consider:
-- `@tanstack/react-virtual` for row virtualization
-- Fixed header + virtualized body pattern to preserve sticky behavior
+If rendering all 30 teams becomes too heavy:
+- render placeholders for team sections
+- lazy-load sections via Datastar requests (IntersectionObserver)
 
 ---
 
@@ -520,5 +513,5 @@ Interactive states:
 | **iOS-Style Headers** | Team + table header stick together, pushed off by next team |
 | **Double-Row Players** | Two rows per player for density without sacrificing info |
 | **Filter Toggles** | Shape content without affecting navigation |
-| **SWR Data Layer** | All fetches cached/deduped via SWR hooks |
+| **HTML-first patches** | Rails renders; Datastar morphs stable regions; signals handle ephemeral state |
 | **Postgres is the Product** | UI is a thin consumer of warehouse tables |

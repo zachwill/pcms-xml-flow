@@ -1,6 +1,9 @@
+<% initial_team = @initial_team.to_s %>
+
 <div
   id="salarybook"
-  data-signals="{ activeteam: '', sidebarview: 'teamview', overlaytype: 'none', overlayid: '' }"
+  data-signals="{ activeteam: '<%= initial_team %>', sidebarview: 'teamview', overlaytype: 'none', overlayid: '', ssestatus: 'idle', sseticks: 0 }"
+  data-on:salarybook-activeteam="if ($activeteam !== evt.detail.team) { $activeteam = evt.detail.team; @get('<%= tools_salary_book_sidebar_team_path(team: '__TEAM__', year: @salary_year) %>'.replace('__TEAM__', $activeteam)) }"
 >
   <div id="flash"></div>
 
@@ -13,30 +16,138 @@
         <a href="/players/2544">Player (id fallback)</a>
       </nav>
     </div>
+
+    <% if @team_codes.any? %>
+      <div class="commandbar-inner commandbar-inner--teams">
+        <div class="team-selector" role="navigation" aria-label="Teams">
+          <% @team_codes.each do |code| %>
+            <a
+              href="#teamsection-<%= code %>"
+              data-on:click="$activeteam = '<%= code %>'; @get('<%= tools_salary_book_sidebar_team_path(team: code, year: @salary_year) %>')"
+              data-class="{ active: $activeteam === '<%= code %>' }"
+            ><%= code %></a>
+          <% end %>
+        </div>
+
+        <div class="team-selector-meta">
+          active: <code data-text="$activeteam"></code>
+        </div>
+      </div>
+    <% end %>
   </header>
 
   <div id="viewport">
     <main id="maincanvas">
-      <div class="placeholder">
-        <div class="placeholder-title">Main canvas</div>
-        <div class="placeholder-body">
-          Rails + Datastar scaffold is up. Next: render team sections from
-          <code>pcms.salary_book_warehouse</code>.
+      <% if @boot_error %>
+        <div class="placeholder">
+          <div class="placeholder-title">Warehouse not available</div>
+          <div class="placeholder-body">
+            <p>Booted Rails, but querying <code>pcms.*</code> failed:</p>
+            <pre><%= @boot_error %></pre>
+          </div>
         </div>
-      </div>
+      <% elsif @team_codes.empty? %>
+        <div class="placeholder">
+          <div class="placeholder-title">No teams found</div>
+          <div class="placeholder-body">
+            <p>No rows returned from <code>pcms.team_salary_warehouse</code> for <code><%= @salary_year %></code>.</p>
+          </div>
+        </div>
+      <% else %>
+        <% @team_codes.each do |team_code| %>
+          <%= render partial: "tools/salary_book/team_section", locals: { team_code:, players: (@players_by_team[team_code] || []), year: @salary_year } %>
+        <% end %>
+      <% end %>
     </main>
 
     <aside id="rightpanel">
-      <div id="rightpanel-base">
-        <div class="placeholder">
-          <div class="placeholder-title">Right panel (base)</div>
-          <div class="placeholder-body">
-            Team context will patch here based on <code>$activeteam</code>.
+      <% if @initial_team %>
+        <%= render partial: "tools/salary_book/sidebar_team", locals: { team_code: @initial_team, summary: @initial_team_summary, year: @salary_year } %>
+      <% else %>
+        <div id="rightpanel-base" class="panel">
+          <header class="panel-header">
+            <div class="panel-title">Right panel</div>
+          </header>
+          <div class="panel-body">
+            <div class="panel-muted">Select a team.</div>
           </div>
         </div>
-      </div>
+      <% end %>
 
       <div id="rightpanel-overlay"></div>
+
+      <section class="panel sse-panel">
+        <header class="panel-header">
+          <div class="panel-title">SSE demo</div>
+          <div class="panel-actions">
+            <button
+              type="button"
+              class="panel-button"
+              data-on:click="@get('<%= tools_salary_book_sse_demo_path %>', { openWhenHidden: true })"
+            >Run</button>
+          </div>
+        </header>
+
+        <div class="panel-body">
+          <div class="panel-muted">
+            status: <code data-text="$ssestatus"></code>
+            ticks: <code data-text="$sseticks"></code>
+          </div>
+
+          <div id="sse-log" class="sse-log"></div>
+        </div>
+      </section>
+
+      <section class="panel debug-panel">
+        <header class="panel-header">
+          <div class="panel-title">Signals (debug)</div>
+        </header>
+        <div class="panel-body">
+          <pre class="signals-json" data-json-signals></pre>
+        </div>
+      </section>
     </aside>
   </div>
 </div>
+
+<script type="module">
+  // Minimal Salary Book scroll spy (v0): map main-canvas scroll position to
+  // `salarybook-activeteam` events.
+  //
+  // This is intentionally tiny and replaceable; the “real” runtime will also
+  // handle sticky headers + horizontal scroll sync.
+  (() => {
+    const main = document.getElementById("maincanvas");
+    if (!main) return;
+
+    let raf = null;
+
+    const dispatchActiveTeam = () => {
+      raf = null;
+
+      const sections = Array.from(main.querySelectorAll("section[data-teamcode]"));
+      if (!sections.length) return;
+
+      const y = main.scrollTop + 20;
+      let active = sections[0];
+
+      for (const s of sections) {
+        if (s.offsetTop <= y) active = s;
+        else break;
+      }
+
+      const team = active?.dataset?.teamcode;
+      if (!team) return;
+
+      main.dispatchEvent(new CustomEvent("salarybook-activeteam", { detail: { team }, bubbles: true }));
+    };
+
+    main.addEventListener("scroll", () => {
+      if (raf) return;
+      raf = requestAnimationFrame(dispatchActiveTeam);
+    });
+
+    // Run once on load (useful if URL has a hash or you restore scroll position).
+    dispatchActiveTeam();
+  })();
+</script>

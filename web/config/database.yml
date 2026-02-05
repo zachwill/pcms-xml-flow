@@ -14,14 +14,16 @@ default: &default
   # Keep Rails-owned tables isolated in their own schema (defaults to `web`).
   #
   # Override the schema name via:
-  #   export RAILS_APP_SCHEMA=app
+  #   export RAILS_APP_SCHEMA=web_dev
   #
   # If you want to include read-side schemas in the search path (so you can omit
-  # schema prefixes in SQL), override the full list via DB_SCHEMA_SEARCH_PATH.
+  # schema prefixes in SQL), override the full list via DB_SCHEMA_SEARCH_PATH:
+  #   export DB_SCHEMA_SEARCH_PATH="web,pcms,public"
   schema_search_path: <%= ENV.fetch("DB_SCHEMA_SEARCH_PATH", "#{ENV.fetch("RAILS_APP_SCHEMA", "web")},public") %>
 
-  # This app points at an existing data warehouse DB; dumping schema.rb is both slow
-  # and noisy, so we disable it by default.
+  # This app points at an existing data warehouse DB; to avoid noisy schema diffs we
+  # disable schema dumping by default. If you enable it, Rails is configured to dump
+  # only the Rails-owned schema (see config/application.rb).
   schema_dump: false
 
   max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>

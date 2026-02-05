@@ -67,24 +67,25 @@ The lineage step produces these files in `shared/pcms/nba_pcms_full_extract/`:
 
 ```
 .
-├── import_pcms_data.flow/       # Windmill flow (7 Python steps)
-│   ├── flow.yaml                # Flow definition
-│   ├── pcms_xml_to_json.*.py    # Step A: S3 → XML → clean JSON
-│   ├── lookups.*.py             # Step B: Lookup tables
-│   ├── people_&_identity.*.py   # Step C: People, agents, agencies
-│   ├── contracts.*.py           # Step D: Contracts
-│   ├── transactions.*.py        # Step E: Transactions & exceptions
-│   ├── league_config.*.py       # Step F: League config & draft
-│   └── team_financials.*.py     # Step G: Team financials & two-way
-├── migrations/                  # SQL migrations for pcms schema
-├── scripts/
-│   ├── xml-to-json.py           # Local XML → JSON (mirrors Step A)
-│   ├── test-import.py           # Test import scripts locally
-│   └── ...
-├── agents/                      # Autonomous coding agents
-├── AGENTS.md                    # Architecture details
-├── SCHEMA.md                    # Target database schema
-└── TODO.md                      # Remaining work
+├── import_pcms_data.flow/        # Windmill flow (7 Python steps)
+│   ├── flow.yaml                 # Flow definition
+│   ├── pcms_xml_to_json.*.py     # Step A: S3 → XML → clean JSON
+│   ├── lookups.*.py              # Step B: Lookup tables
+│   ├── people_&_identity.*.py    # Step C: People, agents, agencies
+│   ├── contracts.*.py            # Step D: Contracts
+│   ├── transactions.*.py         # Step E: Transactions & exceptions
+│   ├── league_config.*.py        # Step F: League config & draft
+│   └── team_financials.*.py      # Step G: Team financials & two-way
+├── migrations/                   # SQL migrations for pcms schema + warehouses
+├── scripts/                      # Local runners (XML→JSON, import harness, etc.)
+├── queries/                      # SQL assertions / smoke tests
+├── web/                          # Rails + Datastar UI (canonical app)
+├── prototypes/                   # Archived prototypes (React Salary Book)
+├── reference/                    # Reference packs (Datastar, workbook exports, etc.)
+├── agents/                       # Autonomous coding agents
+├── AGENTS.md                     # Repo map + conventions
+├── SALARY_BOOK.md                # Salary-cap warehouses + primitives guide
+└── SCHEMA.md                     # Auto-generated pcms schema reference
 ```
 
 ## Import Script Pattern

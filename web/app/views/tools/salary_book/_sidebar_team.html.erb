@@ -1,0 +1,53 @@
+<% money = ->(v) { v.nil? ? "—" : number_to_currency(v.to_i, precision: 0) } %>
+
+<div id="rightpanel-base" class="panel">
+  <header class="panel-header">
+    <div class="panel-header-left">
+      <div class="panel-title">Team <%= team_code %> — <%= year %></div>
+      <div class="panel-subtitle">Scroll/click sets <code>$activeteam</code>; this panel patches via Datastar.</div>
+    </div>
+  </header>
+
+  <% if summary.nil? %>
+    <div class="panel-body">
+      <div class="panel-muted">No <code>pcms.team_salary_warehouse</code> row found for <%= team_code %> / <%= year %>.</div>
+    </div>
+  <% else %>
+    <div class="panel-body">
+      <dl class="kv">
+        <div class="kv-row">
+          <dt>Cap total (holds)</dt>
+          <dd><%= money.call(summary["cap_total_hold"]) %></dd>
+        </div>
+        <div class="kv-row">
+          <dt>Tax total</dt>
+          <dd><%= money.call(summary["tax_total"]) %></dd>
+        </div>
+        <div class="kv-row">
+          <dt>Apron total</dt>
+          <dd><%= money.call(summary["apron_total"]) %></dd>
+        </div>
+        <div class="kv-row">
+          <dt>Room under tax</dt>
+          <dd><%= money.call(summary["room_under_tax"]) %></dd>
+        </div>
+        <div class="kv-row">
+          <dt>Room under apron 1</dt>
+          <dd><%= money.call(summary["room_under_apron1"]) %></dd>
+        </div>
+        <div class="kv-row">
+          <dt>Room under apron 2</dt>
+          <dd><%= money.call(summary["room_under_apron2"]) %></dd>
+        </div>
+        <div class="kv-row">
+          <dt>Roster rows</dt>
+          <dd><%= summary["roster_row_count"] || "—" %></dd>
+        </div>
+      </dl>
+
+      <div class="panel-meta">
+        refreshed_at: <code><%= summary["refreshed_at"] || "—" %></code>
+      </div>
+    </div>
+  <% end %>
+</div>

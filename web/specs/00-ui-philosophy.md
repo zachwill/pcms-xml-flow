@@ -81,7 +81,7 @@ This eliminates timing bugs, reduces state management complexity, and creates sm
 - Postgres warehouses/functions are the product API.
 - The web app should be a thin consumer.
 - Prefer: `pcms.*_warehouse` tables, `pcms.fn_*` functions.
-- Avoid re-implementing CBA/Ops math in React.
+- Avoid re-implementing CBA/Ops math in Ruby/JS.
 
 ### 3) Two-level sidebar state machine
 

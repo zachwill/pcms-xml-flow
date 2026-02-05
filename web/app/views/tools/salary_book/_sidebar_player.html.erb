@@ -1,0 +1,72 @@
+<% money = ->(v) { v.nil? ? "—" : number_to_currency(v.to_i, precision: 0) } %>
+
+<div id="rightpanel-overlay" class="panel overlay">
+  <header class="panel-header">
+    <div class="panel-header-left">
+      <div class="panel-title"><%= player["player_name"] %></div>
+      <div class="panel-subtitle">
+        <span>team: <code><%= player["team_code"] || "—" %></code></span>
+        <span>player_id: <code><%= player["player_id"] %></code></span>
+      </div>
+    </div>
+
+    <div class="panel-actions">
+      <button
+        type="button"
+        class="panel-button"
+        data-on:click="@get('<%= tools_salary_book_sidebar_clear_path %>')"
+      >Back</button>
+
+      <a class="panel-link" href="/players/<%= player["player_id"] %>">Open player page</a>
+    </div>
+  </header>
+
+  <div class="panel-body">
+    <dl class="kv">
+      <div class="kv-row">
+        <dt>Agent</dt>
+        <dd><%= player["agent_name"].presence || "—" %></dd>
+      </div>
+      <div class="kv-row">
+        <dt>Age</dt>
+        <dd><%= player["age"] || "—" %></dd>
+      </div>
+      <div class="kv-row">
+        <dt>Cap 2025</dt>
+        <dd><%= money.call(player["cap_2025"]) %></dd>
+      </div>
+      <div class="kv-row">
+        <dt>Cap 2026</dt>
+        <dd><%= money.call(player["cap_2026"]) %></dd>
+      </div>
+      <div class="kv-row">
+        <dt>Total (2025+)</dt>
+        <dd><%= money.call(player["total_salary_from_2025"]) %></dd>
+      </div>
+      <div class="kv-row">
+        <dt>Option 2025</dt>
+        <dd><%= player["option_2025"].presence || "—" %></dd>
+      </div>
+      <div class="kv-row">
+        <dt>Option 2026</dt>
+        <dd><%= player["option_2026"].presence || "—" %></dd>
+      </div>
+      <div class="kv-row">
+        <dt>Two-way</dt>
+        <dd><%= player["is_two_way"] ? "yes" : "no" %></dd>
+      </div>
+      <div class="kv-row">
+        <dt>No-trade</dt>
+        <dd><%= player["is_no_trade"] ? "yes" : "no" %></dd>
+      </div>
+      <div class="kv-row">
+        <dt>Trade kicker</dt>
+        <dd><%= player["trade_kicker_display"].presence || "—" %></dd>
+      </div>
+    </dl>
+
+    <div class="panel-meta">
+      refreshed_at: <code><%= player["refreshed_at"] || "—" %></code>
+    </div>
+  </div>
+</div>

@@ -111,12 +111,13 @@ We already have many schemas and `pcms` is the imported source of truth.
 
 Proposed structure:
 - `pcms` schema: imported + derived warehouse tables (read-only from Rails)
-- `app` schema: Rails-owned tables (write-side: users, notes, scenarios, overrides)
+- `web` schema: Rails-owned tables (write-side: slugs, notes, scenarios, overrides)
 
 Implementation options in Rails:
 
 1) **Postgres search_path approach**
-- Set `schema_search_path` so migrations land in `app` but reads can still see `pcms`.
+- Set `schema_search_path` so migrations land in `web` but reads can still see `pcms`.
+  - This is what `web/config/database.yml` does by default.
 
 2) **Explicit schema-qualified models**
 - Read models map to `pcms.*`:
@@ -126,5 +127,5 @@ Implementation options in Rails:
 - e.g., a dedicated connection for `pcms` read-only, but likely unnecessary.
 
 Also decide where Solid Queue/Cache/Cable tables live:
-- simplest: keep them in the same Postgres DB, in `app` schema
-- or separate schemas (`app_queue`, `app_cache`) by using separate DB configs with different `schema_search_path`.
+- simplest: keep them in the same Postgres DB, in `web` schema
+- or separate schemas (`web_queue`, `web_cache`) by using separate DB configs with different `schema_search_path`.

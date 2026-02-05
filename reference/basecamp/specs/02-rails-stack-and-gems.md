@@ -105,4 +105,4 @@ Hard difference to adapt:
 - We are Postgres and already store data in many schemas.
 - Our likely DB posture:
   - Read from `pcms.*_warehouse`
-  - Write to our own schema (tentatively `app.*`)
+  - Write to our own schema (`web.*`)

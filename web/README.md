@@ -34,9 +34,9 @@ bundle install
 # Create it once:
 psql "$POSTGRES_URL" -c "CREATE SCHEMA IF NOT EXISTS web"
 
-# Optional: use a different schema name (ex: `app`)
-# export RAILS_APP_SCHEMA=app
-# psql "$POSTGRES_URL" -c "CREATE SCHEMA IF NOT EXISTS app"
+# Optional: use a different schema name (rare; default is `web`)
+# export RAILS_APP_SCHEMA=web_dev
+# psql "$POSTGRES_URL" -c "CREATE SCHEMA IF NOT EXISTS web_dev"
 
 bin/rails db:migrate
 bin/rails server
@@ -45,8 +45,9 @@ bin/rails server
 Notes:
 - Repo convention is `POSTGRES_URL`. Rails convention is `DATABASE_URL`. We support both.
 - Rails writes its own tables to `RAILS_APP_SCHEMA` (default: `web`).
-  - Override the full search path via `DB_SCHEMA_SEARCH_PATH` if you want to include read-side schemas (ex: `pcms`).
-  - Schema dumping is disabled by default (`schema_dump: false`) to avoid hanging on large warehouse databases.
+  - Override the full search path via `DB_SCHEMA_SEARCH_PATH` if you want to include read-side schemas (ex: `pcms`):
+    - `export DB_SCHEMA_SEARCH_PATH="web,pcms,public"`
+  - Schema dumping is disabled by default (`schema_dump: false`) to avoid hanging on large warehouse databases; if you enable it, Rails is configured to dump only the Rails schema.
 - `web/config/master.key` is ignored (do not commit it).
 - Datastar requires CSP `unsafe-eval` (configured in `config/initializers/content_security_policy.rb`).
 

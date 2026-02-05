@@ -1,17 +1,41 @@
 /*
-  Minimal CSS scaffold.
-
-  The Salary Book UI will eventually port its dense styling primitives from the
-  React prototype, but this gets us to a usable baseline immediately.
+  Salary Book design system.
+  Ported from prototypes/salary-book-react/src/index.html.
 */
 
+/* ------------------------------
+   CSS Variables (Vercel-inspired)
+   ------------------------------ */
+
+/* Light mode (default) */
 :root {
-  --background: #0b0b0b;
-  --foreground: #ededed;
-  --muted: #141414;
-  --muted-foreground: #9aa0a6;
-  --border: #262626;
+  --background: #ffffff;
+  --foreground: #171717;
+  --muted: #f0f0f0;
+  --muted-foreground: #737373;
+  --border: #e5e5e5;
+  --primary: #171717;
+  --primary-foreground: #ffffff;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
 }
+
+/* Dark mode */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --border: #262626;
+  --primary: #ededed;
+  --primary-foreground: #0a0a0a;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+}
+
+/* ------------------------------
+   Base
+   ------------------------------ */
 
 html,
 body {
@@ -22,16 +46,163 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
     Arial, "Apple Color Emoji", "Segoe UI Emoji";
   font-size: 14px;
   line-height: 1.35;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain; /* Prevent pull-to-refresh / bounce */
 }
 
 code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+  font-family: 'Geist Mono', 'Fira Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
   font-size: 0.95em;
+}
+
+/* ------------------------------
+   Scroll behaviors
+   ------------------------------ */
+
+/* iOS momentum scrolling */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Smooth programmatic scrolls (scrollToTeam, etc.) */
+html.smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ------------------------------
+   Team section fading (scroll-spy)
+   ------------------------------ */
+
+[data-header-content] {
+  opacity: 1;
+  transition: opacity 0.2s ease-out;
+}
+[data-faded] [data-header-content] {
+  opacity: 0.35;
+}
+
+/* ------------------------------
+   Backdrop blur (nav, panels)
+   ------------------------------ */
+
+.backdrop-blur-nav {
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+/* ------------------------------
+   Dialog/Sheet animations
+   ------------------------------ */
+
+/* Backdrop */
+[data-backdrop] {
+  transition: opacity 150ms;
+}
+@starting-style {
+  [data-backdrop][data-open] {
+    opacity: 0;
+  }
+}
+[data-backdrop][data-ending-style] {
+  opacity: 0;
+}
+
+/* Centered Popup (Dialog/AlertDialog) */
+[data-popup][data-dialog] {
+  transition: opacity 150ms, transform 150ms;
+}
+@starting-style {
+  [data-popup][data-dialog][data-open] {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+}
+[data-popup][data-dialog][data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.95);
+}
+
+/* Sheet animations */
+[data-popup][data-sheet] {
+  transition: transform 300ms ease-out;
+}
+@starting-style {
+  [data-popup][data-sheet="right"][data-open] {
+    transform: translateX(100%);
+  }
+  [data-popup][data-sheet="left"][data-open] {
+    transform: translateX(-100%);
+  }
+  [data-popup][data-sheet="top"][data-open] {
+    transform: translateY(-100%);
+  }
+  [data-popup][data-sheet="bottom"][data-open] {
+    transform: translateY(100%);
+  }
+}
+[data-popup][data-sheet="right"][data-ending-style] {
+  transform: translateX(100%);
+}
+[data-popup][data-sheet="left"][data-ending-style] {
+  transform: translateX(-100%);
+}
+[data-popup][data-sheet="top"][data-ending-style] {
+  transform: translateY(-100%);
+}
+[data-popup][data-sheet="bottom"][data-ending-style] {
+  transform: translateY(100%
+}
+
+/* ------------------------------
+   Animations
+   ------------------------------ */
+
+@keyframes slide-down-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-26px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes progress-indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+.animate-slide-down-fade {
+  animation: slide-down-fade 0.3s ease-in-out;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+.animate-progress-indeterminate {
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
 }
 
 a {
@@ -113,6 +284,220 @@ a:hover {
 }
 
 .placeholder-body {
+  color: var(--muted-foreground);
+}
+
+/* ------------------------------
+   Salary Book v0 widgets
+   ------------------------------ */
+
+.commandbar-inner--teams {
+  border-top: 1px solid var(--border);
+}
+
+.team-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.team-selector a {
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.team-selector a.active {
+  background: var(--muted);
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
+.team-selector-meta {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.teamsection {
+  border: 1px solid var(--border);
+  background: var(--muted);
+  margin-bottom: 14px;
+}
+
+.teamsection-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.teamsection-header h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.teamsection-count {
+  color: var(--muted-foreground);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.teamsection-actions {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.teamsection-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.teamsection-table th,
+.teamsection-table td {
+  padding: 6px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+}
+
+.teamsection-table th {
+  text-align: left;
+  color: var(--muted-foreground);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.teamsection-table td.money,
+.teamsection-table th.money {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.teamsection-empty {
+  padding: 10px 12px;
+  color: var(--muted-foreground);
+}
+
+.panel {
+  border: 1px solid var(--border);
+  background: var(--muted);
+  margin-bottom: 12px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.panel-title {
+  font-weight: 650;
+}
+
+.panel-subtitle {
+  margin-top: 4px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.panel-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.panel-button {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--muted) 70%, var(--background));
+  color: var(--foreground);
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.panel-button:hover {
+  background: color-mix(in srgb, var(--muted) 55%, var(--background));
+}
+
+.panel-link {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.panel-body {
+  padding: 10px 12px;
+}
+
+.panel-muted {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.kv {
+  margin: 0;
+}
+
+.kv-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.kv-row dt {
+  color: var(--muted-foreground);
+}
+
+.kv-row dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.panel-meta {
+  margin-top: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.sse-log {
+  margin-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.signals-json {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
   color: var(--muted-foreground);
 }
 

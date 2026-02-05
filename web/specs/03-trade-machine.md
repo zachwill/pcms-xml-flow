@@ -9,7 +9,7 @@
 
 This repo’s “product” is Postgres warehouses + trade math primitives (e.g., TPE matching, apron post-trade projections).
 
-The web app should expose that power without re-implementing rules in React.
+The web app should expose that power without re-implementing rules in Ruby/JS.
 
 ---
 
@@ -136,7 +136,7 @@ Trade output should display:
 
 ---
 
-## 5) Data contracts / DB primitives (do not implement math in React)
+## 5) Data contracts / DB primitives (do not implement math in Ruby/JS)
 
 ### 5.1 Existing primitives (in this repo)
 

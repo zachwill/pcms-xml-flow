@@ -99,16 +99,17 @@ Start here:
 
 ## How this applies to *our* Rails app in this repo
 
-Intended direction:
+Current reality (Feb 2026):
 
-- Rails site will likely **replace `web/`** eventually, but we’ll build it in-repo first so coding agents keep strong DB/warehouse mental models.
+- The canonical Rails + Datastar app lives in `web/`.
 - Postgres remains the source of truth.
 - Treat `pcms.*_warehouse` tables as the stable read API.
-- Rails owns a separate schema (tentatively **`app`**) for write-side concerns:
-  - users/auth (if needed)
+- Rails owns a separate schema (**`web`**) for write-side concerns:
+  - slug registry + aliases
   - saved views/preferences
-  - annotations, overrides, scenarios/trade artifacts
+  - annotations/notes, scenarios/trade artifacts
+  - auth/session tables (if/when we need them)
 
 So:
-- `pcms` schema: imported + derived warehouse data
-- `app` schema: Rails-owned tables
+- `pcms` schema: imported + derived warehouse data (read side)
+- `web` schema: Rails-owned tables (write side)

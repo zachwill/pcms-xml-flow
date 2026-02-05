@@ -102,4 +102,4 @@ We may not need multi-tenancy immediately, but if we ever want:
 
 If we do adopt it, we should also define which schemas are tenant-scoped:
 - `pcms` may remain global/imported
-- `app` tables could be scoped by `account_id` (or separate schemas per account, but that’s heavier)
+- `web` tables could be scoped by `account_id` (or separate schemas per account, but that’s heavier)

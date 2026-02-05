@@ -187,7 +187,7 @@ Guideline: one checkbox = one endnote cluster.
 Ordered by rows in `pcms.vw_draft_pick_shorthand_todo` where `primary_todo_reason='missing_shorthand'` and `draft_year >= 2026`.
 
 - [x] Endnote 16 (6 rows) - PHI→OKC PHI conditional 1st
-- [ ] Endnote 321 (5 rows) - BOS→UTA MF [BOS, NOP] 2031 2nd
+- [x] Endnote 321 (5 rows) - BOS→UTA MF [BOS, CLE] 2031 2nd
 - [ ] Endnote 320 (5 rows) - BOS→UTA MF [BOS, NOP] 2027 2nd
 - [ ] Endnote 319 (5 rows) - SAS→WAS LF [DAL, SAS, TOR] 2027 2nd
 - [ ] Endnote 316 (5 rows) - DET→SAC LF [DET, NYK, WAS] 2029 2nd
@@ -234,3 +234,4 @@ When you complete a cluster, add a bullet here with:
 - Endnote 15 - No remaining `missing_shorthand` rows for `draft_year >= 2026` (this endnote is already covered by the Endnote 52 chain; Wall/Westbrook → Sengün → Dieng).
 - Endnote 197 — Cleanup: removed embedded "To WAS:" prefix from POR's shorthand (`2nd MF [POR, BOS, MIL]`) so direction stays with `vw_draft_pick_assets.display_text`.
 - Endnote 16 — PHI→OKC Horford trade (12/8/2020). PHI conveys conditional 1st (2026/2027 top-4 protected); fallback is PHI 2027 2nd unconditionally. Shorthands: `PHI (p. 1-4)` for 1st round rows, `PHI` for 2nd round fallback.
+- Endnote 321 — BOS→UTA Luis/Niang trade (8/6/2025). UTA receives MF [BOS, CLE] 2031 2nd. CLE pick flows via ATL (endnote 272) then BOS (endnote 313). Shorthands: `MF [BOS, CLE]` for UTA's primary MAY_HAVE, `BOS`/`CLE` for origin picks.

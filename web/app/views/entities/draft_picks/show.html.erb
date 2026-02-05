@@ -1,0 +1,132 @@
+<% group = @draft_pick_group %>
+<% team_code = group["team_code"].to_s %>
+<% year = group["draft_year"] %>
+<% round = group["draft_round"] %>
+
+<% content_for :title, "#{team_code} #{year} R#{round} Draft Picks" %>
+
+<% norm_codes = ->(val) {
+  return [] if val.nil?
+  return val.map { |v| v.to_s.strip.upcase }.reject(&:blank?) if val.is_a?(Array)
+
+  s = val.to_s
+  return [] if s.blank? || s == "{}"
+
+  s.gsub(/[{}\"]/ , "")
+    .split(",")
+    .map { |v| v.to_s.strip.upcase }
+    .reject(&:blank?)
+} %>
+
+<main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+  <header class="flex items-start justify-between gap-6 border-b border-border pb-4">
+    <div class="min-w-0">
+      <div class="text-xs text-muted-foreground">
+        <a href="/teams" class="hover:underline">Teams</a>
+        <span class="mx-1">/</span>
+        <a href="/teams/<%= team_code.downcase %>" class="hover:underline"><%= team_code %></a>
+        <span class="mx-1">/</span>
+        <span class="text-foreground"><%= year %> R<%= round %> draft picks</span>
+      </div>
+
+      <h1 class="mt-1 text-2xl font-semibold truncate">
+        <%= team_code %> — <%= year %> Round <%= round %>
+      </h1>
+
+      <% if @team.present? && @team["team_name"].present? %>
+        <div class="mt-1 text-sm text-muted-foreground"><%= @team["team_name"] %></div>
+      <% end %>
+
+      <div class="mt-2 text-sm text-muted-foreground">
+        Source: <code>pcms.draft_pick_summary_assets</code>
+      </div>
+    </div>
+
+    <nav class="shrink-0 flex flex-col items-end gap-1">
+      <a href="/tools/salary-book?team=<%= team_code %>#<%= team_code %>" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Open in Salary Book</a>
+      <a href="/draft-selections" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Draft selections</a>
+    </nav>
+  </header>
+
+  <section class="space-y-3">
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Asset rows</h2>
+
+    <% if @assets.empty? %>
+      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No asset rows found.</div>
+    <% else %>
+      <div class="overflow-x-auto rounded-lg border border-border">
+        <table class="min-w-full text-sm">
+          <thead class="bg-muted/50 text-xs text-muted-foreground">
+            <tr>
+              <th class="text-left px-3 py-2 font-medium">Slot</th>
+              <th class="text-left px-3 py-2 font-medium">Type</th>
+              <th class="text-left px-3 py-2 font-medium">Related teams</th>
+              <th class="text-left px-3 py-2 font-medium">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <% @assets.each do |a| %>
+              <% slot = "#{a['asset_slot']}.#{a['sub_asset_slot']}" %>
+              <% counterparty = a["counterparty_team_code"].to_s.strip.upcase.presence %>
+              <% counterparty_codes = norm_codes.call(a["counterparty_team_codes"]) %>
+              <% via_codes = norm_codes.call(a["via_team_codes"]) %>
+
+              <tr class="hover:bg-muted/30 align-top">
+                <td class="px-3 py-2 font-mono tabular-nums text-muted-foreground"><%= slot %></td>
+
+                <td class="px-3 py-2">
+                  <div class="font-mono text-xs"><%= a["asset_type"] %></div>
+                  <div class="mt-1 flex flex-wrap gap-1">
+                    <% if a["is_forfeited"] %>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">forfeited</span>
+                    <% end %>
+                    <% if a["is_swap"] %>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">swap</span>
+                    <% end %>
+                    <% if a["is_conditional"] %>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">conditional</span>
+                    <% end %>
+                  </div>
+                </td>
+
+                <td class="px-3 py-2 text-sm text-muted-foreground">
+                  <% if counterparty.present? %>
+                    <div>
+                      counterparty:
+                      <a href="/teams/<%= counterparty.downcase %>" class="hover:underline"><%= counterparty %></a>
+                    </div>
+                  <% end %>
+
+                  <% if counterparty_codes.any? %>
+                    <div class="mt-1">
+                      codes:
+                      <%= counterparty_codes.map { |c| "<a href=\"/teams/#{c.downcase}\" class=\"hover:underline\">#{c}</a>" }.join(", ").html_safe %>
+                    </div>
+                  <% end %>
+
+                  <% if via_codes.any? %>
+                    <div class="mt-1">
+                      via:
+                      <%= via_codes.map { |c| "<a href=\"/teams/#{c.downcase}\" class=\"hover:underline\">#{c}</a>" }.join(" → ").html_safe %>
+                    </div>
+                  <% end %>
+                </td>
+
+                <td class="px-3 py-2">
+                  <div class="text-sm"><%= a["raw_part"] %></div>
+                  <% if a["endnote_explanation"].present? %>
+                    <div class="mt-1 text-xs text-muted-foreground"><%= a["endnote_explanation"] %></div>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="text-xs text-muted-foreground">
+        This page is intentionally link-rich and low-polish — it exists to scaffold entity pivots (team ↔ pick ↔ counterparty teams) while we harden the pick warehouse.
+      </div>
+    <% end %>
+  </section>
+</main>

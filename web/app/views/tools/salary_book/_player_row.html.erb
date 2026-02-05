@@ -140,7 +140,7 @@
           <% if player["agent_name"].present? && player["agent_id"].present? %>
             <button
               type="button"
-              class="text-xs truncate mb-px text-gray-400 dark:text-gray-500 hover:text-muted-foreground hover:underline
+              class="cursor-pointer text-xs truncate mb-px text-gray-400 dark:text-gray-500 hover:text-muted-foreground hover:underline
                      focus:outline-none focus-visible:underline focus-visible:text-muted-foreground transition-colors"
               data-on:click="evt.stopPropagation(); @get('<%= tools_salary_book_sidebar_agent_path(id: player["agent_id"]) %>')"
             ><%= player["agent_name"] %></button>

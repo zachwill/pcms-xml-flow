@@ -186,6 +186,29 @@ We accept messy input but canonicalize to:
 - `MF [A, B]`
 - `LF [A, MF [B, C]]`
 
+### Directionality (outgoing vs incoming)
+
+PCMS summary text is provenance-first and includes directionality in `raw_part` via tokens like `To XYZ(...)`.
+
+Our curated `shorthand` is **not** a sentence and should remain a pure MF/LF-style pick-expression.
+That means the *same* shorthand may appear on both:
+- an outgoing row (`To XYZ(...)`), and
+- an incoming/receiver row (`Has XYZ(...)` / `May have XYZ(...)`),
+when they refer to the same underlying pick right.
+
+To avoid confusion for human readers, the overlay view **renders outgoing directionality in `display_text`**:
+
+- If `raw_part` begins with `To ...`, then:
+  - `display_text = "To XYZ: " || coalesce(shorthand, raw_part)`
+- Otherwise:
+  - `display_text = coalesce(shorthand, raw_part)`
+
+So a team that has traded away a pick will display like:
+
+- `To UTA: LF [DET (p. 31-55), LF [NYK, LF [CHA, LAC], MIA]]`
+
+while the receiving side displays the same underlying pick-expression without the `To ...` prefix.
+
 Spacing rules:
 - Always `MF [ ... ]` / `LF [ ... ]`
 - Comma+space between elements

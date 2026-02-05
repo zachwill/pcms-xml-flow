@@ -180,7 +180,7 @@
             <% if agent_id.present? %>
               <button
                 type="button"
-                class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline
+                class="cursor-pointer text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline
                        focus-visible:outline-none focus-visible:ring-0 focus-visible:border-foreground dark:focus-visible:border-foreground"
                 data-on:click="@get('<%= tools_salary_book_sidebar_agent_path(id: agent_id) %>')"
               ><%= agent_name %></button>

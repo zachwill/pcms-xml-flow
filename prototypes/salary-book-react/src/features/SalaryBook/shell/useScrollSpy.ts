@@ -15,7 +15,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * 2. Team Selector Grid highlight
  * 3. Scroll-linked animations (internal progress tracking)
  *
- * @see web/reference/silkhq/03-scroll-and-gesture-trapping.md
+ * @see reference/silkhq/03-scroll-and-gesture-trapping.md
  */
 
 // ============================================================================

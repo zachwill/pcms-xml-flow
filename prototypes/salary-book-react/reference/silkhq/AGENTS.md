@@ -100,5 +100,5 @@ function applyProgressStyles(el, progress, declarations) {
 
 ## Archive
 
-The original granular 00–12 file set is preserved in `web/reference/silkhq/archive/`.
+The original granular 00–12 file set is preserved in `prototypes/salary-book-react/reference/silkhq/archive/`.
 Prefer the consolidated docs unless you’re comparing historical phrasing.

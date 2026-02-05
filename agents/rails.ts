@@ -2,18 +2,15 @@
 import { loop, work, generate, supervisor } from "./core";
 
 /**
- * rails.ts — Rails + Datastar (web/) Salary Book Port Agent
+ * rails.ts — Rails + Datastar (web/) UI + Entity Explorer agent
  *
- * Goal:
- * - Recreate the Bun + React prototype in prototypes/salary-book-react/
- *   as a Rails + Datastar tool in web/.
- * - Use Tailwind utility classes directly in .html.erb partials (no custom CSS classes).
- *
- * Canonical tool URL:
- * - /tools/salary-book
+ * Current direction:
+ * - Salary Book tool parity is largely in place.
+ * - Primary work now is Bricklink-style entity pages (teams/agents/picks/etc)
+ *   that remain HTML-first and link-rich.
  *
  * Backlog / task tracking:
- * - .ralph/RAILS.md
+ * - .ralph/RAILS.md (canonical backlog)
  *
  * Usage:
  *   bun agents/rails.ts
@@ -38,19 +35,19 @@ You are the supervisor for the Rails + Datastar Salary Book port.
 Every 4 commits, review progress and keep the backlog healthy.
 
 REVIEW INPUTS:
-1) .ralph/RAILS.md (current backlog)
-2) web/specs/01-salary-book.md (interaction + layout spec)
-3) reference/datastar/AGENTS.md (Datastar conventions)
-4) prototypes/salary-book-react/ (reference implementation)
+1) .ralph/RAILS.md (current backlog / next focus)
+2) web/AGENTS.md (Rails conventions + URL rules)
+3) reference/sites/bricklink.txt (IA inspiration)
+4) reference/datastar/AGENTS.md (Datastar conventions)
 
 SUPERVISOR CHECKLIST:
 - Is the agent making real progress toward the next TODO?
-- Are we returning HTML fragments with stable IDs (not scattered JSON)?
-- Are Datastar signals flatcase? DOM refs underscore-prefixed?
-- Is custom JS minimal? (Scroll spy is probably the only real need)
-- Are the completed items actually done, or do they need follow-up?
-- Are partials using Tailwind utility classes (not custom CSS classes)?
-- Do new partials follow the column width conventions (w-52, w-24, w-40)?
+- Are entity routes slug-first + canonical, with numeric fallback redirects?
+- Is the slug registry being used correctly (aliases allowed; one canonical per entity_id)?
+- Are pages HTML-first and link-rich (Bricklink-style), not "documentation UI"?
+- If Datastar is added: are signals flatcase and patch boundaries stable?
+- Are we avoiding re-implementing cap/CBA math in Ruby?
+- Are completed items actually done (and not just stubbed views)?
 
 IF BACKLOG NEEDS ADJUSTMENT:
 - Reorder tasks if dependencies are wrong
@@ -83,18 +80,14 @@ ${state.nextTodo}
 Read the full context at the top of ${TASK_FILE} before coding.
 
 KEY REFERENCES:
-- web/AGENTS.md — Rails app conventions
-- web/specs/01-salary-book.md — interaction + layout spec
-- reference/datastar/AGENTS.md — Datastar conventions (READ THIS)
-- prototypes/salary-book-react/ — markup/UX reference
+- .ralph/RAILS.md — canonical backlog
+- web/AGENTS.md — Rails app conventions + URL rules
+- reference/sites/bricklink.txt — IA inspiration
+- reference/datastar/* — Datastar conventions (only if/when enhancing)
 
-TAILWIND CONVENTIONS (from ${TASK_FILE}):
-- Heavily prefer utility classes in .html.erb (avoid custom CSS unless needed for data-class, animations, etc.)
-- Column widths: w-52 (sticky label), w-24 (year/total), w-40 (agent)
-- Sticky columns: sticky left-0 z-[N] + after: pseudo for right border
-- Row hover: group on parent + group-hover: on children
-- Include dark: variants for backgrounds, text, borders
-- Monospace numbers: font-mono tabular-nums
+STYLE CONVENTIONS:
+- Prefer Tailwind utility classes in `.html.erb`.
+- Avoid custom JS; only add it when it materially improves UX.
 
 EXECUTION:
 1) Read relevant existing files in web/ first

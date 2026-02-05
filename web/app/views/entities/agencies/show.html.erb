@@ -1,0 +1,64 @@
+<% content_for :title, @agency&.fetch("agency_name", nil) || "Agency" %>
+
+<% agency_name = @agency&.fetch("agency_name", nil).to_s %>
+
+<main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+  <header class="flex items-start justify-between gap-6 border-b border-border pb-4">
+    <div class="min-w-0">
+      <div class="text-xs text-muted-foreground">
+        <a href="/agencies" class="hover:underline">Agencies</a>
+        <span class="mx-1">/</span>
+        <span class="text-foreground"><%= agency_name.presence || "Agency" %></span>
+      </div>
+
+      <h1 class="mt-1 text-2xl font-semibold truncate"><%= agency_name.presence || "Agency" %></h1>
+
+      <div class="mt-2 text-sm text-muted-foreground flex gap-4 flex-wrap">
+        <span>agency_id: <code><%= @agency_id %></code></span>
+        <span>slug: <code><%= @agency_slug %></code></span>
+        <% if @agency["is_active"] == false %>
+          <span class="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">inactive</span>
+        <% end %>
+      </div>
+    </div>
+
+    <nav class="shrink-0 flex flex-col items-end gap-1">
+      <a href="/agents" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Browse Agents</a>
+      <a href="/tools/salary-book" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Open Salary Book</a>
+    </nav>
+  </header>
+
+  <section class="space-y-3">
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Agents</h2>
+
+    <% if @agents.empty? %>
+      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No agents found.</div>
+    <% else %>
+      <div class="overflow-x-auto rounded-lg border border-border">
+        <table class="min-w-full text-sm">
+          <thead class="bg-muted/50 text-xs text-muted-foreground">
+            <tr>
+              <th class="text-left px-3 py-2 font-medium">Agent</th>
+              <th class="text-right px-3 py-2 font-medium">agent_id</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <% @agents.each do |a| %>
+              <tr class="hover:bg-muted/30">
+                <td class="px-3 py-2">
+                  <a href="/agents/<%= a['agent_id'] %>" class="font-medium hover:underline"><%= a["full_name"] %></a>
+                  <% if a["is_active"] == false %>
+                    <span class="ml-2 text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">inactive</span>
+                  <% end %>
+                </td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums text-muted-foreground"><%= a["agent_id"] %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </section>
+
+  <%= render partial: "entities/shared/known_slugs", locals: { entity_type: "agency", entity_id: @agency_id, path_prefix: "agencies" } %>
+</main>

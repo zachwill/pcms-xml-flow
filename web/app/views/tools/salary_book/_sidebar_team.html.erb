@@ -50,25 +50,32 @@
 
 <div id="rightpanel-base" class="space-y-4" data-signals="{ sidebartab: 'cap' }">
   <%# Header %>
-  <div class="flex items-center gap-3">
-    <div class="w-14 h-14 rounded-lg bg-background border border-border flex items-center justify-center overflow-hidden">
-      <% if logo_url %>
-        <img
-          src="<%= logo_url %>"
-          alt="<%= team_name %> logo"
-          class="w-full h-full object-contain"
-          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-        />
-        <span class="hidden text-lg font-mono font-bold text-muted-foreground"><%= team_code %></span>
-      <% else %>
-        <span class="text-lg font-mono font-bold text-muted-foreground"><%= team_code %></span>
-      <% end %>
+  <div class="flex items-start justify-between gap-3">
+    <div class="flex items-center gap-3 min-w-0">
+      <div class="w-14 h-14 rounded-lg bg-background border border-border flex items-center justify-center overflow-hidden">
+        <% if logo_url %>
+          <img
+            src="<%= logo_url %>"
+            alt="<%= team_name %> logo"
+            class="w-full h-full object-contain"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+          />
+          <span class="hidden text-lg font-mono font-bold text-muted-foreground"><%= team_code %></span>
+        <% else %>
+          <span class="text-lg font-mono font-bold text-muted-foreground"><%= team_code %></span>
+        <% end %>
+      </div>
+
+      <div class="min-w-0">
+        <div class="font-semibold text-lg truncate"><%= team_name %></div>
+        <div class="text-sm text-muted-foreground truncate"><%= conference %> Conference</div>
+      </div>
     </div>
 
-    <div>
-      <div class="font-semibold text-lg"><%= team_name %></div>
-      <div class="text-sm text-muted-foreground"><%= conference %> Conference</div>
-    </div>
+    <a
+      href="/teams/<%= team_code.to_s.downcase %>"
+      class="text-xs text-muted-foreground hover:text-foreground hover:underline whitespace-nowrap"
+    >Open team page</a>
   </div>
 
   <%# Tab toggle (5 tabs; only Cap + Stats have content right now) %>
@@ -97,7 +104,7 @@
     <% tabs.each do |(id, label)| %>
       <button
         type="button"
-        class="relative z-10 min-w-0 px-3 py-1.5 text-sm font-medium text-center rounded-md transition-colors duration-150
+        class="cursor-pointer relative z-10 min-w-0 px-3 py-1.5 text-sm font-medium text-center rounded-md transition-colors duration-150
                focus-visible:outline-none focus-visible:ring-0 focus-visible:border-foreground dark:focus-visible:border-foreground"
         data-on:click="$sidebartab = '<%= id %>'"
         data-class="{ 'text-foreground': $sidebartab === '<%= id %>', 'text-muted-foreground hover:text-foreground': $sidebartab !== '<%= id %>' }"

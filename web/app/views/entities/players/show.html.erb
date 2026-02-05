@@ -1,39 +1,108 @@
 <% full_name = [@player&.fetch("first_name", nil), @player&.fetch("last_name", nil)].compact.join(" ") %>
 
-<main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+<% content_for :title, full_name.presence || "Player" %>
+
+<main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
   <header class="flex items-start justify-between gap-6 border-b border-border pb-4">
     <div class="min-w-0">
-      <h1 class="text-2xl font-semibold truncate"><%= full_name.presence || "Player" %></h1>
+      <div class="text-xs text-muted-foreground">
+        <a href="/players" class="hover:underline">Players</a>
+        <span class="mx-1">/</span>
+        <span class="text-foreground"><%= full_name.presence || "Player" %></span>
+      </div>
+
+      <h1 class="mt-1 text-2xl font-semibold truncate"><%= full_name.presence || "Player" %></h1>
+
       <div class="mt-2 text-sm text-muted-foreground flex gap-4 flex-wrap">
         <span>player_id: <code><%= @player_id %></code></span>
         <span>slug: <code><%= @player_slug %></code></span>
       </div>
     </div>
 
-    <nav class="shrink-0">
-      <a
-        href="/tools/salary-book"
-        class="text-sm text-muted-foreground hover:text-foreground hover:underline"
-      >Open Salary Book</a>
+    <nav class="shrink-0 flex flex-col items-end gap-1">
+      <a href="/tools/salary-book" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Open Salary Book</a>
+      <a href="/teams" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Browse Teams</a>
     </nav>
   </header>
 
+  <%# Relationship scaffolding %>
   <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Known slugs</h2>
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Connections</h2>
 
-    <ul class="list-disc pl-5 space-y-1 text-sm">
-      <% Slug.where(entity_type: "player", entity_id: @player_id).order(canonical: :desc, created_at: :asc).each do |s| %>
-        <li>
-          <a href="/players/<%= s.slug %>" class="hover:underline">/players/<%= s.slug %></a>
-          <% if s.canonical? %>
-            <span class="ml-1 text-xs font-medium text-foreground">(canonical)</span>
-          <% end %>
-        </li>
-      <% end %>
-    </ul>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <% team_code = @salary_book_row&.fetch("team_code", nil) %>
+      <% team_id = @salary_book_row&.fetch("team_id", nil) %>
+      <% team_name = @salary_book_row&.fetch("team_name", nil) %>
 
-    <p class="text-sm text-muted-foreground">
-      Short slugs (e.g. <code>/players/lebron</code>) can be promoted over time by adding an alias slug and marking it canonical.
-    </p>
+      <div class="p-4 rounded-lg border border-border bg-background">
+        <div class="text-xs text-muted-foreground">Team (current)</div>
+        <% if team_code.present? %>
+          <div class="mt-1">
+            <a href="/teams/<%= team_code.to_s.downcase %>" class="font-medium hover:underline"><%= team_code %></a>
+            <% if team_name.present? %>
+              <div class="text-sm text-muted-foreground truncate"><%= team_name %></div>
+            <% end %>
+          </div>
+          <div class="mt-2 text-xs text-muted-foreground">
+            <a href="/tools/salary-book?team=<%= team_code %>#<%= team_code %>" class="hover:underline">Open in Salary Book</a>
+          </div>
+        <% else %>
+          <div class="mt-1 text-sm text-muted-foreground italic">Unknown</div>
+        <% end %>
+      </div>
+
+      <% agent_id = @salary_book_row&.fetch("agent_id", nil) %>
+      <% agent_name = @salary_book_row&.fetch("agent_name", nil) %>
+      <% agency_id = @salary_book_row&.fetch("agency_id", nil) %>
+      <% agency_name = @salary_book_row&.fetch("agency_name", nil) %>
+
+      <div class="p-4 rounded-lg border border-border bg-background">
+        <div class="text-xs text-muted-foreground">Agent</div>
+        <% if agent_id.present? && agent_name.present? %>
+          <div class="mt-1">
+            <a href="/agents/<%= agent_id %>" class="font-medium hover:underline"><%= agent_name %></a>
+          </div>
+        <% elsif agent_name.present? %>
+          <div class="mt-1 font-medium"><%= agent_name %></div>
+        <% else %>
+          <div class="mt-1 text-sm text-muted-foreground italic">Unknown</div>
+        <% end %>
+
+        <div class="mt-2 text-xs text-muted-foreground">Agency</div>
+        <% if agency_id.present? && agency_name.present? %>
+          <a href="/agencies/<%= agency_id %>" class="text-sm hover:underline"><%= agency_name %></a>
+        <% elsif agency_name.present? %>
+          <div class="text-sm"><%= agency_name %></div>
+        <% else %>
+          <div class="text-sm text-muted-foreground italic">—</div>
+        <% end %>
+      </div>
+
+      <div class="p-4 rounded-lg border border-border bg-background">
+        <div class="text-xs text-muted-foreground">Draft selection</div>
+        <% if @draft_selection.present? %>
+          <% ds = @draft_selection %>
+          <div class="mt-1 font-medium">
+            <%= ds["draft_year"] %> — R<%= ds["draft_round"] %> P<%= ds["pick_number"] %>
+          </div>
+          <div class="mt-1 text-sm text-muted-foreground">
+            drafting_team: <%= ds["drafting_team_code"] || "—" %>
+          </div>
+          <div class="mt-2 text-xs text-muted-foreground">
+            <a href="/draft-selections/<%= ds['transaction_id'] %>" class="hover:underline">Open draft page</a>
+          </div>
+        <% else %>
+          <div class="mt-1 text-sm text-muted-foreground italic">Unknown</div>
+        <% end %>
+      </div>
+    </div>
+
+    <% if @salary_book_row&.fetch("cap_2025", nil).present? %>
+      <div class="text-xs text-muted-foreground">
+        Cap 2025: <span class="font-mono tabular-nums"><%= format_salary(@salary_book_row["cap_2025"]) %></span>
+      </div>
+    <% end %>
   </section>
+
+  <%= render partial: "entities/shared/known_slugs", locals: { entity_type: "player", entity_id: @player_id, path_prefix: "players" } %>
 </main>

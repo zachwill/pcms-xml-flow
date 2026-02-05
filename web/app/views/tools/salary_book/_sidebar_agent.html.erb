@@ -39,6 +39,11 @@
   <%# Sticky header %>
   <div class="sticky top-0 z-20 h-10 px-4 flex items-center justify-between border-b border-border bg-background">
     <%= render partial: "tools/salary_book/sidebar_back_button" %>
+
+    <a
+      class="text-xs text-muted-foreground hover:text-foreground hover:underline"
+      href="/agents/<%= agent_id %>"
+    >Open agent page</a>
   </div>
 
   <div class="px-4 pb-4 pt-4 space-y-6">
@@ -103,7 +108,7 @@
 
             <button
               type="button"
-              class="w-full text-left flex items-center justify-between gap-2 py-0.5 px-1.5 rounded-md hover:bg-muted/50 transition-colors
+              class="cursor-pointer w-full text-left flex items-center justify-between gap-2 py-0.5 px-1.5 rounded-md hover:bg-muted/50 transition-colors
                      focus-visible:outline-none focus-visible:ring-0 focus-visible:border-foreground dark:focus-visible:border-foreground"
               data-on:click="@get('<%= tools_salary_book_sidebar_player_path(id: player_id) %>')"
             >

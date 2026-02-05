@@ -14,9 +14,9 @@ It’s kept for:
 **Canonical app going forward:** `web/` (Rails + Datastar).
 
 Canonical docs/specs now live in `web/`:
+- `web/AGENTS.md`
 - `web/specs/*`
-- `web/FEATURE_AUDIT.md`
-- `web/RAILS_TODO.md`
+- `web/MIGRATION_MEMO.md`
 
 ---
 

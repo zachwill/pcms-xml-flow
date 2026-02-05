@@ -4,7 +4,7 @@
  * Helpers for Web Animations API that persist final styles.
  * Pattern stolen from Silk: commitStyles() + cancel() on finish.
  *
- * @see web/reference/silkhq/05-animations-and-recipes.md
+ * @see reference/silkhq/05-animations-and-recipes.md
  */
 
 /**

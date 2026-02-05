@@ -56,6 +56,7 @@ Notes:
 ## Where to look next
 
 - `web/AGENTS.md` (conventions + directory map)
-- `web/TODO.md` (active backlog)
-- `web/RAILS_TODO.md` (migration memo from React → Rails)
+- `web/MIGRATION_MEMO.md` (rewrite memo: React prototype → Rails + Datastar)
 - `web/specs/*` (interaction invariants)
+
+Backlog is tracked in PRs/issues (we intentionally avoid a `web/TODO.md` file to reduce staleness).

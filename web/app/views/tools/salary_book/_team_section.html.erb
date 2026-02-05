@@ -76,7 +76,7 @@
               <div class="h-[24px] flex items-end min-w-0">
                 <button
                   type="button"
-                  class="font-semibold leading-tight text-left text-[14px] block w-full truncate hover:text-primary transition-colors
+                  class="cursor-pointer font-semibold leading-tight text-left text-[14px] block w-full truncate hover:text-primary transition-colors
                          focus:outline-none focus-visible:underline focus-visible:text-primary"
                   data-on:click="$activeteam = '<%= team_code %>'; @get('<%= tools_salary_book_sidebar_team_path(team: team_code, year: year) %>')"
                 ><%= team_name %></button>
@@ -161,11 +161,6 @@
       aria-hidden="true"
     ></div>
 
-    <%# Content sentinel for IntersectionObserver scroll-spy.
-        Placed AFTER the sticky header, so it scrolls with the content.
-        When this crosses the threshold line (exits adjusted viewport going UP),
-        this team's header has become sticky → team is active. %>
-    <div data-team-content-sentinel data-teamcode="<%= team_code %>" aria-hidden="true" class="h-px"></div>
 
     <%# Body horizontal scroller %>
     <div

@@ -46,6 +46,11 @@
   <%# Sticky header %>
   <div class="sticky top-0 z-20 h-10 px-4 flex items-center justify-between border-b border-border bg-background">
     <%= render partial: "tools/salary_book/sidebar_back_button" %>
+
+    <a
+      class="text-xs text-muted-foreground hover:text-foreground hover:underline"
+      href="<%= draft_pick_path(team_code: team_code, year: year, round: round) %>"
+    >Open pick page</a>
   </div>
 
   <div class="px-4 pb-4 pt-4 space-y-6">

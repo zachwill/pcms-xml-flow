@@ -18,6 +18,7 @@ This root `AGENTS.md` is intentionally a **directory map** — most detailed con
 - Mental models + workbook design blueprints: `reference/blueprints/README.md`
 - High-level doc (data + primitives): `SALARY_BOOK.md`
 - Evidence/specs (current workbook): `reference/warehouse/AGENTS.md`
+- PCMS mental models (frontend-derived): `reference/pcms/MENTAL_MODELS.md`
 - DB primitives + caches: `migrations/AGENTS.md`
 - Assertion tests: `queries/AGENTS.md`
 

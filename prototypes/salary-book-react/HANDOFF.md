@@ -6,7 +6,7 @@ You're picking up UI work on the **Salary Book** — a scroll-driven NBA front-o
 
 ## What is this?
 
-A React app (`web/`) that displays NBA salary cap data. Main interaction model:
+A Bun + React prototype app (`prototypes/salary-book-react/`) that displays NBA salary cap data. Main interaction model:
 
 - **Scroll-driven**: Main canvas is a vertical scroll of 30 NBA teams
 - **Scroll-spy with progress**: Active team determined by scroll position + per-section progress (0→1)
@@ -19,7 +19,7 @@ A React app (`web/`) that displays NBA salary cap data. Main interaction model:
 
 We're building a **front-office instrument**, not a documentation UI. Key principles:
 
-1. **Steal from Silk** — We've reverse-engineered patterns from `@silk-hq/components` (see `web/reference/silkhq/`). We don't use the library, but we steal their ideas: progress-driven animations, safeToUnmount lifecycle, scroll position as state.
+1. **Steal from Silk** — We've reverse-engineered patterns from `@silk-hq/components` (see `reference/silkhq/`). We don't use the library, but we steal their ideas: progress-driven animations, safeToUnmount lifecycle, scroll position as state.
 
 2. **Scroll position IS state** — The scroll container's position drives everything. `sectionProgress` (0→1) tells you how far through the current section. `scrollState` tells you the lifecycle (`idle → scrolling → settling`).
 
@@ -35,7 +35,7 @@ We're building a **front-office instrument**, not a documentation UI. Key princi
 
 | File | Purpose |
 |------|---------|
-| **`web/TODO.md`** | Current work items, what's done, what's next |
+| **`TODO.md`** | Prototype work items, what's done, what's next |
 | **`web/specs/00-ui-philosophy.md`** | Core invariants + the scroll-driven model |
 | **`web/specs/01-salary-book.md`** | Full interaction spec |
 
@@ -123,7 +123,7 @@ const showEntity = stagedEntity !== null || !safeToUnmount;
 
 ## What's next
 
-Check `web/TODO.md` for the current list. The deferred items are:
+Check `TODO.md` for the current list. The deferred items are:
 
 | Item | Notes |
 |------|-------|
@@ -157,7 +157,7 @@ bun run typecheck  # Verify types
 
 5. **Programmatic scroll locks scroll-spy** — When you call `scrollToTeam()`, scroll-spy updates are suppressed until the scroll completes. This prevents flicker.
 
-6. **Silk docs are reverse-engineered** — The files in `web/reference/silkhq/` are our notes from reading their minified code. We steal patterns, not the library.
+6. **Silk docs are reverse-engineered** — The files in `reference/silkhq/` are our notes from reading their minified code. We steal patterns, not the library.
 
 7. **Data comes from Postgres** — API routes in `src/api/` map nearly 1:1 to `pcms.*_warehouse` tables. The real logic lives in SQL.
 

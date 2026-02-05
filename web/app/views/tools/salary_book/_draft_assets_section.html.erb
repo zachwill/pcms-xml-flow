@@ -84,7 +84,7 @@
 
               <button
                 type="button"
-                class="rounded focus-visible:outline-none focus-visible:ring-0 focus-visible:border-foreground dark:focus-visible:border-foreground"
+                class="cursor-pointer rounded focus-visible:outline-none focus-visible:ring-0 focus-visible:border-foreground dark:focus-visible:border-foreground"
                 data-on:click="evt.stopPropagation(); @get('<%= tools_salary_book_sidebar_pick_path(team: pick['team_code'], year: pick['year'], round: pick['round']) %>')"
               >
                 <%= render partial: "tools/salary_book/kpi_cell", locals: {

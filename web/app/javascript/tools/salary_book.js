@@ -1,8 +1,9 @@
 /**
  * Salary Book UI glue (vanilla JS)
  *
- * 1) Scroll-spy (active team) using IntersectionObserver
- * 2) Salary table horizontal scroll sync (header <-> body)
+ * Responsibilities:
+ * 1) Scroll-spy (active team) for the main canvas.
+ * 2) Salary table horizontal scroll sync (header <-> body).
  *
  * Public API (exposed on window):
  * - __salaryBookScrollToTeam(teamCode, behavior = "smooth")
@@ -11,19 +12,14 @@
  */
 
 let main = null;
-let observer = null;
 let lastActiveTeam = null;
-let lastActiveIndex = -1;
 
-// Programmatic scroll lock - ignore observer updates during programmatic scroll
+// Programmatic scroll lock - ignore scroll-spy updates during programmatic scroll
 let isScrollingProgrammatically = false;
 let scrollLockTimer = null;
 
-// Track which content sentinels are currently intersecting (in the adjusted viewport)
-const intersectingSentinels = new Set();
-
-// Sorted team codes (for fading logic)
-let teamCodeOrder = [];
+// RAF throttle for scroll-spy
+let scrollSpyRaf = null;
 
 // -------------------------------------------------------------------------
 // SalaryTable horizontal scroll sync (per team section)
@@ -85,143 +81,69 @@ const initAllSalaryTables = () => {
 };
 
 // -------------------------------------------------------------------------
-// Scroll-spy using IntersectionObserver
+// Scroll-spy (active team)
 // -------------------------------------------------------------------------
 
-// Sticky header height (TeamHeader ~56px + TableHeader ~40px)
-// Using slightly less than actual height so ATL sentinel is clearly "intersecting" at scroll=0
-const STICKY_HEADER_HEIGHT = 90;
+/**
+ * Determine which team is currently active.
+ *
+ * Desired behavior:
+ * - The active team is the one whose TeamHeader is currently "sticky" at the
+ *   top of the main canvas.
+ *
+ * Why we use elementFromPoint():
+ * - IntersectionObserver + sentinels is surprisingly easy to get wrong here,
+ *   because "not intersecting" conflates (a) elements above the sticky line
+ *   and (b) elements far below the viewport.
+ * - The browser already knows which sticky header is actually at the top; we
+ *   can ask it directly with a single hit-test.
+ */
+const getActiveTeamFromDOM = () => {
+  if (!main) return null;
 
-const applyFadedSections = (activeTeam) => {
-  if (!activeTeam) return;
+  const rect = main.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return null;
 
-  const activeIndex = teamCodeOrder.indexOf(activeTeam);
-  if (activeIndex === lastActiveIndex) return;
-  lastActiveIndex = activeIndex;
+  // Probe point: inside the main canvas, near the top-left corner.
+  // This lands inside the sticky TeamHeader for the active section.
+  const x = Math.min(rect.right - 1, rect.left + 24);
+  const y = Math.min(rect.bottom - 1, rect.top + 8);
 
-  teamCodeOrder.forEach((code, idx) => {
-    const section = main?.querySelector(`section[data-teamcode="${code}"]`);
-    if (!section) return;
+  const hit = document.elementFromPoint(x, y);
+  if (!hit) return null;
 
-    if (idx < activeIndex) {
-      section.setAttribute("data-faded", "true");
-    } else {
-      section.removeAttribute("data-faded");
-    }
-  });
+  const section = hit.closest?.("section[data-teamcode]");
+  return section?.dataset?.teamcode || null;
 };
 
 const dispatchActiveTeam = (team) => {
   if (!main) return;
-  if (team && team !== lastActiveTeam) {
-    lastActiveTeam = team;
-    main.dispatchEvent(
-      new CustomEvent("salarybook-activeteam", {
-        detail: { team },
-        bubbles: true,
-      })
-    );
-  }
+  if (!team) return;
+  if (team === lastActiveTeam) return;
+
+  lastActiveTeam = team;
+
+  main.dispatchEvent(
+    new CustomEvent("salarybook-activeteam", {
+      detail: { team },
+      bubbles: true,
+    })
+  );
 };
 
-const setActiveTeam = (team) => {
-  applyFadedSections(team);
-  dispatchActiveTeam(team);
+const updateActiveTeam = () => {
+  const team = getActiveTeamFromDOM();
+  if (team) dispatchActiveTeam(team);
 };
 
-/**
- * Calculate active team from current intersection state.
- * 
- * Model:
- * - Content sentinels are placed just after each team's sticky header
- * - With rootMargin=-96px, the adjusted viewport excludes the sticky header area
- * - A sentinel is "intersecting" when it's IN the adjusted viewport (visible below sticky headers)
- * - A sentinel "exits" when it scrolls UP past the threshold (header becomes sticky)
- * 
- * Active team = the LAST team (in document order) whose sentinel has exited.
- * If all sentinels are intersecting (at top of page), first team is active.
- */
-const calculateActiveTeam = () => {
-  let activeTeam = teamCodeOrder[0] || null; // Default to first team
-
-  for (const code of teamCodeOrder) {
-    if (!intersectingSentinels.has(code)) {
-      // This sentinel has exited (scrolled past threshold)
-      // → This team's header is sticky, this team is active
-      activeTeam = code;
-    } else {
-      // This sentinel is still intersecting (in viewport below threshold)
-      // → This team's header is not yet sticky
-      // Stop here - we've found the boundary
-      break;
-    }
-  }
-
-  return activeTeam;
-};
-
-/**
- * IntersectionObserver callback.
- * Updates intersection state and recalculates active team.
- */
-const handleIntersection = (entries) => {
+const onMainScroll = () => {
   if (isScrollingProgrammatically) return;
 
-  // Update intersection state for all reported entries
-  for (const entry of entries) {
-    const teamCode = entry.target.dataset.teamcode;
-    if (!teamCode) continue;
-
-    if (entry.isIntersecting) {
-      intersectingSentinels.add(teamCode);
-    } else {
-      intersectingSentinels.delete(teamCode);
-    }
-  }
-
-  // Debug: log detailed state
-  const firstFew = teamCodeOrder.slice(0, 3);
-  const inSet = firstFew.map(code => `${code}:${intersectingSentinels.has(code)}`);
-  console.debug("[scroll-spy] first 3 teams in set?", inSet.join(", "), "| total intersecting:", intersectingSentinels.size, "| total teams:", teamCodeOrder.length);
-
-  // Calculate active team from overall state (not from individual events)
-  const activeTeam = calculateActiveTeam();
-  console.debug("[scroll-spy] activeTeam:", activeTeam);
-  setActiveTeam(activeTeam);
-};
-
-const setupIntersectionObserver = () => {
-  if (observer) {
-    observer.disconnect();
-  }
-
-  // Clear intersection state
-  intersectingSentinels.clear();
-
-  // rootMargin: shrink viewport from top by sticky header height
-  // Sentinels "exit" (stop intersecting) when they cross this line going up
-  observer = new IntersectionObserver(handleIntersection, {
-    root: main,
-    rootMargin: `-${STICKY_HEADER_HEIGHT}px 0px 0px 0px`,
-    threshold: 0,
+  if (scrollSpyRaf !== null) return;
+  scrollSpyRaf = requestAnimationFrame(() => {
+    scrollSpyRaf = null;
+    updateActiveTeam();
   });
-
-  // Observe all content sentinels
-  const sentinels = main?.querySelectorAll("[data-team-content-sentinel]");
-  sentinels?.forEach((sentinel) => {
-    observer.observe(sentinel);
-  });
-};
-
-const rebuildCache = () => {
-  if (!main) return;
-
-  // Build ordered team code list
-  const sections = Array.from(main.querySelectorAll("section[data-teamcode]"));
-  teamCodeOrder = sections.map((el) => el.dataset.teamcode);
-
-  // Re-setup observer (this will trigger initial intersection callbacks)
-  setupIntersectionObserver();
 };
 
 // -------------------------------------------------------------------------
@@ -232,12 +154,12 @@ const scrollToTeam = (teamCode, behavior = "smooth") => {
   const section = main?.querySelector(`section[data-teamcode="${teamCode}"]`);
   if (!section) return;
 
-  // Lock to prevent observer updates during scroll animation
+  // Lock to prevent scroll-spy updates during scroll animation
   isScrollingProgrammatically = true;
   if (scrollLockTimer) clearTimeout(scrollLockTimer);
 
   // Immediately set as active to prevent flicker
-  setActiveTeam(teamCode);
+  dispatchActiveTeam(teamCode);
 
   const maxScroll = main.scrollHeight - main.clientHeight;
   const targetTop = section.offsetTop;
@@ -252,6 +174,9 @@ const scrollToTeam = (teamCode, behavior = "smooth") => {
   scrollLockTimer = setTimeout(() => {
     isScrollingProgrammatically = false;
     scrollLockTimer = null;
+
+    // Re-sync (covers interrupted/short-circuited smooth scroll)
+    updateActiveTeam();
   }, unlockDelay);
 };
 
@@ -260,8 +185,18 @@ const preserveContext = () => {
   requestAnimationFrame(() => {
     if (lastActiveTeam) {
       scrollToTeam(lastActiveTeam, "instant");
+    } else {
+      updateActiveTeam();
     }
   });
+};
+
+// "Cache rebuild" kept for backwards-compat with earlier approaches.
+// Today: re-init table sync + re-evaluate active team.
+const rebuildCache = () => {
+  if (!main) return;
+  initAllSalaryTables();
+  updateActiveTeam();
 };
 
 // -------------------------------------------------------------------------
@@ -275,30 +210,39 @@ const init = () => {
     return;
   }
 
-  rebuildCache();
   initAllSalaryTables();
 
-  window.addEventListener("resize", () => requestAnimationFrame(rebuildCache), { passive: true });
+  // Scroll-spy
+  main.addEventListener("scroll", onMainScroll, { passive: true });
 
-  // Observe team section insertions/removals (also re-init scroll sync).
+  // Initial active team (ATL at scrollTop=0)
+  requestAnimationFrame(updateActiveTeam);
+
+  window.addEventListener(
+    "resize",
+    () =>
+      requestAnimationFrame(() => {
+        initAllSalaryTables();
+        updateActiveTeam();
+      }),
+    { passive: true }
+  );
+
+  // Observe DOM changes inside main (future-proofing for Datastar patches)
   const mutationObserver = new MutationObserver(() => {
     requestAnimationFrame(() => {
-      rebuildCache();
       initAllSalaryTables();
+      updateActiveTeam();
     });
   });
-  mutationObserver.observe(main, { childList: true, subtree: false });
+  mutationObserver.observe(main, { childList: true, subtree: true });
 
   // Expose public API
   window.__salaryBookScrollToTeam = scrollToTeam;
   window.__salaryBookRebuildCache = rebuildCache;
   window.__salaryBookPreserveContext = preserveContext;
 
-  // Note: We don't manually set first team as active here.
-  // The IntersectionObserver callback will fire immediately with initial states
-  // and calculateActiveTeam() will determine the correct active team.
-
-  console.debug("[salary_book] initialized with IntersectionObserver");
+  console.debug("[salary_book] initialized");
 };
 
 // Auto-init when DOM is ready

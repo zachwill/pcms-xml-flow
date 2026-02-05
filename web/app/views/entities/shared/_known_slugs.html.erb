@@ -1,0 +1,29 @@
+<%#
+  KnownSlugs — debug helper / slug registry visibility.
+
+  locals:
+  - entity_type: (string)
+  - entity_id: (integer)
+  - path_prefix: (string) ex: "players", "teams"
+%>
+
+<% slugs = Slug.where(entity_type: entity_type, entity_id: entity_id).order(canonical: :desc, created_at: :asc) %>
+
+<section class="space-y-3">
+  <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Known slugs</h2>
+
+  <ul class="list-disc pl-5 space-y-1 text-sm">
+    <% slugs.each do |s| %>
+      <li>
+        <a href="/<%= path_prefix %>/<%= s.slug %>" class="hover:underline">/<%= path_prefix %>/<%= s.slug %></a>
+        <% if s.canonical? %>
+          <span class="ml-1 text-xs font-medium text-foreground">(canonical)</span>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+
+  <p class="text-sm text-muted-foreground">
+    Short slugs (e.g. <code>/players/lebron</code>) can be promoted over time by adding an alias slug and marking it canonical.
+  </p>
+</section>

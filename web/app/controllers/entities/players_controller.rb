@@ -2,7 +2,74 @@ module Entities
   class PlayersController < ApplicationController
     # GET /players
     def index
-      render plain: "players index (todo)", status: :ok
+      conn = ActiveRecord::Base.connection
+
+      q = params[:q].to_s.strip
+      @query = q
+
+      if q.present?
+        if q.match?(/\A\d+\z/)
+          id_sql = conn.quote(q.to_i)
+          @players = conn.exec_query(<<~SQL).to_a
+            SELECT
+              sbw.player_id,
+              sbw.player_name,
+              sbw.team_code,
+              t.team_id,
+              t.team_name,
+              sbw.agent_id,
+              sbw.agent_name,
+              sbw.cap_2025::numeric AS cap_2025
+            FROM pcms.salary_book_warehouse sbw
+            LEFT JOIN pcms.teams t
+              ON t.team_code = sbw.team_code
+             AND t.league_lk = 'NBA'
+            WHERE sbw.player_id = #{id_sql}
+            ORDER BY sbw.cap_2025 DESC NULLS LAST
+            LIMIT 50
+          SQL
+        else
+          q_sql = conn.quote("%#{q}%")
+          @players = conn.exec_query(<<~SQL).to_a
+            SELECT
+              sbw.player_id,
+              sbw.player_name,
+              sbw.team_code,
+              t.team_id,
+              t.team_name,
+              sbw.agent_id,
+              sbw.agent_name,
+              sbw.cap_2025::numeric AS cap_2025
+            FROM pcms.salary_book_warehouse sbw
+            LEFT JOIN pcms.teams t
+              ON t.team_code = sbw.team_code
+             AND t.league_lk = 'NBA'
+            WHERE sbw.player_name ILIKE #{q_sql}
+            ORDER BY sbw.cap_2025 DESC NULLS LAST, sbw.player_name
+            LIMIT 200
+          SQL
+        end
+      else
+        @players = conn.exec_query(<<~SQL).to_a
+          SELECT
+            sbw.player_id,
+            sbw.player_name,
+            sbw.team_code,
+            t.team_id,
+            t.team_name,
+            sbw.agent_id,
+            sbw.agent_name,
+            sbw.cap_2025::numeric AS cap_2025
+          FROM pcms.salary_book_warehouse sbw
+          LEFT JOIN pcms.teams t
+            ON t.team_code = sbw.team_code
+           AND t.league_lk = 'NBA'
+          ORDER BY sbw.cap_2025 DESC NULLS LAST
+          LIMIT 50
+        SQL
+      end
+
+      render :index
     end
 
     # GET /players/:slug
@@ -26,9 +93,54 @@ module Entities
       conn = ActiveRecord::Base.connection
       id_sql = conn.quote(@player_id)
 
-      @player = conn.exec_query(
-        "SELECT person_id, COALESCE(display_first_name, first_name) AS first_name, COALESCE(display_last_name, last_name) AS last_name FROM pcms.people WHERE person_id = #{id_sql} LIMIT 1"
-      ).first
+      @player = conn.exec_query(<<~SQL).first
+        SELECT
+          person_id,
+          COALESCE(display_first_name, first_name) AS first_name,
+          COALESCE(display_last_name, last_name) AS last_name
+        FROM pcms.people
+        WHERE person_id = #{id_sql}
+        LIMIT 1
+      SQL
+      raise ActiveRecord::RecordNotFound unless @player
+
+      # Salary-book context (team + agent) to enable link graph pivots.
+      @salary_book_row = conn.exec_query(<<~SQL).first
+        SELECT
+          sbw.team_code,
+          t.team_id,
+          t.team_name,
+          sbw.agent_id,
+          sbw.agent_name,
+          agency.agency_id,
+          agency.agency_name,
+          sbw.cap_2025::numeric AS cap_2025
+        FROM pcms.salary_book_warehouse sbw
+        LEFT JOIN pcms.teams t
+          ON t.team_code = sbw.team_code
+         AND t.league_lk = 'NBA'
+        LEFT JOIN pcms.agents agent
+          ON agent.agent_id = sbw.agent_id
+        LEFT JOIN pcms.agencies agency
+          ON agency.agency_id = agent.agency_id
+        WHERE sbw.player_id = #{id_sql}
+        LIMIT 1
+      SQL
+
+      # Draft selection (historical) — player → draft → team link.
+      @draft_selection = conn.exec_query(<<~SQL).first
+        SELECT
+          transaction_id,
+          draft_year,
+          draft_round,
+          pick_number,
+          drafting_team_id,
+          drafting_team_code,
+          transaction_date
+        FROM pcms.draft_selections
+        WHERE player_id = #{id_sql}
+        LIMIT 1
+      SQL
 
       render :show
     end

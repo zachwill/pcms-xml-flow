@@ -126,6 +126,6 @@ Key files to reference for implementation details:
 
 The original, more granular 00–12 notes (plus the previous knowledge map) are preserved in:
 
-- `web/reference/silkhq/archive/`
+- `prototypes/salary-book-react/reference/silkhq/archive/`
 
 Prefer the consolidated docs above unless you’re comparing/porting specific phrasing.

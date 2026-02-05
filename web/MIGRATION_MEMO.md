@@ -189,7 +189,7 @@ Rails should instead:
 
 ### Source of truth stays Postgres
 
-Keep the existing “Postgres is the product” posture (from `web/AGENTS.md` and `web/FEATURE_AUDIT.md`).
+Keep the existing “Postgres is the product” posture (from `web/AGENTS.md`).
 
 Do not re-implement cap/trade rules in Ruby.
 
@@ -433,7 +433,7 @@ Choose one:
   - right panel base (team context) + overlay entities
   - trade + buyout overlays
 
-- Data parity with `web/FEATURE_AUDIT.md` surfaces.
+- Data parity with Sean worksheet evidence (`reference/warehouse/`) surfaces.
 
 - No cap/trade logic duplicated in Ruby.
 

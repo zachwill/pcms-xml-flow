@@ -1,0 +1,174 @@
+# BuiltWith — Technology Usage Trend Page
+
+## Overview
+
+### Description
+Tracks adoption of a specific web technology over time, summarizes current footprint by segments (traffic tiers, countries, economic groups), and connects the data to an action: downloading targeted lead lists.
+
+### Main UI Patterns
+- Dashboard: Two-column layout with a primary trend chart and a dense summary sidebar
+- Data cards: Stacked contextual cards under the chart
+- Control panel: Checkbox legend to toggle series
+- Global nav/search: Header with universal search, language selection, and deep breadcrumbs
+
+### Notes
+- Pairs an at-a-glance trend chart with always-visible, scannable numerics
+- Keeps a conversion action ("Download Lead List") persistent without interrupting exploration
+- Adds relational context (complementary technologies) that shifts from "how much" to "used with what," opening direct, niche conversion paths
+
+## Key Modules
+
+### 1. Global Header, Language, and Search
+- Description: Offers immediate wayfinding (language selector, search) for a global, deep-site experience
+- Core Elements:
+  - Utility header with Log In/Signup and language selector
+  - Primary nav with Tools/Features/Resources, Plans, Customers, and an integrated search bar
+- Interaction Patterns:
+  - Direct-entry search as a primary interaction; dropdown navigation for exploration
+- Notes:
+  - Search-in-header reduces time-to-answer for users arriving with specific intent
+
+### 2. Orientation: Breadcrumbs and H1
+- Description: Grounds users in a deep hierarchy and confirms page topic at a glance
+- Core Elements:
+  - Breadcrumb trail (e.g., Home > Trends > Frameworks > Ruby on Rails Usage Statistics)
+  - Large H1 with the technology name and context (usage statistics)
+- Interaction Patterns:
+  - Breadcrumb links support quick backtracking and lateral exploration
+
+### 3. Trend Chart with Interactive Legend
+- Description: The primary way to see adoption over time and compare across segments
+- Core Elements:
+  - Long-range line chart (2011–2025)
+  - Checkbox legend for segments like Top 10k, Top 100k, Top 1m, All sites
+- Interaction Patterns:
+  - Toggle series on/off to simplify the view or focus on specific tiers
+- Notes:
+  - The legend-as-filter pattern lowers friction compared to a separate filter pane
+
+### 4. Context Cards Under the Chart
+
+#### 4.1 Technology Summary
+- Description: Gives a compact definition and canonical link to reduce ambiguity
+- Core Elements:
+  - Short description and link to official homepage
+- Interaction Patterns:
+  - One-click out for validation or deeper technical details
+
+#### 4.2 Lead Generation CTA
+- Description: Converts interest in the trend into an actionable list (sites using the tech)
+- Core Elements:
+  - Count of sites in database
+  - Prominent "Download Lead List" button
+- Interaction Patterns:
+  - Clear primary action aligned to the page’s main job-to-be-done (prospecting)
+
+#### 4.3 Complementary Technologies
+- Description: Surfaces co-usage relationships to power more targeted lists and insights
+- Core Elements:
+  - List of frequently co-installed technologies with counts and direct download links
+- Interaction Patterns:
+  - Click to pivot into a more specific segment (e.g., "Rails + Postgres" list)
+- Notes:
+  - Turns relational insights into immediate actions without extra filtering work
+
+#### 4.4 Awards/Rankings
+- Description: Benchmarks popularity position across site tiers/categories
+- Core Elements:
+  - Rank positions (e.g., 20th in Top 1M)
+- Interaction Patterns:
+  - Passive scan; supports comparative reasoning and credibility
+
+### 5. Right Sidebar: Summary + Deep Slices
+
+#### 5.1 Persistent CTA + Data Summary
+- Description: Keeps the conversion action visible and contextualizes the dataset in text
+- Core Elements:
+  - Repeated "Download Lead List" button
+  - Short descriptive paragraph summarizing key stats
+- Interaction Patterns:
+  - "Always within reach" action; skim-friendly copy
+
+#### 5.2 Site Totals
+- Description: Fast scan of headline counts (live, historical, country key stats)
+- Core Elements:
+  - Live vs historical site counts
+  - Notable country breakdowns
+- Interaction Patterns:
+  - Passive scan; anchors the magnitude of the dataset
+
+#### 5.3 Traffic Tier Breakdown
+- Description: Segments adoption by site importance (Top 1m/100k/10k) with absolute and percentage values
+- Core Elements:
+  - Tier names
+  - Percentages and counts for each tier
+- Interaction Patterns:
+  - Visual hierarchy for "where it matters most"
+
+#### 5.4 Granular Lists (By Country; By Economic Group)
+- Description: Offers pre-sliced geographic and macroeconomic segments for quick drill-downs
+- Core Elements:
+  - Country list with flags
+  - Groupings like APAC, BRICS, EMEA, G7
+- Interaction Patterns:
+  - Scroll lists; click-through to dedicated segment pages or lead lists
+- Notes:
+  - Encodes expert domain groupings so users don’t need to assemble them manually
+
+#### 5.5 Secondary Navigation (Related Technology Groups)
+- Description: Encourages lateral exploration within the taxonomy
+- Core Elements:
+  - List of related groups/categories
+- Interaction Patterns:
+  - Sideways browsing within the ecosystem
+
+## Best Ideas
+
+### 1. Dual-Track Presentation: Visual Trend + Numeric Sidebar
+- Name and Description: Parallel delivery for two modes: visual pattern recognition and precise numeric lookup
+- Why It Works: Reduces context switching; users get both macro trend and micro stats without navigating away
+- Where It Breaks Down: Risk of competing focal points on smaller screens; requires strong visual hierarchy
+- Notes: Keep chart interactions lightweight; keep sidebar scannable with consistent labeling
+
+### 2. Tier-Based Segmentation (Top 10k/100k/1m)
+- Name and Description: Shows adoption distribution across importance tiers, not just totals
+- Why It Works: Encodes a quality dimension into otherwise flat counts; clarifies where the tech matters
+- Where It Breaks Down: If tier definitions or data sources aren’t explained, users may misinterpret the segments
+
+### 3. Complementary Technologies as Actionable Pivots
+- Name and Description: Lists co-usage pairs (e.g., Rails + Postgres) with one-click paths to targeted lists
+- Why It Works: Relational context reveals stack patterns and enables more precise prospecting
+- Where It Breaks Down: Without co-usage methodology or thresholds, lists can appear arbitrary or noisy
+
+### 4. Persistent, Aligned CTA
+- Name and Description: The primary action ("Download Lead List") appears near every major data block
+- Why It Works: Keeps the next step obvious and reduces scrolling to act
+- Where It Breaks Down: Overexposure can feel pushy; redundant buttons need clear visual priority
+
+### 5. Prebuilt Geographic and Macroeconomic Slices
+- Name and Description: Ready-made filters (countries, APAC, G7, etc.) for expert needs
+- Why It Works: Saves users from assembling complex segments; standardizes analysis across users
+- Where It Breaks Down: Group definitions evolve; needs maintenance and transparent labeling
+
+### 6. Deep-Site Orientation (Breadcrumbs + H1 + Global Search)
+- Name and Description: Strong wayfinding stack for large taxonomies
+- Why It Works: Reduces disorientation in deep hierarchies and shortens time-to-content
+- Where It Breaks Down: If breadcrumb levels aren’t meaningful, users won’t trust or use them
+
+## Metadata
+
+### Data Density
+High. Long-range time series, multiple tiers, and several sliced lists. Balanced with scannable modules and repeated summaries.
+
+### Notable Omissions
+Not visible in the analysis:
+- Methodology details (definitions of "live," "historical," sources for traffic tiers, update cadence)
+- Time-range controls (zoom, custom ranges) and chart annotations
+- Data export beyond lead lists (CSV/API for the trend or breakdowns)
+- Saved views, shareable links, or permalinks with applied filters
+- Accessibility specifics (colorblind-safe palettes, chart ARIA/alt descriptions)
+- Mobile handling of the two-column layout and dense lists
+
+### Misc Notes
+- The legend-as-filter is a low-friction way to compare tiers without a separate filter UI
+- Repeating the CTA in both columns keeps conversion proximate to insight, which is reusable for any analytics-to-action workflow (e.g., "Add to list," "Create report," "Compare X vs Y")

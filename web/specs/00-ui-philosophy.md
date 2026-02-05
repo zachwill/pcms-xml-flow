@@ -174,7 +174,7 @@ Never translate rules into "read this explanation." Translate into "here is what
 
 ## Reference: Silk Patterns We Steal
 
-See `web/reference/silkhq/AGENTS.md` for the full knowledge map. Key patterns:
+See `prototypes/salary-book-react/reference/silkhq/AGENTS.md` for the full knowledge map. Key patterns:
 
 | Pattern | Source | Our Implementation |
 |---------|--------|-------------------|

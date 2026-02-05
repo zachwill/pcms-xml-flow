@@ -1,6 +1,6 @@
-# web/TODO.md
+# TODO — Salary Book React prototype
 
-Focused follow-ups for the **Salary Book** UI (informed by `web/reference/silkhq/` patterns).
+Focused follow-ups for the **Salary Book** UI (informed by `reference/silkhq/` patterns).
 
 ---
 

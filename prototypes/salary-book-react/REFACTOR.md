@@ -332,7 +332,7 @@ Steps:
    - “ShellProvider” renamed / moved
    - “TopNav” renamed / moved
 
-2) Update `web/TODO.md` with “Boundary refactor” completion.
+2) Update `web/MIGRATION_MEMO.md` (or `web/AGENTS.md`) with “Boundary refactor” completion.
 
 ---
 

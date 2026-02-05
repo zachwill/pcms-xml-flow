@@ -21,6 +21,9 @@ Rails.application.routes.draw do
 
   # Entities (Bricklink-style navigation; clean top-level URLs)
   scope module: :entities do
+    # ---------------------------------------------------------------------
+    # Players
+    # ---------------------------------------------------------------------
     get "players", to: "players#index"
 
     # Numeric fallback (NBA/PCMS shared id) → redirects to canonical slug.
@@ -28,6 +31,40 @@ Rails.application.routes.draw do
 
     # Canonical route.
     get "players/:slug", to: "players#show", as: :player
+
+    # ---------------------------------------------------------------------
+    # Teams
+    # ---------------------------------------------------------------------
+    get "teams", to: "teams#index"
+    get "teams/:id", to: "teams#redirect", constraints: { id: /\d+/ }
+    get "teams/:slug", to: "teams#show", as: :team
+
+    # ---------------------------------------------------------------------
+    # Agents
+    # ---------------------------------------------------------------------
+    get "agents", to: "agents#index"
+    get "agents/:id", to: "agents#redirect", constraints: { id: /\d+/ }
+    get "agents/:slug", to: "agents#show", as: :agent
+
+    # ---------------------------------------------------------------------
+    # Agencies
+    # ---------------------------------------------------------------------
+    get "agencies", to: "agencies#index"
+    get "agencies/:id", to: "agencies#redirect", constraints: { id: /\d+/ }
+    get "agencies/:slug", to: "agencies#show", as: :agency
+
+    # ---------------------------------------------------------------------
+    # Draft selections (historical drafts)
+    # ---------------------------------------------------------------------
+    get "draft-selections", to: "draft_selections#index"
+    get "draft-selections/:id", to: "draft_selections#redirect", constraints: { id: /\d+/ }
+    get "draft-selections/:slug", to: "draft_selections#show", as: :draft_selection
+
+    # ---------------------------------------------------------------------
+    # Draft picks (future pick assets) — natural key, no slug registry yet.
+    # ---------------------------------------------------------------------
+    get "draft-picks/:team_code/:year/:round", to: "draft_picks#show", as: :draft_pick,
+      constraints: { team_code: /[A-Za-z]{3}/, year: /\d{4}/, round: /1|2/ }
   end
 
   root "tools/salary_book#show"

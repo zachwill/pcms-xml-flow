@@ -52,8 +52,7 @@ ruby -v  # should be 3.4.x
    - `web/specs/01-salary-book.md`
 
 2) **Rails rewrite mental model**
-   - `web/RAILS_TODO.md` (migration memo / interaction mapping)
-   - `web/FEATURE_AUDIT.md` (parity checklist against Postgres + Sean workbook)
+   - `web/MIGRATION_MEMO.md` (rewrite memo / interaction mapping)
 
 3) **Datastar**
    - `reference/datastar/insights.md` (hard rules + gotchas)
@@ -234,7 +233,6 @@ High-level intended layout:
 - Product specs + references (already present)
   - `web/specs/*`
   - `web/reference/*`
-  - `web/FEATURE_AUDIT.md`
 
 ---
 

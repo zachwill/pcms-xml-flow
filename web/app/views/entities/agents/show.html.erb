@@ -1,0 +1,86 @@
+<% content_for :title, @agent&.fetch("full_name", nil) || "Agent" %>
+
+<% agent_name = @agent&.fetch("full_name", nil).to_s %>
+<% agency_name = @agent&.fetch("agency_name", nil).to_s %>
+
+<main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+  <header class="flex items-start justify-between gap-6 border-b border-border pb-4">
+    <div class="min-w-0">
+      <div class="text-xs text-muted-foreground">
+        <a href="/agents" class="hover:underline">Agents</a>
+        <span class="mx-1">/</span>
+        <span class="text-foreground"><%= agent_name.presence || "Agent" %></span>
+      </div>
+
+      <h1 class="mt-1 text-2xl font-semibold truncate"><%= agent_name.presence || "Agent" %></h1>
+
+      <div class="mt-2 text-sm text-muted-foreground flex gap-4 flex-wrap">
+        <span>agent_id: <code><%= @agent_id %></code></span>
+        <span>slug: <code><%= @agent_slug %></code></span>
+        <% if @agent["is_active"] == false %>
+          <span class="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">inactive</span>
+        <% end %>
+      </div>
+
+      <% if agency_name.present? %>
+        <div class="mt-2 text-sm text-muted-foreground">
+          Agency:
+          <% if @agent["agency_id"].present? %>
+            <a href="/agencies/<%= @agent['agency_id'] %>" class="hover:underline"><%= agency_name %></a>
+          <% else %>
+            <span><%= agency_name %></span>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <nav class="shrink-0 flex flex-col items-end gap-1">
+      <a href="/tools/salary-book" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Open Salary Book</a>
+      <a href="/agencies" class="text-sm text-muted-foreground hover:text-foreground hover:underline">Browse Agencies</a>
+    </nav>
+  </header>
+
+  <section class="space-y-3">
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Clients (salary book horizon)</h2>
+
+    <% if @clients.empty? %>
+      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No clients found.</div>
+    <% else %>
+      <div class="overflow-x-auto rounded-lg border border-border">
+        <table class="min-w-full text-sm">
+          <thead class="bg-muted/50 text-xs text-muted-foreground">
+            <tr>
+              <th class="text-left px-3 py-2 font-medium">Player</th>
+              <th class="text-left px-3 py-2 font-medium">Team</th>
+              <th class="text-right px-3 py-2 font-medium">Cap 2025</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <% @clients.each do |c| %>
+              <tr class="hover:bg-muted/30">
+                <td class="px-3 py-2">
+                  <a href="/players/<%= c['player_id'] %>" class="font-medium hover:underline"><%= c["player_name"] %></a>
+                </td>
+                <td class="px-3 py-2">
+                  <% if c["team_code"].present? %>
+                    <a href="/teams/<%= c['team_code'].to_s.downcase %>" class="hover:underline"><%= c["team_code"] %></a>
+                    <% if c["team_name"].present? %>
+                      <div class="text-xs text-muted-foreground truncate"><%= c["team_name"] %></div>
+                    <% end %>
+                  <% else %>
+                    <span class="text-muted-foreground">—</span>
+                  <% end %>
+                </td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums">
+                  <%= c["cap_2025"].present? ? format_salary(c["cap_2025"]) : "—" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </section>
+
+  <%= render partial: "entities/shared/known_slugs", locals: { entity_type: "agent", entity_id: @agent_id, path_prefix: "agents" } %>
+</main>

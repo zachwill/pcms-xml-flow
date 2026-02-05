@@ -185,7 +185,7 @@ Guideline: one checkbox = one endnote cluster.
 ### Top clusters (generated 2026-02-05)
 
 - [x] Endnote 125 (6 rows) — DET→WAS MF [BKN, DAL] 2027 2nd
-- [ ] Endnote 64 (6 rows) — NYK→DET MF [NYK, WAS] 2026 2nd
+- [x] Endnote 64 (6 rows) — NYK→DET MF [NYK, MIN] 2026 2nd
 - [ ] Endnote 52 (6 rows) — OKC→NYK WAS future conditional 1st
 - [ ] Endnote 50 (6 rows) — BOS↔SAS 2028 1st swap
 - [ ] Endnote 45 (6 rows) — NOP→POR 2027 2nd
@@ -221,3 +221,4 @@ When you complete a cluster, add a bullet here with:
 - quick verification query link/snippet (optional)
 
 - Endnote 125 — DET→WAS conveys the MF of BKN/DAL 2027 2nds (via DET); DET retains the LF. Added shorthands: `MF [BKN, DAL]` (WAS) and `LF [BKN, DAL]` (DET), plus origin rows `BKN`/`DAL` for direction-aware outgoing display.
+- Endnote 64 — NYK conveys to DET the MF of NYK/MIN 2026 2nds (Burks/Noel, 7/11/2022). Added origin shorthands `NYK` and `MIN` (including the NYK “may have MIN” branch) so outgoing rows render direction-aware `To ...` display.

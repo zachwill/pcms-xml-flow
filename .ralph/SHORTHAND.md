@@ -194,7 +194,7 @@ All entries below are currently tied at 4 rows; ordered by endnote_id desc.
 
 - [x] Endnote 192 (4 rows) - NOP/ORL 2030 2nd
 - [x] Endnote 163 (4 rows) - DAL/OKC 2028 1st
-- [ ] Endnote 159 (4 rows) - CHA/MIA 2027-2028 1st
+- [x] Endnote 159 (4 rows) - CHA/MIA 2027-2028 1st
 - [ ] Endnote 154 (4 rows) - LAC/PHI 2029 1st
 - [ ] Endnote 152 (4 rows) - LAC/OKC 2027 1st
 - [ ] Endnote 148 (4 rows) - MIL/POR 2030 1st
@@ -341,3 +341,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 212 — SAC→SAS swap right for 2031 1st (DeRozan trade, 7/8/2024). SAS has the right to swap their 2031 1st for SAC's 2031 1st (auto-exercise if SAC pick more favorable). Shorthands: `SAC` for SAC OWN and SAS MAY_HAVE SAC rows, `SAS` for SAS OWN and SAC MAY_HAVE SAS rows.
 - Endnote 192 — NOP→ORL swap right for 2030 2nd (Reeves trade, 6/27/2024). ORL has right to swap their 2030 2nd for NOP's 2030 2nd. Shorthands: `NOP` for NOP OWN and ORL MAY_HAVE NOP rows, `ORL` for ORL OWN and NOP MAY_HAVE ORL rows.
 - Endnote 163 — DAL→OKC swap right for 2028 1st (trade, 2/8/2024). OKC has the right to swap their 2028 1st for DAL's 2028 1st. Shorthands: `DAL` for DAL OWN and OKC MAY_HAVE DAL rows, `OKC` for OKC OWN and DAL MAY_HAVE OKC rows.
+- Endnote 159 — MIA→CHA Rozier-Lowry trade (1/23/2024). CHA receives MIA 1st in "First Allowable Draft" (2027), top 14 protected; if not conveyed, rolls to 2028 unprotected. Shorthands: `MIA (p. 1-14)` for 2027 rows, `MIA` for 2028 fallback rows.

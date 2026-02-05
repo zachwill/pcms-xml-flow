@@ -1,0 +1,243 @@
+{
+  "1": {
+    "B": "GIANNIS PACKAGES",
+    "AB": "OUR ASSETS"
+  },
+  "3": {
+    "B": "POR",
+    "E": "ATL",
+    "H": "NYK",
+    "K": "GSW",
+    "N": "TOR",
+    "Q": "MIA",
+    "T": "LAL",
+    "X": "MIN",
+    "AC": "FIRST ROUND"
+  },
+  "4": {
+    "B": "ASSET",
+    "C": "SCORE",
+    "E": "ASSET",
+    "F": "SCORE",
+    "H": "ASSET",
+    "I": "SCORE",
+    "K": "ASSET",
+    "L": "SCORE",
+    "N": "ASSET",
+    "O": "SCORE",
+    "Q": "ASSET",
+    "R": "SCORE",
+    "T": "ASSET",
+    "U": "SCORE",
+    "X": "ASSET",
+    "Y": "SCORE",
+    "AC": "2026 | POR (if 1-14) [2.50]"
+  },
+  "5": {
+    "B": "Grant",
+    "C": "-1.25",
+    "E": "Porzingis",
+    "F": "0",
+    "H": "Bridges",
+    "I": "2",
+    "K": "Green",
+    "L": "-0.5",
+    "N": "Quickley",
+    "O": "-1",
+    "Q": "Rozier",
+    "R": "0",
+    "T": "McDaniels",
+    "U": "3",
+    "X": "McDaniels",
+    "Y": "4",
+    "AC": "2027 | POR (if –14 or already conveyed) [1.25]"
+  },
+  "6": {
+    "B": "Sharpe",
+    "C": "1.75",
+    "E": "Kennard",
+    "F": "0",
+    "H": "Anunoby",
+    "I": "1.5",
+    "K": "Kuminga",
+    "L": "0",
+    "N": "Barrett",
+    "O": "-0.75",
+    "Q": "Powell",
+    "R": "0.5",
+    "T": "Reid, Naz",
+    "U": "0.5",
+    "X": "Reid, Naz",
+    "Y": "0.5",
+    "AC": "2028 | Best of POR/MIL (if POR 1-14 or already conv.) [3.00]"
+  },
+  "7": {
+    "B": "Thybulle",
+    "C": "0",
+    "E": "Daniels",
+    "F": "2",
+    "H": "McBride",
+    "I": "2",
+    "K": "Podziemski",
+    "L": "1",
+    "N": "Murray-Boyles",
+    "O": "1.5",
+    "Q": "Jaquez",
+    "R": "1",
+    "T": "Dillingham",
+    "U": "0.25",
+    "X": "Dillingham",
+    "Y": "0.25",
+    "AC": "2028 | ORL [2.00]"
+  },
+  "8": {
+    "B": "Murray",
+    "C": "-0.2",
+    "E": "Krejci",
+    "F": "0.75",
+    "H": "'25 FRP",
+    "I": "0.75",
+    "K": "Horford",
+    "L": "-1",
+    "N": "Agbaji",
+    "O": "0",
+    "Q": "Jakucionis",
+    "R": "0.5",
+    "T": "Beringer",
+    "U": "0.25",
+    "X": "Beringer",
+    "Y": "0.8",
+    "AC": "2029 | Best of POR/MIL/BOS [4.00]"
+  },
+  "9": {
+    "B": "'28 FRP Swap",
+    "C": "4",
+    "E": "'26 MF [NOP, MIL]",
+    "F": "4",
+    "H": "'25 FRP (WAS)",
+    "I": "0.4",
+    "K": "'26 FRP",
+    "L": "1",
+    "N": "Dick",
+    "O": "0.25",
+    "Q": "'30 FRP",
+    "R": "2",
+    "T": "'26 Swap",
+    "U": "0.5",
+    "X": "'26 Swap",
+    "Y": "0.5",
+    "AC": "2029 | Worst of POR/MIL/BOS [0.75]"
+  },
+  "10": {
+    "B": "'29 1st MF FRP",
+    "C": "4",
+    "E": "LF [NOP,MIL] (p. 1-4)",
+    "F": "0.95",
+    "H": "'28 Swap",
+    "I": "0.75",
+    "K": "'28 FRP",
+    "L": "2",
+    "N": "'26 TOR FRP",
+    "O": "0.75",
+    "Q": "'32 FRP",
+    "R": "2",
+    "T": "'28 Swap",
+    "U": "1",
+    "X": "'28 Swap",
+    "Y": "1",
+    "AC": "2030 | Best of POR/MIL [3.00]"
+  },
+  "11": {
+    "B": "'30 Swap Back",
+    "C": "3",
+    "E": "'28 Swap",
+    "F": "1.25",
+    "H": "'30 Swap",
+    "I": "0.75",
+    "K": "'32 FRP",
+    "L": "2",
+    "N": "'28 TOR FRP",
+    "O": "2",
+    "Q": "'25 Swap",
+    "R": "0.75",
+    "T": "'30 Swap",
+    "U": "1",
+    "X": "'30 Swap",
+    "Y": "1",
+    "AC": "2031 | POR [1.25]"
+  },
+  "12": {
+    "E": "'32 ATL FRP",
+    "F": "2",
+    "H": "'32 Swap",
+    "I": "0.75",
+    "K": "'27 Swap",
+    "L": "1",
+    "N": "'30 TOR FRP",
+    "O": "2",
+    "Q": "'29 Swap",
+    "R": "1",
+    "AC": "2032 | POR [1.25]"
+  },
+  "13": {
+    "K": "'29 Swap",
+    "L": "1",
+    "N": "'29 Swap",
+    "O": "1",
+    "Q": "'31 Swap",
+    "R": "1"
+  },
+  "14": {
+    "K": "'31 Swap",
+    "L": "1",
+    "N": "'31 Swap",
+    "O": "1",
+    "AC": "SECOND ROUND"
+  },
+  "15": {
+    "AC": "2026 | MEM (if 43-60) [0.10]"
+  },
+  "16": {
+    "B": "TOTAL:",
+    "C": "=SUM(C5:C14)",
+    "E": "TOTAL:",
+    "F": "=SUM(F5:F14)",
+    "H": "TOTAL:",
+    "I": "=SUM(I5:I14)",
+    "K": "TOTAL:",
+    "L": "=SUM(L5:L14)",
+    "N": "TOTAL:",
+    "O": "=SUM(O5:O14)",
+    "Q": "TOTAL:",
+    "R": "=SUM(R5:R14)",
+    "T": "TOTAL:",
+    "U": "=SUM(U5:U14)",
+    "X": "TOTAL:",
+    "Y": "=SUM(Y5:Y14)",
+    "AC": "2027 | ATL [0.20]"
+  },
+  "17": {
+    "AC": "2027 | MIN [0.15]"
+  },
+  "18": {
+    "AC": "2027 | Worst of POR/NOP (if 31-55) [0.10]"
+  },
+  "19": {
+    "AC": "2028 | SAC [0.25]"
+  },
+  "20": {
+    "AC": "2028 | POR (if FRP to Chicago) [0.20]"
+  },
+  "21": {
+    "AC": "2029 | Worst of IND/WAS [0.10]"
+  },
+  "22": {
+    "AC": "2030 | NYK [0.20]"
+  },
+  "23": {
+    "AC": "2031 | POR [0.20]"
+  },
+  "24": {
+    "AC": "2032 | POR [0.20]"
+  }
+}

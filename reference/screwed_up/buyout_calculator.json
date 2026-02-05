@@ -1,0 +1,118 @@
+{
+  "1": {
+    "B": "Young, Trae"
+  },
+  "2": {
+    "B": "Season Start:",
+    "C": "2025-10-20 00:00:00"
+  },
+  "3": {
+    "B": "Date Waived:",
+    "C": "=TODAY()"
+  },
+  "4": {
+    "B": "Clears Waivers:",
+    "C": "=C3+2"
+  },
+  "5": {
+    "B": "Day of Season:",
+    "C": "=C4-C2"
+  },
+  "6": {
+    "B": "Days Remaining:",
+    "C": "=174-C5"
+  },
+  "8": {
+    "B": "Current Cap Salary:"
+  },
+  "10": {
+    "B": "2025",
+    "C": "2026",
+    "D": "2027",
+    "E": "2028",
+    "F": "Total"
+  },
+  "11": {
+    "B": "=IFERROR(\n  _xlfn.LET(\n    _xlpm.r, MATCH(B1, Y!$B:$B, 0),\n    _xlpm.c, MATCH($B$10, Y!$D$2:$J$2, 0),\n    _xlpm.v, INDEX(Y!$D:$J, _xlpm.r, _xlpm.c),\n    IF(_xlpm.v=\"-\", 0, _xlpm.v)\n  ),\n0)",
+    "C": "=IFERROR(\n  _xlfn.LET(\n    _xlpm.r, MATCH(B1, Y!$B:$B, 0),\n    _xlpm.c, MATCH($C$10, Y!$D$2:$J$2, 0),\n    _xlpm.v, INDEX(Y!$D:$J, _xlpm.r, _xlpm.c),\n    IF(_xlpm.v=\"-\", 0, _xlpm.v)\n  ),\n0)",
+    "D": "=IFERROR(\n  _xlfn.LET(\n    _xlpm.r, MATCH(B1, Y!$B:$B, 0),\n    _xlpm.c, MATCH($D$10, Y!$D$2:$J$2, 0),\n    _xlpm.v, INDEX(Y!$D:$J, _xlpm.r, _xlpm.c),\n    IF(_xlpm.v=\"-\", 0, _xlpm.v)\n  ),\n0)",
+    "E": "=IFERROR(\n  _xlfn.LET(\n    _xlpm.r, MATCH(B1, Y!$B:$B, 0),\n    _xlpm.c, MATCH($E$10, Y!$D$2:$J$2, 0),\n    _xlpm.v, INDEX(Y!$D:$J, _xlpm.r, _xlpm.c),\n    IF(_xlpm.v=\"-\", 0, _xlpm.v)\n  ),\n0)",
+    "F": "=SUM(B11:E11)"
+  },
+  "14": {
+    "B": "Guaranteed Amount Remaining:"
+  },
+  "16": {
+    "B": "2025",
+    "C": "2026",
+    "D": "2027",
+    "E": "2029",
+    "F": "Total"
+  },
+  "17": {
+    "B": "=(C6/174)*B11",
+    "C": "=C11",
+    "D": "=D11",
+    "E": "-",
+    "F": "=SUM(B17:E17)"
+  },
+  "18": {
+    "B": "=B17/F17",
+    "C": "=C17/F17"
+  },
+  "19": {
+    "B": "Pro Rata\nAmount",
+    "C": "2026\nTotal"
+  },
+  "21": {
+    "B": "Give Back:",
+    "C": "5000000"
+  },
+  "23": {
+    "B": "2025",
+    "C": "2026",
+    "D": "2027",
+    "E": "2029",
+    "F": "Total"
+  },
+  "24": {
+    "B": "=B17",
+    "C": "=C17",
+    "D": "=D17",
+    "E": "-",
+    "F": "=SUM(B24:E24)"
+  },
+  "25": {
+    "B": "Remaining Salary"
+  },
+  "26": {
+    "B": "=B18*F26",
+    "C": "=C18*F26",
+    "D": "-",
+    "E": "-",
+    "F": "=C21"
+  },
+  "27": {
+    "B": "=B18",
+    "C": "=C18"
+  },
+  "28": {
+    "B": "Buyout Amounts"
+  },
+  "29": {
+    "B": "=B11-B26",
+    "C": "=C17-C26",
+    "D": "-",
+    "E": "-",
+    "F": "=SUM(B29:E29)"
+  },
+  "30": {
+    "B": "Cap Salary Post Waivers  (Buyout Amounts subtracted from Cap Salary)"
+  },
+  "32": {
+    "C": "1605918"
+  },
+  "33": {
+    "C": "3535038"
+  }
+}

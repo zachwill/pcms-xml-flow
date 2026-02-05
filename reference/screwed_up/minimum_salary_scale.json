@@ -1,0 +1,859 @@
+{
+  "1": {
+    "A": "Minimum Salary Scale"
+  },
+  "3": {
+    "A": "Salary Cap Amounts"
+  },
+  "5": {
+    "A": "Season",
+    "B": "Salary Cap"
+  },
+  "6": {
+    "A": "2025",
+    "B": "=INDEX(SystemValues[[#Data],[Salary Cap]], MATCH(CapAmounts9[[#This Row],[Season]], SystemValues[[#Data],[Season]], 0))"
+  },
+  "7": {
+    "A": "2026",
+    "B": "=INDEX(SystemValues[[#Data],[Salary Cap]], MATCH(CapAmounts9[[#This Row],[Season]], SystemValues[[#Data],[Season]], 0))"
+  },
+  "8": {
+    "A": "2027",
+    "B": "=INDEX(SystemValues[[#Data],[Salary Cap]], MATCH(CapAmounts9[[#This Row],[Season]], SystemValues[[#Data],[Season]], 0))"
+  },
+  "9": {
+    "A": "2028",
+    "B": "=INDEX(SystemValues[[#Data],[Salary Cap]], MATCH(CapAmounts9[[#This Row],[Season]], SystemValues[[#Data],[Season]], 0))"
+  },
+  "10": {
+    "A": "2029",
+    "B": "=INDEX(SystemValues[[#Data],[Salary Cap]], MATCH(CapAmounts9[[#This Row],[Season]], SystemValues[[#Data],[Season]], 0))"
+  },
+  "11": {
+    "A": "2030",
+    "B": "=INDEX(SystemValues[[#Data],[Salary Cap]], MATCH(CapAmounts9[[#This Row],[Season]], SystemValues[[#Data],[Season]], 0))"
+  },
+  "12": {
+    "A": "2031",
+    "B": "=INDEX(SystemValues[[#Data],[Salary Cap]], MATCH(CapAmounts9[[#This Row],[Season]], SystemValues[[#Data],[Season]], 0))",
+    "L": "Vet Mins & SRP Amounts"
+  },
+  "15": {
+    "A": "Season",
+    "B": "YOS",
+    "C": "Year 1",
+    "D": "Year 2",
+    "E": "Year 3",
+    "F": "Year 4",
+    "G": "Year 5",
+    "H": "Year 1 % Cap",
+    "L": "Season",
+    "M": "Minimums",
+    "N": "Year 1",
+    "O": "Year 2",
+    "P": "Year 3",
+    "Q": "Year 4",
+    "U": "=IFERROR(INDEX(Minimum[Year 1], 1 + (ROW() - ROW($A$16)) * 11), \"\")"
+  },
+  "16": {
+    "A": "2025",
+    "B": "0",
+    "C": "1272870",
+    "D": "0",
+    "E": "0",
+    "F": "0",
+    "G": "0",
+    "H": "0.008230811532085236",
+    "L": "2025",
+    "M": "SRP 2025",
+    "N": "=INDEX(Minimum[], 1, 3)",
+    "O": "=INDEX(Minimum[Year 2], 2)",
+    "P": "=INDEX(Minimum[Year 3], 3)",
+    "Q": "=INDEX(Minimum[Year 4], 4)"
+  },
+  "17": {
+    "A": "2025",
+    "B": "1",
+    "C": "2048494",
+    "D": "2150917",
+    "E": "0",
+    "F": "0",
+    "G": "0",
+    "H": "0.013246257733209333",
+    "L": "2026",
+    "M": "SRP 2026",
+    "N": "=INDEX(Minimum[], 1 + (ROW()-ROW($A$16))*11, 3)",
+    "O": "=INDEX(Minimum[Year 2], 2+11)",
+    "P": "=INDEX(Minimum[Year 3], 3+11)",
+    "Q": "=INDEX(Minimum[Year 4], 4+11)"
+  },
+  "18": {
+    "A": "2025",
+    "B": "2",
+    "C": "2296274",
+    "D": "2411090",
+    "E": "2525901",
+    "F": "0",
+    "G": "0",
+    "H": "0.014848489749706846",
+    "L": "2027",
+    "M": "SRP 2027",
+    "N": "=INDEX(Minimum[], 1 + (ROW()-ROW($A$16))*11, 3)",
+    "O": "=INDEX(Minimum[Year 2], 2+22)",
+    "P": "=INDEX(Minimum[Year 3], 3+22)",
+    "Q": "=INDEX(Minimum[Year 4], 4+22)"
+  },
+  "19": {
+    "A": "2025",
+    "B": "3",
+    "C": "2378870",
+    "D": "2497812",
+    "E": "2616754",
+    "F": "2735698",
+    "G": "0",
+    "H": "0.015382580566899843",
+    "L": "2028",
+    "M": "SRP 2028",
+    "N": "=INDEX(Minimum[], 1 + (ROW()-ROW($A$16))*11, 3)",
+    "O": "=INDEX(Minimum[Year 2], 2+33)",
+    "P": "=INDEX(Minimum[Year 3], 3+33)",
+    "Q": "=INDEX(Minimum[Year 4], 4+33)"
+  },
+  "20": {
+    "A": "2025",
+    "B": "4",
+    "C": "2461463",
+    "D": "2584539",
+    "E": "2707612",
+    "F": "2830685",
+    "G": "2953760",
+    "H": "0.015916663297076545",
+    "L": "2029",
+    "M": "SRP 2029",
+    "N": "=INDEX(Minimum[], 1 + (ROW()-ROW($A$16))*11, 3)",
+    "O": "=INDEX(Minimum[Year 2], 2+44)",
+    "P": "=INDEX(Minimum[Year 3], 3+44)",
+    "Q": "=INDEX(Minimum[Year 4], 4+44)"
+  },
+  "21": {
+    "A": "2025",
+    "B": "5",
+    "C": "2667947",
+    "D": "2801346",
+    "E": "2934742",
+    "F": "3068140",
+    "G": "3201538",
+    "H": "0.017251853948485708",
+    "L": "2030",
+    "M": "SRP 2030",
+    "N": "=INDEX(Minimum[], 1 + (ROW()-ROW($A$16))*11, 3)",
+    "O": "=INDEX(Minimum[Year 2], 2+55)",
+    "P": "=INDEX(Minimum[Year 3], 3+55)",
+    "Q": "=INDEX(Minimum[Year 4], 4+55)"
+  },
+  "22": {
+    "A": "2025",
+    "B": "6",
+    "C": "2874436",
+    "D": "3018158",
+    "E": "3161876",
+    "F": "3305598",
+    "G": "3449321",
+    "H": "0.01858707694796005",
+    "L": "2031",
+    "M": "SRP 2030",
+    "N": "=INDEX(Minimum[], 1 + (ROW()-ROW($A$16))*11, 3)",
+    "O": "=INDEX(Minimum[Year 2], 2+66)",
+    "P": "=INDEX(Minimum[Year 3], 3+66)",
+    "Q": "=INDEX(Minimum[Year 4], 4+66)"
+  },
+  "23": {
+    "A": "2025",
+    "B": "7",
+    "C": "3080921",
+    "D": "3234968",
+    "E": "3389014",
+    "F": "3543059",
+    "G": "3697107",
+    "H": "0.019922283773401803",
+    "L": "2025",
+    "M": "Vet Min 2025",
+    "N": "=INDEX(Minimum[Year 1], 3)",
+    "U": "=IFERROR(INDEX(Minimum[Year 1], 1 + (ROW() - ROW($A$16)) * 11), \"\")"
+  },
+  "24": {
+    "A": "2025",
+    "B": "8",
+    "C": "3287409",
+    "D": "3451779",
+    "E": "3616151",
+    "F": "3780524",
+    "G": "3944896",
+    "H": "0.021257506772876147",
+    "L": "2026",
+    "M": "Vet Min 2026",
+    "N": "=INDEX(Minimum[Year 1], 3+11)",
+    "U": "=IFERROR(INDEX(Minimum[Year 1], 1 + (ROW() - ROW($A$16)) * 11), \"\")"
+  },
+  "25": {
+    "A": "2025",
+    "B": "9",
+    "C": "3303774",
+    "D": "3468962",
+    "E": "3634152",
+    "F": "3799340",
+    "G": "3964529",
+    "H": "0.021363325381100643",
+    "L": "2027",
+    "M": "Vet Min 2027",
+    "N": "=INDEX(Minimum[Year 1], 3+22)",
+    "U": "=IFERROR(INDEX(Minimum[Year 1], 1 + (ROW() - ROW($A$16)) * 11), \"\")"
+  },
+  "26": {
+    "A": "2025",
+    "B": "10",
+    "C": "3634153",
+    "D": "3815861",
+    "E": "3997570",
+    "F": "4179277",
+    "G": "4360985",
+    "H": "0.023499664388823744",
+    "L": "2028",
+    "M": "Vet Min 2028",
+    "N": "=INDEX(Minimum[Year 1], 3+33)",
+    "U": "=IFERROR(INDEX(Minimum[Year 1], 1 + (ROW() - ROW($A$16)) * 11), \"\")"
+  },
+  "27": {
+    "A": "2026",
+    "B": "0",
+    "C": "1366314",
+    "H": "0.008230811532085236",
+    "L": "2029",
+    "M": "Vet Min 2029",
+    "N": "=INDEX(Minimum[Year 1], 3+44)",
+    "U": "=IFERROR(INDEX(Minimum[Year 1], 1 + (ROW() - ROW($A$16)) * 11), \"\")"
+  },
+  "28": {
+    "A": "2026",
+    "B": "1",
+    "C": "2198879",
+    "D": "2308821",
+    "H": "0.013246257733209333",
+    "L": "2030",
+    "M": "Vet Min 2030",
+    "N": "=INDEX(Minimum[Year 1], 3+55)",
+    "U": "=IFERROR(INDEX(Minimum[Year 1], 1 + (ROW() - ROW($A$16)) * 11), \"\")"
+  },
+  "29": {
+    "A": "2026",
+    "B": "2",
+    "C": "2464849",
+    "D": "2588094",
+    "E": "2711333",
+    "H": "0.014848489749706846",
+    "L": "2031",
+    "M": "Vet Min 2031",
+    "N": "=INDEX(Minimum[Year 1], 3+66)",
+    "U": "=IFERROR(INDEX(Minimum[Year 1], 1 + (ROW() - ROW($A$16)) * 11), \"\")"
+  },
+  "30": {
+    "A": "2026",
+    "B": "3",
+    "C": "2553508",
+    "D": "2681182",
+    "E": "2808856",
+    "F": "2936532",
+    "H": "0.015382580566899843",
+    "L": "2025",
+    "M": "Rookie Min 2025",
+    "N": "=N16",
+    "U": "=IFERROR(INDEX(Minimum[Year 1], 1 + (ROW() - ROW($A$16)) * 11), \"\")"
+  },
+  "31": {
+    "A": "2026",
+    "B": "4",
+    "C": "2642165",
+    "D": "2774276",
+    "E": "2906384",
+    "F": "3038492",
+    "G": "3170602",
+    "H": "0.015916663297076545",
+    "L": "2026",
+    "M": "Rookie Min 2026",
+    "N": "=N17"
+  },
+  "32": {
+    "A": "2026",
+    "B": "5",
+    "C": "2863807",
+    "D": "3006999",
+    "E": "3150188",
+    "F": "3293379",
+    "G": "3436570",
+    "H": "0.017251853948485708",
+    "L": "2027",
+    "M": "Rookie Min 2027",
+    "N": "=N18"
+  },
+  "33": {
+    "A": "2026",
+    "B": "6",
+    "C": "3085455",
+    "D": "3239728",
+    "E": "3393997",
+    "F": "3548270",
+    "G": "3702544",
+    "H": "0.01858707694796005",
+    "L": "2028",
+    "M": "Rookie Min 2028",
+    "N": "=N19"
+  },
+  "34": {
+    "A": "2026",
+    "B": "7",
+    "C": "3307099",
+    "D": "3472455",
+    "E": "3637809",
+    "F": "3803163",
+    "G": "3968520",
+    "H": "0.019922283773401803",
+    "L": "2029",
+    "M": "Rookie Min 2029",
+    "N": "=N20"
+  },
+  "35": {
+    "A": "2026",
+    "B": "8",
+    "C": "3528745",
+    "D": "3705182",
+    "E": "3881621",
+    "F": "4058061",
+    "G": "4234500",
+    "H": "0.021257506772876147",
+    "L": "2030",
+    "M": "Rookie Min 2030",
+    "N": "=N21"
+  },
+  "36": {
+    "A": "2026",
+    "B": "9",
+    "C": "3546312",
+    "D": "3723627",
+    "E": "3900944",
+    "F": "4078258",
+    "G": "4255574",
+    "H": "0.021363325381100643",
+    "L": "2031",
+    "M": "Rookie Min 2031",
+    "N": "=N22"
+  },
+  "37": {
+    "A": "2026",
+    "B": "10",
+    "C": "3900945",
+    "D": "4095992",
+    "E": "4291041",
+    "F": "4486088",
+    "G": "4681135",
+    "H": "0.023499664388823744"
+  },
+  "38": {
+    "A": "2027",
+    "B": "0",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "H": "0.008230811532085236"
+  },
+  "39": {
+    "A": "2027",
+    "B": "1",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "H": "0.013246257733209333"
+  },
+  "40": {
+    "A": "2027",
+    "B": "2",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "H": "0.014848489749706846"
+  },
+  "41": {
+    "A": "2027",
+    "B": "3",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.045,0)",
+    "H": "0.015382580566899843"
+  },
+  "42": {
+    "A": "2027",
+    "B": "4",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.015916663297076545"
+  },
+  "43": {
+    "A": "2027",
+    "B": "5",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.017251853948485708"
+  },
+  "44": {
+    "A": "2027",
+    "B": "6",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.01858707694796005"
+  },
+  "45": {
+    "A": "2027",
+    "B": "7",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.019922283773401803"
+  },
+  "46": {
+    "A": "2027",
+    "B": "8",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.021257506772876147"
+  },
+  "47": {
+    "A": "2027",
+    "B": "9",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.021363325381100643"
+  },
+  "48": {
+    "A": "2027",
+    "B": "10",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.023499664388823744"
+  },
+  "49": {
+    "A": "2028",
+    "B": "0",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "H": "0.008230811532085236"
+  },
+  "50": {
+    "A": "2028",
+    "B": "1",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "H": "0.013246257733209333"
+  },
+  "51": {
+    "A": "2028",
+    "B": "2",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "H": "0.014848489749706846"
+  },
+  "52": {
+    "A": "2028",
+    "B": "3",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.045,0)",
+    "H": "0.015382580566899843"
+  },
+  "53": {
+    "A": "2028",
+    "B": "4",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.015916663297076545"
+  },
+  "54": {
+    "A": "2028",
+    "B": "5",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.017251853948485708"
+  },
+  "55": {
+    "A": "2028",
+    "B": "6",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.01858707694796005"
+  },
+  "56": {
+    "A": "2028",
+    "B": "7",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.019922283773401803"
+  },
+  "57": {
+    "A": "2028",
+    "B": "8",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.021257506772876147"
+  },
+  "58": {
+    "A": "2028",
+    "B": "9",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.021363325381100643"
+  },
+  "59": {
+    "A": "2028",
+    "B": "10",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.023499664388823744"
+  },
+  "60": {
+    "A": "2029",
+    "B": "0",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "H": "0.008230811532085236"
+  },
+  "61": {
+    "A": "2029",
+    "B": "1",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "H": "0.013246257733209333"
+  },
+  "62": {
+    "A": "2029",
+    "B": "2",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "H": "0.014848489749706846"
+  },
+  "63": {
+    "A": "2029",
+    "B": "3",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.045,0)",
+    "H": "0.015382580566899843"
+  },
+  "64": {
+    "A": "2029",
+    "B": "4",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.015916663297076545"
+  },
+  "65": {
+    "A": "2029",
+    "B": "5",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.017251853948485708"
+  },
+  "66": {
+    "A": "2029",
+    "B": "6",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.01858707694796005"
+  },
+  "67": {
+    "A": "2029",
+    "B": "7",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.019922283773401803"
+  },
+  "68": {
+    "A": "2029",
+    "B": "8",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.021257506772876147"
+  },
+  "69": {
+    "A": "2029",
+    "B": "9",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.021363325381100643"
+  },
+  "70": {
+    "A": "2029",
+    "B": "10",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.023499664388823744"
+  },
+  "71": {
+    "A": "2030",
+    "B": "0",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "H": "0.008230811532085236"
+  },
+  "72": {
+    "A": "2030",
+    "B": "1",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "H": "0.013246257733209333"
+  },
+  "73": {
+    "A": "2030",
+    "B": "2",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "H": "0.014848489749706846"
+  },
+  "74": {
+    "A": "2030",
+    "B": "3",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.045,0)",
+    "H": "0.015382580566899843"
+  },
+  "75": {
+    "A": "2030",
+    "B": "4",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.015916663297076545"
+  },
+  "76": {
+    "A": "2030",
+    "B": "5",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.017251853948485708"
+  },
+  "77": {
+    "A": "2030",
+    "B": "6",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.01858707694796005"
+  },
+  "78": {
+    "A": "2030",
+    "B": "7",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.019922283773401803"
+  },
+  "79": {
+    "A": "2030",
+    "B": "8",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.021257506772876147"
+  },
+  "80": {
+    "A": "2030",
+    "B": "9",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.021363325381100643"
+  },
+  "81": {
+    "A": "2030",
+    "B": "10",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.05,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "G": "=ROUND(Minimum[[#This Row],[Year 4]]*1.043,0)",
+    "H": "0.023499664388823744"
+  },
+  "82": {
+    "A": "2031",
+    "B": "0",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.04,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "H": "0.008230811532085236"
+  },
+  "83": {
+    "A": "2031",
+    "B": "1",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.04,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "H": "0.013246257733209333"
+  },
+  "84": {
+    "A": "2031",
+    "B": "2",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.04,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "H": "0.014848489749706846"
+  },
+  "85": {
+    "A": "2031",
+    "B": "3",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.04,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "H": "0.015382580566899843"
+  },
+  "86": {
+    "A": "2031",
+    "B": "4",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.04,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "H": "0.015916663297076545"
+  },
+  "87": {
+    "A": "2031",
+    "B": "5",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.04,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "H": "0.017251853948485708"
+  },
+  "88": {
+    "A": "2031",
+    "B": "6",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.04,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "H": "0.01858707694796005"
+  },
+  "89": {
+    "A": "2031",
+    "B": "7",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.04,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "H": "0.019922283773401803"
+  },
+  "90": {
+    "A": "2031",
+    "B": "8",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.04,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "H": "0.021257506772876147"
+  },
+  "91": {
+    "A": "2031",
+    "B": "9",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.04,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "H": "0.021363325381100643"
+  },
+  "92": {
+    "A": "2031",
+    "B": "10",
+    "C": "=ROUND((_xlfn.XLOOKUP(Minimum[[#This Row],[Season]], CapAmounts[Season], CapAmounts[Salary Cap])*Minimum[[#This Row],[Year 1 % Cap]]),0)",
+    "D": "=ROUND(Minimum[[#This Row],[Year 1]]*1.04,0)",
+    "E": "=ROUND(Minimum[[#This Row],[Year 2]]*1.047,0)",
+    "F": "=ROUND(Minimum[[#This Row],[Year 3]]*1.047,0)",
+    "H": "0.023499664388823744"
+  }
+}

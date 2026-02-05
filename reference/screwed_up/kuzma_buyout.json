@@ -1,0 +1,178 @@
+{
+  "1": {
+    "B": "Kuzma, Kyle",
+    "D": "(if traded to Portland)"
+  },
+  "2": {
+    "B": "Season Start:",
+    "C": "2025-10-20 00:00:00"
+  },
+  "3": {
+    "B": "Date Waived:",
+    "C": "2026-01-15 00:00:00"
+  },
+  "4": {
+    "B": "Clears Waivers:",
+    "C": "=C3+2",
+    "H": "Season Start:",
+    "J": "2025-10-20 00:00:00"
+  },
+  "5": {
+    "B": "Day of Season:",
+    "C": "=C4-C2",
+    "H": "Date of Trade:",
+    "J": "2026-01-20 00:00:00"
+  },
+  "6": {
+    "B": "Days Remaining:",
+    "C": "=174-C5",
+    "H": "Days Responsible:",
+    "J": "=J5-J4"
+  },
+  "7": {
+    "H": "Days Left:",
+    "J": "=174-J6"
+  },
+  "8": {
+    "B": "Current Salary:"
+  },
+  "9": {
+    "N": "Base + TK",
+    "O": "Base"
+  },
+  "10": {
+    "B": "2025",
+    "C": "2026",
+    "D": "2027",
+    "E": "2028",
+    "F": "Total",
+    "I": "Cap Salary",
+    "J": "True Earned",
+    "K": "True Left",
+    "N": "Cap Salary",
+    "O": "True Earned",
+    "P": "True Left"
+  },
+  "11": {
+    "B": "21477272",
+    "C": "19431819",
+    "D": "=IFERROR(\n  _xlfn.LET(\n    _xlpm.r, MATCH(B1, Y!$B:$B, 0),\n    _xlpm.c, MATCH($D$10, Y!$D$2:$J$2, 0),\n    _xlpm.v, INDEX(Y!$D:$J, _xlpm.r, _xlpm.c),\n    IF(_xlpm.v=\"-\", 0, _xlpm.v)\n  ),\n0)",
+    "E": "=IFERROR(\n  _xlfn.LET(\n    _xlpm.r, MATCH(B1, Y!$B:$B, 0),\n    _xlpm.c, MATCH($E$10, Y!$D$2:$J$2, 0),\n    _xlpm.v, INDEX(Y!$D:$J, _xlpm.r, _xlpm.c),\n    IF(_xlpm.v=\"-\", 0, _xlpm.v)\n  ),\n0)",
+    "F": "=SUM(B11:E11)",
+    "H": "Grant, Jerami",
+    "I": "32000001",
+    "J": "=I11-K11",
+    "K": "=(J7/174)*I11",
+    "M": "Kuzma, Kyle",
+    "N": "=B11+333333",
+    "O": "=(N11-333333)-P11",
+    "P": "=(J7/174)*(N11-333333)"
+  },
+  "12": {
+    "H": "Rupert, Rayan",
+    "I": "2221677",
+    "J": "=I12-K12",
+    "K": "=(J7/174)*I12",
+    "M": "Portis, Bobby",
+    "N": "13445754",
+    "O": "=(N12)-P12",
+    "P": "=(J7/174)*(N12)"
+  },
+  "13": {
+    "J": "Total:",
+    "K": "=SUM(K11:K12)",
+    "O": "Total:",
+    "P": "=SUM(P11:P12)"
+  },
+  "14": {
+    "B": "Guaranteed Amount Remaining:",
+    "J": "Cash Saved:",
+    "K": "=P13-K13"
+  },
+  "16": {
+    "B": "2025",
+    "C": "2026",
+    "D": "2027",
+    "E": "2029",
+    "F": "Total"
+  },
+  "17": {
+    "B": "=((C6/174)*B11)-600000",
+    "C": "=C11",
+    "D": "-",
+    "E": "-",
+    "F": "=SUM(B17:E17)"
+  },
+  "18": {
+    "B": "=B17/(B17+C17)",
+    "C": "=1-B18"
+  },
+  "19": {
+    "B": "Pro Rata\nAmount",
+    "C": "2026\nTotal"
+  },
+  "21": {
+    "B": "Give Back:",
+    "C": "=C34"
+  },
+  "23": {
+    "B": "2025",
+    "C": "2026",
+    "D": "2027",
+    "E": "2029",
+    "F": "Total"
+  },
+  "24": {
+    "B": "=B17",
+    "C": "=C17",
+    "D": "-",
+    "E": "-",
+    "F": "=SUM(B24:E24)"
+  },
+  "25": {
+    "B": "Remaining Salary"
+  },
+  "26": {
+    "B": "=B27*C21",
+    "C": "=C27*C21",
+    "D": "-",
+    "E": "-",
+    "F": "=C21"
+  },
+  "27": {
+    "B": "=B18",
+    "C": "=C18"
+  },
+  "28": {
+    "B": "Buyout Amounts"
+  },
+  "29": {
+    "B": "=B11-B26+333333",
+    "C": "=C17-C26+333333",
+    "D": "-",
+    "E": "-",
+    "F": "=SUM(B29:E29)"
+  },
+  "30": {
+    "B": "Cap Salary Post Waivers  (Buyout Amounts subtracted from Cap Salary + TRADE BONUS)"
+  },
+  "32": {
+    "C": "=C29/3",
+    "D": "Stretch Amount"
+  },
+  "33": {
+    "C": "1624811",
+    "D": "8 YOS on 1/17"
+  },
+  "34": {
+    "C": "3546312",
+    "D": "9 YOS Min"
+  },
+  "35": {
+    "C": "=C29/3",
+    "D": "Total"
+  },
+  "36": {
+    "D": "Cash Saved"
+  }
+}

@@ -56,7 +56,7 @@
                 <td class="px-3 py-2 text-xs text-muted-foreground font-mono tabular-nums">
                   <%= [r["roster_row_count"], r["fa_row_count"], r["term_row_count"], r["two_way_row_count"]].map { |v| v || 0 }.join(" / ") %>
                   <% if r["is_repeater_taxpayer"] %>
-                    <span class="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">repeater</span>
+                    <span class="ml-2 entity-chip entity-chip--danger">repeater</span>
                   <% end %>
                 </td>
               </tr>
@@ -185,11 +185,16 @@
             <% @two_way_watchlist_rows.each do |r| %>
               <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2 text-xs">
-                  <% if r["player_id"].present? %>
-                    <a href="<%= player_href(r['player_id']) %>" class="font-medium hover:underline"><%= r["player_name"] %></a>
-                  <% else %>
-                    <span class="text-muted-foreground"><%= r["player_name"] || "—" %></span>
-                  <% end %>
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary">
+                      <% if r["player_id"].present? %>
+                        <a href="<%= player_href(r['player_id']) %>" class="font-medium truncate hover:underline"><%= r["player_name"] %></a>
+                      <% else %>
+                        <span class="text-muted-foreground truncate"><%= r["player_name"] || "—" %></span>
+                      <% end %>
+                    </div>
+                    <div class="entity-cell-secondary">player_id: <%= r["player_id"] || "—" %></div>
+                  </div>
                 </td>
                 <td class="px-3 py-2 text-right font-mono tabular-nums"><%= r["games_on_active_list"].present? ? r["games_on_active_list"] : "—" %></td>
                 <td class="px-3 py-2 text-right font-mono tabular-nums"><%= r["active_list_games_limit"].present? ? r["active_list_games_limit"] : "—" %></td>
@@ -224,17 +229,26 @@
             <% @roster.each do |p| %>
               <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2">
-                  <a href="<%= player_href(p['player_id']) %>" class="font-medium hover:underline"><%= p["player_name"] %></a>
-                  <div class="text-xs text-muted-foreground">id: <code><%= p["player_id"] %></code></div>
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary">
+                      <a href="<%= player_href(p['player_id']) %>" class="font-medium truncate hover:underline"><%= p["player_name"] %></a>
+                    </div>
+                    <div class="entity-cell-secondary">id: <code><%= p["player_id"] %></code></div>
+                  </div>
                 </td>
                 <td class="px-3 py-2">
-                  <% if p["agent_id"].present? && p["agent_name"].present? %>
-                    <a href="<%= agent_href(p['agent_id']) %>" class="hover:underline"><%= p["agent_name"] %></a>
-                  <% elsif p["agent_name"].present? %>
-                    <span><%= p["agent_name"] %></span>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary">
+                      <% if p["agent_id"].present? && p["agent_name"].present? %>
+                        <a href="<%= agent_href(p['agent_id']) %>" class="font-medium truncate hover:underline"><%= p["agent_name"] %></a>
+                      <% elsif p["agent_name"].present? %>
+                        <span class="font-medium truncate"><%= p["agent_name"] %></span>
+                      <% else %>
+                        <span class="text-muted-foreground">—</span>
+                      <% end %>
+                    </div>
+                    <div class="entity-cell-secondary">agent_id: <%= p["agent_id"] || "—" %></div>
+                  </div>
                 </td>
                 <td class="px-3 py-2 text-right font-mono tabular-nums"><%= p["cap_2025"].present? ? format_salary(p["cap_2025"]) : "—" %></td>
                 <td class="px-3 py-2 text-right font-mono tabular-nums"><%= p["total_salary_from_2025"].present? ? format_salary(p["total_salary_from_2025"]) : "—" %></td>
@@ -421,22 +435,34 @@
               <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2 font-mono tabular-nums text-xs"><%= r["ledger_date"] || "—" %></td>
                 <td class="px-3 py-2 text-xs">
-                  <% if r["player_id"].present? %>
-                    <a href="<%= player_href(r['player_id']) %>" class="hover:underline"><%= r["player_name"] %></a>
-                  <% else %>
-                    <span class="text-muted-foreground"><%= r["player_name"] || "—" %></span>
-                  <% end %>
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary">
+                      <% if r["player_id"].present? %>
+                        <a href="<%= player_href(r['player_id']) %>" class="font-medium truncate hover:underline"><%= r["player_name"] %></a>
+                      <% else %>
+                        <span class="text-muted-foreground truncate"><%= r["player_name"] || "—" %></span>
+                      <% end %>
+                    </div>
+                    <div class="entity-cell-secondary">player_id: <%= r["player_id"] || "—" %></div>
+                  </div>
                 </td>
                 <td class="px-3 py-2 text-xs">
-                  <% if r["transaction_id"].present? %>
-                    <a href="<%= transaction_href(r['transaction_id']) %>" class="hover:underline font-mono tabular-nums">#<%= r["transaction_id"] %></a>
-                    <% if r["trade_id"].present? %>
-                      <span class="text-muted-foreground">·</span>
-                      <a href="<%= trade_href(r['trade_id']) %>" class="hover:underline font-mono tabular-nums">T#<%= r["trade_id"] %></a>
-                    <% end %>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary font-mono tabular-nums">
+                      <% if r["transaction_id"].present? %>
+                        <a href="<%= transaction_href(r['transaction_id']) %>" class="hover:underline">#<%= r["transaction_id"] %></a>
+                      <% else %>
+                        <span class="text-muted-foreground">—</span>
+                      <% end %>
+                    </div>
+                    <div class="entity-cell-secondary font-mono tabular-nums">
+                      <% if r["trade_id"].present? %>
+                        <a href="<%= trade_href(r['trade_id']) %>" class="hover:underline">T#<%= r["trade_id"] %></a>
+                      <% else %>
+                        trade —
+                      <% end %>
+                    </div>
+                  </div>
                 </td>
                 <td class="px-3 py-2 text-xs text-muted-foreground">
                   <%= [r["transaction_type_lk"], r["transaction_description_lk"]].compact.reject(&:blank?).join(" · ").presence || "—" %>
@@ -477,22 +503,34 @@
                 <td class="px-3 py-2 font-mono tabular-nums text-xs"><%= r["effective_date"] || "—" %></td>
                 <td class="px-3 py-2 text-xs text-muted-foreground"><%= r["exception_type_lk"] || "—" %></td>
                 <td class="px-3 py-2 text-xs">
-                  <% if r["player_id"].present? %>
-                    <a href="<%= player_href(r['player_id']) %>" class="hover:underline"><%= r["player_name"] %></a>
-                  <% else %>
-                    <span class="text-muted-foreground"><%= r["player_name"] || "—" %></span>
-                  <% end %>
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary">
+                      <% if r["player_id"].present? %>
+                        <a href="<%= player_href(r['player_id']) %>" class="font-medium truncate hover:underline"><%= r["player_name"] %></a>
+                      <% else %>
+                        <span class="text-muted-foreground truncate"><%= r["player_name"] || "—" %></span>
+                      <% end %>
+                    </div>
+                    <div class="entity-cell-secondary">player_id: <%= r["player_id"] || "—" %></div>
+                  </div>
                 </td>
                 <td class="px-3 py-2 text-xs">
-                  <% if r["transaction_id"].present? %>
-                    <a href="<%= transaction_href(r['transaction_id']) %>" class="hover:underline font-mono tabular-nums">#<%= r["transaction_id"] %></a>
-                    <% if r["trade_id"].present? %>
-                      <span class="text-muted-foreground">·</span>
-                      <a href="<%= trade_href(r['trade_id']) %>" class="hover:underline font-mono tabular-nums">T#<%= r["trade_id"] %></a>
-                    <% end %>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary font-mono tabular-nums">
+                      <% if r["transaction_id"].present? %>
+                        <a href="<%= transaction_href(r['transaction_id']) %>" class="hover:underline">#<%= r["transaction_id"] %></a>
+                      <% else %>
+                        <span class="text-muted-foreground">—</span>
+                      <% end %>
+                    </div>
+                    <div class="entity-cell-secondary font-mono tabular-nums">
+                      <% if r["trade_id"].present? %>
+                        <a href="<%= trade_href(r['trade_id']) %>" class="hover:underline">T#<%= r["trade_id"] %></a>
+                      <% else %>
+                        trade —
+                      <% end %>
+                    </div>
+                  </div>
                 </td>
                 <td class="px-3 py-2 text-xs text-muted-foreground"><%= [r["exception_action_lk"], r["transaction_type_lk"]].compact.reject(&:blank?).join(" · ").presence || "—" %></td>
                 <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["change_amount"]) %></td>

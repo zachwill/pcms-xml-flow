@@ -140,7 +140,7 @@
                   <% if endnote_ids.any? %>
                     <div class="flex flex-wrap gap-1">
                       <% endnote_ids.each do |eid| %>
-                        <a href="#endnote-<%= eid %>" class="px-1.5 py-0.5 rounded bg-muted hover:bg-muted/70">#<%= eid %></a>
+                        <a href="#endnote-<%= eid %>" class="entity-chip entity-chip--muted hover:bg-muted/70">#<%= eid %></a>
                       <% end %>
                     </div>
                   <% else %>

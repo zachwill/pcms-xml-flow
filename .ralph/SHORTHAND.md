@@ -198,7 +198,7 @@ There are currently **no 2+ row clusters**; the entire queue is 1-row clusters. 
 Top of queue (ordered by `endnote_id desc`; each is a 1-row cluster):
 
 - [x] Endnote 284 (1 row) - Memphis conveys to Portland: → ORL 2028 1st (via endnote 276)
-- [ ] Endnote 282 (1 row) - PHX 2032 1st (frozen): raw_part `Own - Frozen(282)`
+- [x] Endnote 282 (1 row) - PHX 2032 1st (frozen): raw_part `Own - Frozen(282)`
 - [ ] Endnote 281 (1 row) - MIN 2032 1st (frozen): raw_part `Own - Frozen(281)`
 - [ ] Endnote 280 (1 row) - BOS 2032 1st (frozen): raw_part `Own - Frozen(280)`
 - [ ] Endnote 278 (1 row) - Orlando conveys to Memphis: → ORL 2030 1st
@@ -368,3 +368,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 290 — ORL→BOS MF [ORL, DET, MIL] 2026 2nds (via endnotes 25/5). Added `MIL` shorthand for the MIL outgoing row so display_text renders `To BOS: MIL`.
 - Endnote 286 — MEM→POR conveys SAC 2028 2nd via endnote 259. Added shorthand `SAC` for the SAC outgoing row; verified display_text `To POR: SAC`.
 - Endnote 284 — MEM→POR conveys ORL 2028 1st via endnote 276. Added shorthand `ORL` for the ORL outgoing row; verified display_text `To POR: ORL`.
+- Endnote 282 — PHX 2032 1st frozen (Second Apron 2024-25). Added shorthand `PHX` for the PHX own 2032 1st row; verified display_text `PHX`.

@@ -5,11 +5,16 @@
 <% prefetch_canonical_slugs(entity_type: "team", entity_ids: @trade_teams.map { |r| r["team_id"] } + @player_details.map { |r| r["team_id"] } + @trade_group_rows.map { |r| r["team_id"] } + @trade_group_exception_rows.map { |r| r["team_id"] }) %>
 <% available_trade_exception_ids = @trade_group_exception_rows.map { |r| r["team_exception_id"].to_i } %>
 
-<main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+<% team_count = @trade_teams.size %>
+<% player_line_item_count = @player_details.size %>
+<% pick_line_item_count = @pick_details.size %>
+<% transaction_count = @transactions.size %>
+
+<main class="max-w-7xl mx-auto px-4 py-6 space-y-6" data-entity-workspace>
   <%= render partial: "entities/shared/entity_header", locals: {
     title: "Trade ##{tr['trade_id']}",
     subtitle: [tr['trade_date'], tr['record_status_lk']].compact.join(' · '),
-    breadcrumbs: [["Trades", nil], ["##{tr['trade_id']}", nil]],
+    breadcrumbs: [["Trades", "/trades"], ["##{tr['trade_id']}", nil]],
     search_scope: "players",
     search_query: "",
     search_placeholder: "Search players/teams/agents/agencies…",
@@ -18,12 +23,57 @@
     search_enabled: false
   } %>
 
-  <% if tr["trade_comments"].present? %>
-    <div class="p-3 rounded-lg border border-border bg-background text-sm"><%= tr["trade_comments"] %></div>
-  <% end %>
+  <div class="lg:flex lg:gap-8">
+    <%= render partial: "entities/shared/local_nav", locals: {
+      sections: [
+        ["vitals", "Vitals"],
+        ["leg-breakdown", "Leg breakdown"],
+        ["trade-groups", "Trade groups"],
+        ["player-items", "Player items"],
+        ["pick-cash", "Pick + cash"],
+        ["transactions", "Transactions"],
+        ["endnotes", "Endnotes"]
+      ]
+    } %>
 
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Teams in trade</h2>
+    <div class="min-w-0 flex-1 space-y-6">
+      <section id="vitals" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Vitals</h2>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="rounded-lg border border-border bg-background p-3">
+            <div class="text-xs text-muted-foreground">Trade date</div>
+            <div class="mt-1 text-sm font-medium"><%= format_plain_date(tr["trade_date"]) %></div>
+          </div>
+          <div class="rounded-lg border border-border bg-background p-3">
+            <div class="text-xs text-muted-foreground">Teams involved</div>
+            <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= team_count %></div>
+          </div>
+          <div class="rounded-lg border border-border bg-background p-3">
+            <div class="text-xs text-muted-foreground">Player line items</div>
+            <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= player_line_item_count %></div>
+          </div>
+          <div class="rounded-lg border border-border bg-background p-3">
+            <div class="text-xs text-muted-foreground">Transactions</div>
+            <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= transaction_count %></div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          <span class="entity-chip entity-chip--muted"><%= tr["record_status_lk"].presence || "status unknown" %></span>
+          <span class="entity-chip entity-chip--accent"><%= pick_line_item_count %> pick rows</span>
+          <% if tr["trade_finalized_date"].present? %>
+            <span class="entity-chip entity-chip--success">Finalized <%= format_plain_date(tr["trade_finalized_date"]) %></span>
+          <% end %>
+        </div>
+
+        <% if tr["trade_comments"].present? %>
+          <div class="p-3 rounded-lg border border-border bg-background text-sm"><%= tr["trade_comments"] %></div>
+        <% end %>
+      </section>
+
+      <section id="leg-breakdown" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Leg breakdown</h2>
 
     <% if @trade_teams.empty? %>
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No trade_teams rows found.</div>
@@ -68,8 +118,8 @@
     <% end %>
   </section>
 
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Trade-group legal structure</h2>
+      <section id="trade-groups" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Trade-group legal structure</h2>
 
     <% if @trade_group_rows.empty? %>
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No trade_groups rows found.</div>
@@ -197,8 +247,8 @@
     <% end %>
   </section>
 
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Player line items</h2>
+      <section id="player-items" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Player line items</h2>
 
     <% if @player_details.empty? %>
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No player line items.</div>
@@ -261,8 +311,8 @@
     <% end %>
   </section>
 
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pick + cash line items</h2>
+      <section id="pick-cash" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pick + cash line items</h2>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
       <div class="rounded-lg border border-border bg-background p-3 space-y-2">
@@ -332,9 +382,9 @@
     </div>
   </section>
 
-  <% if @draft_pick_trades.any? %>
-    <section class="space-y-3">
-      <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Draft pick trades rows</h2>
+      <% if @draft_pick_trades.any? %>
+        <section id="pick-trades" class="scroll-mt-24 space-y-3">
+          <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Draft pick trades rows</h2>
 
       <div class="overflow-x-auto rounded-lg border border-border">
         <table class="entity-table min-w-full text-xs">
@@ -370,8 +420,8 @@
     </section>
   <% end %>
 
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Transactions in this trade</h2>
+      <section id="transactions" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Transactions in this trade</h2>
 
     <% if @transactions.empty? %>
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No transaction rows linked to this trade.</div>
@@ -421,8 +471,8 @@
     <% end %>
   </section>
 
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Related endnotes</h2>
+      <section id="endnotes" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Related endnotes</h2>
 
     <% if @endnotes.empty? %>
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No endnotes linked to this trade id.</div>
@@ -450,5 +500,7 @@
         <% end %>
       </div>
     <% end %>
-  </section>
+      </section>
+    </div>
+  </div>
 </main>

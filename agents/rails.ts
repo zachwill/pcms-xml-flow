@@ -2,15 +2,15 @@
 import { loop, work, generate, supervisor } from "./core";
 
 /**
- * rails.ts — Rails + Datastar (web/) UI + Entity Explorer agent
+ * rails.ts — Rails + Datastar (web/) product loop
  *
  * Current direction:
- * - Salary Book tool parity is largely in place.
- * - Primary work now is Bricklink-style entity pages (teams/agents/picks/etc)
- *   that remain HTML-first and link-rich.
+ * - Salary Book is active product work (not maintenance).
+ * - Finish Salary Book v1 interaction contract, then ship Trade Machine MVP.
+ * - Continue entity explorer densification in parallel, without regressing tool UX.
  *
  * Backlog / task tracking:
- * - .ralph/RAILS.md (canonical backlog)
+ * - .ralph/RAILS.md (canonical roadmap + TODOs)
  *
  * Usage:
  *   bun agents/rails.ts
@@ -30,30 +30,33 @@ loop({
 
   supervisor: supervisor(
     `
-You are the supervisor for the Rails + Datastar Salary Book port.
+You are the supervisor for the Rails + Datastar web product loop.
 
-Every 4 commits, review progress and keep the backlog healthy.
+Every 4 commits, review progress and keep the roadmap accurate.
 
 REVIEW INPUTS:
-1) .ralph/RAILS.md (current backlog / next focus)
-2) web/AGENTS.md (Rails conventions + URL rules)
-3) reference/sites/bricklink.txt (IA inspiration)
-4) reference/datastar/AGENTS.md (Datastar conventions)
+1) ${TASK_FILE} (canonical roadmap / priorities)
+2) web/AGENTS.md (Rails + Datastar conventions)
+3) web/specs/00-ui-philosophy.md
+4) web/specs/01-salary-book.md
+5) web/specs/02-team-header-and-draft-assets.md
+6) web/specs/03-trade-machine.md
+7) web/MIGRATION_MEMO.md
 
 SUPERVISOR CHECKLIST:
-- Is the agent making real progress toward the next TODO?
-- Are entity routes slug-first + canonical, with numeric fallback redirects?
-- Is the slug registry being used correctly (aliases allowed; one canonical per entity_id)?
-- Are pages HTML-first and link-rich (Bricklink-style), not "documentation UI"?
-- If Datastar is added: are signals flatcase and patch boundaries stable?
-- Are we avoiding re-implementing cap/CBA math in Ruby?
-- Are completed items actually done (and not just stubbed views)?
+- Is the worker advancing the highest-priority unchecked task (P0/P1 first unless roadmap says otherwise)?
+- Is Salary Book staying dense/instrument-like (not docs/prose UI)?
+- Are toggles/signals truthful (avoid shipping inert controls unless explicitly marked deferred)?
+- Are routes + pages HTML-first with stable Datastar patch boundaries and flatcase signals?
+- Are entity routes still canonical slug-first with numeric fallback redirects?
+- Is cap/CBA/trade math staying in Postgres primitives (not reimplemented in Ruby/JS)?
+- Are completed items actually complete (not placeholders) and reflected in ${TASK_FILE}?
 
-IF BACKLOG NEEDS ADJUSTMENT:
-- Reorder tasks if dependencies are wrong
-- Add notes/context to upcoming tasks if the agent seems confused
-- Split tasks that are too big, merge tasks that are too granular
-- Move completed items to the "Done" section
+IF ROADMAP NEEDS ADJUSTMENT:
+- Reorder tasks when dependencies changed
+- Split oversized tasks into shippable increments
+- Merge/remove stale tasks
+- Preserve clear P0→P4 ordering and keep "done" status truthful
 
 AFTER REVIEW:
 - Update ${TASK_FILE} if needed
@@ -72,7 +75,7 @@ AFTER REVIEW:
     if (state.hasTodos) {
       return work(
         `
-You are porting the Salary Book from the Bun + React prototype to Rails + Datastar.
+You are implementing the Rails + Datastar web product roadmap.
 
 CURRENT TASK:
 ${state.nextTodo}
@@ -80,28 +83,33 @@ ${state.nextTodo}
 Read the full context at the top of ${TASK_FILE} before coding.
 
 KEY REFERENCES:
-- .ralph/RAILS.md — canonical backlog
-- web/AGENTS.md — Rails app conventions + URL rules
-- reference/sites/bricklink.txt — IA inspiration
-- reference/datastar/* — Datastar conventions (only if/when enhancing)
+- ${TASK_FILE} — canonical roadmap + TODOs
+- web/AGENTS.md — conventions + guardrails
+- web/specs/00-ui-philosophy.md — core invariants
+- web/specs/01-salary-book.md — Salary Book interaction contract
+- web/specs/02-team-header-and-draft-assets.md — header + draft details
+- web/specs/03-trade-machine.md — trade overlay requirements
+- web/MIGRATION_MEMO.md — implementation mapping
 
 STYLE CONVENTIONS:
-- Prefer Tailwind utility classes in `.html.erb`.
-- Avoid custom JS; only add it when it materially improves UX.
+- Prefer Tailwind utility classes in .html.erb.
+- Keep JS minimal and idempotent.
+- Keep business math in Postgres.
 
 EXECUTION:
-1) Read relevant existing files in web/ first
-2) Implement the task completely
-3) Check off the completed item in ${TASK_FILE}
-4) If the task reveals follow-up work, add it as a note or new TODO
-5) Commit and exit:
+1) Read relevant existing files in web/ first.
+2) Implement the task completely.
+3) Run targeted verification commands relevant to your change.
+4) Check off the completed item in ${TASK_FILE}.
+5) If needed, append concise follow-up TODOs/notes in ${TASK_FILE}.
+6) Commit and exit:
    git add -A && git commit -m "rails: <short summary>"
         `,
         {
-          provider: "google-antigravity",
-          model: "claude-opus-4-5-thinking",
+          // provider: "openai-codex",
+          model: "gpt-5.3-codex",
           thinking: "high",
-          timeout: "10m",
+          timeout: "12m",
         },
       );
     }
@@ -113,17 +121,25 @@ EXECUTION:
 ${TASK_FILE} has no unchecked tasks.
 ${contextBlock}
 
-Review what's been built and generate the next logical backlog.
+Audit current implementation and generate the next prioritized backlog.
 
 INPUTS:
-- web/specs/01-salary-book.md (what we're building toward)
-- prototypes/salary-book-react/ (reference implementation)
-- Current state of web/ (what exists now)
+- ${TASK_FILE}
+- web/AGENTS.md
+- web/specs/00-ui-philosophy.md
+- web/specs/01-salary-book.md
+- web/specs/02-team-header-and-draft-assets.md
+- web/specs/03-trade-machine.md
+- web/MIGRATION_MEMO.md
+- current state of web/
 
-BACKLOG FORMAT:
-- [ ] Task description
-    - Context/notes for the coding agent
-    - Pointers to relevant files or spec sections
+BACKLOG REQUIREMENTS:
+- Keep priorities explicit (P0 salary-book completion before P1+ unless evidence says otherwise)
+- Use actionable checkbox tasks:
+  - [ ] Task description
+      - Context/notes
+      - File paths or spec pointers
+- Remove stale tasks and avoid duplicate TODOs.
 
 After writing tasks:
 - git add -A && git commit -m "rails: generate backlog"

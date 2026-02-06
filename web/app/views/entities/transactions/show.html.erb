@@ -1,5 +1,7 @@
 <% tx = @transaction %>
 <% content_for :title, "Transaction ##{tx['transaction_id']}" %>
+<% prefetch_canonical_slugs(entity_type: "player", entity_ids: [tx["player_id"]] + @trade_transactions.map { |r| r["player_id"] } + @cap_exception_usage_rows.map { |r| r["player_id"] } + @cap_dead_money_rows.map { |r| r["player_id"] } + @cap_budget_snapshot_rows.map { |r| r["player_id"] }) %>
+<% prefetch_canonical_slugs(entity_type: "team", entity_ids: [tx["from_team_id"], tx["to_team_id"], tx["rights_team_id"], tx["sign_and_trade_team_id"]] + @ledger_entries.map { |r| r["team_id"] } + @cap_exception_usage_rows.map { |r| r["team_id"] } + @cap_dead_money_rows.map { |r| r["team_id"] } + @cap_budget_snapshot_rows.map { |r| r["team_id"] }) %>
 
 <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
   <%= render partial: "entities/shared/entity_header", locals: {
@@ -125,6 +127,215 @@
         </table>
       </div>
     <% end %>
+  </section>
+
+  <section class="space-y-3">
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cap artifacts</h2>
+
+    <div class="space-y-3">
+      <div class="rounded-lg border border-border bg-background p-3 space-y-2">
+        <div class="text-sm font-medium">Exception usage</div>
+        <% if @cap_exception_usage_rows.empty? %>
+          <div class="text-sm text-muted-foreground italic">No team exception usage rows for this transaction.</div>
+        <% else %>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="text-xs text-muted-foreground">
+                <tr>
+                  <th class="text-left px-2 py-1">Date</th>
+                  <th class="text-left px-2 py-1">Team</th>
+                  <th class="text-left px-2 py-1">Exception</th>
+                  <th class="text-left px-2 py-1">Player</th>
+                  <th class="text-left px-2 py-1">Action</th>
+                  <th class="text-left px-2 py-1">Refs</th>
+                  <th class="text-right px-2 py-1">Change</th>
+                  <th class="text-right px-2 py-1">Remaining</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border/60">
+                <% @cap_exception_usage_rows.each do |r| %>
+                  <tr>
+                    <td class="px-2 py-1 text-xs font-mono tabular-nums"><%= r["effective_date"] || "—" %></td>
+                    <td class="px-2 py-1 text-xs">
+                      <% if r["team_code"].present? || r["team_id"].present? %>
+                        <a href="<%= safe_team_href(team_code: r['team_code'], team_id: r['team_id']) %>" class="hover:underline"><%= r["team_code"] || r["team_id"] %></a>
+                        <% if r["team_name"].present? %>
+                          <div class="text-muted-foreground"><%= r["team_name"] %></div>
+                        <% end %>
+                      <% else %>
+                        <span class="text-muted-foreground">—</span>
+                      <% end %>
+                    </td>
+                    <td class="px-2 py-1 text-xs text-muted-foreground">
+                      <% if r["team_exception_id"].present? %>
+                        <span class="font-mono">#<%= r["team_exception_id"] %></span>
+                      <% else %>
+                        <span>—</span>
+                      <% end %>
+                      <% if r["exception_type_lk"].present? %>
+                        <div>
+                          <span class="font-mono"><%= r["exception_type_lk"] %></span>
+                          <% if r["exception_type_label"].present? %>
+                            <span> — <%= r["exception_type_label"] %></span>
+                          <% end %>
+                        </div>
+                      <% end %>
+                    </td>
+                    <td class="px-2 py-1 text-xs">
+                      <% if r["player_id"].present? %>
+                        <a href="<%= player_href(r['player_id']) %>" class="hover:underline"><%= r["player_name"] %></a>
+                      <% else %>
+                        <span class="text-muted-foreground"><%= r["player_name"] || "—" %></span>
+                      <% end %>
+                    </td>
+                    <td class="px-2 py-1 text-xs text-muted-foreground">
+                      <% if r["exception_action_lk"].present? %>
+                        <span class="font-mono"><%= r["exception_action_lk"] %></span>
+                        <% if r["exception_action_label"].present? %>
+                          <span> — <%= r["exception_action_label"] %></span>
+                        <% end %>
+                      <% else %>
+                        <span>—</span>
+                      <% end %>
+                    </td>
+                    <td class="px-2 py-1 text-xs">
+                      <% if r["transaction_id"].present? %>
+                        <a href="<%= transaction_href(r['transaction_id']) %>" class="hover:underline font-mono">#<%= r["transaction_id"] %></a>
+                      <% else %>
+                        <span class="text-muted-foreground">—</span>
+                      <% end %>
+                      <% if r["trade_id"].present? %>
+                        <span class="text-muted-foreground"> · </span>
+                        <a href="<%= trade_href(r['trade_id']) %>" class="hover:underline font-mono">T#<%= r["trade_id"] %></a>
+                      <% end %>
+                    </td>
+                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["change_amount"]) %></td>
+                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["remaining_exception_amount"]) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="rounded-lg border border-border bg-background p-3 space-y-2">
+        <div class="text-sm font-medium">Dead money impact</div>
+        <% if @cap_dead_money_rows.empty? %>
+          <div class="text-sm text-muted-foreground italic">No dead-money warehouse rows for this transaction.</div>
+        <% else %>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="text-xs text-muted-foreground">
+                <tr>
+                  <th class="text-left px-2 py-1">Year</th>
+                  <th class="text-left px-2 py-1">Team</th>
+                  <th class="text-left px-2 py-1">Player</th>
+                  <th class="text-right px-2 py-1">Cap</th>
+                  <th class="text-right px-2 py-1">Tax</th>
+                  <th class="text-right px-2 py-1">Apron</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border/60">
+                <% @cap_dead_money_rows.each do |r| %>
+                  <tr>
+                    <td class="px-2 py-1 font-mono tabular-nums"><%= r["salary_year"] %></td>
+                    <td class="px-2 py-1 text-xs">
+                      <% if r["team_code"].present? || r["team_id"].present? %>
+                        <a href="<%= safe_team_href(team_code: r['team_code'], team_id: r['team_id']) %>" class="hover:underline"><%= r["team_code"] || r["team_id"] %></a>
+                        <% if r["team_name"].present? %>
+                          <div class="text-muted-foreground"><%= r["team_name"] %></div>
+                        <% end %>
+                      <% else %>
+                        <span class="text-muted-foreground">—</span>
+                      <% end %>
+                    </td>
+                    <td class="px-2 py-1 text-xs">
+                      <% if r["player_id"].present? %>
+                        <a href="<%= player_href(r['player_id']) %>" class="hover:underline"><%= r["player_name"] %></a>
+                      <% else %>
+                        <span class="text-muted-foreground"><%= r["player_name"] || "—" %></span>
+                      <% end %>
+                    </td>
+                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["cap_value"]) %></td>
+                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["tax_value"]) %></td>
+                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["apron_value"]) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="rounded-lg border border-border bg-background p-3 space-y-2">
+        <div class="text-sm font-medium">Budget snapshot impacts</div>
+        <% if @cap_budget_snapshot_rows.empty? %>
+          <div class="text-sm text-muted-foreground italic">No team budget snapshot rows for this transaction.</div>
+        <% else %>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="text-xs text-muted-foreground">
+                <tr>
+                  <th class="text-left px-2 py-1">Year</th>
+                  <th class="text-left px-2 py-1">Team</th>
+                  <th class="text-left px-2 py-1">Budget group</th>
+                  <th class="text-left px-2 py-1">Options</th>
+                  <th class="text-right px-2 py-1">Cap</th>
+                  <th class="text-right px-2 py-1">Tax</th>
+                  <th class="text-right px-2 py-1">Apron</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border/60">
+                <% @cap_budget_snapshot_rows.each do |r| %>
+                  <tr>
+                    <td class="px-2 py-1 font-mono tabular-nums"><%= r["salary_year"] %></td>
+                    <td class="px-2 py-1 text-xs">
+                      <% if r["team_code"].present? || r["team_id"].present? %>
+                        <a href="<%= safe_team_href(team_code: r['team_code'], team_id: r['team_id']) %>" class="hover:underline"><%= r["team_code"] || r["team_id"] %></a>
+                        <% if r["player_id"].present? %>
+                          <div>
+                            <a href="<%= player_href(r['player_id']) %>" class="hover:underline text-muted-foreground"><%= r["player_name"] %></a>
+                          </div>
+                        <% end %>
+                      <% else %>
+                        <span class="text-muted-foreground">—</span>
+                      <% end %>
+                    </td>
+                    <td class="px-2 py-1 text-xs text-muted-foreground">
+                      <% if r["budget_group_lk"].present? %>
+                        <span class="font-mono"><%= r["budget_group_lk"] %></span>
+                        <% if r["budget_group_label"].present? %>
+                          <span> — <%= r["budget_group_label"] %></span>
+                        <% end %>
+                      <% else %>
+                        —
+                      <% end %>
+                    </td>
+                    <td class="px-2 py-1 text-xs text-muted-foreground">
+                      <% option_bits = [] %>
+                      <% if r["option_lk"].present? %>
+                        <% option_bits << "opt #{r['option_lk']}#{r['option_label'].present? ? " — #{r['option_label']}" : ""}" %>
+                      <% end %>
+                      <% if r["option_decision_lk"].present? %>
+                        <% option_bits << "decision #{r['option_decision_lk']}#{r['option_decision_label'].present? ? " — #{r['option_decision_label']}" : ""}" %>
+                      <% end %>
+                      <% if r["signing_method_lk"].present? %>
+                        <% option_bits << "signed #{r['signing_method_lk']}#{r['signing_method_label'].present? ? " — #{r['signing_method_label']}" : ""}" %>
+                      <% end %>
+                      <%= option_bits.any? ? option_bits.join(" · ") : "—" %>
+                    </td>
+                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["cap_amount"]) %></td>
+                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["tax_amount"]) %></td>
+                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["apron_amount"]) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
+    </div>
   </section>
 
   <% if @trade_transactions.any? %>

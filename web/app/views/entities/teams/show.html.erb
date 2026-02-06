@@ -6,7 +6,7 @@
 <% city = @team&.fetch("city", nil).to_s %>
 <% division = @team&.fetch("division_name", nil).to_s %>
 <%# Avoid N+1 slug lookups in roster + subsection tables %>
-<% prefetch_canonical_slugs(entity_type: "player", entity_ids: @roster.map { |r| r["player_id"] } + @cap_holds.map { |r| r["player_id"] } + @dead_money.map { |r| r["player_id"] } + @recent_ledger_entries.map { |r| r["player_id"] }) %>
+<% prefetch_canonical_slugs(entity_type: "player", entity_ids: @roster.map { |r| r["player_id"] } + @cap_holds.map { |r| r["player_id"] } + @dead_money.map { |r| r["player_id"] } + @recent_ledger_entries.map { |r| r["player_id"] } + @two_way_watchlist_rows.map { |r| r["player_id"] }) %>
 <% prefetch_canonical_slugs(entity_type: "agent", entity_ids: @roster.map { |r| r["agent_id"] }) %>
 
 <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
@@ -59,6 +59,142 @@
                     <span class="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">repeater</span>
                   <% end %>
                 </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </section>
+
+  <section class="space-y-3">
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Apron provenance + constraints</h2>
+
+    <% if @apron_provenance_rows.empty? %>
+      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No team tax summary snapshot rows for 2025–2031.</div>
+    <% else %>
+      <div class="overflow-x-auto rounded-lg border border-border">
+        <table class="min-w-full text-sm">
+          <thead class="bg-muted/50 text-xs text-muted-foreground">
+            <tr>
+              <th class="text-left px-3 py-2 font-medium">Year</th>
+              <th class="text-left px-3 py-2 font-medium">Apron status</th>
+              <th class="text-left px-3 py-2 font-medium">Reason</th>
+              <th class="text-left px-3 py-2 font-medium">A1/A2 tx</th>
+              <th class="text-left px-3 py-2 font-medium">Constraints</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <% @apron_provenance_rows.each do |r| %>
+              <% constraint_lines = r["constraint_lines"].to_s.split("\n").reject(&:blank?) %>
+              <tr class="hover:bg-muted/30 align-top">
+                <td class="px-3 py-2 font-mono tabular-nums"><%= r["salary_year"] %></td>
+                <td class="px-3 py-2 text-xs text-muted-foreground">
+                  <%= yes_no(r["is_subject_to_apron"]) %>
+                  <% if r["apron_level_lk"].present? %>
+                    <span class="ml-1 font-mono"><%= r["apron_level_lk"] %></span>
+                  <% end %>
+                </td>
+                <td class="px-3 py-2 text-xs">
+                  <% if r["subject_to_apron_reason_lk"].present? %>
+                    <span class="font-mono"><%= r["subject_to_apron_reason_lk"] %></span>
+                    <% if r["subject_to_apron_reason_label"].present? %>
+                      <span class="text-muted-foreground"> — <%= r["subject_to_apron_reason_label"] %></span>
+                    <% end %>
+                  <% else %>
+                    <span class="text-muted-foreground">—</span>
+                  <% end %>
+                </td>
+                <td class="px-3 py-2 text-xs">
+                  <% if r["apron1_transaction_id"].present? %>
+                    <a href="<%= transaction_href(r['apron1_transaction_id']) %>" class="hover:underline font-mono tabular-nums">A1 #<%= r["apron1_transaction_id"] %></a>
+                  <% else %>
+                    <span class="text-muted-foreground">A1 —</span>
+                  <% end %>
+                  <span class="mx-1 text-muted-foreground">·</span>
+                  <% if r["apron2_transaction_id"].present? %>
+                    <a href="<%= transaction_href(r['apron2_transaction_id']) %>" class="hover:underline font-mono tabular-nums">A2 #<%= r["apron2_transaction_id"] %></a>
+                  <% else %>
+                    <span class="text-muted-foreground">A2 —</span>
+                  <% end %>
+                </td>
+                <td class="px-3 py-2 text-xs text-muted-foreground">
+                  <% if constraint_lines.any? %>
+                    <ul class="space-y-0.5">
+                      <% constraint_lines.each do |line| %>
+                        <li><%= line %></li>
+                      <% end %>
+                    </ul>
+                  <% else %>
+                    —
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </section>
+
+  <section class="space-y-3">
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Two-way capacity + watchlist</h2>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div class="rounded-lg border border-border bg-background p-3">
+        <div class="text-xs text-muted-foreground">Current contracts</div>
+        <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @two_way_capacity_row&.fetch("current_contract_count", nil) || "—" %></div>
+      </div>
+      <div class="rounded-lg border border-border bg-background p-3">
+        <div class="text-xs text-muted-foreground">Open standard slots</div>
+        <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @two_way_capacity_row&.fetch("open_standard_slots", nil) || "—" %></div>
+      </div>
+      <div class="rounded-lg border border-border bg-background p-3">
+        <div class="text-xs text-muted-foreground">Games remaining</div>
+        <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @two_way_capacity_row&.fetch("games_remaining", nil) || "—" %></div>
+      </div>
+      <div class="rounded-lg border border-border bg-background p-3">
+        <div class="text-xs text-muted-foreground">Under-15 game count</div>
+        <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @two_way_capacity_row&.fetch("under_15_games_count", nil) || "—" %></div>
+      </div>
+      <div class="rounded-lg border border-border bg-background p-3">
+        <div class="text-xs text-muted-foreground">Under-15 remaining</div>
+        <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @two_way_capacity_row&.fetch("under_15_games_remaining", nil) || "—" %></div>
+      </div>
+      <div class="rounded-lg border border-border bg-background p-3">
+        <div class="text-xs text-muted-foreground">Context remaining</div>
+        <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @two_way_capacity_row&.fetch("context_games_remaining", nil) || "—" %></div>
+      </div>
+    </div>
+
+    <% if @two_way_watchlist_rows.empty? %>
+      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No two-way game utility rows found for this team.</div>
+    <% else %>
+      <div class="overflow-x-auto rounded-lg border border-border">
+        <table class="min-w-full text-sm">
+          <thead class="bg-muted/50 text-xs text-muted-foreground">
+            <tr>
+              <th class="text-left px-3 py-2 font-medium">Player</th>
+              <th class="text-right px-3 py-2 font-medium">Games used</th>
+              <th class="text-right px-3 py-2 font-medium">Limit</th>
+              <th class="text-right px-3 py-2 font-medium">Remaining</th>
+              <th class="text-left px-3 py-2 font-medium">Latest game</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <% @two_way_watchlist_rows.each do |r| %>
+              <tr class="hover:bg-muted/30">
+                <td class="px-3 py-2 text-xs">
+                  <% if r["player_id"].present? %>
+                    <a href="<%= player_href(r['player_id']) %>" class="font-medium hover:underline"><%= r["player_name"] %></a>
+                  <% else %>
+                    <span class="text-muted-foreground"><%= r["player_name"] || "—" %></span>
+                  <% end %>
+                </td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= r["games_on_active_list"].present? ? r["games_on_active_list"] : "—" %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= r["active_list_games_limit"].present? ? r["active_list_games_limit"] : "—" %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= r["remaining_games"].present? ? r["remaining_games"] : "—" %></td>
+                <td class="px-3 py-2 text-xs text-muted-foreground"><%= r["game_date_est"] || "—" %></td>
               </tr>
             <% end %>
           </tbody>

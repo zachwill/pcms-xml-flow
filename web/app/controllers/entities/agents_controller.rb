@@ -134,6 +134,51 @@ module Entities
         ORDER BY sby.salary_year
       SQL
 
+      @historical_footprint_rollup = conn.exec_query(<<~SQL).first || {}
+        WITH historical AS (
+          SELECT
+            c.player_id,
+            c.contract_id,
+            cv.contract_version_id,
+            c.signing_date
+          FROM pcms.contract_versions cv
+          JOIN pcms.contracts c
+            ON c.contract_id = cv.contract_id
+          WHERE cv.agent_id = #{id_sql}
+        ),
+        current_clients AS (
+          SELECT DISTINCT sbw.player_id
+          FROM pcms.salary_book_warehouse sbw
+          WHERE sbw.agent_id = #{id_sql}
+        )
+        SELECT
+          COUNT(DISTINCT h.player_id)::integer AS historical_client_count,
+          MIN(h.signing_date) AS first_signing_date,
+          MAX(h.signing_date) AS last_signing_date,
+          COUNT(DISTINCT h.contract_id)::integer AS contract_count,
+          COUNT(h.contract_version_id)::integer AS version_count,
+          COUNT(DISTINCT h.player_id) FILTER (WHERE cc.player_id IS NULL)::integer AS historical_not_current_client_count
+        FROM historical h
+        LEFT JOIN current_clients cc
+          ON cc.player_id = h.player_id
+      SQL
+
+      @historical_signing_trend = conn.exec_query(<<~SQL).to_a
+        SELECT
+          EXTRACT(YEAR FROM c.signing_date)::integer AS signing_year,
+          COUNT(DISTINCT c.player_id)::integer AS distinct_clients,
+          COUNT(DISTINCT c.contract_id)::integer AS contract_count,
+          COUNT(cv.contract_version_id)::integer AS version_count
+        FROM pcms.contract_versions cv
+        JOIN pcms.contracts c
+          ON c.contract_id = cv.contract_id
+        WHERE cv.agent_id = #{id_sql}
+          AND c.signing_date IS NOT NULL
+        GROUP BY EXTRACT(YEAR FROM c.signing_date)
+        ORDER BY signing_year DESC
+        LIMIT 20
+      SQL
+
       render :show
     end
 

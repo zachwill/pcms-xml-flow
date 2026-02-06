@@ -1,0 +1,39 @@
+<% player_id = player["player_id"] %>
+<% player_name = player["player_name"] %>
+
+<% games_used = player["games_on_active_list"] %>
+<% games_limit = player["active_list_games_limit"] %>
+<% games_remaining = player["remaining_active_list_games"] %>
+<% games_used_pct = player["games_used_pct"] %>
+<% status_chip = player["limit_status_chip"] %>
+
+<% last_game = format_date_short(player["last_game_date_est"]) %>
+<% signing_date = format_date_short(player["signing_date"]) %>
+
+<div class="group h-10 px-4 border-b border-border/40 flex items-center text-xs hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+  <div class="w-52 shrink-0 min-w-0 pr-3">
+    <a href="<%= player_href(player_id) %>" class="text-[13px] font-medium truncate block text-foreground hover:text-primary hover:underline" title="<%= player_name %>">
+      <%= player_name %>
+    </a>
+  </div>
+
+  <div class="w-24 shrink-0 text-right font-mono tabular-nums">
+    <div><%= games_used || "—" %></div>
+    <div class="text-[10px] text-muted-foreground leading-none"><%= games_used_pct ? "#{(games_used_pct.to_f * 100).round}%" : "" %></div>
+  </div>
+
+  <div class="w-24 shrink-0 text-right font-mono tabular-nums">
+    <div class="flex items-center justify-end gap-1">
+      <span><%= games_limit || "—" %></span>
+      <% if status_chip.present? %>
+        <span class="inline-flex items-center rounded px-1 py-0.5 text-[9px] font-semibold leading-none bg-amber-200/80 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" title="Game limit is estimated">
+          <%= status_chip %>
+        </span>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="w-24 shrink-0 text-right font-mono tabular-nums"><%= games_remaining || "—" %></div>
+  <div class="w-28 shrink-0 text-right font-mono tabular-nums"><%= last_game || "—" %></div>
+  <div class="w-28 shrink-0 text-right font-mono tabular-nums"><%= signing_date || "—" %></div>
+</div>

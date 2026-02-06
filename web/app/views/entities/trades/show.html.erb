@@ -2,6 +2,8 @@
 <% content_for :title, "Trade ##{tr['trade_id']}" %>
 
 <% prefetch_canonical_slugs(entity_type: "player", entity_ids: @player_details.map { |r| r["player_id"] } + @transactions.map { |r| r["player_id"] }) %>
+<% prefetch_canonical_slugs(entity_type: "team", entity_ids: @trade_teams.map { |r| r["team_id"] } + @player_details.map { |r| r["team_id"] } + @trade_group_rows.map { |r| r["team_id"] } + @trade_group_exception_rows.map { |r| r["team_id"] }) %>
+<% available_trade_exception_ids = @trade_group_exception_rows.map { |r| r["team_exception_id"].to_i } %>
 
 <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
   <%= render partial: "entities/shared/entity_header", locals: {
@@ -61,6 +63,135 @@
           </tbody>
         </table>
       </div>
+    <% end %>
+  </section>
+
+  <section class="space-y-3">
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Trade-group legal structure</h2>
+
+    <% if @trade_group_rows.empty? %>
+      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No trade_groups rows found.</div>
+    <% else %>
+      <% grouped_trade_groups = @trade_group_rows.group_by { |r| r["trade_group_number"] } %>
+      <div class="space-y-3">
+        <% grouped_trade_groups.keys.sort.each do |group_number| %>
+          <% rows = grouped_trade_groups[group_number] || [] %>
+          <div class="rounded-lg border border-border bg-background p-3 space-y-2">
+            <div class="text-sm font-medium">Group <span class="font-mono tabular-nums"><%= group_number %></span></div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-sm">
+                <thead class="text-xs text-muted-foreground">
+                  <tr>
+                    <th class="text-left px-2 py-1">Team</th>
+                    <th class="text-left px-2 py-1">Signed method</th>
+                    <th class="text-left px-2 py-1">Generated exception</th>
+                    <th class="text-left px-2 py-1">Acquired exception</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-border/60">
+                  <% rows.each do |r| %>
+                    <tr>
+                      <td class="px-2 py-1 text-xs">
+                        <% if r["team_id"].present? %>
+                          <a href="<%= safe_team_href(team_code: r['team_code'], team_id: r['team_id']) %>" class="hover:underline"><%= r["team_code"] || r["team_id"] %></a>
+                          <% if r["team_name"].present? %>
+                            <div class="text-muted-foreground"><%= r["team_name"] %></div>
+                          <% end %>
+                        <% else %>
+                          <span class="text-muted-foreground">—</span>
+                        <% end %>
+                      </td>
+                      <td class="px-2 py-1 text-xs text-muted-foreground">
+                        <% if r["signed_method_lk"].present? %>
+                          <span class="font-mono"><%= r["signed_method_lk"] %></span>
+                          <% if r["signed_method_label"].present? %>
+                            <span> — <%= r["signed_method_label"] %></span>
+                          <% end %>
+                        <% else %>
+                          —
+                        <% end %>
+                      </td>
+                      <td class="px-2 py-1 text-xs text-muted-foreground">
+                        <% if r["generated_team_exception_id"].present? %>
+                          <% generated_id = r["generated_team_exception_id"].to_i %>
+                          <% if available_trade_exception_ids.include?(generated_id) %>
+                            <a href="#team-exception-<%= generated_id %>" class="hover:underline font-mono">#<%= r["generated_team_exception_id"] %></a>
+                          <% else %>
+                            <span class="font-mono">#<%= r["generated_team_exception_id"] %></span>
+                          <% end %>
+                          <% if r["generated_exception_type_lk"].present? %>
+                            <div>
+                              <span class="font-mono"><%= r["generated_exception_type_lk"] %></span>
+                              <% if r["generated_exception_type_label"].present? %>
+                                <span> — <%= r["generated_exception_type_label"] %></span>
+                              <% end %>
+                            </div>
+                          <% end %>
+                        <% else %>
+                          —
+                        <% end %>
+                      </td>
+                      <td class="px-2 py-1 text-xs text-muted-foreground">
+                        <% if r["acquired_team_exception_id"].present? %>
+                          <% acquired_id = r["acquired_team_exception_id"].to_i %>
+                          <% if available_trade_exception_ids.include?(acquired_id) %>
+                            <a href="#team-exception-<%= acquired_id %>" class="hover:underline font-mono">#<%= r["acquired_team_exception_id"] %></a>
+                          <% else %>
+                            <span class="font-mono">#<%= r["acquired_team_exception_id"] %></span>
+                          <% end %>
+                          <% if r["acquired_exception_type_lk"].present? %>
+                            <div>
+                              <span class="font-mono"><%= r["acquired_exception_type_lk"] %></span>
+                              <% if r["acquired_exception_type_label"].present? %>
+                                <span> — <%= r["acquired_exception_type_label"] %></span>
+                              <% end %>
+                            </div>
+                          <% end %>
+                        <% else %>
+                          —
+                        <% end %>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if @trade_group_exception_rows.any? %>
+      <details class="rounded-lg border border-border bg-background p-3">
+        <summary class="cursor-pointer text-sm font-medium">Referenced team exceptions (<%= @trade_group_exception_rows.size %>)</summary>
+        <div class="mt-3 space-y-2">
+          <% @trade_group_exception_rows.each do |ex| %>
+            <article id="team-exception-<%= ex['team_exception_id'] %>" class="rounded border border-border/60 p-2">
+              <div class="text-sm font-mono">#<%= ex["team_exception_id"] %></div>
+              <div class="text-xs text-muted-foreground mt-1">
+                <% if ex["team_id"].present? %>
+                  <a href="<%= safe_team_href(team_code: ex['team_code'], team_id: ex['team_id']) %>" class="hover:underline"><%= ex["team_code"] || ex["team_id"] %></a>
+                <% else %>
+                  <span><%= ex["team_code"] || "—" %></span>
+                <% end %>
+                · year <span class="font-mono"><%= ex["salary_year"] || "—" %></span>
+              </div>
+              <div class="text-xs text-muted-foreground mt-1">
+                type:
+                <% if ex["exception_type_lk"].present? %>
+                  <span class="font-mono"><%= ex["exception_type_lk"] %></span>
+                  <% if ex["exception_type_label"].present? %>
+                    <span> — <%= ex["exception_type_label"] %></span>
+                  <% end %>
+                <% else %>
+                  —
+                <% end %>
+                · remaining <span class="font-mono tabular-nums"><%= format_salary(ex["remaining_amount"]) %></span>
+              </div>
+            </article>
+          <% end %>
+        </div>
+      </details>
     <% end %>
   </section>
 

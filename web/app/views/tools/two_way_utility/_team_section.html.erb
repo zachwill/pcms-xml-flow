@@ -1,0 +1,73 @@
+<% players ||= [] %>
+<% team_meta ||= {} %>
+<% team_capacity ||= {} %>
+
+<% team_row = players.first || {} %>
+<% team_name = team_row["team_name"].presence || team_meta["team_name"].presence || team_code %>
+<% conference_name = team_row["conference_name"].presence || team_meta["conference_name"].presence || "—" %>
+
+<% standard_contracts = team_row["team_current_contract_count"] || team_capacity["team_current_contract_count"] %>
+<% two_way_contracts = team_row["team_two_way_contract_count"] || players.size %>
+<% games_remaining_context = team_row["team_games_remaining_context"] || team_capacity["team_games_remaining_context"] %>
+<% under_15_context = if team_row.key?("team_is_under_15_contracts")
+  team_row["team_is_under_15_contracts"]
+else
+  team_capacity["team_is_under_15_contracts"]
+end %>
+
+<% games_remaining_number = games_remaining_context&.to_i %>
+<% games_remaining_class = games_remaining_number && games_remaining_number < 30 ? "text-red-500" : "text-foreground" %>
+
+<section id="<%= team_code %>" data-teamcode="<%= team_code %>" class="scroll-mt-4">
+  <div class="sticky top-0 z-20 border-y border-border bg-background/95 backdrop-blur">
+    <div class="px-4 py-2 flex items-center gap-3">
+      <div class="w-52 shrink-0 min-w-0">
+        <div class="text-[14px] font-semibold leading-tight truncate"><%= team_name %></div>
+        <div class="text-[10px] text-muted-foreground uppercase tracking-wide"><%= team_code %> • <%= conference_name %></div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <div class="w-24 h-10 rounded bg-zinc-200/80 dark:bg-zinc-700/80 px-1 flex flex-col items-center justify-center">
+          <span class="text-[9px] uppercase tracking-wide text-muted-foreground">Std Cts</span>
+          <span class="text-xs font-semibold font-mono tabular-nums"><%= standard_contracts || "—" %></span>
+        </div>
+
+        <div class="w-24 h-10 rounded bg-zinc-200/80 dark:bg-zinc-700/80 px-1 flex flex-col items-center justify-center">
+          <span class="text-[9px] uppercase tracking-wide text-muted-foreground">Two-Way</span>
+          <span class="text-xs font-semibold font-mono tabular-nums"><%= two_way_contracts || "—" %></span>
+        </div>
+
+        <div class="w-24 h-10 rounded bg-zinc-200/80 dark:bg-zinc-700/80 px-1 flex flex-col items-center justify-center">
+          <span class="text-[9px] uppercase tracking-wide text-muted-foreground">Games Left</span>
+          <span class="text-xs font-semibold font-mono tabular-nums <%= games_remaining_class %>"><%= games_remaining_context || "—" %></span>
+        </div>
+
+        <div class="w-24 h-10 rounded bg-zinc-200/80 dark:bg-zinc-700/80 px-1 flex flex-col items-center justify-center">
+          <span class="text-[9px] uppercase tracking-wide text-muted-foreground">Context</span>
+          <span class="text-[10px] font-semibold tabular-nums"><%= under_15_context.nil? ? "—" : (under_15_context ? "<15 Std" : "15 Std") %></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="h-8 px-4 border-t border-border/60 bg-muted/20 flex items-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <div class="w-52 shrink-0">Player</div>
+      <div class="w-24 shrink-0 text-right">Used</div>
+      <div class="w-24 shrink-0 text-right">Limit</div>
+      <div class="w-24 shrink-0 text-right">Remain</div>
+      <div class="w-28 shrink-0 text-right">Last Game</div>
+      <div class="w-28 shrink-0 text-right">Signed</div>
+    </div>
+  </div>
+
+  <div>
+    <% if players.any? %>
+      <% players.each do |player| %>
+        <%= render partial: "tools/two_way_utility/player_row", locals: { player: player } %>
+      <% end %>
+    <% else %>
+      <div class="h-10 px-4 flex items-center text-xs text-muted-foreground border-b border-border/50">
+        No active two-way contracts.
+      </div>
+    <% end %>
+  </div>
+</section>

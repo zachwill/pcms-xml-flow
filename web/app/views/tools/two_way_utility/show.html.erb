@@ -1,0 +1,60 @@
+<% content_for :title, "Two-Way Utility" %>
+
+<div class="min-h-screen bg-background">
+  <header class="border-b border-border bg-background">
+    <div class="px-4 py-3 space-y-2">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <h1 class="text-sm font-semibold tracking-wide uppercase">Two-Way Utility</h1>
+          <p class="text-[11px] text-muted-foreground">Active two-way usage by team • warehouse-backed</p>
+        </div>
+      </div>
+
+      <% if @teams_by_conference["Eastern"].any? || @teams_by_conference["Western"].any? %>
+        <div class="flex gap-4" role="navigation" aria-label="Teams">
+          <% %w[Eastern Western].each do |conference| %>
+            <div class="space-y-1">
+              <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70"><%= conference %></div>
+              <div class="grid grid-cols-5 gap-1">
+                <% @teams_by_conference[conference].each do |team| %>
+                  <a
+                    href="#<%= team[:code] %>"
+                    class="h-7 px-2 rounded text-xs font-medium border border-border bg-muted/50 text-foreground inline-flex items-center justify-center no-underline hover:bg-muted hover:border-foreground/20 hover:no-underline"
+                    title="<%= team[:name] %>"
+                  ><%= team[:code] %></a>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </header>
+
+  <main class="pb-8">
+    <% if @boot_error %>
+      <div class="p-6">
+        <div class="text-sm font-medium text-destructive">Warehouse not available</div>
+        <div class="mt-2 text-xs text-muted-foreground">
+          Booted Rails, but querying <code>pcms.two_way_utility_warehouse</code> failed:
+        </div>
+        <pre class="mt-3 p-3 rounded-lg bg-muted/30 border border-border/50 text-xs overflow-auto"><%= @boot_error %></pre>
+      </div>
+    <% elsif @team_codes.empty? %>
+      <div class="p-6 text-sm text-muted-foreground">No NBA teams available.</div>
+    <% else %>
+      <% prefetch_canonical_slugs(entity_type: "player", entity_ids: @rows.map { |row| row["player_id"] }) if @rows.any? %>
+
+      <div class="divide-y divide-border/60">
+        <% @team_codes.each do |team_code| %>
+          <%= render partial: "tools/two_way_utility/team_section", locals: {
+            team_code: team_code,
+            players: (@rows_by_team[team_code] || []),
+            team_meta: (@team_meta_by_code[team_code] || {}),
+            team_capacity: (@team_capacity_by_code[team_code] || {})
+          } %>
+        <% end %>
+      </div>
+    <% end %>
+  </main>
+</div>

@@ -208,6 +208,78 @@ module Entities
         LIMIT 200
       SQL
 
+      @trade_group_rows = conn.exec_query(<<~SQL).to_a
+        SELECT
+          tg.trade_group_id,
+          tg.trade_group_number,
+          tg.team_id,
+          team.team_code,
+          team.team_name,
+          tg.signed_method_lk,
+          COALESCE(signed_lk.short_description, signed_lk.description) AS signed_method_label,
+          tg.generated_team_exception_id,
+          tg.acquired_team_exception_id,
+          gen_te.exception_type_lk AS generated_exception_type_lk,
+          COALESCE(gen_exc_lk.short_description, gen_exc_lk.description) AS generated_exception_type_label,
+          acq_te.exception_type_lk AS acquired_exception_type_lk,
+          COALESCE(acq_exc_lk.short_description, acq_exc_lk.description) AS acquired_exception_type_label,
+          tg.trade_group_comments
+        FROM pcms.trade_groups tg
+        LEFT JOIN pcms.teams team
+          ON team.team_id = tg.team_id
+         AND team.league_lk = 'NBA'
+        LEFT JOIN pcms.lookups signed_lk
+          ON signed_lk.lookup_type = 'lk_signed_methods'
+         AND signed_lk.lookup_code = tg.signed_method_lk
+        LEFT JOIN pcms.team_exceptions gen_te
+          ON gen_te.team_exception_id = tg.generated_team_exception_id
+        LEFT JOIN pcms.lookups gen_exc_lk
+          ON gen_exc_lk.lookup_type = 'lk_exception_types'
+         AND gen_exc_lk.lookup_code = gen_te.exception_type_lk
+        LEFT JOIN pcms.team_exceptions acq_te
+          ON acq_te.team_exception_id = tg.acquired_team_exception_id
+        LEFT JOIN pcms.lookups acq_exc_lk
+          ON acq_exc_lk.lookup_type = 'lk_exception_types'
+         AND acq_exc_lk.lookup_code = acq_te.exception_type_lk
+        WHERE tg.trade_id = #{id_sql}
+        ORDER BY tg.trade_group_number, COALESCE(team.team_code, tg.team_id::text), tg.trade_group_id
+      SQL
+
+      @trade_group_exception_rows = conn.exec_query(<<~SQL).to_a
+        WITH exception_ids AS (
+          SELECT tg.generated_team_exception_id AS team_exception_id
+          FROM pcms.trade_groups tg
+          WHERE tg.trade_id = #{id_sql}
+            AND tg.generated_team_exception_id IS NOT NULL
+          UNION
+          SELECT tg.acquired_team_exception_id AS team_exception_id
+          FROM pcms.trade_groups tg
+          WHERE tg.trade_id = #{id_sql}
+            AND tg.acquired_team_exception_id IS NOT NULL
+        )
+        SELECT
+          te.team_exception_id,
+          te.team_id,
+          COALESCE(team.team_code, te.team_code) AS team_code,
+          team.team_name,
+          te.salary_year,
+          te.exception_type_lk,
+          COALESCE(exc_lk.short_description, exc_lk.description) AS exception_type_label,
+          te.original_amount,
+          te.remaining_amount,
+          te.effective_date,
+          te.expiration_date,
+          te.trade_id
+        FROM pcms.team_exceptions te
+        LEFT JOIN pcms.teams team
+          ON team.team_id = te.team_id
+        LEFT JOIN pcms.lookups exc_lk
+          ON exc_lk.lookup_type = 'lk_exception_types'
+         AND exc_lk.lookup_code = te.exception_type_lk
+        WHERE te.team_exception_id IN (SELECT team_exception_id FROM exception_ids)
+        ORDER BY te.team_exception_id
+      SQL
+
       render :show
     rescue ArgumentError
       raise ActiveRecord::RecordNotFound

@@ -181,6 +181,130 @@ module Entities
         SQL
       end
 
+      @cap_exception_usage_rows = conn.exec_query(<<~SQL).to_a
+        SELECT
+          teu.team_exception_detail_id,
+          teu.effective_date,
+          teu.exception_action_lk,
+          COALESCE(action_lk.short_description, action_lk.description) AS exception_action_label,
+          teu.transaction_type_lk,
+          COALESCE(tx_type_lk.short_description, tx_type_lk.description) AS transaction_type_label,
+          teu.transaction_id,
+          teu.player_id,
+          COALESCE(
+            NULLIF(TRIM(CONCAT_WS(' ', p.display_first_name, p.display_last_name)), ''),
+            NULLIF(TRIM(CONCAT_WS(' ', p.first_name, p.last_name)), ''),
+            teu.player_id::text
+          ) AS player_name,
+          teu.contract_id,
+          teu.change_amount,
+          teu.remaining_exception_amount,
+          te.team_exception_id,
+          te.team_id,
+          team.team_code,
+          team.team_name,
+          te.exception_type_lk,
+          COALESCE(exc_lk.short_description, exc_lk.description) AS exception_type_label,
+          te.trade_id
+        FROM pcms.team_exception_usage teu
+        JOIN pcms.team_exceptions te
+          ON te.team_exception_id = teu.team_exception_id
+        LEFT JOIN pcms.teams team
+          ON team.team_id = te.team_id
+        LEFT JOIN pcms.people p
+          ON p.person_id = teu.player_id
+        LEFT JOIN pcms.lookups action_lk
+          ON action_lk.lookup_type = 'lk_exception_actions'
+         AND action_lk.lookup_code = teu.exception_action_lk
+        LEFT JOIN pcms.lookups tx_type_lk
+          ON tx_type_lk.lookup_type = 'lk_transaction_types'
+         AND tx_type_lk.lookup_code = teu.transaction_type_lk
+        LEFT JOIN pcms.lookups exc_lk
+          ON exc_lk.lookup_type = 'lk_exception_types'
+         AND exc_lk.lookup_code = te.exception_type_lk
+        WHERE teu.transaction_id = #{id_sql}
+        ORDER BY teu.effective_date DESC NULLS LAST, teu.seqno DESC NULLS LAST
+        LIMIT 250
+      SQL
+
+      @cap_dead_money_rows = conn.exec_query(<<~SQL).to_a
+        SELECT
+          dm.transaction_waiver_amount_id,
+          dm.salary_year,
+          dm.team_id,
+          COALESCE(team.team_code, dm.team_code) AS team_code,
+          team.team_name,
+          dm.player_id,
+          dm.player_name,
+          dm.contract_id,
+          dm.version_number,
+          dm.waive_date,
+          dm.cap_value,
+          dm.tax_value,
+          dm.apron_value,
+          dm.mts_value
+        FROM pcms.dead_money_warehouse dm
+        LEFT JOIN pcms.teams team
+          ON team.team_id = dm.team_id
+        WHERE dm.transaction_id = #{id_sql}
+        ORDER BY dm.salary_year, COALESCE(team.team_code, dm.team_code), dm.player_name
+      SQL
+
+      @cap_budget_snapshot_rows = conn.exec_query(<<~SQL).to_a
+        SELECT
+          tbs.team_budget_snapshot_id,
+          tbs.salary_year,
+          tbs.team_id,
+          COALESCE(team.team_code, tbs.team_code) AS team_code,
+          team.team_name,
+          tbs.player_id,
+          COALESCE(
+            NULLIF(TRIM(CONCAT_WS(' ', p.display_first_name, p.display_last_name)), ''),
+            NULLIF(TRIM(CONCAT_WS(' ', p.first_name, p.last_name)), ''),
+            tbs.player_id::text
+          ) AS player_name,
+          tbs.contract_id,
+          tbs.version_number,
+          tbs.transaction_type_lk,
+          tbs.transaction_description_lk,
+          tbs.budget_group_lk,
+          COALESCE(group_lk.short_description, group_lk.description) AS budget_group_label,
+          tbs.signing_method_lk,
+          COALESCE(signing_lk.short_description, signing_lk.description) AS signing_method_label,
+          tbs.option_lk,
+          COALESCE(option_lk.short_description, option_lk.description) AS option_label,
+          tbs.option_decision_lk,
+          COALESCE(option_decision_lk.short_description, option_decision_lk.description) AS option_decision_label,
+          tbs.cap_amount,
+          tbs.tax_amount,
+          tbs.apron_amount,
+          tbs.mts_amount
+        FROM pcms.team_budget_snapshots tbs
+        LEFT JOIN pcms.teams team
+          ON team.team_id = tbs.team_id
+        LEFT JOIN pcms.people p
+          ON p.person_id = tbs.player_id
+        LEFT JOIN pcms.lookups group_lk
+          ON group_lk.lookup_type = 'lk_budget_groups'
+         AND group_lk.lookup_code = tbs.budget_group_lk
+        LEFT JOIN pcms.lookups signing_lk
+          ON signing_lk.lookup_type = 'lk_signed_methods'
+         AND signing_lk.lookup_code = tbs.signing_method_lk
+        LEFT JOIN pcms.lookups option_lk
+          ON option_lk.lookup_type = 'lk_options'
+         AND option_lk.lookup_code = tbs.option_lk
+        LEFT JOIN pcms.lookups option_decision_lk
+          ON option_decision_lk.lookup_type = 'lk_option_decisions'
+         AND option_decision_lk.lookup_code = tbs.option_decision_lk
+        WHERE tbs.transaction_id = #{id_sql}
+        ORDER BY
+          tbs.salary_year,
+          COALESCE(team.team_code, tbs.team_code),
+          tbs.player_id NULLS LAST,
+          tbs.team_budget_snapshot_id
+        LIMIT 300
+      SQL
+
       render :show
     rescue ArgumentError
       raise ActiveRecord::RecordNotFound

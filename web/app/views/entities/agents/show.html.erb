@@ -57,6 +57,63 @@
   </section>
 
   <section class="space-y-3">
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Historical footprint (contracts + versions)</h2>
+
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div class="rounded-lg border border-border bg-background p-3">
+        <div class="text-xs text-muted-foreground">Historical clients</div>
+        <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @historical_footprint_rollup["historical_client_count"] || 0 %></div>
+      </div>
+      <div class="rounded-lg border border-border bg-background p-3">
+        <div class="text-xs text-muted-foreground">Contracts</div>
+        <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @historical_footprint_rollup["contract_count"] || 0 %></div>
+      </div>
+      <div class="rounded-lg border border-border bg-background p-3">
+        <div class="text-xs text-muted-foreground">Versions</div>
+        <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @historical_footprint_rollup["version_count"] || 0 %></div>
+      </div>
+      <div class="rounded-lg border border-border bg-background p-3">
+        <div class="text-xs text-muted-foreground">First signing</div>
+        <div class="mt-1 text-sm font-medium"><%= format_plain_date(@historical_footprint_rollup["first_signing_date"]) %></div>
+      </div>
+      <div class="rounded-lg border border-border bg-background p-3">
+        <div class="text-xs text-muted-foreground">Last signing</div>
+        <div class="mt-1 text-sm font-medium"><%= format_plain_date(@historical_footprint_rollup["last_signing_date"]) %></div>
+      </div>
+    </div>
+
+    <div class="text-xs text-muted-foreground">
+      Historical but not current clients:
+      <span class="font-mono tabular-nums"><%= @historical_footprint_rollup["historical_not_current_client_count"] || 0 %></span>
+    </div>
+
+    <% if @historical_signing_trend.any? %>
+      <div class="overflow-x-auto rounded-lg border border-border">
+        <table class="min-w-full text-sm">
+          <thead class="bg-muted/50 text-xs text-muted-foreground">
+            <tr>
+              <th class="text-left px-3 py-2 font-medium">Signing year</th>
+              <th class="text-right px-3 py-2 font-medium">Distinct clients</th>
+              <th class="text-right px-3 py-2 font-medium">Contracts</th>
+              <th class="text-right px-3 py-2 font-medium">Versions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <% @historical_signing_trend.each do |r| %>
+              <tr class="hover:bg-muted/30">
+                <td class="px-3 py-2 font-mono tabular-nums"><%= r["signing_year"] %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= r["distinct_clients"] %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= r["contract_count"] %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= r["version_count"] %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </section>
+
+  <section class="space-y-3">
     <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Book by season</h2>
 
     <% if @book_by_year.empty? %>

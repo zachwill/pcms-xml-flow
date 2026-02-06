@@ -201,7 +201,7 @@ There are currently 9 2-row clusters; ordered by endnote_id desc.
 - [x] Endnote 194 (2 rows) - Phoenix conveys to New York: → BOS 2028 2nd (via endnote 144)
 - [x] Endnote 144 (2 rows) - Orlando conveys to Phoenix: → BOS 2028 2nd (via endnote 48)
 - [x] Endnote 71 (2 rows) - LAL conveys to WAS: → LF [LAL, WAS] 2028 2nd (via endnote 32)
-- [ ] Endnote 63 (2 rows) - MIN conveys to UTA: → MIN 2029 1st (conditional; see endnote text for protections)
+- [x] Endnote 63 (2 rows) - MIN conveys to UTA: → MIN 2029 1st (conditional; see endnote text for protections)
 - [ ] Endnote 49 (2 rows) - PHI conveys to BKN: → PHI "First Allowable Draft" 1st
 - [ ] Endnote 48 (2 rows) - BOS conveys to ORL: → BOS 2028 2nd
 - [ ] Endnote 36 (2 rows) - SAS swap right affecting IND/MIA/SAS 2026 2nd (feeds endnote 55)
@@ -363,3 +363,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 42 — SAS receives DEN 2028 2nd (upstream of endnotes 238/242). This cluster is fully covered by the Endnote 238/242 shorthands (`DEN (p. 31-33)` / `Own to WAS (p. 31-33)`) and no longer appears in the `missing_shorthand` queue for `draft_year >= 2026`.
 - Endnote 194 — PHX→NYK conveys BOS 2028 2nd via ORL→PHX (endnotes 48/144). Added shorthands: NYK MAY_HAVE `BOS (p. 46-60)` (per endnote 48 condition), plus BOS origin row `BOS` so the underlying pick renders cleanly.
 - Endnote 144 — ORL→PHX conveys BOS 2028 2nd (via endnote 48). Confirmed shorthands: BOS origin `BOS`, downstream recipient `BOS (p. 46-60)` reflecting the top-45 protection; verified display_text for BOS/NYK rows.
+- Endnote 63 — MIN→UTA Gobert trade. Updated MIN 2029 1st shorthands to `MIN (p. 1-5)` (including the downstream LF [CLE, MIN, UTA] pool) and added fallback MIN 2029 2nd shorthands `MIN` for the conditional conveyance.

@@ -81,8 +81,11 @@ with todo as (
   where primary_todo_reason='missing_shorthand'
     and draft_year >= 2026
 )
-select unnest(effective_endnote_ids) as endnote_id, count(*) as rows
-from todo
+select e.endnote_id, count(*) as rows
+from todo t
+cross join lateral (
+  select distinct unnest(t.effective_endnote_ids) as endnote_id
+) e
 group by 1
 order by rows desc, endnote_id desc
 limit 20;
@@ -182,35 +185,20 @@ Guideline: one checkbox = one endnote cluster.
 
 - [x] (bootstrap) Create SHORTHAND backlog file + agent wiring
 
-### Top clusters (3-row clusters) (refreshed 2026-02-06)
+### Top clusters (2-row clusters) (refreshed 2026-02-06)
 
-As of this refresh: **128 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
+As of this refresh: **118 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
 
-Ordered by rows in `pcms.vw_draft_pick_shorthand_todo` where `primary_todo_reason='missing_shorthand'` and `draft_year >= 2026`.
+Ordered by rows in `pcms.vw_draft_pick_shorthand_todo` (deduping `effective_endnote_ids` per row).
 
-Note: there are currently **no 4+ row clusters**; the largest clusters are 3 rows.
+Note: `effective_endnote_ids` sometimes contains duplicates (e.g. `{5,5,5,...}`), so we always use `select distinct unnest(...)` per row in the work-queue query to avoid overstating cluster sizes.
 
-There are currently 10 3-row clusters; ordered by endnote_id desc.
+There are currently **no 3+ row clusters**; the largest clusters are 2 rows.
 
-- [x] Endnote 235 (3 rows) - San Antonio conveys to Sacramento: → The future conditional first round draft pick (Charlotte's own) that San Antonio is entitled to receive from Atlanta (per endnote 59)
-- [x] Endnote 169 (3 rows) - Dallas conveys to Charlotte: → DAL 2027 1st
-- [x] Endnote 146 (3 rows) - Milwaukee conveys to Portland: → Right to swap POR 2028 1st for MIL 2028 1st
-- [x] Endnote 59 (3 rows) - ATL conveys to SAS: → CHA 1st (via NYK/endnote 41)
-- [x] Endnote 41 (3 rows) - NYK conveys to ATL: → CHA 1st (via NYK/endnote 28)
-- [x] Endnote 37 (3 rows) - POR conveys to CHI: → POR 1st (First allowable draft, 2022-2028)
-- [x] Endnote 28 (3 rows) - CHA conveys to NYK: → CHA 1st
-- [x] Endnote 25 (3 rows) - LAC conveys to ORL: → DET 2026 2nd (via endnote 6)
-- [ ] Endnote 6 (3 rows) - DET conveys to LAC: → DET 2026 2nd
-- [ ] Endnote 5 (3 rows) - MIL conveys to ORL: → MIL 2026 2nd
-
-### Smaller clusters / follow-ups (2-row clusters) (refreshed 2026-02-06)
-
-All entries below are currently tied at 2 rows; ordered by endnote_id desc.
+There are currently 22 2-row clusters; ordered by endnote_id desc.
 
 - [ ] Endnote 322 (2 rows) - Brooklyn conveys to Miami: → Brooklyn's own 2026 2nd round pick
-- [ ] Endnote 317 (2 rows) - Sacramento conveys to Detroit: → Charlotte's own 2026 2nd round pick (via endnote 235)
 - [ ] Endnote 311 (2 rows) - Golden State conveys to Memphis: → Golden State's own 2032 2nd round pick
-- [ ] Endnote 290 (2 rows) - Orlando conveys to Boston: → MF [ORL, DET, MIL] 2026 2nds (via endnotes 25/5)
 - [ ] Endnote 288 (2 rows) - Utah conveys to Washington: → MF [IND, MIA] 2031 2nds (via endnote 258)
 - [ ] Endnote 262 (2 rows) - Toronto conveys to Indiana: → TOR 2026 2nd
 - [ ] Endnote 258 (2 rows) - Miami conveys to Utah: → The Resulting Pick
@@ -218,16 +206,11 @@ All entries below are currently tied at 2 rows; ordered by endnote_id desc.
 - [ ] Endnote 242 (2 rows) - Sacramento conveys to Washington: → DEN 2028 2nd (via endnote 238)
 - [ ] Endnote 238 (2 rows) - San Antonio conveys to Sacramento: → DEN 2028 2nd (via endnote 42)
 - [ ] Endnote 209 (2 rows) - Denver conveys to Charlotte: → DEN 2029 2nd
-- [ ] Endnote 203 (2 rows) - Brooklyn conveys to New York: → LF [DET, MIL, ORL] 2026 2nds (via endnote 170)
 - [ ] Endnote 201 (2 rows) - Memphis conveys to Minnesota: → MEM 2030 2nd
 - [ ] Endnote 197 (2 rows) - Portland conveys to Washington: → 2nd MF [POR, BOS, MIL] 2029 1sts (origin rows outstanding)
 - [ ] Endnote 194 (2 rows) - Phoenix conveys to New York: → BOS 2028 2nd (via endnote 144)
 - [ ] Endnote 176 (2 rows) - Portland conveys to Boston: → LF [POR, NOP] 2027 2nds (via endnote 45)
-- [ ] Endnote 170 (2 rows) - Phoenix conveys to Brooklyn: → LF [DET, MIL, ORL] 2026 2nds (via endnote 143)
-- [ ] Endnote 149 (2 rows) - Boston conveys to Portland: → BOS 2029 1st
-- [ ] Endnote 147 (2 rows) - Milwaukee conveys to Portland: → MIL 2029 1st
 - [ ] Endnote 144 (2 rows) - Orlando conveys to Phoenix: → BOS 2028 2nd (via endnote 48)
-- [ ] Endnote 143 (2 rows) - Orlando conveys to Phoenix: → LF [ORL, DET, MIL] 2026 2nds (via endnotes 25/5)
 - [ ] Endnote 95 (2 rows) - Portland conveys to Charlotte: → MF [POR, NOP] 2027 2nds (via endnote 45)
 - [ ] Endnote 71 (2 rows) - LAL conveys to WAS: → LF [LAL, WAS] 2028 2nd (via endnote 32)
 - [ ] Endnote 63 (2 rows) - MIN conveys to UTA: → MIN 2029 1st (conditional; see endnote text for protections)
@@ -237,9 +220,26 @@ All entries below are currently tied at 2 rows; ordered by endnote_id desc.
 - [ ] Endnote 36 (2 rows) - SAS swap right affecting IND/MIA/SAS 2026 2nd (feeds endnote 55)
 - [ ] Endnote 4 (2 rows) - HOU conveys to OKC: → HOU 2026 1st (conditional)
 
-### One-offs (1-row clusters)
+### One-offs / follow-ups (1-row clusters)
 
-There are currently many 1-row endnote clusters (130 as of this refresh). Use the work-queue query to pull the next one when you're done with the 2-row clusters.
+There are currently many 1-row endnote clusters (**134** as of this refresh). Use the work-queue query to pull the next one when you're done with the 2-row clusters.
+
+A few notable one-offs to keep on the radar:
+
+- [ ] Endnote 323 (1 row) - Miami conveys to Brooklyn: → MIA 2032 2nd
+- [ ] Endnote 318 (1 row) - Denver conveys to Brooklyn: → DEN 2032 1st
+- [ ] Endnote 315 (1 row) - LAC conveys to Utah: → LAC 2027 2nd
+- [ ] Endnote 312 (1 row) - Atlanta conveys to Minnesota: → CLE 2027 2nd (via endnote 270)
+- [ ] Endnote 306 (1 row) - Houston conveys to Brooklyn: → BOS 2030 2nd (via endnote 245)
+- [ ] Endnote 302 (1 row) - Indiana conveys to Memphis: → POR 2029 2nd (via endnote 166)
+- [ ] Endnote 301 (1 row) - Washington conveys to Houston: → SAC 2029 2nd (via endnote 243)
+- [ ] Endnote 300 (1 row) - Washington conveys to Houston: → CHI 2026 2nd (via endnote 110)
+
+- [ ] Endnote 290 (1 row) - Orlando conveys to Boston: → MF [ORL, DET, MIL] 2026 2nds (via endnotes 25/5)
+- [ ] Endnote 203 (1 row) - Brooklyn conveys to New York: → LF [DET, MIL, ORL] 2026 2nds (via endnote 170)
+- [ ] Endnote 170 (1 row) - Phoenix conveys to Brooklyn: → LF [DET, MIL, ORL] 2026 2nds (via endnote 143)
+- [ ] Endnote 143 (1 row) - Orlando conveys to Phoenix: → LF [ORL, DET, MIL] 2026 2nds (via endnotes 25/5)
+- [ ] Endnote 5 (1 row) - Milwaukee conveys to Orlando: → MIL 2026 2nd
 
 - [ ] Endnote 246 (1 row) - BOS 2031 2nd MAY_HAVE: `may have HOU(246)`
 - [ ] Endnote 211 (1 row) - MIN 2031 2nd MAY_HAVE: `May have GSW(211)`
@@ -334,3 +334,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 37 — POR→CHI 1st (Jones-Markkanen-Nance trade, 8/28/2021). POR 1st conveys to CHI in first allowable draft 2022-2028, top-14 protected each year. 1st round rows already had `POR (p. 1-14)` / `Own to CHI (p. 1-14)`. Added fallback 2nd round shorthands: `POR` for CHI MAY_HAVE, `Own to CHI` for POR OWN (if 1st never conveys, CHI receives POR 2028 2nd unconditionally).
 - Endnote 28 — No remaining `missing_shorthand` rows for `draft_year >= 2026`; this endnote is fully covered by the Endnote 235/59/41 chain (CHA→NYK→ATL→SAS→SAC→DET flow). All 6 rows have shorthand: `CHA` for origin and MAY_HAVE rows, `CHA (p. 31-55)` for DET's protected 2nd round pick.
 - Endnote 25 — LAC→ORL conveys DET 2026 2nd (Preston trade, 7/29/2021). DET's own 2026 2nd flows DET→LAC(6)→ORL(25), then into the [DET, MIL, ORL] pool (BOS gets MF via 290, NYK gets LF via 203). Shorthand: `DET` for DET origin row. Direction-aware: `To BOS: DET`.
+- Endnote 6 — DET→LAC conveys DET 2026 2nd; shorthand: `DET` for the DET origin/outgoing row. This cluster is now fully covered by the Endnote 25 chain and no longer appears in the `missing_shorthand` work queue for `draft_year >= 2026`.

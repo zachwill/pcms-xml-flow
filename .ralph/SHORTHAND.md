@@ -199,7 +199,7 @@ Top of queue (ordered by `endnote_id desc`; each is a 1-row cluster):
 
 - [x] Endnote 250 (1 row) - Washington conveys to Philadelphia: → GSW 2028 2nd (via endnote 198)
 - [x] Endnote 247 (1 row) - Philadelphia conveys to Dallas: → PHI 2030 2nd
-- [ ] Endnote 246 (1 row) - Houston conveys to Boston: → HOU 2031 2nd
+- [x] Endnote 246 (1 row) - Houston conveys to Boston: → HOU 2031 2nd
 - [ ] Endnote 237 (1 row) - San Antonio conveys to Sacramento: → MIN 2031 1st (via endnote 184)
 - [ ] Endnote 233 (1 row) - LAL conveys to Dallas: → LAL 2029 1st
 - [ ] Endnote 229 (1 row) - Phoenix conveys to Utah: → PHX 2031 1st
@@ -374,3 +374,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 252 — WAS conveys its own 2030 2nd to PHI. Added shorthand `WAS` for PHI HAS + WAS TO rows; verified display_text `To PHI: WAS`.
 - Endnote 250 — WAS→PHI conveys GSW 2028 2nd via POR/WAS chain (endnotes 88/198/250). Added shorthand `GSW` for the GSW outgoing row; verified display_text `To PHI: GSW`.
 - Endnote 247 — PHI conveys its own 2030 2nd to DAL. Added shorthand `PHI` for DAL HAS + PHI TO rows; verified display_text `To DAL: PHI`.
+- Endnote 246 — HOU conveys its own 2031 2nd to BOS if it lands in picks 56-60 (top-25 2nd-round protected); obligation extinguished otherwise. Shorthands: `HOU (p. 56-60)` for BOS MAY_HAVE and `HOU` for HOU OWN (swap-aware with endnote 304).

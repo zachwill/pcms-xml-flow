@@ -202,7 +202,7 @@ Top of queue (ordered by `endnote_id desc`; each is a 1-row cluster):
 - [x] Endnote 300 (1 row) - Washington conveys to Houston: → CHI 2026 2nd (via endnote 110)
 - [x] Endnote 298 (1 row) - Milwaukee conveys to Charlotte: → MIL 2032 2nd
 - [x] Endnote 297 (1 row) - Milwaukee conveys to Charlotte: → MIL 2031 2nd
-- [ ] Endnote 296 (1 row) - Indiana conveys to San Antonio: → SAC 2030 2nd (via endnote 127)
+- [x] Endnote 296 (1 row) - Indiana conveys to San Antonio: → SAC 2030 2nd (via endnote 127)
 - [ ] Endnote 292 (1 row) - Oklahoma City conveys to Washington: → HOU 2029 2nd (via endnote 132)
 - [ ] Endnote 290 (1 row) - Orlando conveys to Boston: → MF [ORL, DET, MIL] 2026 2nds (via endnotes 25/5)
 - [ ] Endnote 289 (1 row) - Utah conveys to Washington: → UTA 2032 2nd
@@ -378,3 +378,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 300 — WAS→HOU conveys CHI 2026 2nd (via endnote 110). Added `CHI` shorthand for CHI outgoing and HOU HAS rows; verified `To HOU: CHI` display_text.
 - Endnote 298 — MIL→CHA conveys MIL 2032 2nd (Connaughton/Micic trade). Added `MIL` shorthand for CHA HAS and MIL TO rows; verified `To CHA: MIL` display_text.
 - Endnote 297 — MIL→CHA conveys MIL 2031 2nd (Connaughton/Micic trade). Added `MIL` shorthand for the MIL outgoing row; verified `To CHA: MIL` display_text.
+- Endnote 296 — IND→SAS conveys SAC 2030 2nd (via endnote 127). Added `SAC` shorthand for SAC outgoing and SAS HAS rows; verified `To SAS: SAC` display_text.

@@ -53,6 +53,33 @@
   }
 }
 
+@layer components {
+  /* Dense, two-level entity table treatment (Salary Book-inspired). */
+  .entity-table thead th {
+    @apply h-8 align-middle;
+  }
+
+  .entity-table tbody tr {
+    @apply group;
+  }
+
+  .entity-table tbody td {
+    @apply align-top;
+  }
+
+  .entity-cell-two-line {
+    @apply grid grid-rows-[20px_14px] min-h-[34px] leading-none;
+  }
+
+  .entity-cell-primary {
+    @apply h-[20px] flex items-end text-[13px] min-w-0;
+  }
+
+  .entity-cell-secondary {
+    @apply h-[14px] -mt-px flex items-start text-[10px] text-muted-foreground/80 min-w-0;
+  }
+}
+
 @layer utilities {
   /* iOS momentum scrolling for scroll containers */
   .scroll-touch {

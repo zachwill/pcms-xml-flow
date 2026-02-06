@@ -29,8 +29,8 @@
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No trade_teams rows found.</div>
     <% else %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Team</th>
               <th class="text-right px-3 py-2 font-medium">Salary change</th>
@@ -42,7 +42,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             <% @trade_teams.each do |row| %>
-              <tr class="hover:bg-muted/30">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2">
                   <% if row["team_code"].present? %>
                     <a href="<%= safe_team_href(team_code: row['team_code'], team_id: row['team_id']) %>" class="font-medium hover:underline"><%= row["team_code"] %></a>
@@ -79,7 +79,7 @@
           <div class="rounded-lg border border-border bg-background p-3 space-y-2">
             <div class="text-sm font-medium">Group <span class="font-mono tabular-nums"><%= group_number %></span></div>
             <div class="overflow-x-auto">
-              <table class="min-w-full text-sm">
+              <table class="entity-table min-w-full text-xs">
                 <thead class="text-xs text-muted-foreground">
                   <tr>
                     <th class="text-left px-2 py-1">Team</th>
@@ -202,8 +202,8 @@
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No player line items.</div>
     <% else %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Team</th>
               <th class="text-left px-3 py-2 font-medium">Direction</th>
@@ -214,7 +214,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             <% @player_details.each do |row| %>
-              <tr class="hover:bg-muted/30">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2 text-xs">
                   <% if row["team_code"].present? %>
                     <a href="<%= safe_team_href(team_code: row['team_code'], team_id: row['team_id']) %>" class="hover:underline"><%= row["team_code"] %></a>
@@ -259,7 +259,7 @@
           <div class="text-sm text-muted-foreground italic">None</div>
         <% else %>
           <div class="overflow-x-auto">
-            <table class="min-w-full text-xs">
+            <table class="entity-table min-w-full text-xs">
               <thead class="text-muted-foreground">
                 <tr>
                   <th class="text-left py-1">Team</th>
@@ -296,7 +296,7 @@
           <div class="text-sm text-muted-foreground italic">None</div>
         <% else %>
           <div class="overflow-x-auto">
-            <table class="min-w-full text-xs">
+            <table class="entity-table min-w-full text-xs">
               <thead class="text-muted-foreground">
                 <tr>
                   <th class="text-left py-1">Team</th>
@@ -325,8 +325,8 @@
       <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Draft pick trades rows</h2>
 
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Year/Round</th>
               <th class="text-left px-3 py-2 font-medium">From</th>
@@ -337,7 +337,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             <% @draft_pick_trades.each do |row| %>
-              <tr class="hover:bg-muted/30">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2 font-mono tabular-nums"><%= row['draft_year'] %> R<%= row['draft_round'] %></td>
                 <td class="px-3 py-2 text-xs"><%= row['from_team_code'] || '—' %></td>
                 <td class="px-3 py-2 text-xs"><%= row['to_team_code'] || '—' %></td>
@@ -365,8 +365,8 @@
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No transaction rows linked to this trade.</div>
     <% else %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Transaction</th>
               <th class="text-left px-3 py-2 font-medium">Date</th>
@@ -377,7 +377,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             <% @transactions.each do |row| %>
-              <tr class="hover:bg-muted/30">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2 font-mono tabular-nums">
                   <a href="<%= transaction_href(row['transaction_id']) %>" class="hover:underline">#<%= row["transaction_id"] %></a>
                 </td>

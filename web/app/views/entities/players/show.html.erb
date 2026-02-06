@@ -139,8 +139,8 @@
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No contract rows found.</div>
     <% else %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Contract</th>
               <th class="text-left px-3 py-2 font-medium">Signing</th>
@@ -151,7 +151,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             <% @contract_chronology_rows.each do |r| %>
-              <tr class="hover:bg-muted/30 align-top">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75 align-top">
                 <td class="px-3 py-2 text-xs">
                   <div class="font-mono tabular-nums">#<%= r["contract_id"] %></div>
                   <div class="text-muted-foreground">versions: <%= r["version_count"] || 0 %> · latest v<%= r["latest_version_number"] || "—" %></div>
@@ -229,7 +229,7 @@
       <details class="rounded-lg border border-border bg-background p-3">
         <summary class="cursor-pointer text-sm font-medium">Version rollup (<%= @contract_version_rows.size %>)</summary>
         <div class="mt-3 overflow-x-auto">
-          <table class="min-w-full text-sm">
+          <table class="entity-table min-w-full text-xs">
             <thead class="text-xs text-muted-foreground">
               <tr>
                 <th class="text-left px-2 py-1">Contract / v</th>
@@ -290,8 +290,8 @@
 
     <% guarantee_years = (2025..2030).to_a %>
     <div class="overflow-x-auto rounded-lg border border-border">
-      <table class="min-w-full text-sm">
-        <thead class="bg-muted/50 text-xs text-muted-foreground">
+      <table class="entity-table min-w-full text-xs">
+        <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
           <tr>
             <th class="text-left px-3 py-2 font-medium">Year</th>
             <th class="text-right px-3 py-2 font-medium">Guaranteed amount</th>
@@ -313,7 +313,7 @@
             else
               nil
             end %>
-            <tr class="hover:bg-muted/30">
+            <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
               <td class="px-3 py-2 font-mono tabular-nums"><%= year %></td>
               <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(guaranteed_amount) %></td>
               <td class="px-3 py-2 text-xs text-muted-foreground">
@@ -345,8 +345,8 @@
     <% else %>
       <% rows = @salary_rows.presence || @salary_book_yearly_rows %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Year</th>
               <th class="text-right px-3 py-2 font-medium">Cap</th>
@@ -361,7 +361,7 @@
             <% rows.each do |r| %>
               <% y = r["salary_year"].to_i %>
               <% book_row = yearly_book[y] || {} %>
-              <tr class="hover:bg-muted/30">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2 font-mono tabular-nums"><%= y %></td>
                 <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["contract_cap_salary"] || book_row["cap_amount"]) %></td>
                 <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["contract_tax_salary"] || book_row["tax_amount"]) %></td>
@@ -387,8 +387,8 @@
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No contract protection rows.</div>
     <% else %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Year</th>
               <th class="text-right px-3 py-2 font-medium">Protection</th>
@@ -399,7 +399,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             <% @protection_rows.each do |r| %>
-              <tr class="hover:bg-muted/30">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2 font-mono tabular-nums"><%= r["salary_year"] %></td>
                 <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["protection_amount"]) %></td>
                 <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["effective_protection_amount"]) %></td>
@@ -421,7 +421,7 @@
       <details class="rounded-lg border border-border bg-background p-3">
         <summary class="cursor-pointer text-sm font-medium">Protection conditions (<%= @protection_condition_rows.size %>)</summary>
         <div class="mt-3 overflow-x-auto">
-          <table class="min-w-full text-sm">
+          <table class="entity-table min-w-full text-xs">
             <thead class="text-xs text-muted-foreground">
               <tr>
                 <th class="text-left px-2 py-1">Year</th>
@@ -455,8 +455,8 @@
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No bonus rows for this contract version.</div>
     <% else %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Year</th>
               <th class="text-left px-3 py-2 font-medium">Type</th>
@@ -467,7 +467,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             <% @bonus_rows.each do |r| %>
-              <tr class="hover:bg-muted/30 align-top">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75 align-top">
                 <td class="px-3 py-2 font-mono tabular-nums"><%= r["salary_year"] %></td>
                 <td class="px-3 py-2 text-xs text-muted-foreground"><%= r["bonus_type_lk"].presence || "—" %></td>
                 <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["bonus_amount"]) %></td>
@@ -514,8 +514,8 @@
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No payment schedules found.</div>
     <% else %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Year</th>
               <th class="text-right px-3 py-2 font-medium">Payment amount</th>
@@ -526,7 +526,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             <% @payment_schedule_rows.each do |r| %>
-              <tr class="hover:bg-muted/30">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2 font-mono tabular-nums"><%= r["salary_year"] %></td>
                 <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["payment_amount"]) %></td>
                 <td class="px-3 py-2 text-xs text-muted-foreground">
@@ -554,8 +554,8 @@
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No ledger entries found.</div>
     <% else %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Date</th>
               <th class="text-left px-3 py-2 font-medium">Team</th>
@@ -568,7 +568,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             <% @ledger_entries.each do |e| %>
-              <tr class="hover:bg-muted/30">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2 font-mono tabular-nums text-xs"><%= e["ledger_date"] || "—" %></td>
                 <td class="px-3 py-2 text-xs">
                   <% if e["team_code"].present? %>

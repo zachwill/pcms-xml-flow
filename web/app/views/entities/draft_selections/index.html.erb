@@ -47,8 +47,8 @@
         <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No picks found for <code><%= @query %></code>.</div>
       <% else %>
         <div class="overflow-x-auto rounded-lg border border-border">
-          <table class="min-w-full text-sm">
-            <thead class="bg-muted/50 text-xs text-muted-foreground">
+          <table class="entity-table min-w-full text-xs">
+            <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
               <tr>
                 <th class="text-left px-3 py-2 font-medium">Pick</th>
                 <th class="text-left px-3 py-2 font-medium">Player</th>
@@ -58,18 +58,29 @@
             </thead>
             <tbody class="divide-y divide-border">
               <% @results.each do |r| %>
-                <tr class="hover:bg-muted/30">
+                <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                   <td class="px-3 py-2 font-mono tabular-nums">
-                    <a href="<%= draft_selection_href(r['transaction_id']) %>" class="font-medium hover:underline">
-                      <%= r["draft_year"] %>-R<%= r["draft_round"] %>-P<%= r["pick_number"] %>
-                    </a>
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary font-mono">
+                        <a href="<%= draft_selection_href(r['transaction_id']) %>" class="font-medium hover:underline"><%= r["draft_year"] %>-R<%= r["draft_round"] %>-P<%= r["pick_number"] %></a>
+                      </div>
+                      <div class="entity-cell-secondary">tx: #<%= r["transaction_id"] %></div>
+                    </div>
                   </td>
                   <td class="px-3 py-2">
-                    <a href="<%= player_href(r['player_id']) %>" class="hover:underline"><%= r["player_name"] %></a>
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary">
+                        <a href="<%= player_href(r['player_id']) %>" class="font-medium truncate hover:underline"><%= r["player_name"] %></a>
+                      </div>
+                      <div class="entity-cell-secondary">player_id: <%= r["player_id"] %></div>
+                    </div>
                   </td>
                   <td class="px-3 py-2">
                     <% if r["drafting_team_code"].present? %>
-                      <a href="<%= team_href(team_code: r['drafting_team_code']) %>" class="hover:underline"><%= r["drafting_team_code"] %></a>
+                      <div class="entity-cell-two-line">
+                        <div class="entity-cell-primary"><a href="<%= team_href(team_code: r['drafting_team_code']) %>" class="font-medium hover:underline"><%= r["drafting_team_code"] %></a></div>
+                        <div class="entity-cell-secondary"><%= r["team_name"].presence || "—" %></div>
+                      </div>
                     <% else %>
                       <span class="text-muted-foreground">—</span>
                     <% end %>

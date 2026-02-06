@@ -29,8 +29,8 @@
       </div>
     <% else %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Player</th>
               <th class="text-left px-3 py-2 font-medium">Team</th>
@@ -40,35 +40,42 @@
           </thead>
           <tbody class="divide-y divide-border">
             <% @players.each do |p| %>
-              <tr class="hover:bg-muted/30">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2">
-                  <a href="<%= player_href(p['player_id']) %>" class="font-medium hover:underline">
-                    <%= p["player_name"] %>
-                  </a>
-                  <div class="text-xs text-muted-foreground">id: <code><%= p["player_id"] %></code></div>
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary">
+                      <a href="<%= player_href(p['player_id']) %>" class="font-medium truncate hover:underline"><%= p["player_name"] %></a>
+                    </div>
+                    <div class="entity-cell-secondary">id: <code><%= p["player_id"] %></code></div>
+                  </div>
                 </td>
 
                 <td class="px-3 py-2">
                   <% if p["team_code"].present? %>
-                    <a href="<%= team_href(team_code: p['team_code']) %>" class="hover:underline">
-                      <%= p["team_code"] %>
-                    </a>
-                    <% if p["team_name"].present? %>
-                      <div class="text-xs text-muted-foreground truncate"><%= p["team_name"] %></div>
-                    <% end %>
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary">
+                        <a href="<%= team_href(team_code: p['team_code']) %>" class="font-medium hover:underline"><%= p["team_code"] %></a>
+                      </div>
+                      <div class="entity-cell-secondary truncate"><%= p["team_name"].presence || "—" %></div>
+                    </div>
                   <% else %>
                     <span class="text-muted-foreground">—</span>
                   <% end %>
                 </td>
 
                 <td class="px-3 py-2">
-                  <% if p["agent_id"].present? && p["agent_name"].present? %>
-                    <a href="<%= agent_href(p['agent_id']) %>" class="hover:underline"><%= p["agent_name"] %></a>
-                  <% elsif p["agent_name"].present? %>
-                    <span><%= p["agent_name"] %></span>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary">
+                      <% if p["agent_id"].present? && p["agent_name"].present? %>
+                        <a href="<%= agent_href(p['agent_id']) %>" class="font-medium truncate hover:underline"><%= p["agent_name"] %></a>
+                      <% elsif p["agent_name"].present? %>
+                        <span class="font-medium truncate"><%= p["agent_name"] %></span>
+                      <% else %>
+                        <span class="text-muted-foreground">—</span>
+                      <% end %>
+                    </div>
+                    <div class="entity-cell-secondary">agent_id: <%= p["agent_id"] || "—" %></div>
+                  </div>
                 </td>
 
                 <td class="px-3 py-2 text-right font-mono tabular-nums">

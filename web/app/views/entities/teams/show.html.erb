@@ -32,8 +32,8 @@
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No team salary rows found.</div>
     <% else %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Year</th>
               <th class="text-right px-3 py-2 font-medium">Cap total (hold)</th>
@@ -46,7 +46,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             <% @team_salary_rows.each do |r| %>
-              <tr class="hover:bg-muted/30">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2 font-mono tabular-nums"><%= r["salary_year"] %></td>
                 <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["cap_total_hold"] || r["cap_total"]) %></td>
                 <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["room_under_tax"]) %></td>
@@ -74,8 +74,8 @@
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No team tax summary snapshot rows for 2025–2031.</div>
     <% else %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Year</th>
               <th class="text-left px-3 py-2 font-medium">Apron status</th>
@@ -87,7 +87,7 @@
           <tbody class="divide-y divide-border">
             <% @apron_provenance_rows.each do |r| %>
               <% constraint_lines = r["constraint_lines"].to_s.split("\n").reject(&:blank?) %>
-              <tr class="hover:bg-muted/30 align-top">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75 align-top">
                 <td class="px-3 py-2 font-mono tabular-nums"><%= r["salary_year"] %></td>
                 <td class="px-3 py-2 text-xs text-muted-foreground">
                   <%= yes_no(r["is_subject_to_apron"]) %>
@@ -171,8 +171,8 @@
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No two-way game utility rows found for this team.</div>
     <% else %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Player</th>
               <th class="text-right px-3 py-2 font-medium">Games used</th>
@@ -183,7 +183,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             <% @two_way_watchlist_rows.each do |r| %>
-              <tr class="hover:bg-muted/30">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2 text-xs">
                   <% if r["player_id"].present? %>
                     <a href="<%= player_href(r['player_id']) %>" class="font-medium hover:underline"><%= r["player_name"] %></a>
@@ -210,8 +210,8 @@
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No roster rows found.</div>
     <% else %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Player</th>
               <th class="text-left px-3 py-2 font-medium">Agent</th>
@@ -222,7 +222,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             <% @roster.each do |p| %>
-              <tr class="hover:bg-muted/30">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2">
                   <a href="<%= player_href(p['player_id']) %>" class="font-medium hover:underline"><%= p["player_name"] %></a>
                   <div class="text-xs text-muted-foreground">id: <code><%= p["player_id"] %></code></div>
@@ -263,7 +263,7 @@
           <div class="text-sm text-muted-foreground italic">None</div>
         <% else %>
           <div class="overflow-x-auto">
-            <table class="min-w-full text-xs">
+            <table class="entity-table min-w-full text-xs">
               <thead class="text-muted-foreground">
                 <tr>
                   <th class="text-left py-1">Player</th>
@@ -297,7 +297,7 @@
           <div class="text-sm text-muted-foreground italic">None</div>
         <% else %>
           <div class="overflow-x-auto">
-            <table class="min-w-full text-xs">
+            <table class="entity-table min-w-full text-xs">
               <thead class="text-muted-foreground">
                 <tr>
                   <th class="text-left py-1">Type</th>
@@ -325,7 +325,7 @@
           <div class="text-sm text-muted-foreground italic">None</div>
         <% else %>
           <div class="overflow-x-auto">
-            <table class="min-w-full text-xs">
+            <table class="entity-table min-w-full text-xs">
               <thead class="text-muted-foreground">
                 <tr>
                   <th class="text-left py-1">Player</th>
@@ -404,8 +404,8 @@
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No ledger rows found.</div>
     <% else %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Date</th>
               <th class="text-left px-3 py-2 font-medium">Player</th>
@@ -418,7 +418,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             <% @recent_ledger_entries.each do |r| %>
-              <tr class="hover:bg-muted/30">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2 font-mono tabular-nums text-xs"><%= r["ledger_date"] || "—" %></td>
                 <td class="px-3 py-2 text-xs">
                   <% if r["player_id"].present? %>
@@ -459,8 +459,8 @@
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No exception usage rows found.</div>
     <% else %>
       <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="min-w-full text-sm">
-          <thead class="bg-muted/50 text-xs text-muted-foreground">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Date</th>
               <th class="text-left px-3 py-2 font-medium">Exception</th>
@@ -473,7 +473,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             <% @exception_usage_rows.each do |r| %>
-              <tr class="hover:bg-muted/30">
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2 font-mono tabular-nums text-xs"><%= r["effective_date"] || "—" %></td>
                 <td class="px-3 py-2 text-xs text-muted-foreground"><%= r["exception_type_lk"] || "—" %></td>
                 <td class="px-3 py-2 text-xs">

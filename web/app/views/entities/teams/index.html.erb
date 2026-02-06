@@ -14,8 +14,8 @@
     <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground"><%= @query.present? ? "Results" : "All teams" %></h2>
 
     <div class="overflow-x-auto rounded-lg border border-border">
-      <table class="min-w-full text-sm">
-        <thead class="bg-muted/50 text-xs text-muted-foreground">
+      <table class="entity-table min-w-full text-xs">
+        <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
           <tr>
             <th class="text-left px-3 py-2 font-medium">Code</th>
             <th class="text-left px-3 py-2 font-medium">Team</th>
@@ -26,12 +26,22 @@
         <tbody class="divide-y divide-border">
           <% @teams.each do |t| %>
             <% code = t["team_code"].to_s %>
-            <tr class="hover:bg-muted/30">
+            <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
               <td class="px-3 py-2 font-mono tabular-nums">
-                <a href="<%= team_href(team_code: code, team_id: t['team_id']) %>" class="font-medium hover:underline"><%= code %></a>
+                <div class="entity-cell-two-line">
+                  <div class="entity-cell-primary font-mono">
+                    <a href="<%= team_href(team_code: code, team_id: t['team_id']) %>" class="font-medium hover:underline"><%= code %></a>
+                  </div>
+                  <div class="entity-cell-secondary">id: <%= t["team_id"] || "—" %></div>
+                </div>
               </td>
               <td class="px-3 py-2">
-                <a href="<%= team_href(team_code: code, team_id: t['team_id']) %>" class="hover:underline"><%= t["team_name"] %></a>
+                <div class="entity-cell-two-line">
+                  <div class="entity-cell-primary">
+                    <a href="<%= team_href(team_code: code, team_id: t['team_id']) %>" class="font-medium truncate hover:underline"><%= t["team_name"] %></a>
+                  </div>
+                  <div class="entity-cell-secondary"><%= t["division_name"].presence || "—" %></div>
+                </div>
               </td>
               <td class="px-3 py-2 text-muted-foreground"><%= t["conference_name"] || "—" %></td>
               <td class="px-3 py-2 text-right font-mono tabular-nums text-muted-foreground"><%= t["team_id"] %></td>

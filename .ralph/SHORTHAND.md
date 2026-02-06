@@ -197,7 +197,7 @@ There are currently **no 3+ row clusters**; the largest clusters are 2 rows.
 
 There are currently 18 2-row clusters; ordered by endnote_id desc.
 
-- [ ] Endnote 262 (2 rows) - Toronto conveys to Indiana: → TOR 2026 2nd
+- [x] Endnote 262 (2 rows) - Toronto conveys to Indiana: → TOR 2026 2nd
 - [ ] Endnote 244 (2 rows) - Boston conveys to Houston: → LF [NOP, POR] 2027 2nds (via endnote 176)
 - [ ] Endnote 242 (2 rows) - Sacramento conveys to Washington: → DEN 2028 2nd (via endnote 238)
 - [ ] Endnote 238 (2 rows) - San Antonio conveys to Sacramento: → DEN 2028 2nd (via endnote 42)
@@ -340,3 +340,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 311 — GSW→MEM Richard/Jessup/Mashack trade (7/6/2025). MEM receives GSW 2032 2nd, top-20 picks in the 2nd round protected (obligation extinguished if protected). Shorthands: `Own to MEM (p. 31-50)` for GSW outgoing and `GSW (p. 31-50)` for MEM MAY_HAVE.
 - Endnote 288 — UTA→WAS Clayton Jr./Riley trade (6/25/2025). UTA conveys to WAS the pick UTA receives from MIA per endnote 258, which is the MF of IND/MIA 2031 2nds via MIA's swap right (endnote 219). Shorthands: `MF [IND, MIA]` for WAS MAY_HAVE rows.
 - Endnote 258 — MIA→UTA "Resulting Pick" (massive trade, 2/6/2025). This endnote no longer appears in the `missing_shorthand` work queue for `draft_year >= 2026` (covered by the Endnote 288 chain); remaining todos are `summary_needs_review`.
+- Endnote 262 — TOR→IND Wiseman trade (2/6/2025): TOR conveys its 2026 2nd only if it lands in the last 5 picks of the 2nd round (top-25 protected; else obligation extinguished). Shorthands: `TOR (p. 56-60)` for IND MAY_HAVE and `Own to IND (p. 56-60)` for TOR outgoing.

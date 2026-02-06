@@ -199,7 +199,7 @@ Top of queue (ordered by `endnote_id desc`; each is a 1-row cluster):
 
 - [x] Endnote 302 (1 row) - Indiana conveys to Memphis: → POR 2029 2nd (via endnote 166)
 - [x] Endnote 301 (1 row) - Washington conveys to Houston: → SAC 2029 2nd (via endnote 243)
-- [ ] Endnote 300 (1 row) - Washington conveys to Houston: → CHI 2026 2nd (via endnote 110)
+- [x] Endnote 300 (1 row) - Washington conveys to Houston: → CHI 2026 2nd (via endnote 110)
 - [ ] Endnote 298 (1 row) - Milwaukee conveys to Charlotte: → MIL 2032 2nd
 - [ ] Endnote 297 (1 row) - Milwaukee conveys to Charlotte: → MIL 2031 2nd
 - [ ] Endnote 296 (1 row) - Indiana conveys to San Antonio: → SAC 2030 2nd (via endnote 127)
@@ -375,3 +375,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 312 — ATL→MIN conveys CLE 2027 2nd (via endnote 270). Added `CLE` shorthand for the CLE outgoing row; verified direction-aware display_text (`To MIN: CLE`).
 - Endnote 306 — HOU→BKN conveys BOS 2030 2nd (via endnote 245). Added `BOS` shorthand for the BOS outgoing row; verified `To BKN: BOS` display_text.
 - Endnote 302 — IND→MEM conveys POR 2029 2nd (via PHI). Added `POR` shorthand for MEM HAS and POR TO rows; verified direction-aware display_text (`To MEM: POR`).
+- Endnote 300 — WAS→HOU conveys CHI 2026 2nd (via endnote 110). Added `CHI` shorthand for CHI outgoing and HOU HAS rows; verified `To HOU: CHI` display_text.

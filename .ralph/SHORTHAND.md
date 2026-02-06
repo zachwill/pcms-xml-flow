@@ -199,7 +199,7 @@ There are currently 10 3-row clusters; ordered by endnote_id desc.
 - [x] Endnote 41 (3 rows) - NYK conveys to ATL: → CHA 1st (via NYK/endnote 28)
 - [x] Endnote 37 (3 rows) - POR conveys to CHI: → POR 1st (First allowable draft, 2022-2028)
 - [x] Endnote 28 (3 rows) - CHA conveys to NYK: → CHA 1st
-- [ ] Endnote 25 (3 rows) - LAC conveys to ORL: → DET 2026 2nd (via endnote 6)
+- [x] Endnote 25 (3 rows) - LAC conveys to ORL: → DET 2026 2nd (via endnote 6)
 - [ ] Endnote 6 (3 rows) - DET conveys to LAC: → DET 2026 2nd
 - [ ] Endnote 5 (3 rows) - MIL conveys to ORL: → MIL 2026 2nd
 
@@ -333,3 +333,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 41 — No remaining `missing_shorthand` rows for `draft_year >= 2026`; this endnote is fully covered by the Endnote 235/59 chain (NYK→ATL step in the CHA→NYK→ATL→SAS→SAC→DET flow).
 - Endnote 37 — POR→CHI 1st (Jones-Markkanen-Nance trade, 8/28/2021). POR 1st conveys to CHI in first allowable draft 2022-2028, top-14 protected each year. 1st round rows already had `POR (p. 1-14)` / `Own to CHI (p. 1-14)`. Added fallback 2nd round shorthands: `POR` for CHI MAY_HAVE, `Own to CHI` for POR OWN (if 1st never conveys, CHI receives POR 2028 2nd unconditionally).
 - Endnote 28 — No remaining `missing_shorthand` rows for `draft_year >= 2026`; this endnote is fully covered by the Endnote 235/59/41 chain (CHA→NYK→ATL→SAS→SAC→DET flow). All 6 rows have shorthand: `CHA` for origin and MAY_HAVE rows, `CHA (p. 31-55)` for DET's protected 2nd round pick.
+- Endnote 25 — LAC→ORL conveys DET 2026 2nd (Preston trade, 7/29/2021). DET's own 2026 2nd flows DET→LAC(6)→ORL(25), then into the [DET, MIL, ORL] pool (BOS gets MF via 290, NYK gets LF via 203). Shorthand: `DET` for DET origin row. Direction-aware: `To BOS: DET`.

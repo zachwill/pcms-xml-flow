@@ -56,9 +56,14 @@ Rails.application.routes.draw do
     get "agencies/:slug", to: "agencies#show", as: :agency
 
     # ---------------------------------------------------------------------
-    # Draft selections (historical drafts)
+    # Drafts (unified workspace for picks + selections)
     # ---------------------------------------------------------------------
-    get "draft-selections", to: "draft_selections#index"
+    get "drafts", to: "drafts#index"
+    get "drafts/pane", to: "drafts#pane"
+
+    # ---------------------------------------------------------------------
+    # Draft selections (historical drafts) — show pages
+    # ---------------------------------------------------------------------
     get "draft-selections/:id", to: "draft_selections#redirect", constraints: { id: /\d+/ }
     get "draft-selections/:slug", to: "draft_selections#show", as: :draft_selection
 
@@ -69,10 +74,18 @@ Rails.application.routes.draw do
       constraints: { team_code: /[A-Za-z]{3}/, year: /\d{4}/, round: /1|2/ }
 
     # ---------------------------------------------------------------------
-    # Transactions / trades (numeric canonical for now)
+    # Trades
     # ---------------------------------------------------------------------
-    get "transactions/:id", to: "transactions#show", as: :transaction, constraints: { id: /\d+/ }
+    get "trades", to: "trades#index"
+    get "trades/pane", to: "trades#pane"
     get "trades/:id", to: "trades#show", as: :trade, constraints: { id: /\d+/ }
+
+    # ---------------------------------------------------------------------
+    # Transactions
+    # ---------------------------------------------------------------------
+    get "transactions", to: "transactions#index"
+    get "transactions/pane", to: "transactions#pane"
+    get "transactions/:id", to: "transactions#show", as: :transaction, constraints: { id: /\d+/ }
   end
 
   root "tools/salary_book#show"

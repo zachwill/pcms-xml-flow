@@ -199,7 +199,7 @@ There are currently 22 2-row clusters; ordered by endnote_id desc.
 
 - [x] Endnote 322 (2 rows) - Brooklyn conveys to Miami: → Brooklyn's own 2026 2nd round pick
 - [x] Endnote 311 (2 rows) - Golden State conveys to Memphis: → Golden State's own 2032 2nd round pick
-- [ ] Endnote 288 (2 rows) - Utah conveys to Washington: → MF [IND, MIA] 2031 2nds (via endnote 258)
+- [x] Endnote 288 (2 rows) - Utah conveys to Washington: → MF [IND, MIA] 2031 2nds (via endnote 258)
 - [ ] Endnote 262 (2 rows) - Toronto conveys to Indiana: → TOR 2026 2nd
 - [ ] Endnote 258 (2 rows) - Miami conveys to Utah: → The Resulting Pick
 - [ ] Endnote 244 (2 rows) - Boston conveys to Houston: → LF [NOP, POR] 2027 2nds (via endnote 176)
@@ -338,3 +338,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 
 - Endnote 322 — BKN→MIA Highsmith trade (8/15/2025). BKN conveys own 2026 2nd to MIA. Shorthand: `BKN` for both BKN OWN and MIA MAY_HAVE rows.
 - Endnote 311 — GSW→MEM Richard/Jessup/Mashack trade (7/6/2025). MEM receives GSW 2032 2nd, top-20 picks in the 2nd round protected (obligation extinguished if protected). Shorthands: `Own to MEM (p. 31-50)` for GSW outgoing and `GSW (p. 31-50)` for MEM MAY_HAVE.
+- Endnote 288 — UTA→WAS Clayton Jr./Riley trade (6/25/2025). UTA conveys to WAS the pick UTA receives from MIA per endnote 258, which is the MF of IND/MIA 2031 2nds via MIA's swap right (endnote 219). Shorthands: `MF [IND, MIA]` for WAS MAY_HAVE rows.

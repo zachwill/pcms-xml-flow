@@ -198,7 +198,7 @@ There are currently **no 2+ row clusters**; the entire queue is 1-row clusters. 
 Top of queue (ordered by `endnote_id desc`; each is a 1-row cluster):
 
 - [x] Endnote 221 (1 row) - GSW conveys to BKN: → ATL 2028 2nd (via endnote 86)
-- [ ] Endnote 220 (1 row) - GSW conveys to BKN: → ATL 2026 2nd (via endnote 85)
+- [x] Endnote 220 (1 row) - GSW conveys to BKN: → ATL 2026 2nd (via endnote 85)
 - [ ] Endnote 218 (1 row) - SAC conveys to SAS: → SAC 2031 2nd
 - [ ] Endnote 217 (1 row) - NYK conveys to CHA: → NYK 2031 2nd
 - [ ] Endnote 215 (1 row) - MEM conveys to BKN: → DAL 2030 2nd (via endnotes 161, 140)
@@ -372,3 +372,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 224 — LAL conveys its own 2030 2nd to BKN. Added shorthand `LAL` for LAL TO + BKN HAS rows; verified display_text `To BKN: LAL`.
 - Endnote 223 — LAL conveys its 2027 2nd to BKN unless owed to UTA (endnote 77). Added shorthand `LAL` for BKN MAY_HAVE; verified display_text `To BKN: LAL` on the outgoing row.
 - Endnote 221 — GSW conveys ATL 2028 2nd to BKN (via endnote 86). Added shorthand `ATL` for ATL outgoing + BKN has rows; verified display_text `To BKN: ATL`.
+- Endnote 220 — GSW conveys ATL 2026 2nd to BKN (via endnote 85). Added shorthand `ATL` for ATL outgoing + BKN has rows; verified display_text `To BKN: ATL`.

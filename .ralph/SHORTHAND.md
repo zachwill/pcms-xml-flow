@@ -187,18 +187,16 @@ Guideline: one checkbox = one endnote cluster.
 
 ### Work queue snapshot (refreshed 2026-02-06)
 
-As of this refresh: **85 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
+As of this refresh: **83 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
 
 Ordered by rows in `pcms.vw_draft_pick_shorthand_todo` (deduping `effective_endnote_ids` per row).
 
 Note: `effective_endnote_ids` sometimes contains duplicates (e.g. `{5,5,5,...}`), so we always use `select distinct unnest(...)` per row in the work-queue query to avoid overstating cluster sizes.
 
-There are currently **no 2+ row clusters**; the entire queue is 1-row clusters. There are **125 distinct endnote_ids** referenced by these 85 rows.
+There are currently **no 2+ row clusters**; the entire queue is 1-row clusters. There are **121 distinct endnote_ids** referenced by these 83 rows.
 
 Top of queue (ordered by `endnote_id desc`; each is a 1-row cluster):
 
-- [x] Endnote 312 (1 row) - Atlanta conveys to Minnesota: → CLE 2027 2nd (via endnote 270)
-- [x] Endnote 306 (1 row) - Houston conveys to Brooklyn: → BOS 2030 2nd (via endnote 245)
 - [ ] Endnote 302 (1 row) - Indiana conveys to Memphis: → POR 2029 2nd (via endnote 166)
 - [ ] Endnote 301 (1 row) - Washington conveys to Houston: → SAC 2029 2nd (via endnote 243)
 - [ ] Endnote 300 (1 row) - Washington conveys to Houston: → CHI 2026 2nd (via endnote 110)

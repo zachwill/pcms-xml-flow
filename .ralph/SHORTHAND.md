@@ -187,21 +187,16 @@ Guideline: one checkbox = one endnote cluster.
 
 ### Work queue snapshot (refreshed 2026-02-06, supervisor review)
 
-As of this refresh: **61 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
+As of this refresh: **56 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
 
 Ordered by rows in `pcms.vw_draft_pick_shorthand_todo` (deduping `effective_endnote_ids` per row).
 
 Note: `effective_endnote_ids` sometimes contains duplicates (e.g. `{5,5,5,...}`), so we always use `select distinct unnest(...)` per row in the work-queue query to avoid overstating cluster sizes.
 
-There are currently **no 2+ row clusters**; the entire queue is 1-row clusters. There are **81 distinct endnote_ids** referenced by these 61 rows.
+There are currently **no 2+ row clusters**; the entire queue is 1-row clusters. There are **73 distinct endnote_ids** referenced by these 56 rows.
 
 Top of queue (ordered by `endnote_id desc`; each is a 1-row cluster):
 
-- [x] Endnote 250 (1 row) - Washington conveys to Philadelphia: → GSW 2028 2nd (via endnote 198)
-- [x] Endnote 247 (1 row) - Philadelphia conveys to Dallas: → PHI 2030 2nd
-- [x] Endnote 246 (1 row) - Houston conveys to Boston: → HOU 2031 2nd
-- [x] Endnote 237 (1 row) - San Antonio conveys to Sacramento: → MIN 2031 1st (via endnote 184)
-- [x] Endnote 233 (1 row) - LAL conveys to Dallas: → LAL 2029 1st
 - [ ] Endnote 229 (1 row) - Phoenix conveys to Utah: → PHX 2031 1st
 - [ ] Endnote 228 (1 row) - Phoenix conveys to Charlotte: → PHX 2031 2nd
 - [ ] Endnote 227 (1 row) - Phoenix conveys to Charlotte: → DEN 2031 2nd (via endnote 182)
@@ -218,13 +213,12 @@ Top of queue (ordered by `endnote_id desc`; each is a 1-row cluster):
 - [ ] Endnote 207 (1 row) - New York conveys to Brooklyn: → NYK 2031 1st
 - [ ] Endnote 206 (1 row) - details omitted (use standard workflow queries)
 - [ ] Endnote 204 (1 row) - details omitted (use standard workflow queries)
-- [ ] Endnote 198 (1 row) - details omitted (use standard workflow queries)
 - [ ] Endnote 193 (1 row) - ORL 2031 2nd MAY_HAVE: `May have NOP(193)` (swap right conveyed from NOP)
 
 Remaining 1-row clusters (ordered by `endnote_id desc`; details omitted — use the queries in “Standard workflow” to pull the affected asset rows + endnote explanations):
 
 ```text
-191, 189, 186, 184, 182, 178, 174, 172, 171, 167, 162, 161, 155, 153, 151, 150, 141, 140, 137, 136, 135, 133, 126, 122, 120, 119, 118, 111, 105, 104, 100, 98, 95, 94, 92, 91, 90, 88, 86, 85, 81, 79, 75, 72, 69, 67, 65, 61, 58, 57, 56, 54, 43, 40, 31, 24, 13, 9
+191, 189, 186, 182, 178, 174, 172, 171, 167, 162, 161, 155, 153, 151, 150, 141, 140, 137, 136, 135, 133, 126, 122, 120, 119, 118, 111, 105, 104, 100, 98, 95, 94, 92, 91, 90, 86, 85, 81, 79, 75, 72, 69, 67, 65, 61, 58, 57, 56, 54, 43, 40, 31, 24, 13, 9
 ```
 
 May-have / "resulting pick" patterns to keep on the radar:

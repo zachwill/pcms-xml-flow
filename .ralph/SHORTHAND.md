@@ -200,7 +200,7 @@ There are currently 9 2-row clusters; ordered by endnote_id desc.
 - [x] Endnote 197 (2 rows) - Portland conveys to Washington: → 2nd MF [POR, BOS, MIL] 2029 1sts (origin rows outstanding)
 - [x] Endnote 194 (2 rows) - Phoenix conveys to New York: → BOS 2028 2nd (via endnote 144)
 - [x] Endnote 144 (2 rows) - Orlando conveys to Phoenix: → BOS 2028 2nd (via endnote 48)
-- [ ] Endnote 71 (2 rows) - LAL conveys to WAS: → LF [LAL, WAS] 2028 2nd (via endnote 32)
+- [x] Endnote 71 (2 rows) - LAL conveys to WAS: → LF [LAL, WAS] 2028 2nd (via endnote 32)
 - [ ] Endnote 63 (2 rows) - MIN conveys to UTA: → MIN 2029 1st (conditional; see endnote text for protections)
 - [ ] Endnote 49 (2 rows) - PHI conveys to BKN: → PHI "First Allowable Draft" 1st
 - [ ] Endnote 48 (2 rows) - BOS conveys to ORL: → BOS 2028 2nd
@@ -270,6 +270,7 @@ When you complete a cluster, add a bullet here with:
 
 Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_pick_assets.display_text` (direction-aware rendering), not the underlying `shorthand` value.
 
+- Endnote 71 - LAL→WAS conveys the less favorable of LAL/WAS 2028 2nds (via endnote 32). Added shorthands: `LF [LAL, WAS]` for WAS rows; verified direction-aware display_text (`To WAS: LAL`) on the LAL outgoing row.
 - Endnote 125 - DET→WAS conveys the MF of BKN/DAL 2027 2nds (via DET); DET retains the LF. Added shorthands: `MF [BKN, DAL]` (WAS) and `LF [BKN, DAL]` (DET), plus origin rows `BKN`/`DAL` for direction-aware outgoing display.
 - Endnote 64 - NYK conveys to DET the MF of NYK/MIN 2026 2nds (Burks/Noel, 7/11/2022). Added origin shorthands `NYK` and `MIN` (including the NYK "may have MIN" branch) so outgoing rows render direction-aware `To ...` display.
 - Endnote 52 - OKC→NYK conveys WAS future conditional 1st (Dieng trade, 6/23/2022). Full chain: Endnotes 15→27→52 (Wall-Westbrook → Sengün → Dieng). NYK receives WAS 2026 1st if 9-30 (top-8 protected); if not conveyed, NYK instead receives WAS 2026+2027 2nds. Shorthands: `WAS (p. 1-8)` for the 1st, `WAS` for the fallback 2nds, `Own to NYK (p. 1-8)` / `Own to NYK` for WAS outgoing rows.

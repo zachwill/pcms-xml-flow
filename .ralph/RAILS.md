@@ -155,10 +155,10 @@ These should feel more like "hubs" and less like "debug pages," but still stay c
   - team history — derived from transactions (SIGN/TRADE/DRAFT/etc.), shows stints with logos
   - stats/percentiles scaffolding — placeholder module for future NBA API ingestion
 
-- [ ] Team page modules (PuckPedia-inspired)
-  - cap vitals (from `pcms.team_salary_warehouse`)
-  - roster breakdown table (cap hit toggle later)
-  - draft pick provenance modules
+- [x] Team page modules (PuckPedia-inspired)
+  - cap vitals (from `pcms.team_salary_warehouse`) — compact KPI strip at top
+  - roster breakdown table (cap hit toggle later) — standard/2W split + accounting buckets
+  - draft pick provenance modules — year-by-year grid with pick pills
 
 - [ ] Agent/Agency pages
   - client totals by team

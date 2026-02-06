@@ -1,4 +1,21 @@
 module EntitiesHelper
+  # Room amount color class (for cap vitals threshold rooms).
+  #
+  # - Green if positive (under threshold)
+  # - Red if negative (over threshold)
+  def room_amount_color(value)
+    return "" if value.nil?
+
+    val = value.to_f
+    if val < 0
+      "text-red-600 dark:text-red-400"
+    elsif val >= 10_000_000
+      "text-emerald-600 dark:text-emerald-400"
+    else
+      ""
+    end
+  end
+
   def format_height_inches(raw_inches)
     return "—" if raw_inches.blank?
 

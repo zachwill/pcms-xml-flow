@@ -199,7 +199,7 @@ There are currently 14 2-row clusters; ordered by endnote_id desc.
 
 - [x] Endnote 242 (2 rows) - Sacramento conveys to Washington: → DEN 2028 2nd (via endnote 238)
 - [x] Endnote 238 (2 rows) - San Antonio conveys to Sacramento: → DEN 2028 2nd (via endnote 42)
-- [ ] Endnote 209 (2 rows) - Denver conveys to Charlotte: → DEN 2029 2nd
+- [x] Endnote 209 (2 rows) - Denver conveys to Charlotte: → DEN 2029 2nd
 - [ ] Endnote 201 (2 rows) - Memphis conveys to Minnesota: → MEM 2030 2nd
 - [ ] Endnote 197 (2 rows) - Portland conveys to Washington: → 2nd MF [POR, BOS, MIL] 2029 1sts (origin rows outstanding)
 - [ ] Endnote 194 (2 rows) - Phoenix conveys to New York: → BOS 2028 2nd (via endnote 144)
@@ -350,3 +350,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 244 — BOS→HOU Springer trade (2/6/2025). HOU receives the conditional 2027 2nd that BOS was entitled to from POR per endnote 176: `LF [NOP, POR] (p. 56-60)` (top-55 protected; conveys only if within picks ~56-60 overall; otherwise extinguished). Also filled POR's own 2027 2nd origin row with shorthand `POR`.
 - Endnote 242 — SAC→WAS conveys DEN 2028 2nd via SAS/SAC (endnotes 42/238/242); picks 31-33 protected (obligation extinguished if protected). Shorthands: `DEN (p. 31-33)` (WAS MAY_HAVE) and `Own to WAS (p. 31-33)` (DEN outgoing).
 - Endnote 238 — SAS→SAC conveys DEN 2028 2nd (via endnote 42), picks 31-33 protected / extinguished if protected; downstream SAC→WAS is endnote 242. Shorthands (same underlying asset): `DEN (p. 31-33)` and `Own to WAS (p. 31-33)`.
+- Endnote 209 — DEN→CHA conditional 2029 2nd (7/6/2024 multi-team trade). Added shorthands: `DEN` for CHA MAY_HAVE and DEN outgoing (`To CHA: DEN`). Dependency: endnote 53 (OKC fallback).

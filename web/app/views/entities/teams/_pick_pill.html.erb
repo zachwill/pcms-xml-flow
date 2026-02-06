@@ -1,0 +1,55 @@
+<%#
+  Pick Pill — compact draft pick token for the provenance grid.
+
+  locals:
+  - pick: (Hash) row from draft_pick_summary_assets
+  - team_code: (String) current team code
+%>
+
+<% pick = local_assigns[:pick] || {} %>
+<% team_code = local_assigns[:team_code].to_s %>
+
+<% asset_type = pick["asset_type"].to_s %>
+<% is_swap = pick["is_swap"] %>
+<% is_conditional = pick["is_conditional"] %>
+<% counterparty = pick["counterparty_team_code"].to_s %>
+<% origin = asset_type == "FROM" ? counterparty : team_code %>
+<% raw_part = pick["raw_part"].to_s.strip %>
+
+<%# Determine pill style based on asset type %>
+<%
+  if asset_type == "TO"
+    # Owed to another team
+    bg_class = "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800/50"
+    text_class = "text-red-700 dark:text-red-300"
+    label = "→ #{counterparty}"
+  elsif asset_type == "FROM"
+    # Acquired from another team
+    bg_class = "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800/50"
+    text_class = "text-emerald-700 dark:text-emerald-300"
+    label = "← #{counterparty}"
+  elsif is_swap
+    # Swap rights
+    bg_class = "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50"
+    text_class = "text-blue-700 dark:text-blue-300"
+    label = "↺ #{counterparty.present? ? counterparty : 'swap'}"
+  else
+    # Own pick
+    bg_class = "bg-background border-border"
+    text_class = "text-foreground"
+    label = "Own"
+  end
+%>
+
+<div
+  class="inline-flex items-center gap-1 px-2 py-1 rounded border text-xs font-medium <%= bg_class %> <%= text_class %>"
+  title="<%= raw_part.presence || 'Draft pick asset' %>"
+>
+  <span><%= label %></span>
+  <% if is_conditional %>
+    <span class="text-[10px] opacity-70" title="Conditional">Ⓟ</span>
+  <% end %>
+  <% if is_swap && asset_type != "SWAP" %>
+    <span class="text-[10px] opacity-70" title="Swap rights">↺</span>
+  <% end %>
+</div>

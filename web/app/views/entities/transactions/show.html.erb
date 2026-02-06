@@ -110,11 +110,16 @@
               <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2 font-mono tabular-nums text-xs"><%= row["ledger_date"] || "—" %></td>
                 <td class="px-3 py-2 text-xs">
-                  <% if row["team_code"].present? %>
-                    <a href="<%= safe_team_href(team_code: row['team_code'], team_id: row['team_id']) %>" class="hover:underline"><%= row["team_code"] %></a>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary">
+                      <% if row["team_code"].present? %>
+                        <a href="<%= safe_team_href(team_code: row['team_code'], team_id: row['team_id']) %>" class="font-medium hover:underline"><%= row["team_code"] %></a>
+                      <% else %>
+                        <span class="text-muted-foreground">—</span>
+                      <% end %>
+                    </div>
+                    <div class="entity-cell-secondary">team_id: <%= row["team_id"] || "—" %></div>
+                  </div>
                 </td>
                 <td class="px-3 py-2 text-xs text-muted-foreground"><%= [row["transaction_type_lk"], row["transaction_description_lk"]].compact.reject(&:blank?).join(' · ').presence || '—' %></td>
                 <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(row["cap_change"]) %></td>

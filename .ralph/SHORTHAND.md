@@ -184,18 +184,14 @@ Guideline: one checkbox = one endnote cluster.
 
 ### Top clusters (4-row clusters) (refreshed 2026-02-06)
 
-As of this refresh: **150 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
+As of this refresh: **138 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
 
 Ordered by rows in `pcms.vw_draft_pick_shorthand_todo` where `primary_todo_reason='missing_shorthand'` and `draft_year >= 2026`.
 
 Note: there are currently **no 5-row clusters**; the largest clusters are 4 rows.
 
-All entries below are currently tied at 4 rows; ordered by endnote_id desc.
+There are currently two 4-row clusters; ordered by endnote_id desc.
 
-- [x] Endnote 77 (4 rows) - LAL/UTA 2027 (rounds 1+2)
-- [x] Endnote 55 (4 rows) - MIN/SAS 2026 2nd
-- [x] Endnote 51 (4 rows) - LAL/ORL/WAS 2028 2nd
-- [ ] Endnote 36 (4 rows) - MIN/SAS 2026 2nd
 - [ ] Endnote 33 (4 rows) - LAC/MEM/POR 2026 2nd
 - [ ] Endnote 17 (4 rows) - BKN/HOU 2027 1st
 
@@ -209,11 +205,9 @@ All entries below are currently tied at 3 rows; ordered by endnote_id desc.
 - [ ] Endnote 169 (3 rows) - Dallas conveys to Charlotte: → DAL 2027 1st
 - [ ] Endnote 146 (3 rows) - Milwaukee conveys to Portland: → Right to swap POR 2028 1st for MIL 2028 1st
 - [ ] Endnote 145 (3 rows) - Phoenix conveys to Orlando: → Right to swap ORL 2026 1st for the "Result Pick"
-- [ ] Endnote 71 (3 rows) - LAL conveys to WAS: → LF [LAL, WAS] 2028 2nd (via endnote 32)
 - [ ] Endnote 59 (3 rows) - ATL conveys to SAS: → CHA 1st (via NYK/endnote 41)
 - [ ] Endnote 41 (3 rows) - NYK conveys to ATL: → CHA 1st (via NYK/endnote 28)
 - [ ] Endnote 37 (3 rows) - POR conveys to CHI: → POR 1st (First allowable draft, 2022-2028)
-- [ ] Endnote 32 (3 rows) - WAS conveys to LAL: → WAS 2028 2nd
 - [ ] Endnote 28 (3 rows) - CHA conveys to NYK: → CHA 1st
 - [ ] Endnote 25 (3 rows) - LAC conveys to ORL: → DET 2026 2nd (via endnote 6)
 - [ ] Endnote 6 (3 rows) - DET conveys to LAC: → DET 2026 2nd
@@ -235,7 +229,6 @@ All entries below are currently tied at 2 rows; ordered by endnote_id desc.
 - [ ] Endnote 244 (2 rows) - Boston conveys to Houston: → LF [NOP, POR] 2027 2nds (via endnote 176)
 - [ ] Endnote 242 (2 rows) - Sacramento conveys to Washington: → DEN 2028 2nd (via endnote 238)
 - [ ] Endnote 238 (2 rows) - San Antonio conveys to Sacramento: → DEN 2028 2nd (via endnote 42)
-- [ ] Endnote 223 (2 rows) - LAL conveys to BKN: → LAL 2027 2nd
 - [ ] Endnote 209 (2 rows) - Denver conveys to Charlotte: → DEN 2029 2nd
 - [ ] Endnote 203 (2 rows) - Brooklyn conveys to New York: → LF [DET, MIL, ORL] 2026 2nds (via endnote 170)
 - [ ] Endnote 201 (2 rows) - Memphis conveys to Minnesota: → MEM 2030 2nd
@@ -250,17 +243,18 @@ All entries below are currently tied at 2 rows; ordered by endnote_id desc.
 - [ ] Endnote 130 (2 rows) - Utah conveys to Atlanta: → MEM 2026 2nd (via endnote 33)
 - [ ] Endnote 95 (2 rows) - Portland conveys to Charlotte: → MF [POR, NOP] 2027 2nds (via endnote 45)
 - [ ] Endnote 87 (2 rows) - GSW conveys to POR: → MEM 2026 2nd (conditional; via endnote 34)
+- [ ] Endnote 71 (2 rows) - LAL conveys to WAS: → LF [LAL, WAS] 2028 2nd (via endnote 32)
 - [ ] Endnote 63 (2 rows) - MIN conveys to UTA: → MIN 2029 1st (conditional; see endnote text for protections)
 - [ ] Endnote 49 (2 rows) - PHI conveys to BKN: → PHI "First Allowable Draft" 1st
 - [ ] Endnote 48 (2 rows) - BOS conveys to ORL: → BOS 2028 2nd
 - [ ] Endnote 42 (2 rows) - DEN conveys to SAS: → DEN 2028 2nd
+- [ ] Endnote 36 (2 rows) - SAS swap right affecting IND/MIA/SAS 2026 2nd (feeds endnote 55)
 - [ ] Endnote 34 (2 rows) - UTA conveys to GSW: → MEM 2026 2nd (via endnote 33)
 - [ ] Endnote 4 (2 rows) - HOU conveys to OKC: → HOU 2026 1st (conditional)
-- [ ] Endnote 1 (2 rows) - MIA conveys to IND: → MIA 2026 2nd
 
 ### One-offs (1-row clusters)
 
-There are currently many 1-row endnote clusters (128 as of this refresh). Use the work-queue query to pull the next one when you're done with the 2-row clusters.
+There are currently many 1-row endnote clusters (131 as of this refresh). Use the work-queue query to pull the next one when you're done with the 2-row clusters.
 
 - [ ] Endnote 246 (1 row) - BOS 2031 2nd MAY_HAVE: `may have HOU(246)`
 - [ ] Endnote 211 (1 row) - MIN 2031 2nd MAY_HAVE: `May have GSW(211)`

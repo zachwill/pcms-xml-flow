@@ -197,7 +197,7 @@ There are currently **no 2+ row clusters**; the entire queue is 1-row clusters. 
 
 Top of queue (ordered by `endnote_id desc`; each is a 1-row cluster):
 
-- [ ] Endnote 289 (1 row) - Utah conveys to Washington: → UTA 2032 2nd
+- [x] Endnote 289 (1 row) - Utah conveys to Washington: → UTA 2032 2nd
 - [ ] Endnote 286 (1 row) - Memphis conveys to Portland: → SAC 2028 2nd (via endnote 259)
 - [ ] Endnote 285 (1 row) - Memphis conveys to Portland: → ATL 2027 2nd (via endnote 160)
 - [ ] Endnote 284 (1 row) - Memphis conveys to Portland: → ORL 2028 1st (via endnote 276)
@@ -255,7 +255,8 @@ When you complete a cluster, add a bullet here with:
 
 Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_pick_assets.display_text` (direction-aware rendering), not the underlying `shorthand` value.
 
-- Endnote 301 - WAS→HOU conveys SAC 2029 2nd via endnote 243. Added shorthands: `SAC` for HOU HAS and SAC TO rows; verified display_text `To HOU: SAC`.
+- Endnote 289 - UTA conveys its 2032 2nd to WAS. Added shorthands: `UTA` for UTA TO and WAS HAS rows; verified display_text `To WAS: UTA`.
+- Endnote 301 - WAS→HOU conveys SAC 2029 2nd via endnote 243. Added shorthands: `SAC` for HOU HAS and SAC TO rows; verified display_text `To HOU: SAC`. 
 - Endnote 71 - LAL→WAS conveys the less favorable of LAL/WAS 2028 2nds (via endnote 32). Added shorthands: `LF [LAL, WAS]` for WAS rows; verified direction-aware display_text (`To WAS: LAL`) on the LAL outgoing row.
 - Endnote 125 - DET→WAS conveys the MF of BKN/DAL 2027 2nds (via DET); DET retains the LF. Added shorthands: `MF [BKN, DAL]` (WAS) and `LF [BKN, DAL]` (DET), plus origin rows `BKN`/`DAL` for direction-aware outgoing display.
 - Endnote 64 - NYK conveys to DET the MF of NYK/MIN 2026 2nds (Burks/Noel, 7/11/2022). Added origin shorthands `NYK` and `MIN` (including the NYK "may have MIN" branch) so outgoing rows render direction-aware `To ...` display.

@@ -198,7 +198,7 @@ There are currently **no 2+ row clusters**; the entire queue is 1-row clusters. 
 Top of queue (ordered by `endnote_id desc`; each is a 1-row cluster):
 
 - [x] Endnote 253 (1 row) - Philadelphia conveys to Detroit: → MIL 2027 2nd (via endnote 175)
-- [ ] Endnote 252 (1 row) - Washington conveys to Philadelphia: → WAS 2030 2nd
+- [x] Endnote 252 (1 row) - Washington conveys to Philadelphia: → WAS 2030 2nd
 - [ ] Endnote 250 (1 row) - Washington conveys to Philadelphia: → GSW 2028 2nd (via endnote 198)
 - [ ] Endnote 247 (1 row) - Philadelphia conveys to Dallas: → PHI 2030 2nd
 - [ ] Endnote 246 (1 row) - Houston conveys to Boston: → HOU 2031 2nd
@@ -373,3 +373,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 257 — MIA→TOR conveys LAL 2026 2nd via CLE/MIA chain (endnotes 7/121). Added shorthand `LAL` for the LAL outgoing row; verified display_text `To TOR: LAL`.
 - Endnote 254 — PHI→DET conveys DAL 2031 2nd via endnote 208. Added shorthand `DAL` for the DAL outgoing row; verified display_text `To DET: DAL`.
 - Endnote 253 — PHI→DET conveys MIL 2027 2nd via endnote 175. Added shorthand `MIL` for the MIL outgoing row; verified display_text `To DET: MIL`.
+- Endnote 252 — WAS conveys its own 2030 2nd to PHI. Added shorthand `WAS` for PHI HAS + WAS TO rows; verified display_text `To PHI: WAS`.

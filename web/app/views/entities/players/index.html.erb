@@ -36,23 +36,65 @@
             </thead>
             <tbody class="divide-y divide-border">
               <% @players.each do |p| %>
-                <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
+                <tr class="group hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                   <td class="px-3 py-2">
-                    <div class="entity-cell-two-line">
-                      <div class="entity-cell-primary">
-                        <a href="<%= player_href(p['player_id']) %>" class="font-medium truncate hover:underline"><%= p["player_name"] %></a>
+                    <div class="grid grid-cols-[32px_1fr] grid-rows-[20px_14px] min-h-[34px]">
+                      <div class="row-span-2 flex items-center justify-start">
+                        <div class="w-7 h-7 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
+                          <img
+                            src="<%= player_headshot_url(p['player_id']) %>"
+                            alt="<%= p['player_name'] %>"
+                            class="w-full h-full object-cover object-top bg-muted"
+                            loading="lazy"
+                            decoding="async"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                          />
+                          <span class="hidden text-[9px] font-semibold text-muted-foreground">NBA</span>
+                        </div>
                       </div>
-                      <div class="entity-cell-secondary">id: <code><%= p["player_id"] %></code></div>
+
+                      <div class="h-[20px] flex items-end min-w-0 pl-1 pr-2 text-[13px]">
+                        <a href="<%= player_href(p['player_id']) %>" class="font-medium truncate hover:underline group-hover:text-primary"><%= p["player_name"] %></a>
+                      </div>
+
+                      <div class="h-[14px] -mt-px flex items-start gap-2 min-w-0 pl-1 pr-2 text-[10px] text-muted-foreground/80 tabular-nums leading-none">
+                        <span>id: <%= p["player_id"] %></span>
+                        <% if p["years_of_service"].present? %>
+                          <span><%= p["years_of_service"].to_i %> YOS</span>
+                        <% end %>
+                        <% if p["is_two_way"] %>
+                          <span class="text-blue-600 dark:text-blue-400">2W</span>
+                        <% end %>
+                      </div>
                     </div>
                   </td>
 
                   <td class="px-3 py-2">
                     <% if p["team_code"].present? %>
-                      <div class="entity-cell-two-line">
-                        <div class="entity-cell-primary">
-                          <a href="<%= team_href(team_code: p['team_code']) %>" class="font-medium hover:underline"><%= p["team_code"] %></a>
+                      <div class="grid grid-cols-[24px_1fr] grid-rows-[20px_14px] min-h-[34px]">
+                        <div class="row-span-2 flex items-center justify-start">
+                          <div class="w-5 h-5 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
+                            <% if p["team_id"].present? %>
+                              <img
+                                src="<%= team_logo_url(p['team_id']) %>"
+                                alt="<%= p['team_code'] %>"
+                                class="w-full h-full object-contain"
+                                loading="lazy"
+                                decoding="async"
+                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                              />
+                              <span class="hidden text-[9px] font-mono text-muted-foreground"><%= p["team_code"] %></span>
+                            <% else %>
+                              <span class="text-[9px] font-mono text-muted-foreground"><%= p["team_code"] %></span>
+                            <% end %>
+                          </div>
                         </div>
-                        <div class="entity-cell-secondary truncate"><%= p["team_name"].presence || "—" %></div>
+
+                        <div class="h-[20px] flex items-end min-w-0 pl-1 pr-2 text-[13px]">
+                          <a href="<%= team_href(team_code: p['team_code']) %>" class="font-medium truncate hover:underline"><%= p["team_code"] %></a>
+                        </div>
+
+                        <div class="h-[14px] -mt-px flex items-start min-w-0 pl-1 pr-2 text-[10px] text-muted-foreground/80 leading-none truncate"><%= p["team_name"].presence || "—" %></div>
                       </div>
                     <% else %>
                       <span class="text-muted-foreground">—</span>

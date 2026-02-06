@@ -19,11 +19,15 @@ module Entities
               t.team_name,
               sbw.agent_id,
               sbw.agent_name,
+              sbw.is_two_way,
+              p.years_of_service,
               sbw.cap_2025::numeric AS cap_2025
             FROM pcms.salary_book_warehouse sbw
             LEFT JOIN pcms.teams t
               ON t.team_code = sbw.team_code
              AND t.league_lk = 'NBA'
+            LEFT JOIN pcms.people p
+              ON p.person_id = sbw.player_id
             WHERE sbw.player_id = #{id_sql}
             ORDER BY sbw.cap_2025 DESC NULLS LAST
             LIMIT 50
@@ -39,11 +43,15 @@ module Entities
               t.team_name,
               sbw.agent_id,
               sbw.agent_name,
+              sbw.is_two_way,
+              p.years_of_service,
               sbw.cap_2025::numeric AS cap_2025
             FROM pcms.salary_book_warehouse sbw
             LEFT JOIN pcms.teams t
               ON t.team_code = sbw.team_code
              AND t.league_lk = 'NBA'
+            LEFT JOIN pcms.people p
+              ON p.person_id = sbw.player_id
             WHERE sbw.player_name ILIKE #{q_sql}
             ORDER BY sbw.cap_2025 DESC NULLS LAST, sbw.player_name
             LIMIT 200
@@ -59,11 +67,15 @@ module Entities
             t.team_name,
             sbw.agent_id,
             sbw.agent_name,
+            sbw.is_two_way,
+            p.years_of_service,
             sbw.cap_2025::numeric AS cap_2025
           FROM pcms.salary_book_warehouse sbw
           LEFT JOIN pcms.teams t
             ON t.team_code = sbw.team_code
            AND t.league_lk = 'NBA'
+          LEFT JOIN pcms.people p
+            ON p.person_id = sbw.player_id
           ORDER BY sbw.cap_2025 DESC NULLS LAST
           LIMIT 50
         SQL
@@ -100,6 +112,7 @@ module Entities
           p.birth_date,
           p.height,
           p.weight,
+          p.uniform_number,
           p.years_of_service,
           p.draft_year,
           p.draft_round,

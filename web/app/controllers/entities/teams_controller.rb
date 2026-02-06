@@ -10,7 +10,7 @@ module Entities
       if q.present?
         q_sql = conn.quote("%#{q}%")
         @teams = conn.exec_query(<<~SQL).to_a
-          SELECT team_id, team_code, team_name, conference_name
+          SELECT team_id, team_code, team_name, conference_name, division_name
           FROM pcms.teams
           WHERE league_lk = 'NBA'
             AND team_name NOT LIKE 'Non-NBA%'
@@ -23,7 +23,7 @@ module Entities
         SQL
       else
         @teams = conn.exec_query(<<~SQL).to_a
-          SELECT team_id, team_code, team_name, conference_name
+          SELECT team_id, team_code, team_name, conference_name, division_name
           FROM pcms.teams
           WHERE league_lk = 'NBA'
             AND team_name NOT LIKE 'Non-NBA%'

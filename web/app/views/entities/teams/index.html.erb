@@ -2,7 +2,7 @@
 
 <div id="entity-directory" class="min-h-screen w-full bg-background">
   <%= render partial: "entities/shared/commandbar", locals: {
-    active_entity_scope: "team"
+    active_entity_scope: "teams"
   } %>
 
   <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
@@ -22,23 +22,39 @@
           <tbody class="divide-y divide-border">
             <% @teams.each do |t| %>
               <% code = t["team_code"].to_s %>
-              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                <td class="px-3 py-2 font-mono tabular-nums">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary font-mono">
+              <tr class="group hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
+                <td class="px-3 py-2">
+                  <div class="grid grid-cols-[24px_1fr] grid-rows-[20px_14px] min-h-[34px]">
+                    <div class="row-span-2 flex items-center justify-start">
+                      <div class="w-5 h-5 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
+                        <img
+                          src="<%= team_logo_url(t['team_id']) %>"
+                          alt="<%= code %>"
+                          class="w-full h-full object-contain"
+                          loading="lazy"
+                          decoding="async"
+                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        />
+                        <span class="hidden text-[9px] font-mono text-muted-foreground"><%= code %></span>
+                      </div>
+                    </div>
+
+                    <div class="h-[20px] flex items-end min-w-0 pl-1 pr-2 text-[13px]">
                       <a href="<%= team_href(team_code: code, team_id: t['team_id']) %>" class="font-medium hover:underline"><%= code %></a>
                     </div>
-                    <div class="entity-cell-secondary">id: <%= t["team_id"] || "—" %></div>
+                    <div class="h-[14px] -mt-px flex items-start min-w-0 pl-1 pr-2 text-[10px] text-muted-foreground/80">id: <%= t["team_id"] || "—" %></div>
                   </div>
                 </td>
+
                 <td class="px-3 py-2">
                   <div class="entity-cell-two-line">
                     <div class="entity-cell-primary">
-                      <a href="<%= team_href(team_code: code, team_id: t['team_id']) %>" class="font-medium truncate hover:underline"><%= t["team_name"] %></a>
+                      <a href="<%= team_href(team_code: code, team_id: t['team_id']) %>" class="font-medium truncate hover:underline group-hover:text-primary"><%= t["team_name"] %></a>
                     </div>
                     <div class="entity-cell-secondary"><%= t["division_name"].presence || "—" %></div>
                   </div>
                 </td>
+
                 <td class="px-3 py-2 text-muted-foreground"><%= t["conference_name"] || "—" %></td>
                 <td class="px-3 py-2 text-right font-mono tabular-nums text-muted-foreground"><%= t["team_id"] %></td>
               </tr>

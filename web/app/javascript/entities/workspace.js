@@ -56,6 +56,17 @@ function setupWorkspace(workspace) {
 
   let scrollOffset = computeScrollOffset();
 
+  const findSectionById = (id) => sections.find((section) => section.id === id);
+
+  const scrollToSection = (id, behavior = "smooth") => {
+    const target = findSectionById(id);
+    if (!target) return;
+
+    const top = window.scrollY + target.element.getBoundingClientRect().top - scrollOffset + 1;
+    window.scrollTo({ top: Math.max(top, 0), behavior });
+    setActiveLink(links, id);
+  };
+
   const refreshActiveFromScroll = () => {
     let active = sections[0];
 
@@ -86,14 +97,33 @@ function setupWorkspace(workspace) {
     const id = window.location.hash.replace(/^#/, "");
     if (!id) return;
 
-    const exists = sections.some((section) => section.id === id);
-    if (exists) setActiveLink(links, id);
+    const target = findSectionById(id);
+    if (!target) return;
+
+    setActiveLink(links, id);
   };
 
   const onResize = () => {
     scrollOffset = computeScrollOffset();
     refreshActiveFromScroll();
   };
+
+  const onLinkClick = (event) => {
+    const href = event.currentTarget?.getAttribute("href") || "";
+    if (!href.startsWith("#")) return;
+
+    const id = href.slice(1);
+    if (!id) return;
+
+    const target = findSectionById(id);
+    if (!target) return;
+
+    event.preventDefault();
+    history.replaceState(null, "", `#${id}`);
+    scrollToSection(id);
+  };
+
+  links.forEach((link) => link.addEventListener("click", onLinkClick));
 
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("hashchange", refreshActiveFromHash);

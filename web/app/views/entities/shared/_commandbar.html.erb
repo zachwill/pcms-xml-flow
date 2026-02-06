@@ -9,6 +9,12 @@
   - on_agents_toggle: Datastar expression for /agents sub-mode toggles
   - header_knobs: Array[Hash] for page-specific radios/checkboxes
 
+  Optional context panel locals:
+  - context_panel: {
+      title:, subtitle:, image_url:, image_alt:, image_fit:, image_abbr:,
+      badges: [], meta: [], links: [[label, href], ...]
+    }
+
   layout locals:
   - container_class: max width container for the bar's inner content (default: max-w-7xl mx-auto)
 %>
@@ -46,6 +52,49 @@
   header_knobs = Array(local_assigns[:header_knobs])
 
   container_class = local_assigns[:container_class].to_s.strip.presence || "max-w-7xl mx-auto"
+
+  context_panel = local_assigns[:context_panel].is_a?(Hash) ? local_assigns[:context_panel] : {}
+  context_title = context_panel[:title].to_s.strip.presence || context_panel["title"].to_s.strip.presence
+  context_subtitle = context_panel[:subtitle].to_s.strip.presence || context_panel["subtitle"].to_s.strip.presence
+  context_image_url = context_panel[:image_url].to_s.strip.presence || context_panel["image_url"].to_s.strip.presence
+  context_image_alt = context_panel[:image_alt].to_s.strip.presence || context_panel["image_alt"].to_s.strip.presence || context_title
+  context_image_abbr = context_panel[:image_abbr].to_s.strip.presence || context_panel["image_abbr"].to_s.strip.presence
+  context_image_fit = context_panel[:image_fit].to_s.strip.presence || context_panel["image_fit"].to_s.strip.presence || "object-cover object-top"
+  context_badges = Array(context_panel[:badges] || context_panel["badges"]).map { |v| v.to_s.strip }.reject(&:blank?)
+  context_meta = Array(context_panel[:meta] || context_panel["meta"]).map { |v| v.to_s.strip }.reject(&:blank?)
+
+  context_links = Array(context_panel[:links] || context_panel["links"]).filter_map do |entry|
+    if entry.is_a?(Array)
+      label = entry[0].to_s.strip
+      href = entry[1].to_s.strip
+      next if label.blank? || href.blank?
+      [label, href]
+    elsif entry.is_a?(Hash)
+      label = (entry[:label] || entry["label"]).to_s.strip
+      href = (entry[:href] || entry["href"]).to_s.strip
+      next if label.blank? || href.blank?
+      [label, href]
+    end
+  end
+
+  salary_book_href = local_assigns[:salary_book_href].to_s.strip.presence
+  salary_book_label = local_assigns[:salary_book_label].to_s.strip.presence || "Open in Salary Book"
+  if salary_book_href.present?
+    context_links.unshift([salary_book_label, salary_book_href])
+  end
+
+  Array(local_assigns[:right_links]).each do |entry|
+    next unless entry.is_a?(Array)
+
+    label = entry[0].to_s.strip
+    href = entry[1].to_s.strip
+    next if label.blank? || href.blank?
+
+    context_links << [label, href]
+  end
+
+  context_links = context_links.uniq
+  context_present = context_title.present? || context_subtitle.present? || context_meta.any? || context_badges.any? || context_links.any?
 
   nav_links = [
     ["agents", "Agents", "/agents"],
@@ -88,6 +137,64 @@
           <% end %>
         </div>
       </div>
+
+      <% if context_present %>
+        <div class="h-20 w-px bg-border self-center"></div>
+
+        <div class="min-w-0 flex-1">
+          <div class="flex items-start gap-3 min-w-0">
+            <div class="w-14 h-14 rounded-lg bg-background border border-border overflow-hidden shrink-0 flex items-center justify-center">
+              <% if context_image_url.present? %>
+                <img
+                  src="<%= context_image_url %>"
+                  alt="<%= context_image_alt %>"
+                  class="w-full h-full <%= context_image_fit %>"
+                  loading="lazy"
+                  decoding="async"
+                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                />
+                <span class="hidden text-[11px] font-semibold text-muted-foreground"><%= context_image_abbr.presence || "—" %></span>
+              <% else %>
+                <span class="text-[11px] font-semibold text-muted-foreground"><%= context_image_abbr.presence || "—" %></span>
+              <% end %>
+            </div>
+
+            <div class="min-w-0 space-y-1.5">
+              <% if context_title.present? || context_badges.any? %>
+                <div class="flex items-center flex-wrap gap-1.5">
+                  <% if context_title.present? %>
+                    <div class="text-sm font-semibold text-foreground truncate max-w-full"><%= context_title %></div>
+                  <% end %>
+
+                  <% context_badges.each do |badge| %>
+                    <span class="entity-chip entity-chip--muted"><%= badge %></span>
+                  <% end %>
+                </div>
+              <% end %>
+
+              <% if context_subtitle.present? %>
+                <div class="text-xs text-muted-foreground truncate max-w-full"><%= context_subtitle %></div>
+              <% end %>
+
+              <% if context_meta.any? %>
+                <div class="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground/90">
+                  <% context_meta.each do |item| %>
+                    <span><%= item %></span>
+                  <% end %>
+                </div>
+              <% end %>
+
+              <% if context_links.any? %>
+                <div class="flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
+                  <% context_links.each do |label, href| %>
+                    <a href="<%= href %>" class="text-muted-foreground hover:text-foreground hover:underline"><%= label %></a>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
 
       <% if header_knobs.any? %>
         <div class="h-20 w-px bg-border self-center"></div>

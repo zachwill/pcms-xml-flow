@@ -14,13 +14,49 @@
 <% room_a1 = current_year_row["room_under_apron1"].to_f %>
 <% room_a2 = current_year_row["room_under_apron2"].to_f %>
 
+<% team_context_badges = [] %>
+<% if current_year_row.present? %>
+  <% if current_year_row["apron_level_lk"].present? && current_year_row["apron_level_lk"] != "NONE" %>
+    <% team_context_badges << current_year_row["apron_level_lk"] %>
+  <% elsif current_year_row["is_taxpayer"] %>
+    <% team_context_badges << "Taxpayer" %>
+  <% else %>
+    <% team_context_badges << "Under tax" %>
+  <% end %>
+  <% team_context_badges << "Repeater" if current_year_row["is_repeater_taxpayer"] %>
+<% else %>
+  <% team_context_badges << "No cap snapshot" %>
+<% end %>
+
+<% team_context_meta = [] %>
+<% team_context_meta << "Roster #{current_year_row['roster_row_count']}/15" if current_year_row.key?("roster_row_count") %>
+<% team_context_meta << "2W #{current_year_row['two_way_row_count']}/3" if current_year_row.key?("two_way_row_count") %>
+<% team_context_meta << "Tax room #{format_room_amount(current_year_row['room_under_tax'])}" if current_year_row.key?("room_under_tax") %>
+<% team_context_meta << "A1 #{format_room_amount(current_year_row['room_under_apron1'])}" if current_year_row.key?("room_under_apron1") %>
+<% team_context_meta << "A2 #{format_room_amount(current_year_row['room_under_apron2'])}" if current_year_row.key?("room_under_apron2") %>
+
+<% team_context_links = [] %>
+<% team_context_links << ["Browse draft assets", "/drafts"] %>
+
 <div id="entity-directory" class="min-h-screen w-full bg-background">
   <%= render partial: "entities/shared/commandbar", locals: {
+    active_entity_scope: "teams",
     title: (team_name.presence || team_code.presence || "Team"),
     title_badge: team_code.presence,
     subtitle: [city, conference, division].compact.reject(&:blank?).join(" · "),
     breadcrumbs: [["Teams", "/teams"], [team_code.presence || "Team", nil]],
     search_scope: "teams",
+    context_panel: {
+      title: (team_name.presence || team_code.presence || "Team"),
+      subtitle: [team_code.presence, city.presence, conference.presence, division.presence].compact.join(" · "),
+      image_url: team_logo_url(@team_id),
+      image_alt: (team_name.presence || team_code.presence || "Team"),
+      image_fit: "object-contain",
+      image_abbr: (team_code.presence || "NBA"),
+      badges: team_context_badges,
+      meta: team_context_meta,
+      links: team_context_links
+    },
     salary_book_href: (team_code.present? ? "/tools/salary-book?team=#{team_code}##{team_code}" : "/tools/salary-book"),
     salary_book_label: (team_code.present? ? "Open in Salary Book" : "Salary Book"),
     right_links: [["Find a player", "/players"]]

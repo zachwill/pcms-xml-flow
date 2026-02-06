@@ -25,12 +25,58 @@
   "#{option} #{year}"
 end %>
 
+<% status_label = @player["player_status_name"].presence || @player["player_status_lk"].presence %>
+<% current_team_code = @salary_book_row&.fetch("team_code", nil).presence || @player["person_team_code"].presence %>
+<% current_team_id = @salary_book_row&.fetch("team_id", nil).presence || @player["person_team_id"] %>
+<% current_team_name = @salary_book_row&.fetch("team_name", nil) %>
+
+<% draft_label_parts = [] %>
+<% draft_label_parts << @player["draft_year"] if @player["draft_year"].present? %>
+<% if @player["draft_round"].present? && @player["draft_pick"].present? %>
+  <% draft_label_parts << "R#{@player['draft_round']} P#{@player['draft_pick']}" %>
+<% end %>
+<% draft_label_parts << @player["draft_team_code"] if @player["draft_team_code"].present? %>
+
+<% player_context_badges = [] %>
+<% player_context_badges << status_label if status_label.present? %>
+<% player_context_badges << "2W" if (@salary_book_row&.fetch("is_two_way", nil) || @player["person_is_two_way"]) %>
+<% player_context_badges << "Trade restricted" if @salary_book_row&.fetch("is_trade_restricted_now", nil) %>
+
+<% player_context_meta = [] %>
+<% player_context_meta << "##{@player['uniform_number']}" if @player["uniform_number"].present? %>
+<% player_context_meta << format_height_inches(@player["height"]) if @player["height"].present? %>
+<% player_context_meta << format_weight_lbs(@player["weight"]) if @player["weight"].present? %>
+<% player_context_meta << "DOB #{format_plain_date(@player['birth_date'])}" if @player["birth_date"].present? %>
+<% player_context_meta << "#{@player['years_of_service'].to_i} YOS" if @player["years_of_service"].present? %>
+<% player_context_meta << "Draft: #{draft_label_parts.join(' · ')}" if draft_label_parts.any? %>
+<% player_context_meta << "Born: #{@player['birth_country_lk']}" if @player["birth_country_lk"].present? %>
+<% player_context_meta << "Current team: #{current_team_name || current_team_code}" if current_team_code.present? %>
+
+<% player_context_links = [] %>
+<% if current_team_code.present? %>
+  <% player_context_links << ["Open team page", team_href(team_code: current_team_code, team_id: current_team_id)] %>
+<% end %>
+<% if @draft_selection.present? %>
+  <% player_context_links << ["Open draft selection", draft_selection_href(@draft_selection['transaction_id'])] %>
+<% end %>
+
 <div id="entity-directory" class="min-h-screen w-full bg-background">
   <%= render partial: "entities/shared/commandbar", locals: {
+    active_entity_scope: "players",
     title: (full_name.presence || "Player"),
     subtitle: "player_id: #{@player_id} · slug: #{@player_slug}",
     breadcrumbs: [["Players", "/players"], [full_name.presence || "Player", nil]],
     search_scope: "players",
+    context_panel: {
+      title: (full_name.presence || "Player"),
+      subtitle: "player_id: #{@player_id} · slug: #{@player_slug}",
+      image_url: player_headshot_url(@player_id),
+      image_alt: (full_name.presence || "Player"),
+      image_abbr: "NBA",
+      badges: player_context_badges,
+      meta: player_context_meta,
+      links: player_context_links
+    },
     salary_book_href: (@salary_book_row&.fetch("team_code", nil).present? ? "/tools/salary-book?team=#{@salary_book_row['team_code']}##{@salary_book_row['team_code']}" : "/tools/salary-book"),
     salary_book_label: "Open in Salary Book",
     right_links: [["Browse Teams", "/teams"]]
@@ -125,7 +171,22 @@ end %>
           <div class="p-4 rounded-lg border border-border bg-background">
             <div class="text-[10px] uppercase tracking-wide text-muted-foreground">Team</div>
             <% if team_code.present? %>
-              <a href="<%= team_href(team_code: team_code, team_id: team_id) %>" class="mt-1 block font-medium hover:underline"><%= team_code %></a>
+              <div class="mt-1 flex items-center gap-2">
+                <% if team_id.present? %>
+                  <div class="w-6 h-6 rounded border border-border bg-background overflow-hidden flex items-center justify-center shrink-0">
+                    <img
+                      src="<%= team_logo_url(team_id) %>"
+                      alt="<%= team_code %>"
+                      class="w-full h-full object-contain"
+                      loading="lazy"
+                      decoding="async"
+                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                    />
+                    <span class="hidden text-[9px] font-mono text-muted-foreground"><%= team_code %></span>
+                  </div>
+                <% end %>
+                <a href="<%= team_href(team_code: team_code, team_id: team_id) %>" class="font-medium hover:underline"><%= team_code %></a>
+              </div>
               <div class="text-sm text-muted-foreground truncate"><%= team_name.presence || "—" %></div>
             <% else %>
               <div class="mt-1 text-sm text-muted-foreground italic">Unknown</div>

@@ -43,7 +43,26 @@
             <% standard_players.each do |p| %>
               <tr class="group hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2">
-                  <a href="<%= player_href(p['player_id']) %>" class="font-medium hover:underline group-hover:text-primary"><%= p["player_name"] %></a>
+                  <div class="grid grid-cols-[28px_1fr] grid-rows-[20px_14px] min-h-[34px]">
+                    <div class="row-span-2 flex items-center justify-start">
+                      <div class="w-6 h-6 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
+                        <img
+                          src="<%= player_headshot_url(p['player_id']) %>"
+                          alt="<%= p['player_name'] %>"
+                          class="w-full h-full object-cover object-top"
+                          loading="lazy"
+                          decoding="async"
+                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        />
+                        <span class="hidden text-[9px] font-semibold text-muted-foreground">NBA</span>
+                      </div>
+                    </div>
+
+                    <div class="h-[20px] flex items-end min-w-0 pl-1 pr-1 text-[13px]">
+                      <a href="<%= player_href(p['player_id']) %>" class="font-medium truncate hover:underline group-hover:text-primary"><%= p["player_name"] %></a>
+                    </div>
+                    <div class="h-[14px] -mt-px flex items-start min-w-0 pl-1 pr-1 text-[10px] text-muted-foreground/80">id: <%= p["player_id"] %></div>
+                  </div>
                 </td>
                 <td class="px-3 py-2">
                   <% if p["agent_id"].present? && p["agent_name"].present? %>
@@ -97,8 +116,28 @@
             <% two_way_players.each do |p| %>
               <tr class="group hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2">
-                  <a href="<%= player_href(p['player_id']) %>" class="font-medium hover:underline group-hover:text-primary"><%= p["player_name"] %></a>
-                  <span class="ml-1 entity-chip entity-chip--success">2W</span>
+                  <div class="grid grid-cols-[28px_1fr] grid-rows-[20px_14px] min-h-[34px]">
+                    <div class="row-span-2 flex items-center justify-start">
+                      <div class="w-6 h-6 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
+                        <img
+                          src="<%= player_headshot_url(p['player_id']) %>"
+                          alt="<%= p['player_name'] %>"
+                          class="w-full h-full object-cover object-top"
+                          loading="lazy"
+                          decoding="async"
+                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        />
+                        <span class="hidden text-[9px] font-semibold text-muted-foreground">NBA</span>
+                      </div>
+                    </div>
+
+                    <div class="h-[20px] flex items-end min-w-0 pl-1 pr-1 text-[13px]">
+                      <a href="<%= player_href(p['player_id']) %>" class="font-medium truncate hover:underline group-hover:text-primary"><%= p["player_name"] %></a>
+                    </div>
+                    <div class="h-[14px] -mt-px flex items-start min-w-0 pl-1 pr-1 text-[10px] text-muted-foreground/80">
+                      <span class="entity-chip entity-chip--success">2W</span>
+                    </div>
+                  </div>
                 </td>
                 <td class="px-3 py-2">
                   <% if p["agent_id"].present? && p["agent_name"].present? %>

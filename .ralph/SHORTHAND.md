@@ -185,26 +185,17 @@ Guideline: one checkbox = one endnote cluster.
 
 - [x] (bootstrap) Create SHORTHAND backlog file + agent wiring
 
-### Top clusters (2-row clusters) (refreshed 2026-02-06)
+### Work queue snapshot (refreshed 2026-02-06)
 
-As of this refresh: **92 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
+As of this refresh: **88 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
 
 Ordered by rows in `pcms.vw_draft_pick_shorthand_todo` (deduping `effective_endnote_ids` per row).
 
 Note: `effective_endnote_ids` sometimes contains duplicates (e.g. `{5,5,5,...}`), so we always use `select distinct unnest(...)` per row in the work-queue query to avoid overstating cluster sizes.
 
-There are currently **no 3+ row clusters**; the largest clusters are 2 rows.
+There are currently **no 2+ row clusters**; the entire queue is 1-row clusters. There are **128 distinct endnote_ids** referenced by these 88 rows.
 
-There are currently 2 2-row clusters; ordered by endnote_id desc.
-
-- [x] Endnote 36 (2 rows) - SAS swap right affecting IND/MIA/SAS 2026 2nd (feeds endnote 55)
-- [x] Endnote 4 (2 rows) - HOU conveys to OKC: → HOU 2026 1st (conditional)
-
-### One-offs / follow-ups (1-row clusters)
-
-There are currently many 1-row endnote clusters (**129** as of this refresh). Use the work-queue query to pull the next one when you're done with the 2-row clusters.
-
-A few notable one-offs to keep on the radar (ordered by endnote_id desc):
+Top of queue (ordered by `endnote_id desc`; each is a 1-row cluster):
 
 - [ ] Endnote 323 (1 row) - Miami conveys to Brooklyn: → MIA 2032 2nd
 - [ ] Endnote 318 (1 row) - Denver conveys to Brooklyn: → DEN 2032 1st
@@ -237,6 +228,15 @@ A few notable one-offs to keep on the radar (ordered by endnote_id desc):
 - [ ] Endnote 253 (1 row) - Philadelphia conveys to Detroit: → MIL 2027 2nd (via endnote 175)
 - [ ] Endnote 252 (1 row) - Washington conveys to Philadelphia: → WAS 2030 2nd
 - [ ] Endnote 250 (1 row) - Washington conveys to Philadelphia: → GSW 2028 2nd (via endnote 198)
+- [ ] Endnote 247 (1 row) - Philadelphia conveys to Dallas: → PHI 2030 2nd
+- [ ] Endnote 246 (1 row) - Houston conveys to Boston: → HOU 2031 2nd
+- [ ] Endnote 245 (1 row) - Boston conveys to Houston: → BOS 2030 2nd
+- [ ] Endnote 243 (1 row) - Sacramento conveys to Washington: → SAC 2029 2nd
+- [ ] Endnote 237 (1 row) - San Antonio conveys to Sacramento: → MIN 2031 1st (via endnote 184)
+- [ ] Endnote 233 (1 row) - LAL conveys to Dallas: → LAL 2029 1st
+- [ ] Endnote 229 (1 row) - Phoenix conveys to Utah: → PHX 2031 1st
+- [ ] Endnote 228 (1 row) - Phoenix conveys to Charlotte: → PHX 2031 2nd
+- [ ] Endnote 227 (1 row) - Phoenix conveys to Charlotte: → DEN 2031 2nd (via endnote 182)
 
 Older but structurally important / easy wins:
 
@@ -246,7 +246,8 @@ Older but structurally important / easy wins:
 - [ ] Endnote 143 (1 row) - Orlando conveys to Phoenix: → LF [ORL, DET, MIL] 2026 2nds (via endnotes 25/5)
 - [ ] Endnote 5 (1 row) - Milwaukee conveys to Orlando: → MIL 2026 2nd
 
-- [ ] Endnote 246 (1 row) - BOS 2031 2nd MAY_HAVE: `may have HOU(246)`
+May-have / "resulting pick" patterns to keep on the radar:
+
 - [ ] Endnote 211 (1 row) - MIN 2031 2nd MAY_HAVE: `May have GSW(211)`
 - [ ] Endnote 193 (1 row) - ORL 2031 2nd MAY_HAVE: `May have NOP(193)` (swap right conveyed from NOP)
 - [ ] Endnote 9 (1 row) - MIL 2026 1st MAY_HAVE: `May have NOP(9)`

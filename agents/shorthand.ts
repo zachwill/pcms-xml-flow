@@ -104,7 +104,7 @@ REPO HYGIENE (important):
         `,
         {
           provider: "openai-codex",
-          model: "gpt-5.2",
+          model: "gpt-5.2-codex",
           thinking: "high",
           timeout: "12m",
         },

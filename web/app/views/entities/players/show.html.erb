@@ -3,7 +3,7 @@
 <% content_for :title, full_name.presence || "Player" %>
 
 <% yearly_book = (@salary_book_yearly_rows || []).index_by { |r| r["salary_year"].to_i } %>
-<% prefetch_canonical_slugs(entity_type: "team", entity_ids: [@salary_book_row&.fetch("team_id", nil)] + @contract_chronology_rows.map { |r| r["signing_team_id"] } + @contract_chronology_rows.map { |r| r["sign_and_trade_to_team_id"] } + @ledger_entries.map { |r| r["team_id"] }) %>
+<% prefetch_canonical_slugs(entity_type: "team", entity_ids: [@salary_book_row&.fetch("team_id", nil)] + @contract_chronology_rows.map { |r| r["signing_team_id"] } + @contract_chronology_rows.map { |r| r["sign_and_trade_to_team_id"] } + @ledger_entries.map { |r| r["team_id"] } + (@team_history_rows || []).map { |r| r["team_id"] }) %>
 
 <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
   <%= render partial: "entities/shared/entity_header", locals: {
@@ -129,6 +129,141 @@
       <% if @salary_book_row&.fetch("total_salary_from_2025", nil).present? %>
         · Total from 2025: <span class="font-mono tabular-nums"><%= format_salary(@salary_book_row["total_salary_from_2025"]) %></span>
       <% end %>
+    </div>
+  </section>
+
+  <section class="space-y-3">
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contract snapshot (salary book horizon)</h2>
+
+    <% if @salary_book_row.present? %>
+      <% horizon_years = (2025..2030).to_a %>
+      <div class="overflow-x-auto rounded-lg border border-border">
+        <div class="flex min-w-max">
+          <% horizon_years.each do |year| %>
+            <% cap_amt = @salary_book_row["cap_#{year}"]&.to_f %>
+            <% option = normalize_contract_option(@salary_book_row["option_#{year}"]) %>
+            <% is_guaranteed = @salary_book_row["is_fully_guaranteed_#{year}"] %>
+            <% is_partial = @salary_book_row["is_partially_guaranteed_#{year}"] %>
+            <% is_non_gtd = @salary_book_row["is_non_guaranteed_#{year}"] %>
+            <% gtd_amount = @salary_book_row["guaranteed_amount_#{year}"]&.to_f %>
+            <%
+              bg_class = ""
+              if option.present? && year > 2025
+                case option
+                when "PO"
+                  bg_class = "bg-blue-50/80 dark:bg-blue-900/20"
+                when "TO"
+                  bg_class = "bg-purple-50/80 dark:bg-purple-900/20"
+                when "ETO"
+                  bg_class = "bg-orange-50/80 dark:bg-orange-900/20"
+                end
+              elsif is_non_gtd
+                bg_class = "bg-yellow-50/80 dark:bg-yellow-900/20"
+              elsif is_partial
+                bg_class = "bg-amber-50/60 dark:bg-amber-900/15"
+              end
+            %>
+            <div class="flex-1 min-w-24 p-3 text-center border-r border-border last:border-r-0 <%= bg_class %>">
+              <div class="text-[10px] text-muted-foreground uppercase tracking-wide font-medium"><%= format_year_label(year) %></div>
+              <% if cap_amt.present? && cap_amt > 0 %>
+                <div class="mt-1 text-base font-semibold font-mono tabular-nums"><%= format_salary(cap_amt) %></div>
+                <% if option.present? %>
+                  <div class="mt-1 inline-block px-1.5 py-0.5 rounded text-[10px] font-medium
+                    <%= case option
+                        when 'PO' then 'bg-blue-100 text-blue-700 dark:bg-blue-800/40 dark:text-blue-300'
+                        when 'TO' then 'bg-purple-100 text-purple-700 dark:bg-purple-800/40 dark:text-purple-300'
+                        when 'ETO' then 'bg-orange-100 text-orange-700 dark:bg-orange-800/40 dark:text-orange-300'
+                        else ''
+                        end %>
+                  "><%= option %></div>
+                <% elsif is_non_gtd %>
+                  <div class="mt-1 text-[10px] text-yellow-700 dark:text-yellow-400">Non-GTD</div>
+                <% elsif is_partial && gtd_amount.present? && gtd_amount > 0 %>
+                  <div class="mt-1 text-[10px] text-muted-foreground">GTD <%= format_salary(gtd_amount) %></div>
+                <% end %>
+              <% else %>
+                <div class="mt-1 text-sm text-muted-foreground/50">—</div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <% total_salary = horizon_years.sum { |y| @salary_book_row["cap_#{y}"]&.to_f || 0 } %>
+      <div class="flex items-center gap-4 text-sm">
+        <div>
+          <span class="text-muted-foreground">Total:</span>
+          <span class="font-semibold font-mono tabular-nums"><%= format_salary(total_salary) %></span>
+        </div>
+        <% if @salary_book_row["is_two_way"] %>
+          <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-800/40 dark:text-emerald-300">Two-Way</span>
+        <% end %>
+        <% if @salary_book_row["is_min_contract"] %>
+          <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700 dark:bg-gray-800/60 dark:text-gray-300">Vet Min</span>
+        <% end %>
+        <% if @salary_book_row["is_trade_bonus"] %>
+          <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-800/40 dark:text-orange-300">
+            Trade Kicker<%= @salary_book_row["trade_bonus_percent"].present? ? " #{@salary_book_row['trade_bonus_percent'].to_f.round}%" : "" %>
+          </span>
+        <% end %>
+        <% if @salary_book_row["is_no_trade"] %>
+          <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-800/40 dark:text-red-300">No-Trade</span>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No contract data found.</div>
+    <% end %>
+  </section>
+
+  <section class="space-y-3">
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Team history</h2>
+
+    <% if (@team_history_rows || []).empty? %>
+      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No team history found.</div>
+    <% else %>
+      <div class="flex flex-wrap gap-2">
+        <% @team_history_rows.each_with_index do |row, idx| %>
+          <% is_current = (row["team_code"] == @salary_book_row&.fetch("team_code", nil)) %>
+          <div class="flex items-center gap-2 px-3 py-2 rounded-lg border <%= is_current ? 'border-primary/50 bg-primary/5' : 'border-border bg-background' %>">
+            <% if row["team_id"].present? %>
+              <img
+                src="<%= team_logo_url(row['team_id']) %>"
+                alt="<%= row['team_code'] %>"
+                class="w-6 h-6 object-contain"
+                onerror="this.style.display='none'"
+              />
+            <% end %>
+            <div>
+              <a href="<%= team_href(team_code: row['team_code'], team_id: row['team_id']) %>" class="font-medium hover:underline"><%= row["team_code"] %></a>
+              <% if is_current %>
+                <span class="ml-1 text-[10px] text-primary font-medium">(current)</span>
+              <% end %>
+              <div class="text-[10px] text-muted-foreground">
+                <%= row["start_date"] ? row["start_date"].to_s.slice(0, 4) : "?" %>
+                <% if row["last_date"] && row["start_date"] != row["last_date"] %>
+                  → <%= row["last_date"].to_s.slice(0, 4) %>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <div class="text-xs text-muted-foreground">
+        Based on <span class="font-mono"><%= (@team_history_rows || []).sum { |r| r["tx_count"].to_i } %></span> transactions
+        (<%= (@team_history_rows || []).flat_map { |r| r["tx_types"] || [] }.uniq.sort.join(", ") %>)
+      </div>
+    <% end %>
+  </section>
+
+  <section class="space-y-3">
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Stats + metrics (placeholder)</h2>
+    <div class="p-4 rounded-lg bg-muted/30 border border-border/50">
+      <div class="text-sm text-muted-foreground">
+        <strong>Coming soon:</strong> NBA API stats, advanced metrics, and league percentiles.
+      </div>
+      <div class="mt-2 text-xs text-muted-foreground/70">
+        This module will show per-game stats, career totals, and comparative league percentiles once the NBA API data ingestion is complete.
+      </div>
     </div>
   </section>
 

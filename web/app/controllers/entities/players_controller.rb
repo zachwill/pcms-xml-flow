@@ -209,6 +209,38 @@ module Entities
         LIMIT 1
       SQL
 
+      # Team history (derived from transactions) — track stints with each team.
+      # Uses key transaction types that indicate team changes (SIGN, TRADE, DRAFT, etc.)
+      @team_history_rows = conn.exec_query(<<~SQL).to_a
+        WITH team_transactions AS (
+          SELECT
+            tx.transaction_id,
+            tx.transaction_date,
+            tx.transaction_type_lk,
+            COALESCE(to_team.team_id, from_team.team_id) AS team_id,
+            COALESCE(to_team.team_code, from_team.team_code) AS team_code,
+            COALESCE(to_team.team_name, from_team.team_name) AS team_name,
+            tx.trade_id
+          FROM pcms.transactions tx
+          LEFT JOIN pcms.teams from_team ON from_team.team_id = tx.from_team_id AND from_team.league_lk = 'NBA'
+          LEFT JOIN pcms.teams to_team ON to_team.team_id = tx.to_team_id AND to_team.league_lk = 'NBA'
+          WHERE tx.player_id = #{id_sql}
+            AND tx.transaction_type_lk IN ('SIGN', 'TRADE', 'DRAFT', 'DDRFT', 'WSIGN', 'REAQC', 'REAQT', 'CLLUP', '2WCNV')
+        )
+        SELECT
+          team_code,
+          team_id,
+          team_name,
+          MIN(transaction_date) AS start_date,
+          MAX(transaction_date) AS last_date,
+          array_agg(DISTINCT transaction_type_lk ORDER BY transaction_type_lk) AS tx_types,
+          COUNT(*)::integer AS tx_count
+        FROM team_transactions
+        WHERE team_code IS NOT NULL
+        GROUP BY team_code, team_id, team_name
+        ORDER BY start_date
+      SQL
+
       # Salary warehouse yearly rows (cap/tax/apron) for salary-book parity.
       @salary_book_yearly_rows = conn.exec_query(<<~SQL).to_a
         SELECT

@@ -198,7 +198,7 @@ There are currently **no 2+ row clusters**; the entire queue is 1-row clusters. 
 Top of queue (ordered by `endnote_id desc`; each is a 1-row cluster):
 
 - [x] Endnote 312 (1 row) - Atlanta conveys to Minnesota: → CLE 2027 2nd (via endnote 270)
-- [ ] Endnote 306 (1 row) - Houston conveys to Brooklyn: → BOS 2030 2nd (via endnote 245)
+- [x] Endnote 306 (1 row) - Houston conveys to Brooklyn: → BOS 2030 2nd (via endnote 245)
 - [ ] Endnote 302 (1 row) - Indiana conveys to Memphis: → POR 2029 2nd (via endnote 166)
 - [ ] Endnote 301 (1 row) - Washington conveys to Houston: → SAC 2029 2nd (via endnote 243)
 - [ ] Endnote 300 (1 row) - Washington conveys to Houston: → CHI 2026 2nd (via endnote 110)
@@ -374,3 +374,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 318 — Denver conveys its own 2032 1st to Brooklyn (Porter/Johnson trade). Added shorthand `DEN` for the DEN outgoing row so display_text renders `To BKN: DEN`.
 - Endnote 315 — LAC conveys its own 2027 2nd to Utah (Collins/Powell/Anderson/Love trade). Added `LAC` shorthand for LAC outgoing and UTA HAS rows; verified `To UTA: LAC` display_text.
 - Endnote 312 — ATL→MIN conveys CLE 2027 2nd (via endnote 270). Added `CLE` shorthand for the CLE outgoing row; verified direction-aware display_text (`To MIN: CLE`).
+- Endnote 306 — HOU→BKN conveys BOS 2030 2nd (via endnote 245). Added `BOS` shorthand for the BOS outgoing row; verified `To BKN: BOS` display_text.

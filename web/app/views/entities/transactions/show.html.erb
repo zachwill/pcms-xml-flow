@@ -1,9 +1,32 @@
 <% tx = @transaction %>
 <% content_for :title, "Transaction ##{tx['transaction_id']}" %>
+
 <% prefetch_canonical_slugs(entity_type: "player", entity_ids: [tx["player_id"]] + @trade_transactions.map { |r| r["player_id"] } + @cap_exception_usage_rows.map { |r| r["player_id"] } + @cap_dead_money_rows.map { |r| r["player_id"] } + @cap_budget_snapshot_rows.map { |r| r["player_id"] }) %>
 <% prefetch_canonical_slugs(entity_type: "team", entity_ids: [tx["from_team_id"], tx["to_team_id"], tx["rights_team_id"], tx["sign_and_trade_team_id"]] + @ledger_entries.map { |r| r["team_id"] } + @cap_exception_usage_rows.map { |r| r["team_id"] } + @cap_dead_money_rows.map { |r| r["team_id"] } + @cap_budget_snapshot_rows.map { |r| r["team_id"] }) %>
 
-<main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+<%
+  party_rows = []
+  {
+    "From" => [tx["from_team_code"], tx["from_team_id"], tx["from_team_name"]],
+    "To" => [tx["to_team_code"], tx["to_team_id"], tx["to_team_name"]],
+    "Rights" => [tx["rights_team_code"], tx["rights_team_id"], tx["rights_team_name"]],
+    "S&T" => [tx["sign_and_trade_team_code"], tx["sign_and_trade_team_id"], tx["sign_and_trade_team_name"]]
+  }.each do |role, tuple|
+    code, id, name = tuple
+    next if code.blank? && id.blank?
+    party_rows << { role: role, team_code: code, team_id: id, team_name: name }
+  end
+
+  delta_by_team = @ledger_entries.group_by { |r| [r["team_id"], r["team_code"]] }.transform_values do |rows|
+    {
+      cap_change: rows.sum { |v| v["cap_change"].to_f },
+      tax_change: rows.sum { |v| v["tax_change"].to_f },
+      apron_change: rows.sum { |v| v["apron_change"].to_f }
+    }
+  end
+%>
+
+<main class="max-w-7xl mx-auto px-4 py-6 space-y-6" data-entity-workspace>
   <%= render partial: "entities/shared/entity_header", locals: {
     title: "Transaction ##{tx['transaction_id']}",
     subtitle: [tx['transaction_date'], tx['transaction_type_lk'], tx['transaction_description_lk']].compact.join(' · '),
@@ -16,435 +39,301 @@
     search_enabled: false
   } %>
 
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Connections</h2>
+  <div class="lg:flex lg:gap-8">
+    <%= render partial: "entities/shared/local_nav", locals: {
+      sections: [
+        ["vitals", "Vitals"],
+        ["constraints", "Constraint posture"],
+        ["parties", "Parties"],
+        ["trade-context", "Trade context"],
+        ["ledger", "Ledger impact"],
+        ["artifacts", "Cap artifacts"]
+      ]
+    } %>
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-      <div class="p-4 rounded-lg border border-border bg-background">
-        <div class="text-xs text-muted-foreground">Player</div>
-        <div class="mt-1">
-          <% if tx["player_id"].present? %>
-            <a href="<%= player_href(tx['player_id']) %>" class="font-medium hover:underline"><%= tx["player_name"] %></a>
-          <% else %>
-            <span class="text-sm text-muted-foreground italic">—</span>
-          <% end %>
+    <div class="min-w-0 flex-1 space-y-6">
+      <section id="vitals" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Vitals</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="rounded-lg border border-border bg-background p-3">
+            <div class="text-xs text-muted-foreground">Transaction date</div>
+            <div class="mt-1 text-sm font-medium"><%= tx["transaction_date"] || "—" %></div>
+          </div>
+          <div class="rounded-lg border border-border bg-background p-3">
+            <div class="text-xs text-muted-foreground">Type</div>
+            <div class="mt-1 text-sm font-medium"><%= tx["transaction_type_lk"] || "—" %></div>
+          </div>
+          <div class="rounded-lg border border-border bg-background p-3">
+            <div class="text-xs text-muted-foreground">Description</div>
+            <div class="mt-1 text-sm font-medium"><%= tx["transaction_description_lk"] || "—" %></div>
+          </div>
+          <div class="rounded-lg border border-border bg-background p-3">
+            <div class="text-xs text-muted-foreground">Player</div>
+            <div class="mt-1 text-sm font-medium">
+              <% if tx["player_id"].present? %>
+                <a href="<%= player_href(tx['player_id']) %>" class="hover:underline"><%= tx["player_name"] %></a>
+              <% else %>
+                —
+              <% end %>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div class="p-4 rounded-lg border border-border bg-background">
-        <div class="text-xs text-muted-foreground">From team</div>
-        <div class="mt-1">
-          <% if tx["from_team_code"].present? %>
-            <a href="<%= safe_team_href(team_code: tx['from_team_code'], team_id: tx['from_team_id']) %>" class="font-medium hover:underline"><%= tx["from_team_code"] %></a>
-            <% if tx["from_team_name"].present? %>
-              <div class="text-sm text-muted-foreground"><%= tx["from_team_name"] %></div>
+      <section id="constraints" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Constraint posture</h2>
+        <div class="flex flex-wrap gap-2">
+          <% chips = [] %>
+          <% chips << ["Touches trade ##{tx['trade_id']}", "entity-chip--accent"] if tx["trade_id"].present? %>
+          <% chips << ["Exception usage rows: #{@cap_exception_usage_rows.size}", "entity-chip--warning"] if @cap_exception_usage_rows.any? %>
+          <% chips << ["Dead money impact rows: #{@cap_dead_money_rows.size}", "entity-chip--danger"] if @cap_dead_money_rows.any? %>
+          <% chips << ["Budget snapshot rows: #{@cap_budget_snapshot_rows.size}", "entity-chip--muted"] if @cap_budget_snapshot_rows.any? %>
+
+          <% if chips.empty? %>
+            <span class="entity-chip entity-chip--muted">No explicit cap constraints detected</span>
+          <% else %>
+            <% chips.each do |label, klass| %>
+              <span class="entity-chip <%= klass %>"><%= label %></span>
             <% end %>
-          <% else %>
-            <span class="text-sm text-muted-foreground italic">—</span>
           <% end %>
         </div>
-      </div>
+      </section>
 
-      <div class="p-4 rounded-lg border border-border bg-background">
-        <div class="text-xs text-muted-foreground">To team</div>
-        <div class="mt-1">
-          <% if tx["to_team_code"].present? %>
-            <a href="<%= safe_team_href(team_code: tx['to_team_code'], team_id: tx['to_team_id']) %>" class="font-medium hover:underline"><%= tx["to_team_code"] %></a>
-            <% if tx["to_team_name"].present? %>
-              <div class="text-sm text-muted-foreground"><%= tx["to_team_name"] %></div>
-            <% end %>
-          <% else %>
-            <span class="text-sm text-muted-foreground italic">—</span>
-          <% end %>
-        </div>
-      </div>
-
-      <div class="p-4 rounded-lg border border-border bg-background">
-        <div class="text-xs text-muted-foreground">Trade</div>
-        <div class="mt-1">
-          <% if tx["trade_id"].present? %>
-            <a href="<%= trade_href(tx['trade_id']) %>" class="font-medium hover:underline">Trade #<%= tx["trade_id"] %></a>
-            <% if @trade.present? %>
-              <div class="text-xs text-muted-foreground mt-1">
-                teams: <%= @trade["team_count"] || 0 %> · players: <%= @trade["player_line_item_count"] || 0 %> · picks: <%= @trade["pick_line_item_count"] || 0 %>
-              </div>
-            <% end %>
-          <% else %>
-            <span class="text-sm text-muted-foreground italic">Standalone</span>
-          <% end %>
-        </div>
-      </div>
-    </div>
-
-    <% if @draft_selection.present? %>
-      <div class="text-sm text-muted-foreground">
-        Draft selection pivot:
-        <a href="<%= draft_selection_href(@draft_selection['transaction_id']) %>" class="hover:underline">
-          <%= @draft_selection["draft_year"] %> R<%= @draft_selection["draft_round"] %> P<%= @draft_selection["pick_number"] %>
-        </a>
-      </div>
-    <% end %>
-  </section>
-
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ledger impact</h2>
-
-    <% if @ledger_entries.empty? %>
-      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No ledger rows for this transaction.</div>
-    <% else %>
-      <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="entity-table min-w-full text-xs">
-          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-            <tr>
-              <th class="text-left px-3 py-2 font-medium">Date</th>
-              <th class="text-left px-3 py-2 font-medium">Team</th>
-              <th class="text-left px-3 py-2 font-medium">Type</th>
-              <th class="text-right px-3 py-2 font-medium">Cap change</th>
-              <th class="text-right px-3 py-2 font-medium">Tax change</th>
-              <th class="text-right px-3 py-2 font-medium">Apron change</th>
-              <th class="text-right px-3 py-2 font-medium">MTS change</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <% @ledger_entries.each do |row| %>
-              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                <td class="px-3 py-2 font-mono tabular-nums text-xs"><%= row["ledger_date"] || "—" %></td>
-                <td class="px-3 py-2 text-xs">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary">
-                      <% if row["team_code"].present? %>
-                        <a href="<%= safe_team_href(team_code: row['team_code'], team_id: row['team_id']) %>" class="font-medium hover:underline"><%= row["team_code"] %></a>
+      <section id="parties" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Parties</h2>
+        <% if party_rows.empty? %>
+          <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No team party rows for this transaction.</div>
+        <% else %>
+          <div class="overflow-x-auto rounded-lg border border-border">
+            <table class="entity-table min-w-full text-xs">
+              <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+                <tr>
+                  <th class="text-left px-3 py-2 font-medium">Role</th>
+                  <th class="text-left px-3 py-2 font-medium">Team</th>
+                  <th class="text-left px-3 py-2 font-medium">Player</th>
+                  <th class="text-right px-3 py-2 font-medium">Cap Δ</th>
+                  <th class="text-right px-3 py-2 font-medium">Tax Δ</th>
+                  <th class="text-right px-3 py-2 font-medium">Apron Δ</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                <% party_rows.each do |row| %>
+                  <% deltas = delta_by_team[[row[:team_id], row[:team_code]]] || {} %>
+                  <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
+                    <td class="px-3 py-2 text-muted-foreground"><%= row[:role] %></td>
+                    <td class="px-3 py-2">
+                      <a href="<%= safe_team_href(team_code: row[:team_code], team_id: row[:team_id]) %>" class="font-medium hover:underline"><%= row[:team_code].presence || row[:team_id] %></a>
+                      <div class="text-[10px] text-muted-foreground"><%= row[:team_name].presence || "—" %></div>
+                    </td>
+                    <td class="px-3 py-2">
+                      <% if tx["player_id"].present? %>
+                        <a href="<%= player_href(tx['player_id']) %>" class="hover:underline"><%= tx["player_name"] %></a>
                       <% else %>
                         <span class="text-muted-foreground">—</span>
                       <% end %>
-                    </div>
-                    <div class="entity-cell-secondary">team_id: <%= row["team_id"] || "—" %></div>
-                  </div>
-                </td>
-                <td class="px-3 py-2 text-xs text-muted-foreground"><%= [row["transaction_type_lk"], row["transaction_description_lk"]].compact.reject(&:blank?).join(' · ').presence || '—' %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(row["cap_change"]) %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(row["tax_change"]) %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(row["apron_change"]) %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(row["mts_change"]) %></td>
-              </tr>
+                    </td>
+                    <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(deltas[:cap_change]) %></td>
+                    <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(deltas[:tax_change]) %></td>
+                    <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(deltas[:apron_change]) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </section>
+
+      <section id="trade-context" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Trade context</h2>
+        <% if tx["trade_id"].present? %>
+          <div class="rounded-lg border border-border bg-background p-4 space-y-2">
+            <div class="text-sm">
+              <a href="<%= trade_href(tx['trade_id']) %>" class="font-medium hover:underline">Trade #<%= tx["trade_id"] %></a>
+              <% if @trade.present? %>
+                <span class="text-muted-foreground">· teams: <%= @trade["team_count"] || 0 %> · players: <%= @trade["player_line_item_count"] || 0 %> · picks: <%= @trade["pick_line_item_count"] || 0 %></span>
+              <% end %>
+            </div>
+
+            <% if @trade_transactions.any? %>
+              <details class="rounded border border-border/60 p-3">
+                <summary class="cursor-pointer text-sm font-medium">Other transactions in this trade (<%= @trade_transactions.size %>)</summary>
+                <div class="mt-3 overflow-x-auto">
+                  <table class="entity-table min-w-full text-xs">
+                    <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+                      <tr>
+                        <th class="text-left px-3 py-2 font-medium">Transaction</th>
+                        <th class="text-left px-3 py-2 font-medium">Date</th>
+                        <th class="text-left px-3 py-2 font-medium">Player</th>
+                        <th class="text-left px-3 py-2 font-medium">Route</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                      <% @trade_transactions.each do |row| %>
+                        <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
+                          <td class="px-3 py-2 font-mono tabular-nums"><a href="<%= transaction_href(row['transaction_id']) %>" class="hover:underline">#<%= row["transaction_id"] %></a></td>
+                          <td class="px-3 py-2 text-muted-foreground"><%= row["transaction_date"] || "—" %></td>
+                          <td class="px-3 py-2">
+                            <% if row["player_id"].present? %>
+                              <a href="<%= player_href(row['player_id']) %>" class="hover:underline"><%= row["player_name"] %></a>
+                            <% else %>
+                              <span class="text-muted-foreground">—</span>
+                            <% end %>
+                          </td>
+                          <td class="px-3 py-2 text-muted-foreground"><%= [row["from_team_code"], row["to_team_code"]].compact.reject(&:blank?).join(' → ').presence || '—' %></td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                </div>
+              </details>
             <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
-  </section>
-
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cap artifacts</h2>
-
-    <div class="space-y-3">
-      <div class="rounded-lg border border-border bg-background p-3 space-y-2">
-        <div class="text-sm font-medium">Exception usage</div>
-        <% if @cap_exception_usage_rows.empty? %>
-          <div class="text-sm text-muted-foreground italic">No team exception usage rows for this transaction.</div>
+          </div>
         <% else %>
-          <div class="overflow-x-auto">
+          <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">Standalone transaction (no trade_id).</div>
+        <% end %>
+      </section>
+
+      <section id="ledger" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ledger impact</h2>
+        <% if @ledger_entries.empty? %>
+          <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No ledger rows for this transaction.</div>
+        <% else %>
+          <div class="overflow-x-auto rounded-lg border border-border">
             <table class="entity-table min-w-full text-xs">
-              <thead class="text-xs text-muted-foreground">
+              <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
                 <tr>
-                  <th class="text-left px-2 py-1">Date</th>
-                  <th class="text-left px-2 py-1">Team</th>
-                  <th class="text-left px-2 py-1">Exception</th>
-                  <th class="text-left px-2 py-1">Player</th>
-                  <th class="text-left px-2 py-1">Action</th>
-                  <th class="text-left px-2 py-1">Refs</th>
-                  <th class="text-right px-2 py-1">Change</th>
-                  <th class="text-right px-2 py-1">Remaining</th>
+                  <th class="text-left px-3 py-2 font-medium">Date</th>
+                  <th class="text-left px-3 py-2 font-medium">Team</th>
+                  <th class="text-left px-3 py-2 font-medium">Type</th>
+                  <th class="text-right px-3 py-2 font-medium">Cap Δ</th>
+                  <th class="text-right px-3 py-2 font-medium">Tax Δ</th>
+                  <th class="text-right px-3 py-2 font-medium">Apron Δ</th>
+                  <th class="text-right px-3 py-2 font-medium">MTS Δ</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-border/60">
-                <% @cap_exception_usage_rows.each do |r| %>
-                  <tr>
-                    <td class="px-2 py-1 text-xs font-mono tabular-nums"><%= r["effective_date"] || "—" %></td>
-                    <td class="px-2 py-1 text-xs">
-                      <div class="entity-cell-two-line">
-                        <div class="entity-cell-primary">
-                          <% if r["team_code"].present? || r["team_id"].present? %>
-                            <a href="<%= safe_team_href(team_code: r['team_code'], team_id: r['team_id']) %>" class="font-medium hover:underline"><%= r["team_code"] || r["team_id"] %></a>
-                          <% else %>
-                            <span class="text-muted-foreground">—</span>
-                          <% end %>
-                        </div>
-                        <div class="entity-cell-secondary truncate"><%= r["team_name"].presence || "team_id: #{r['team_id'] || '—'}" %></div>
-                      </div>
-                    </td>
-                    <td class="px-2 py-1 text-xs text-muted-foreground">
-                      <% if r["team_exception_id"].present? %>
-                        <span class="font-mono">#<%= r["team_exception_id"] %></span>
+              <tbody class="divide-y divide-border">
+                <% @ledger_entries.each do |row| %>
+                  <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
+                    <td class="px-3 py-2 font-mono tabular-nums"><%= row["ledger_date"] || "—" %></td>
+                    <td class="px-3 py-2">
+                      <% if row["team_code"].present? %>
+                        <a href="<%= safe_team_href(team_code: row['team_code'], team_id: row['team_id']) %>" class="hover:underline"><%= row["team_code"] %></a>
                       <% else %>
-                        <span>—</span>
-                      <% end %>
-                      <% if r["exception_type_lk"].present? %>
-                        <div>
-                          <span class="font-mono"><%= r["exception_type_lk"] %></span>
-                          <% if r["exception_type_label"].present? %>
-                            <span> — <%= r["exception_type_label"] %></span>
-                          <% end %>
-                        </div>
+                        <span class="text-muted-foreground">—</span>
                       <% end %>
                     </td>
-                    <td class="px-2 py-1 text-xs">
-                      <div class="entity-cell-two-line">
-                        <div class="entity-cell-primary">
-                          <% if r["player_id"].present? %>
-                            <a href="<%= player_href(r['player_id']) %>" class="font-medium truncate hover:underline"><%= r["player_name"] %></a>
-                          <% else %>
-                            <span class="text-muted-foreground truncate"><%= r["player_name"] || "—" %></span>
-                          <% end %>
-                        </div>
-                        <div class="entity-cell-secondary">player_id: <%= r["player_id"] || "—" %></div>
-                      </div>
-                    </td>
-                    <td class="px-2 py-1 text-xs text-muted-foreground">
-                      <% if r["exception_action_lk"].present? %>
-                        <span class="font-mono"><%= r["exception_action_lk"] %></span>
-                        <% if r["exception_action_label"].present? %>
-                          <span> — <%= r["exception_action_label"] %></span>
-                        <% end %>
-                      <% else %>
-                        <span>—</span>
-                      <% end %>
-                    </td>
-                    <td class="px-2 py-1 text-xs">
-                      <div class="entity-cell-two-line">
-                        <div class="entity-cell-primary font-mono tabular-nums">
-                          <% if r["transaction_id"].present? %>
-                            <a href="<%= transaction_href(r['transaction_id']) %>" class="hover:underline">#<%= r["transaction_id"] %></a>
-                          <% else %>
-                            <span class="text-muted-foreground">—</span>
-                          <% end %>
-                        </div>
-                        <div class="entity-cell-secondary font-mono tabular-nums">
-                          <% if r["trade_id"].present? %>
-                            <a href="<%= trade_href(r['trade_id']) %>" class="hover:underline">T#<%= r["trade_id"] %></a>
-                          <% else %>
-                            trade —
-                          <% end %>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["change_amount"]) %></td>
-                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["remaining_exception_amount"]) %></td>
+                    <td class="px-3 py-2 text-muted-foreground"><%= [row["transaction_type_lk"], row["transaction_description_lk"]].compact.reject(&:blank?).join(' · ').presence || '—' %></td>
+                    <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(row["cap_change"]) %></td>
+                    <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(row["tax_change"]) %></td>
+                    <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(row["apron_change"]) %></td>
+                    <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(row["mts_change"]) %></td>
                   </tr>
                 <% end %>
               </tbody>
             </table>
           </div>
         <% end %>
-      </div>
+      </section>
 
-      <div class="rounded-lg border border-border bg-background p-3 space-y-2">
-        <div class="text-sm font-medium">Dead money impact</div>
-        <% if @cap_dead_money_rows.empty? %>
-          <div class="text-sm text-muted-foreground italic">No dead-money warehouse rows for this transaction.</div>
-        <% else %>
-          <div class="overflow-x-auto">
-            <table class="entity-table min-w-full text-xs">
-              <thead class="text-xs text-muted-foreground">
-                <tr>
-                  <th class="text-left px-2 py-1">Year</th>
-                  <th class="text-left px-2 py-1">Team</th>
-                  <th class="text-left px-2 py-1">Player</th>
-                  <th class="text-right px-2 py-1">Cap</th>
-                  <th class="text-right px-2 py-1">Tax</th>
-                  <th class="text-right px-2 py-1">Apron</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-border/60">
-                <% @cap_dead_money_rows.each do |r| %>
-                  <tr>
-                    <td class="px-2 py-1 font-mono tabular-nums"><%= r["salary_year"] %></td>
-                    <td class="px-2 py-1 text-xs">
-                      <div class="entity-cell-two-line">
-                        <div class="entity-cell-primary">
-                          <% if r["team_code"].present? || r["team_id"].present? %>
-                            <a href="<%= safe_team_href(team_code: r['team_code'], team_id: r['team_id']) %>" class="font-medium hover:underline"><%= r["team_code"] || r["team_id"] %></a>
-                          <% else %>
-                            <span class="text-muted-foreground">—</span>
-                          <% end %>
-                        </div>
-                        <div class="entity-cell-secondary truncate"><%= r["team_name"].presence || "team_id: #{r['team_id'] || '—'}" %></div>
-                      </div>
-                    </td>
-                    <td class="px-2 py-1 text-xs">
-                      <div class="entity-cell-two-line">
-                        <div class="entity-cell-primary">
-                          <% if r["player_id"].present? %>
-                            <a href="<%= player_href(r['player_id']) %>" class="font-medium truncate hover:underline"><%= r["player_name"] %></a>
-                          <% else %>
-                            <span class="text-muted-foreground truncate"><%= r["player_name"] || "—" %></span>
-                          <% end %>
-                        </div>
-                        <div class="entity-cell-secondary">player_id: <%= r["player_id"] || "—" %></div>
-                      </div>
-                    </td>
-                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["cap_value"]) %></td>
-                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["tax_value"]) %></td>
-                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["apron_value"]) %></td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
-        <% end %>
-      </div>
+      <section id="artifacts" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cap artifacts</h2>
+        <details class="rounded-lg border border-border bg-background p-3" open>
+          <summary class="cursor-pointer text-sm font-medium">Exception usage · dead money · budget snapshots</summary>
+          <div class="mt-3 space-y-4">
+            <div>
+              <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Exception usage</div>
+              <% if @cap_exception_usage_rows.empty? %>
+                <div class="text-sm text-muted-foreground italic">No team exception usage rows for this transaction.</div>
+              <% else %>
+                <div class="overflow-x-auto rounded-lg border border-border">
+                  <table class="entity-table min-w-full text-xs">
+                    <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+                      <tr>
+                        <th class="text-left px-3 py-2 font-medium">Date</th>
+                        <th class="text-left px-3 py-2 font-medium">Team</th>
+                        <th class="text-left px-3 py-2 font-medium">Exception</th>
+                        <th class="text-left px-3 py-2 font-medium">Player</th>
+                        <th class="text-right px-3 py-2 font-medium">Change</th>
+                        <th class="text-right px-3 py-2 font-medium">Remaining</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                      <% @cap_exception_usage_rows.each do |r| %>
+                        <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
+                          <td class="px-3 py-2 font-mono tabular-nums"><%= r["effective_date"] || "—" %></td>
+                          <td class="px-3 py-2">
+                            <% if r["team_code"].present? || r["team_id"].present? %>
+                              <a href="<%= safe_team_href(team_code: r['team_code'], team_id: r['team_id']) %>" class="hover:underline"><%= r["team_code"] || r["team_id"] %></a>
+                            <% else %>
+                              <span class="text-muted-foreground">—</span>
+                            <% end %>
+                          </td>
+                          <td class="px-3 py-2 text-muted-foreground"><%= r["exception_type_lk"].presence || "—" %></td>
+                          <td class="px-3 py-2">
+                            <% if r["player_id"].present? %>
+                              <a href="<%= player_href(r['player_id']) %>" class="hover:underline"><%= r["player_name"] %></a>
+                            <% else %>
+                              <span class="text-muted-foreground"><%= r["player_name"] || "—" %></span>
+                            <% end %>
+                          </td>
+                          <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["change_amount"]) %></td>
+                          <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["remaining_exception_amount"]) %></td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                </div>
+              <% end %>
+            </div>
 
-      <div class="rounded-lg border border-border bg-background p-3 space-y-2">
-        <div class="text-sm font-medium">Budget snapshot impacts</div>
-        <% if @cap_budget_snapshot_rows.empty? %>
-          <div class="text-sm text-muted-foreground italic">No team budget snapshot rows for this transaction.</div>
-        <% else %>
-          <div class="overflow-x-auto">
-            <table class="entity-table min-w-full text-xs">
-              <thead class="text-xs text-muted-foreground">
-                <tr>
-                  <th class="text-left px-2 py-1">Year</th>
-                  <th class="text-left px-2 py-1">Team</th>
-                  <th class="text-left px-2 py-1">Budget group</th>
-                  <th class="text-left px-2 py-1">Options</th>
-                  <th class="text-right px-2 py-1">Cap</th>
-                  <th class="text-right px-2 py-1">Tax</th>
-                  <th class="text-right px-2 py-1">Apron</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-border/60">
-                <% @cap_budget_snapshot_rows.each do |r| %>
-                  <tr>
-                    <td class="px-2 py-1 font-mono tabular-nums"><%= r["salary_year"] %></td>
-                    <td class="px-2 py-1 text-xs">
-                      <div class="entity-cell-two-line">
-                        <div class="entity-cell-primary">
-                          <% if r["team_code"].present? || r["team_id"].present? %>
-                            <a href="<%= safe_team_href(team_code: r['team_code'], team_id: r['team_id']) %>" class="font-medium hover:underline"><%= r["team_code"] || r["team_id"] %></a>
-                          <% else %>
-                            <span class="text-muted-foreground">—</span>
-                          <% end %>
-                        </div>
-                        <div class="entity-cell-secondary truncate">
-                          <% if r["player_id"].present? %>
-                            <a href="<%= player_href(r['player_id']) %>" class="hover:underline"><%= r["player_name"] %></a>
-                          <% else %>
-                            team_id: <%= r["team_id"] || "—" %>
-                          <% end %>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-2 py-1 text-xs text-muted-foreground">
-                      <% if r["budget_group_lk"].present? %>
-                        <span class="font-mono"><%= r["budget_group_lk"] %></span>
-                        <% if r["budget_group_label"].present? %>
-                          <span> — <%= r["budget_group_label"] %></span>
-                        <% end %>
-                      <% else %>
-                        —
+            <div>
+              <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Dead money impact</div>
+              <% if @cap_dead_money_rows.empty? %>
+                <div class="text-sm text-muted-foreground italic">No dead-money warehouse rows for this transaction.</div>
+              <% else %>
+                <div class="overflow-x-auto rounded-lg border border-border">
+                  <table class="entity-table min-w-full text-xs">
+                    <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+                      <tr>
+                        <th class="text-left px-3 py-2 font-medium">Year</th>
+                        <th class="text-left px-3 py-2 font-medium">Team</th>
+                        <th class="text-left px-3 py-2 font-medium">Player</th>
+                        <th class="text-right px-3 py-2 font-medium">Cap</th>
+                        <th class="text-right px-3 py-2 font-medium">Tax</th>
+                        <th class="text-right px-3 py-2 font-medium">Apron</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                      <% @cap_dead_money_rows.each do |r| %>
+                        <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
+                          <td class="px-3 py-2 font-mono tabular-nums"><%= r["salary_year"] %></td>
+                          <td class="px-3 py-2">
+                            <% if r["team_code"].present? || r["team_id"].present? %>
+                              <a href="<%= safe_team_href(team_code: r['team_code'], team_id: r['team_id']) %>" class="hover:underline"><%= r["team_code"] || r["team_id"] %></a>
+                            <% else %>
+                              <span class="text-muted-foreground">—</span>
+                            <% end %>
+                          </td>
+                          <td class="px-3 py-2">
+                            <% if r["player_id"].present? %>
+                              <a href="<%= player_href(r['player_id']) %>" class="hover:underline"><%= r["player_name"] %></a>
+                            <% else %>
+                              <span class="text-muted-foreground"><%= r["player_name"] || "—" %></span>
+                            <% end %>
+                          </td>
+                          <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["cap_value"]) %></td>
+                          <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["tax_value"]) %></td>
+                          <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["apron_value"]) %></td>
+                        </tr>
                       <% end %>
-                    </td>
-                    <td class="px-2 py-1 text-xs text-muted-foreground">
-                      <% option_bits = [] %>
-                      <% if r["option_lk"].present? %>
-                        <% option_bits << "opt #{r['option_lk']}#{r['option_label'].present? ? " — #{r['option_label']}" : ""}" %>
-                      <% end %>
-                      <% if r["option_decision_lk"].present? %>
-                        <% option_bits << "decision #{r['option_decision_lk']}#{r['option_decision_label'].present? ? " — #{r['option_decision_label']}" : ""}" %>
-                      <% end %>
-                      <% if r["signing_method_lk"].present? %>
-                        <% option_bits << "signed #{r['signing_method_lk']}#{r['signing_method_label'].present? ? " — #{r['signing_method_label']}" : ""}" %>
-                      <% end %>
-                      <%= option_bits.any? ? option_bits.join(" · ") : "—" %>
-                    </td>
-                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["cap_amount"]) %></td>
-                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["tax_amount"]) %></td>
-                    <td class="px-2 py-1 text-right font-mono tabular-nums"><%= format_salary(r["apron_amount"]) %></td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
+                    </tbody>
+                  </table>
+                </div>
+              <% end %>
+            </div>
           </div>
-        <% end %>
-      </div>
+        </details>
+      </section>
     </div>
-  </section>
-
-  <% if @trade_transactions.any? %>
-    <section class="space-y-3">
-      <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Other transactions in same trade</h2>
-
-      <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="entity-table min-w-full text-xs">
-          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-            <tr>
-              <th class="text-left px-3 py-2 font-medium">Transaction</th>
-              <th class="text-left px-3 py-2 font-medium">Date</th>
-              <th class="text-left px-3 py-2 font-medium">Player</th>
-              <th class="text-left px-3 py-2 font-medium">Route</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <% @trade_transactions.each do |row| %>
-              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                <td class="px-3 py-2 font-mono tabular-nums">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary font-mono tabular-nums">
-                      <a href="<%= transaction_href(row['transaction_id']) %>" class="hover:underline">#<%= row["transaction_id"] %></a>
-                    </div>
-                    <div class="entity-cell-secondary">transaction</div>
-                  </div>
-                </td>
-                <td class="px-3 py-2 text-xs text-muted-foreground"><%= row["transaction_date"] || "—" %></td>
-                <td class="px-3 py-2 text-xs">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary">
-                      <% if row["player_id"].present? %>
-                        <a href="<%= player_href(row['player_id']) %>" class="font-medium truncate hover:underline"><%= row["player_name"] %></a>
-                      <% else %>
-                        <span class="text-muted-foreground truncate">—</span>
-                      <% end %>
-                    </div>
-                    <div class="entity-cell-secondary">player_id: <%= row["player_id"] || "—" %></div>
-                  </div>
-                </td>
-                <td class="px-3 py-2 text-xs text-muted-foreground"><%= [row["from_team_code"], row["to_team_code"]].compact.reject(&:blank?).join(' → ').presence || '—' %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  <% end %>
-
-  <% if @endnotes.any? %>
-    <section class="space-y-3">
-      <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Related endnotes</h2>
-
-      <div class="space-y-2">
-        <% @endnotes.each do |n| %>
-          <article class="rounded-lg border border-border bg-background p-3">
-            <div class="text-sm font-mono">#<%= n["endnote_id"] %></div>
-            <div class="mt-1 text-xs text-muted-foreground"><%= [n["trade_date"], n["status_lk"]].compact.join(' · ') %></div>
-            <div class="mt-2 text-sm whitespace-pre-line"><%= n["explanation"].presence || n["conveyance_text"].presence || "—" %></div>
-          </article>
-        <% end %>
-      </div>
-    </section>
-  <% end %>
-
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Raw fields</h2>
-
-    <div class="p-4 rounded-lg border border-border bg-background text-sm text-muted-foreground space-y-1">
-      <div>transaction_type_lk: <code><%= tx["transaction_type_lk"] || "—" %></code></div>
-      <div>transaction_description_lk: <code><%= tx["transaction_description_lk"] || "—" %></code></div>
-      <div>salary_year: <code><%= tx["salary_year"] || "—" %></code></div>
-      <div>contract_id/version: <code><%= tx["contract_id"] || "—" %> / <%= tx["version_number"] || "—" %></code></div>
-      <div>signed_method_lk: <code><%= tx["signed_method_lk"] || "—" %></code></div>
-      <div>team_exception_id: <code><%= tx["team_exception_id"] || "—" %></code></div>
-      <div>draft_year/round/pick: <code><%= tx["draft_year"] || "—" %> / <%= tx["draft_round"] || "—" %> / <%= tx["draft_pick"] || "—" %></code></div>
-      <div>comments: <code><%= tx["comments"].presence || "—" %></code></div>
-    </div>
-  </section>
+  </div>
 </main>

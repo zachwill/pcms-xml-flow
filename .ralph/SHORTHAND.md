@@ -376,3 +376,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 218 — SAC conveys its own 2031 2nd to SAS. Added shorthand `SAC` for the SAC outgoing row; verified display_text `To SAS: SAC`.
 - Endnote 217 — NYK conveys its own 2031 2nd to CHA. Added shorthand `NYK` for the NYK outgoing row; verified display_text `To CHA: NYK`.
 - Endnote 215 — MEM conveys DAL 2030 2nd to BKN via BOS/MEM chain (endnotes 140/161). Added shorthand `DAL` for DAL outgoing row; verified display_text `To BKN: DAL`.
+- Endnotes 140 + 161 — No remaining `missing_shorthand` rows for `draft_year >= 2026` (these were dependencies in the Endnote 215 chain).

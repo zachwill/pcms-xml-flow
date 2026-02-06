@@ -1,55 +1,56 @@
 <% content_for :title, "Teams" %>
 
-<div id="entity-directory" class="min-h-screen w-full bg-background">
-  <%= render partial: "entities/shared/commandbar", locals: {
-    active_entity_scope: "team"
-  } %>
+<%= render partial: "entities/shared/entity_page", locals: {
+  root_id: "entity-directory",
+  main_class: "max-w-5xl mx-auto px-4 pt-3 pb-10 space-y-6",
+  commandbar_locals: {
+    active_entity_scope: "team",
+    container_class: "max-w-5xl mx-auto"
+  }
+} do %>
+  <section class="space-y-3">
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground"><%= @query.present? ? "Results" : "All teams" %></h2>
 
-  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
-    <section class="space-y-3">
-      <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground"><%= @query.present? ? "Results" : "All teams" %></h2>
-
-      <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="entity-table min-w-full text-xs">
-          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-            <tr>
-              <th class="text-left px-3 py-2 font-medium">Code</th>
-              <th class="text-left px-3 py-2 font-medium">Team</th>
-              <th class="text-left px-3 py-2 font-medium">Conference</th>
-              <th class="text-right px-3 py-2 font-medium">team_id</th>
+    <div class="overflow-x-auto rounded-lg border border-border">
+      <table class="entity-table min-w-full text-xs">
+        <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+          <tr>
+            <th class="text-left px-3 py-2 font-medium">Code</th>
+            <th class="text-left px-3 py-2 font-medium">Team</th>
+            <th class="text-left px-3 py-2 font-medium">Conference</th>
+            <th class="text-right px-3 py-2 font-medium">team_id</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          <% @teams.each do |t| %>
+            <% code = t["team_code"].to_s %>
+            <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
+              <td class="px-3 py-2 font-mono tabular-nums">
+                <div class="entity-cell-two-line">
+                  <div class="entity-cell-primary font-mono">
+                    <a href="<%= team_href(team_code: code, team_id: t['team_id']) %>" class="font-medium hover:underline"><%= code %></a>
+                  </div>
+                  <div class="entity-cell-secondary">id: <%= t["team_id"] || "—" %></div>
+                </div>
+              </td>
+              <td class="px-3 py-2">
+                <div class="entity-cell-two-line">
+                  <div class="entity-cell-primary">
+                    <a href="<%= team_href(team_code: code, team_id: t['team_id']) %>" class="font-medium truncate hover:underline"><%= t["team_name"] %></a>
+                  </div>
+                  <div class="entity-cell-secondary"><%= t["division_name"].presence || "—" %></div>
+                </div>
+              </td>
+              <td class="px-3 py-2 text-muted-foreground"><%= t["conference_name"] || "—" %></td>
+              <td class="px-3 py-2 text-right font-mono tabular-nums text-muted-foreground"><%= t["team_id"] %></td>
             </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <% @teams.each do |t| %>
-              <% code = t["team_code"].to_s %>
-              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                <td class="px-3 py-2 font-mono tabular-nums">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary font-mono">
-                      <a href="<%= team_href(team_code: code, team_id: t['team_id']) %>" class="font-medium hover:underline"><%= code %></a>
-                    </div>
-                    <div class="entity-cell-secondary">id: <%= t["team_id"] || "—" %></div>
-                  </div>
-                </td>
-                <td class="px-3 py-2">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary">
-                      <a href="<%= team_href(team_code: code, team_id: t['team_id']) %>" class="font-medium truncate hover:underline"><%= t["team_name"] %></a>
-                    </div>
-                    <div class="entity-cell-secondary"><%= t["division_name"].presence || "—" %></div>
-                  </div>
-                </td>
-                <td class="px-3 py-2 text-muted-foreground"><%= t["conference_name"] || "—" %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums text-muted-foreground"><%= t["team_id"] %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
 
-      <p class="text-xs text-muted-foreground">
-        Team pages are slug-first. For NBA teams we treat the slug as the team code (ex: <code>/teams/bos</code>) and bootstrap the slug registry on first visit.
-      </p>
-    </section>
-  </main>
-</div>
+    <p class="text-xs text-muted-foreground">
+      Team pages are slug-first. For NBA teams we treat the slug as the team code (ex: <code>/teams/bos</code>) and bootstrap the slug registry on first visit.
+    </p>
+  </section>
+<% end %>

@@ -8,6 +8,9 @@
   - title: legacy scope hint used for auto-mapping
   - on_agents_toggle: Datastar expression for /agents sub-mode toggles
   - header_knobs: Array[Hash] for page-specific radios/checkboxes
+
+  layout locals:
+  - container_class: max width container for the bar's inner content (default: max-w-7xl mx-auto)
 %>
 
 <%
@@ -35,6 +38,8 @@
   on_agents_toggle = local_assigns[:on_agents_toggle].to_s.strip.presence
   header_knobs = Array(local_assigns[:header_knobs])
 
+  container_class = local_assigns[:container_class].to_s.strip.presence || "max-w-7xl mx-auto"
+
   nav_links = [
     ["agents", "Agents", "/agents"],
     ["draft", "Draft", "/draft-selections"],
@@ -44,77 +49,79 @@
   nav_slots = nav_links + Array.new(8)
 %>
 
-<div class="relative left-1/2 right-1/2 -mx-[50vw] w-screen">
-  <header
-    id="commandbar"
-    class="shrink-0 h-[130px] border-b border-border bg-background flex items-start px-4 pt-3 gap-4"
-  >
-    <div class="space-y-1 shrink-0">
-    <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Entities</div>
+<header
+  id="commandbar"
+  class="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-nav"
+>
+  <div class="<%= container_class %> px-4">
+    <div class="flex items-start gap-4 py-3">
+      <div class="space-y-1 shrink-0">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Entities</div>
 
-    <div
-      role="navigation"
-      aria-label="Entities"
-      class="gap-1 w-[25.5rem]"
-      style="display:grid; grid-template-columns: repeat(4, 6rem); grid-template-rows: repeat(3, 1.75rem);"
-    >
-      <% nav_slots.each do |slot| %>
-        <% if slot.present? %>
-          <% scope, label, href = slot %>
-          <% active = scope == active_entity_scope %>
-          <a
-            href="<%= href %>"
-            class="relative h-7 w-24 px-2 rounded text-xs font-medium transition-all duration-150 border outline-none inline-flex items-center justify-center no-underline hover:no-underline <%= active ? 'bg-primary text-primary-foreground border-primary shadow-sm' : 'bg-muted/50 text-foreground border-border hover:bg-muted hover:border-foreground/20' %>"
-            <% if scope == "agents" && on_agents_toggle.present? %>data-on:click.prevent="<%= on_agents_toggle %>"<% end %>
-          ><%= label %></a>
-        <% else %>
-          <div aria-hidden="true" class="h-7 w-24 opacity-0 pointer-events-none"></div>
-        <% end %>
+        <div
+          role="navigation"
+          aria-label="Entities"
+          class="gap-1 w-[25.5rem]"
+          style="display:grid; grid-template-columns: repeat(4, 6rem); grid-template-rows: repeat(3, 1.75rem);"
+        >
+          <% nav_slots.each do |slot| %>
+            <% if slot.present? %>
+              <% scope, label, href = slot %>
+              <% active = scope == active_entity_scope %>
+              <a
+                href="<%= href %>"
+                class="relative h-7 w-24 px-2 rounded text-xs font-medium transition-all duration-150 border outline-none inline-flex items-center justify-center no-underline hover:no-underline <%= active ? 'bg-primary text-primary-foreground border-primary shadow-sm' : 'bg-muted/50 text-foreground border-border hover:bg-muted hover:border-foreground/20' %>"
+                <% if scope == "agents" && on_agents_toggle.present? %>data-on:click.prevent="<%= on_agents_toggle %>"<% end %>
+              ><%= label %></a>
+            <% else %>
+              <div aria-hidden="true" class="h-7 w-24 opacity-0 pointer-events-none"></div>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+
+      <% if header_knobs.any? %>
+        <div class="h-20 w-px bg-border self-center"></div>
+
+        <div class="flex items-start gap-4" role="group" aria-label="Filters">
+          <% header_knobs.each_with_index do |group, group_idx| %>
+            <% group_label = group[:label].to_s.strip.presence || group["label"].to_s.strip.presence || "Filters" %>
+            <% options = Array(group[:options] || group["options"]) %>
+
+            <div class="min-w-[7rem] space-y-1">
+              <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70"><%= group_label %></div>
+              <div class="space-y-1">
+                <% options.each_with_index do |option, option_idx| %>
+                  <% option_type = option[:type].to_s == "radio" ? "radio" : "checkbox" %>
+                  <% option_name = option[:name].to_s.strip.presence || option["name"].to_s.strip.presence || "entity-knob-#{group_idx}" %>
+                  <% option_label = option[:label].to_s.strip.presence || option["label"].to_s.strip.presence || "Option" %>
+                  <% option_id = option[:id].to_s.strip.presence || option["id"].to_s.strip.presence || "entity-knob-#{group_idx}-#{option_idx}" %>
+                  <% option_value = option[:value].to_s %>
+                  <% option_checked = option.key?(:checked) ? !!option[:checked] : !!option["checked"] %>
+                  <% option_bind = option[:bind].to_s.strip.presence || option["bind"].to_s.strip.presence %>
+                  <% option_on_change = option[:on_change].to_s.strip.presence || option["on_change"].to_s.strip.presence %>
+
+                  <div class="flex items-center gap-1.5">
+                    <input
+                      type="<%= option_type %>"
+                      id="<%= option_id %>"
+                      <% if option_type == "radio" %>
+                        name="<%= option_name %>"
+                        value="<%= option_value %>"
+                      <% end %>
+                      class="size-3.5 accent-primary"
+                      <% if option_checked %>checked<% end %>
+                      <% if option_bind.present? %>data-bind="<%= option_bind %>"<% end %>
+                      <% if option_on_change.present? %>data-on:change="<%= option_on_change %>"<% end %>
+                    />
+                    <label for="<%= option_id %>" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors"><%= option_label %></label>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
       <% end %>
     </div>
   </div>
-
-    <% if header_knobs.any? %>
-      <div class="h-20 w-px bg-border self-center"></div>
-
-      <div class="flex items-start gap-4" role="group" aria-label="Filters">
-        <% header_knobs.each_with_index do |group, group_idx| %>
-          <% group_label = group[:label].to_s.strip.presence || group["label"].to_s.strip.presence || "Filters" %>
-          <% options = Array(group[:options] || group["options"]) %>
-
-          <div class="min-w-[7rem] space-y-1">
-            <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70"><%= group_label %></div>
-            <div class="space-y-1">
-              <% options.each_with_index do |option, option_idx| %>
-                <% option_type = option[:type].to_s == "radio" ? "radio" : "checkbox" %>
-                <% option_name = option[:name].to_s.strip.presence || option["name"].to_s.strip.presence || "entity-knob-#{group_idx}" %>
-                <% option_label = option[:label].to_s.strip.presence || option["label"].to_s.strip.presence || "Option" %>
-                <% option_id = option[:id].to_s.strip.presence || option["id"].to_s.strip.presence || "entity-knob-#{group_idx}-#{option_idx}" %>
-                <% option_value = option[:value].to_s %>
-                <% option_checked = option.key?(:checked) ? !!option[:checked] : !!option["checked"] %>
-                <% option_bind = option[:bind].to_s.strip.presence || option["bind"].to_s.strip.presence %>
-                <% option_on_change = option[:on_change].to_s.strip.presence || option["on_change"].to_s.strip.presence %>
-
-                <div class="flex items-center gap-1.5">
-                  <input
-                    type="<%= option_type %>"
-                    id="<%= option_id %>"
-                    <% if option_type == "radio" %>
-                      name="<%= option_name %>"
-                      value="<%= option_value %>"
-                    <% end %>
-                    class="size-3.5 accent-primary"
-                    <% if option_checked %>checked<% end %>
-                    <% if option_bind.present? %>data-bind="<%= option_bind %>"<% end %>
-                    <% if option_on_change.present? %>data-on:change="<%= option_on_change %>"<% end %>
-                  />
-                  <label for="<%= option_id %>" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors"><%= option_label %></label>
-                </div>
-              <% end %>
-            </div>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
-  </header>
-</div>
+</header>

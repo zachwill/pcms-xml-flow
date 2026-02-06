@@ -25,16 +25,21 @@
   "#{option} #{year}"
 end %>
 
-<main class="max-w-7xl mx-auto px-4 py-6 space-y-6" data-entity-workspace>
-  <%= render partial: "entities/shared/commandbar", locals: {
+<%= render partial: "entities/shared/entity_page", locals: {
+  root_id: "entity-workspace",
+  workspace: true,
+  main_class: "max-w-7xl mx-auto px-4 pt-3 pb-10 space-y-6",
+  commandbar_locals: {
     title: (full_name.presence || "Player"),
     subtitle: "player_id: #{@player_id} · slug: #{@player_slug}",
     breadcrumbs: [["Players", "/players"], [full_name.presence || "Player", nil]],
     search_scope: "players",
     salary_book_href: (@salary_book_row&.fetch("team_code", nil).present? ? "/tools/salary-book?team=#{@salary_book_row['team_code']}##{@salary_book_row['team_code']}" : "/tools/salary-book"),
     salary_book_label: "Open in Salary Book",
-    right_links: [["Browse Teams", "/teams"]]
-  } %>
+    right_links: [["Browse Teams", "/teams"]],
+    container_class: "max-w-7xl mx-auto"
+  }
+} do %>
 
   <div class="lg:flex lg:gap-8">
     <%= render partial: "entities/shared/local_nav", locals: {
@@ -562,4 +567,4 @@ end %>
   </div>
 
   <%= render partial: "entities/shared/known_slugs", locals: { entity_type: "player", entity_id: @player_id, path_prefix: "players" } %>
-</main>
+<% end %>

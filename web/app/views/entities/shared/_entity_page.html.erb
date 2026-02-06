@@ -1,0 +1,40 @@
+<%#
+  Shared entity page shell.
+
+  Provides a sticky commandbar at the top + consistent content spacing.
+
+  locals:
+  - root_id: id for the outer wrapper div (default: "entity-page")
+  - root_class: classes for the outer wrapper div (default: "min-h-screen w-full bg-background")
+  - root_attrs: raw HTML attrs injected into the root div (optional; use sparingly)
+
+  - main_class: classes for the <main> (default: "max-w-7xl mx-auto px-4 pt-3 pb-10 space-y-6")
+  - workspace: when true, adds the boolean attribute `data-entity-workspace`
+
+  - commandbar_locals: locals hash passed through to entities/shared/_commandbar
+
+  Usage:
+    <%= render partial: "entities/shared/entity_page", locals: { commandbar_locals: {...}, workspace: true } do %>
+      ...page content...
+    <% end %>
+%>
+
+<%
+  root_id = local_assigns[:root_id].to_s.strip.presence || "entity-page"
+  root_class = local_assigns[:root_class].to_s.strip.presence || "min-h-screen w-full bg-background"
+  root_attrs = local_assigns[:root_attrs].to_s.strip
+
+  main_class = local_assigns[:main_class].to_s.strip.presence || "max-w-7xl mx-auto px-4 pt-3 pb-10 space-y-6"
+  workspace = local_assigns.key?(:workspace) ? !!local_assigns[:workspace] : false
+
+  commandbar_locals = local_assigns[:commandbar_locals]
+  commandbar_locals = {} unless commandbar_locals.is_a?(Hash)
+%>
+
+<div id="<%= root_id %>" class="<%= root_class %>" <%= root_attrs.present? ? root_attrs.html_safe : "" %>>
+  <%= render partial: "entities/shared/commandbar", locals: commandbar_locals %>
+
+  <main class="<%= main_class %>" <%= "data-entity-workspace" if workspace %>>
+    <%= yield %>
+  </main>
+</div>

@@ -5,8 +5,11 @@
 <% player_name = ds["player_name"].to_s %>
 <% drafting_team_code = ds["drafting_team_code"].to_s %>
 
-<main class="max-w-6xl mx-auto px-4 py-6 space-y-6" data-entity-workspace>
-  <%= render partial: "entities/shared/commandbar", locals: {
+<%= render partial: "entities/shared/entity_page", locals: {
+  root_id: "entity-workspace",
+  workspace: true,
+  main_class: "max-w-6xl mx-auto px-4 pt-3 pb-10 space-y-6",
+  commandbar_locals: {
     title: pick_label,
     subtitle: ((player_name.present? ? "#{player_name} · " : "") + "transaction_id: #{@draft_selection_id} · slug: #{@draft_selection_slug}" + (ds["transaction_date"].present? ? " · date: #{ds['transaction_date']}" : "")),
     breadcrumbs: [["Draft selections", "/draft-selections"], [pick_label, nil]],
@@ -14,8 +17,10 @@
     search_query: "",
     search_placeholder: "Search players/teams/agents/agencies…",
     salary_book_label: "Open Salary Book",
-    right_links: [["Find player", "/players"]]
-  } %>
+    right_links: [["Find player", "/players"]],
+    container_class: "max-w-6xl mx-auto"
+  }
+} do %>
 
   <div class="lg:flex lg:gap-8">
     <%= render partial: "entities/shared/local_nav", locals: {
@@ -138,4 +143,4 @@
   </div>
 
   <%= render partial: "entities/shared/known_slugs", locals: { entity_type: "draft_selection", entity_id: @draft_selection_id, path_prefix: "draft-selections" } %>
-</main>
+<% end %>

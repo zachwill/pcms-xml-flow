@@ -5,16 +5,20 @@
 <% prefetch_canonical_slugs(entity_type: "agent", entity_ids: @agents.map { |a| a["agent_id"] } + @top_clients.map { |c| c["agent_id"] }) %>
 <% prefetch_canonical_slugs(entity_type: "player", entity_ids: @top_clients.map { |c| c["player_id"] }) %>
 
-<main class="max-w-7xl mx-auto px-4 py-6 space-y-6" data-entity-workspace>
-  <%= render partial: "entities/shared/commandbar", locals: {
+<%= render partial: "entities/shared/entity_page", locals: {
+  root_id: "entity-workspace",
+  workspace: true,
+  main_class: "max-w-7xl mx-auto px-4 pt-3 pb-10 space-y-6",
+  commandbar_locals: {
     title: (agency_name.presence || "Agency"),
     subtitle: ("agency_id: #{@agency_id} · slug: #{@agency_slug}" + (@agency["is_active"] == false ? " · inactive" : "")),
     breadcrumbs: [["Agencies", "/agencies"], [agency_name.presence || "Agency", nil]],
     search_scope: "agencies",
     salary_book_label: "Open Salary Book",
-    right_links: [["Browse Agents", "/agents"]]
-  } %>
-
+    right_links: [["Browse Agents", "/agents"]],
+    container_class: "max-w-7xl mx-auto"
+  }
+} do %>
   <div class="lg:flex lg:gap-8">
     <%= render partial: "entities/shared/local_nav", locals: {
       sections: [
@@ -212,4 +216,4 @@
   </div>
 
   <%= render partial: "entities/shared/known_slugs", locals: { entity_type: "agency", entity_id: @agency_id, path_prefix: "agencies" } %>
-</main>
+<% end %>

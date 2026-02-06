@@ -14,8 +14,11 @@
 <% room_a1 = current_year_row["room_under_apron1"].to_f %>
 <% room_a2 = current_year_row["room_under_apron2"].to_f %>
 
-<main class="max-w-7xl mx-auto px-4 py-6 space-y-6" data-entity-workspace>
-  <%= render partial: "entities/shared/commandbar", locals: {
+<%= render partial: "entities/shared/entity_page", locals: {
+  root_id: "entity-workspace",
+  workspace: true,
+  main_class: "max-w-7xl mx-auto px-4 pt-3 pb-10 space-y-6",
+  commandbar_locals: {
     title: (team_name.presence || team_code.presence || "Team"),
     title_badge: team_code.presence,
     subtitle: [city, conference, division].compact.reject(&:blank?).join(" · "),
@@ -23,8 +26,10 @@
     search_scope: "teams",
     salary_book_href: (team_code.present? ? "/tools/salary-book?team=#{team_code}##{team_code}" : "/tools/salary-book"),
     salary_book_label: (team_code.present? ? "Open in Salary Book" : "Salary Book"),
-    right_links: [["Find a player", "/players"]]
-  } %>
+    right_links: [["Find a player", "/players"]],
+    container_class: "max-w-7xl mx-auto"
+  }
+} do %>
 
   <div class="lg:flex lg:gap-8">
     <%= render partial: "entities/shared/local_nav", locals: {
@@ -343,4 +348,4 @@
   </div>
 
   <%= render partial: "entities/shared/known_slugs", locals: { entity_type: "team", entity_id: @team_id, path_prefix: "teams" } %>
-</main>
+<% end %>

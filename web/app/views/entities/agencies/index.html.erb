@@ -3,16 +3,19 @@
 <%# Avoid N+1 slug lookups in results table %>
 <% prefetch_canonical_slugs(entity_type: "agency", entity_ids: @agencies.map { |a| a["agency_id"] }) %>
 
-<main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
-  <%= render partial: "entities/shared/commandbar", locals: {
+<%= render partial: "entities/shared/entity_page", locals: {
+  root_id: "entity-directory",
+  main_class: "max-w-5xl mx-auto px-4 pt-3 pb-10 space-y-6",
+  commandbar_locals: {
     title: "Agencies",
     subtitle: "Agency directory (from pcms.agencies).",
     breadcrumbs: [["Agencies", nil]],
     search_scope: "agencies",
     search_query: @query,
-    search_placeholder: "Search agencies…"
-  } %>
-
+    search_placeholder: "Search agencies…",
+    container_class: "max-w-5xl mx-auto"
+  }
+} do %>
   <section class="space-y-3">
     <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Results</h2>
 
@@ -56,4 +59,4 @@
       </p>
     <% end %>
   </section>
-</main>
+<% end %>

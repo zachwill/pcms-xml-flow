@@ -6,14 +6,16 @@
 <% refresh_expr = "#{pane_get_expr}; #{update_url_expr}" %>
 <% sync_agents_expr = "$entitykind = 'agents'; #{refresh_expr}" %>
 
-<div
-  id="entity-directory"
-  class="min-h-screen w-full bg-background"
-  data-signals="{ entitykind: '<%= @directory_kind %>', activeonly: <%= @active_only ? 'true' : 'false' %> }"
->
-  <%= render partial: "entities/shared/commandbar", locals: {
+<% root_attrs = "data-signals=\"{ entitykind: '#{@directory_kind}', activeonly: #{@active_only ? 'true' : 'false'} }\"" %>
+
+<%= render partial: "entities/shared/entity_page", locals: {
+  root_id: "entity-directory",
+  root_attrs: root_attrs,
+  main_class: "max-w-5xl mx-auto px-4 pt-3 pb-10 space-y-6",
+  commandbar_locals: {
     active_entity_scope: "agents",
     on_agents_toggle: sync_agents_expr,
+    container_class: "max-w-5xl mx-auto",
     header_knobs: [
       {
         label: "Directory",
@@ -54,9 +56,7 @@
         ]
       }
     ]
-  } %>
-
-  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
-    <%= render partial: "entities/agents/directory_results" %>
-  </main>
-</div>
+  }
+} do %>
+  <%= render partial: "entities/agents/directory_results" %>
+<% end %>

@@ -6,15 +6,20 @@
 <%# Avoid N+1 slug lookups in client table %>
 <% prefetch_canonical_slugs(entity_type: "player", entity_ids: @clients.map { |c| c["player_id"] }) %>
 
-<main class="max-w-7xl mx-auto px-4 py-6 space-y-6" data-entity-workspace>
-  <%= render partial: "entities/shared/commandbar", locals: {
+<%= render partial: "entities/shared/entity_page", locals: {
+  root_id: "entity-workspace",
+  workspace: true,
+  main_class: "max-w-7xl mx-auto px-4 pt-3 pb-10 space-y-6",
+  commandbar_locals: {
     title: (agent_name.presence || "Agent"),
     subtitle: ("agent_id: #{@agent_id} · slug: #{@agent_slug}" + (@agent["is_active"] == false ? " · inactive" : "")),
     breadcrumbs: [["Agents", "/agents"], [agent_name.presence || "Agent", nil]],
     search_scope: "agents",
     salary_book_label: "Open in Salary Book",
-    right_links: [["Browse Agencies", "/agencies"]]
-  } %>
+    right_links: [["Browse Agencies", "/agencies"]],
+    container_class: "max-w-7xl mx-auto"
+  }
+} do %>
 
   <div class="lg:flex lg:gap-8">
     <%= render partial: "entities/shared/local_nav", locals: {
@@ -287,4 +292,4 @@
   </div>
 
   <%= render partial: "entities/shared/known_slugs", locals: { entity_type: "agent", entity_id: @agent_id, path_prefix: "agents" } %>
-</main>
+<% end %>

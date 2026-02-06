@@ -187,19 +187,16 @@ Guideline: one checkbox = one endnote cluster.
 
 ### Work queue snapshot (refreshed 2026-02-06)
 
-As of this refresh: **88 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
+As of this refresh: **85 rows** remain with `primary_todo_reason='missing_shorthand'` for `draft_year >= 2026`.
 
 Ordered by rows in `pcms.vw_draft_pick_shorthand_todo` (deduping `effective_endnote_ids` per row).
 
 Note: `effective_endnote_ids` sometimes contains duplicates (e.g. `{5,5,5,...}`), so we always use `select distinct unnest(...)` per row in the work-queue query to avoid overstating cluster sizes.
 
-There are currently **no 2+ row clusters**; the entire queue is 1-row clusters. There are **128 distinct endnote_ids** referenced by these 88 rows.
+There are currently **no 2+ row clusters**; the entire queue is 1-row clusters. There are **125 distinct endnote_ids** referenced by these 85 rows.
 
 Top of queue (ordered by `endnote_id desc`; each is a 1-row cluster):
 
-- [x] Endnote 323 (1 row) - Miami conveys to Brooklyn: → MIA 2032 2nd
-- [x] Endnote 318 (1 row) - Denver conveys to Brooklyn: → DEN 2032 1st
-- [x] Endnote 315 (1 row) - LAC conveys to Utah: → LAC 2027 2nd
 - [ ] Endnote 312 (1 row) - Atlanta conveys to Minnesota: → CLE 2027 2nd (via endnote 270)
 - [ ] Endnote 306 (1 row) - Houston conveys to Brooklyn: → BOS 2030 2nd (via endnote 245)
 - [ ] Endnote 302 (1 row) - Indiana conveys to Memphis: → POR 2029 2nd (via endnote 166)
@@ -237,6 +234,15 @@ Top of queue (ordered by `endnote_id desc`; each is a 1-row cluster):
 - [ ] Endnote 229 (1 row) - Phoenix conveys to Utah: → PHX 2031 1st
 - [ ] Endnote 228 (1 row) - Phoenix conveys to Charlotte: → PHX 2031 2nd
 - [ ] Endnote 227 (1 row) - Phoenix conveys to Charlotte: → DEN 2031 2nd (via endnote 182)
+- [ ] Endnote 225 (1 row) - LAL conveys to Brooklyn: → LAL 2031 2nd
+- [ ] Endnote 224 (1 row) - LAL conveys to Brooklyn: → LAL 2030 2nd
+- [ ] Endnote 223 (1 row) - LAL conveys to Brooklyn: → LAL 2027 2nd (downstream of endnote 77)
+- [ ] Endnote 222 (1 row) - Golden State conveys to Brooklyn: → GSW 2029 2nd
+- [ ] Endnote 221 (1 row) - Atlanta conveys to Brooklyn (via GSW): → ATL 2028 2nd
+- [ ] Endnote 220 (1 row) - Atlanta conveys to Brooklyn (via GSW): → ATL 2026 2nd
+- [ ] Endnote 218 (1 row) - Sacramento conveys to San Antonio: → SAC 2031 2nd
+- [ ] Endnote 217 (1 row) - New York conveys to Charlotte: → NYK 2031 2nd
+- [ ] Endnote 215 (1 row) - Dallas conveys to Brooklyn (via MEM/BOS): → DAL 2030 2nd
 
 Older but structurally important / easy wins:
 

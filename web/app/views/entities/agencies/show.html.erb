@@ -2,11 +2,10 @@
 
 <% agency_name = @agency&.fetch("agency_name", nil).to_s %>
 
-<%# Avoid N+1 slug lookups in tables %>
 <% prefetch_canonical_slugs(entity_type: "agent", entity_ids: @agents.map { |a| a["agent_id"] } + @top_clients.map { |c| c["agent_id"] }) %>
 <% prefetch_canonical_slugs(entity_type: "player", entity_ids: @top_clients.map { |c| c["player_id"] }) %>
 
-<main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+<main class="max-w-7xl mx-auto px-4 py-6 space-y-6" data-entity-workspace>
   <%= render partial: "entities/shared/entity_header", locals: {
     title: (agency_name.presence || "Agency"),
     subtitle: ("agency_id: #{@agency_id} · slug: #{@agency_slug}" + (@agency["is_active"] == false ? " · inactive" : "")),
@@ -16,212 +15,201 @@
     right_links: [["Browse Agents", "/agents"]]
   } %>
 
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Agency rollup</h2>
+  <div class="lg:flex lg:gap-8">
+    <%= render partial: "entities/shared/local_nav", locals: {
+      sections: [
+        ["vitals", "Vitals"],
+        ["agent-roster", "Agent roster"],
+        ["team-distribution", "Team distribution"],
+        ["historical", "Historical footprint"]
+      ]
+    } %>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <div class="rounded-lg border border-border bg-background p-3">
-        <div class="text-xs text-muted-foreground">Agents</div>
-        <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @agency_rollup["agent_count"] || 0 %></div>
-      </div>
-      <div class="rounded-lg border border-border bg-background p-3">
-        <div class="text-xs text-muted-foreground">Clients</div>
-        <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @agency_rollup["client_count"] || 0 %></div>
-      </div>
-      <div class="rounded-lg border border-border bg-background p-3">
-        <div class="text-xs text-muted-foreground">Cap 2025 total</div>
-        <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= format_salary(@agency_rollup["cap_2025_total"]) %></div>
-      </div>
-      <div class="rounded-lg border border-border bg-background p-3">
-        <div class="text-xs text-muted-foreground">Total from 2025</div>
-        <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= format_salary(@agency_rollup["total_salary_from_2025"]) %></div>
-      </div>
-    </div>
+    <div class="min-w-0 flex-1 space-y-6">
+      <section id="vitals" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Vitals</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div class="rounded-lg border border-border bg-background p-3">
+            <div class="text-xs text-muted-foreground">Agent count</div>
+            <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @agency_rollup["agent_count"] || 0 %></div>
+          </div>
+          <div class="rounded-lg border border-border bg-background p-3">
+            <div class="text-xs text-muted-foreground">Client count</div>
+            <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @agency_rollup["client_count"] || 0 %></div>
+          </div>
+          <div class="rounded-lg border border-border bg-background p-3">
+            <div class="text-xs text-muted-foreground">Cap 2025 total</div>
+            <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= format_salary(@agency_rollup["cap_2025_total"]) %></div>
+          </div>
+        </div>
+      </section>
 
-    <div class="text-xs text-muted-foreground">
-      Teams represented: <span class="font-mono tabular-nums"><%= @agency_rollup["team_count"] || 0 %></span>
-      · Two-way clients: <span class="font-mono tabular-nums"><%= @agency_rollup["two_way_count"] || 0 %></span>
-      · Min-contract clients: <span class="font-mono tabular-nums"><%= @agency_rollup["min_contract_count"] || 0 %></span>
-    </div>
-  </section>
-
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Book by season</h2>
-
-    <% if @book_by_year.empty? %>
-      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No yearly warehouse rows.</div>
-    <% else %>
-      <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="entity-table min-w-full text-xs">
-          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-            <tr>
-              <th class="text-left px-3 py-2 font-medium">Year</th>
-              <th class="text-right px-3 py-2 font-medium">Players</th>
-              <th class="text-right px-3 py-2 font-medium">Cap total</th>
-              <th class="text-right px-3 py-2 font-medium">Tax total</th>
-              <th class="text-right px-3 py-2 font-medium">Apron total</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <% @book_by_year.each do |r| %>
-              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                <td class="px-3 py-2 font-mono tabular-nums"><%= r["salary_year"] %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= r["player_count"] %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["cap_total"]) %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["tax_total"]) %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["apron_total"]) %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
-  </section>
-
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Agents</h2>
-
-    <% if @agents.empty? %>
-      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No agents found.</div>
-    <% else %>
-      <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="entity-table min-w-full text-xs">
-          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-            <tr>
-              <th class="text-left px-3 py-2 font-medium">Agent</th>
-              <th class="text-right px-3 py-2 font-medium">Clients</th>
-              <th class="text-right px-3 py-2 font-medium">Cap 2025 total</th>
-              <th class="text-right px-3 py-2 font-medium">Total from 2025</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <% @agents.each do |a| %>
-              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                <td class="px-3 py-2">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary">
-                      <a href="<%= agent_href(a['agent_id']) %>" class="font-medium truncate hover:underline"><%= a["full_name"] %></a>
-                    </div>
-                    <div class="entity-cell-secondary">
-                      agent_id: <%= a["agent_id"] %>
-                      <% if a["is_active"] == false %>
-                        <span class="ml-1 entity-chip entity-chip--muted">inactive</span>
-                      <% end %>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= a["client_count"] %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(a["cap_2025_total"]) %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(a["total_salary_from_2025"]) %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
-  </section>
-
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Team distribution</h2>
-
-    <% if @team_distribution.empty? %>
-      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No team distribution data.</div>
-    <% else %>
-      <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="entity-table min-w-full text-xs">
-          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-            <tr>
-              <th class="text-left px-3 py-2 font-medium">Team</th>
-              <th class="text-right px-3 py-2 font-medium">Clients</th>
-              <th class="text-right px-3 py-2 font-medium">Cap 2025 total</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <% @team_distribution.each do |r| %>
-              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                <td class="px-3 py-2">
-                  <% if r["team_code"].present? %>
-                    <div class="entity-cell-two-line">
-                      <div class="entity-cell-primary">
-                        <a href="<%= team_href(team_code: r['team_code'], team_id: r['team_id']) %>" class="font-medium hover:underline"><%= r["team_code"] %></a>
+      <section id="agent-roster" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Agent roster</h2>
+        <% if @agents.empty? %>
+          <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No agents found.</div>
+        <% else %>
+          <div class="overflow-x-auto rounded-lg border border-border">
+            <table class="entity-table min-w-full text-xs">
+              <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+                <tr>
+                  <th class="text-left px-3 py-2 font-medium">Agent</th>
+                  <th class="text-right px-3 py-2 font-medium">Clients</th>
+                  <th class="text-right px-3 py-2 font-medium">Cap 2025 total</th>
+                  <th class="text-right px-3 py-2 font-medium">Total from 2025</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                <% @agents.each do |a| %>
+                  <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
+                    <td class="px-3 py-2">
+                      <div class="entity-cell-two-line">
+                        <div class="entity-cell-primary">
+                          <a href="<%= agent_href(a['agent_id']) %>" class="font-medium truncate hover:underline"><%= a["full_name"] %></a>
+                        </div>
+                        <div class="entity-cell-secondary">
+                          agent_id: <%= a["agent_id"] %>
+                          <% if a["is_active"] == false %>
+                            <span class="ml-1 entity-chip entity-chip--muted">inactive</span>
+                          <% end %>
+                        </div>
                       </div>
-                      <div class="entity-cell-secondary truncate"><%= r["team_name"].presence || "—" %></div>
-                    </div>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= r["client_count"] %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["cap_2025_total"]) %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
-  </section>
+                    </td>
+                    <td class="px-3 py-2 text-right font-mono tabular-nums"><%= a["client_count"] %></td>
+                    <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(a["cap_2025_total"]) %></td>
+                    <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(a["total_salary_from_2025"]) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </section>
 
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Top clients by cap (2025)</h2>
-
-    <% if @top_clients.empty? %>
-      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No clients found.</div>
-    <% else %>
-      <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="entity-table min-w-full text-xs">
-          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-            <tr>
-              <th class="text-left px-3 py-2 font-medium">Player</th>
-              <th class="text-left px-3 py-2 font-medium">Agent</th>
-              <th class="text-left px-3 py-2 font-medium">Team</th>
-              <th class="text-right px-3 py-2 font-medium">Cap 2025</th>
-              <th class="text-right px-3 py-2 font-medium">Total from 2025</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <% @top_clients.each do |c| %>
-              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                <td class="px-3 py-2">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary">
-                      <a href="<%= player_href(c['player_id']) %>" class="font-medium truncate hover:underline"><%= c["player_name"] %></a>
-                    </div>
-                    <div class="entity-cell-secondary">player_id: <%= c["player_id"] %></div>
-                  </div>
-                </td>
-                <td class="px-3 py-2">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary">
-                      <% if c["agent_id"].present? %>
-                        <a href="<%= agent_href(c['agent_id']) %>" class="font-medium truncate hover:underline"><%= c["agent_name"] %></a>
+      <section id="team-distribution" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Team distribution</h2>
+        <% if @team_distribution.empty? %>
+          <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No team distribution data.</div>
+        <% else %>
+          <div class="overflow-x-auto rounded-lg border border-border">
+            <table class="entity-table min-w-full text-xs">
+              <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+                <tr>
+                  <th class="text-left px-3 py-2 font-medium">Team</th>
+                  <th class="text-right px-3 py-2 font-medium">Clients</th>
+                  <th class="text-right px-3 py-2 font-medium">Cap 2025 total</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                <% @team_distribution.each do |r| %>
+                  <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
+                    <td class="px-3 py-2">
+                      <% if r["team_code"].present? %>
+                        <div class="entity-cell-two-line">
+                          <div class="entity-cell-primary">
+                            <a href="<%= team_href(team_code: r['team_code'], team_id: r['team_id']) %>" class="font-medium hover:underline"><%= r["team_code"] %></a>
+                          </div>
+                          <div class="entity-cell-secondary truncate"><%= r["team_name"].presence || "—" %></div>
+                        </div>
                       <% else %>
-                        <span class="text-muted-foreground truncate"><%= c["agent_name"] || "—" %></span>
+                        <span class="text-muted-foreground">—</span>
                       <% end %>
-                    </div>
-                    <div class="entity-cell-secondary">agent_id: <%= c["agent_id"] || "—" %></div>
-                  </div>
-                </td>
-                <td class="px-3 py-2">
-                  <% if c["team_code"].present? %>
-                    <div class="entity-cell-two-line">
-                      <div class="entity-cell-primary">
-                        <a href="<%= team_href(team_code: c['team_code'], team_id: c['team_id']) %>" class="font-medium hover:underline"><%= c["team_code"] %></a>
-                      </div>
-                      <div class="entity-cell-secondary">team_id: <%= c["team_id"] || "—" %></div>
-                    </div>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(c["cap_2025"]) %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(c["total_salary_from_2025"]) %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
-  </section>
+                    </td>
+                    <td class="px-3 py-2 text-right font-mono tabular-nums"><%= r["client_count"] %></td>
+                    <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["cap_2025_total"]) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </section>
+
+      <section id="historical" class="scroll-mt-24 space-y-3">
+        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Historical footprint</h2>
+        <details class="rounded-lg border border-border bg-background p-3" open>
+          <summary class="cursor-pointer text-sm font-medium">Season book + top clients</summary>
+          <div class="mt-3 space-y-4">
+            <div>
+              <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Book by season</div>
+              <% if @book_by_year.empty? %>
+                <div class="text-sm text-muted-foreground italic">No yearly warehouse rows.</div>
+              <% else %>
+                <div class="overflow-x-auto rounded-lg border border-border">
+                  <table class="entity-table min-w-full text-xs">
+                    <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+                      <tr>
+                        <th class="text-left px-3 py-2 font-medium">Year</th>
+                        <th class="text-right px-3 py-2 font-medium">Players</th>
+                        <th class="text-right px-3 py-2 font-medium">Cap total</th>
+                        <th class="text-right px-3 py-2 font-medium">Tax total</th>
+                        <th class="text-right px-3 py-2 font-medium">Apron total</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                      <% @book_by_year.each do |r| %>
+                        <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
+                          <td class="px-3 py-2 font-mono tabular-nums"><%= r["salary_year"] %></td>
+                          <td class="px-3 py-2 text-right font-mono tabular-nums"><%= r["player_count"] %></td>
+                          <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["cap_total"]) %></td>
+                          <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["tax_total"]) %></td>
+                          <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["apron_total"]) %></td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                </div>
+              <% end %>
+            </div>
+
+            <div>
+              <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Top clients by cap (2025)</div>
+              <% if @top_clients.empty? %>
+                <div class="text-sm text-muted-foreground italic">No clients found.</div>
+              <% else %>
+                <div class="overflow-x-auto rounded-lg border border-border">
+                  <table class="entity-table min-w-full text-xs">
+                    <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+                      <tr>
+                        <th class="text-left px-3 py-2 font-medium">Player</th>
+                        <th class="text-left px-3 py-2 font-medium">Agent</th>
+                        <th class="text-left px-3 py-2 font-medium">Team</th>
+                        <th class="text-right px-3 py-2 font-medium">Cap 2025</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                      <% @top_clients.each do |c| %>
+                        <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
+                          <td class="px-3 py-2">
+                            <a href="<%= player_href(c['player_id']) %>" class="font-medium hover:underline"><%= c["player_name"] %></a>
+                          </td>
+                          <td class="px-3 py-2">
+                            <% if c["agent_id"].present? %>
+                              <a href="<%= agent_href(c['agent_id']) %>" class="hover:underline"><%= c["agent_name"] %></a>
+                            <% else %>
+                              <span class="text-muted-foreground"><%= c["agent_name"] || "—" %></span>
+                            <% end %>
+                          </td>
+                          <td class="px-3 py-2">
+                            <% if c["team_code"].present? %>
+                              <a href="<%= team_href(team_code: c['team_code'], team_id: c['team_id']) %>" class="hover:underline"><%= c["team_code"] %></a>
+                            <% else %>
+                              <span class="text-muted-foreground">—</span>
+                            <% end %>
+                          </td>
+                          <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(c["cap_2025"]) %></td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </details>
+      </section>
+    </div>
+  </div>
 
   <%= render partial: "entities/shared/known_slugs", locals: { entity_type: "agency", entity_id: @agency_id, path_prefix: "agencies" } %>
 </main>

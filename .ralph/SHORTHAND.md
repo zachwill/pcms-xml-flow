@@ -198,7 +198,7 @@ There are currently **no 3+ row clusters**; the largest clusters are 2 rows.
 There are currently 22 2-row clusters; ordered by endnote_id desc.
 
 - [x] Endnote 322 (2 rows) - Brooklyn conveys to Miami: → Brooklyn's own 2026 2nd round pick
-- [ ] Endnote 311 (2 rows) - Golden State conveys to Memphis: → Golden State's own 2032 2nd round pick
+- [x] Endnote 311 (2 rows) - Golden State conveys to Memphis: → Golden State's own 2032 2nd round pick
 - [ ] Endnote 288 (2 rows) - Utah conveys to Washington: → MF [IND, MIA] 2031 2nds (via endnote 258)
 - [ ] Endnote 262 (2 rows) - Toronto conveys to Indiana: → TOR 2026 2nd
 - [ ] Endnote 258 (2 rows) - Miami conveys to Utah: → The Resulting Pick
@@ -337,3 +337,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 6 — DET→LAC conveys DET 2026 2nd; shorthand: `DET` for the DET origin/outgoing row. This cluster is now fully covered by the Endnote 25 chain and no longer appears in the `missing_shorthand` work queue for `draft_year >= 2026`.
 
 - Endnote 322 — BKN→MIA Highsmith trade (8/15/2025). BKN conveys own 2026 2nd to MIA. Shorthand: `BKN` for both BKN OWN and MIA MAY_HAVE rows.
+- Endnote 311 — GSW→MEM Richard/Jessup/Mashack trade (7/6/2025). MEM receives GSW 2032 2nd, top-20 picks in the 2nd round protected (obligation extinguished if protected). Shorthands: `Own to MEM (p. 31-50)` for GSW outgoing and `GSW (p. 31-50)` for MEM MAY_HAVE.

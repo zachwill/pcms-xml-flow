@@ -199,7 +199,7 @@ There are currently two 4-row clusters; ordered by endnote_id desc.
 
 All entries below are currently tied at 3 rows; ordered by endnote_id desc.
 
-- [ ] Endnote 264 (3 rows) - Phoenix conveys to Charlotte: → The "Result Pick"
+- [x] Endnote 264 (3 rows) - Phoenix conveys to Charlotte: → The "Result Pick"
 - [ ] Endnote 235 (3 rows) - San Antonio conveys to Sacramento: → The future conditional first round draft pick (Charlotte’s own) that San Antonio is entitled to receive from Atlanta (per endnote 59)
 - [ ] Endnote 173 (3 rows) - Phoenix conveys to Memphis: → Right to swap MEM 2026 1st for the "Result Pick"
 - [ ] Endnote 169 (3 rows) - Dallas conveys to Charlotte: → DAL 2027 1st
@@ -338,3 +338,4 @@ Note: any `To XYZ: ...` snippets mentioned below are examples of `pcms.vw_draft_
 - Endnote 51 — LAL→ORL MF [LAL, WAS] 2028 2nd (Christie trade, 6/23/2022). WAS 2028 2nd flows to LAL via endnote 32 (Westbrook trade). LAL conveys MF to ORL (endnote 51); LF goes to WAS (endnote 71). Shorthands: `MF [LAL, WAS]` for ORL MAY_HAVE pool, `LAL`/`WAS` for origin rows. Direction-aware: `To WAS: LAL`, `To ORL: WAS`.
 - Endnote 33 — MEM→UTA→multiple destinations chain for MEM 2026 2nd (Aldama/Butler trade, 8/7/2021). MEM's own 2026 2nd flows to UTA (endnote 33), then splits: GSW (endnote 34) → POR (endnote 87, conditional), or ATL (endnote 130) → LAC (endnote 273). Shorthand: `MEM` for all 3 rows. Direction-aware: `To LAC: MEM` for MEM outgoing.
 - Endnote 17 — BKN/HOU 2027 1st swap (Harden trade, 1/16/2021). HOU has right to swap their 2027 1st for BKN's 2027 1st. Shorthands: `BKN` for BKN OWN and HOU MAY_HAVE BKN rows, `HOU` for HOU OWN and BKN MAY_HAVE HOU rows.
+- Endnote 264 — PHX→CHA "Result Pick" 2026 1st (Nurkic-Martin-Micic trade, 2/6/2025). CHA receives the "Result Pick" which is `LF [PHX, ORL, WAS (p. 1-8), MEM]` depending on swap chain: WAS (endnote 102), ORL (endnote 145), MEM (endnote 173). Added origin shorthands: `PHX`/`ORL`/`MEM` for the 3 TO/OWN rows. Direction-aware: `To MEM: PHX`, `To MEM: ORL`.

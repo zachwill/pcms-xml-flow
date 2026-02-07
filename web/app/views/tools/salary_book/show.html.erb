@@ -8,7 +8,8 @@
   class="h-screen w-screen flex flex-col overflow-hidden bg-background"
   data-signals="{
     activeteam: '<%= initial_team %>',
-    selectedseason: null,
+    selectedseason: '',
+    selectedseasonteam: '',
     sidebarview: 'teamview',
     overlaytype: 'none',
     overlayid: '',
@@ -25,7 +26,8 @@
     displayincentives: true,
     displaytwoway: true
   }"
-  data-on:salarybook-activeteam="if ($activeteam !== evt.detail.team) { $activeteam = evt.detail.team; }; if (evt.detail.team) { @get('<%= tools_salary_book_sidebar_team_path(team: '__TEAM__') %>'.replace('__TEAM__', evt.detail.team) + '&year=' + ($selectedseason || <%= @salary_year %>)); }"
+  data-on:salarybook-activeteam="if ($activeteam !== evt.detail.team) { $activeteam = evt.detail.team; }"
+  data-effect="if ($activeteam) { @get('<%= tools_salary_book_sidebar_team_path(team: '__TEAM__') %>'.replace('__TEAM__', $activeteam) + '&year=' + (($selectedseasonteam === $activeteam && $selectedseason !== '') ? $selectedseason : <%= @salary_year %>)); }"
 >
   <div id="flash"></div>
 
@@ -45,7 +47,7 @@
                 <a
                   href="#<%= team[:code] %>"
                   class="relative h-7 px-2 rounded text-xs font-medium transition-all duration-150 border outline-none inline-flex items-center justify-center no-underline hover:no-underline"
-                  data-on:click.prevent="$activeteam = '<%= team[:code] %>'; window.__salaryBookScrollToTeam?.('<%= team[:code] %>', 'smooth'); @get('<%= tools_salary_book_sidebar_team_path(team: team[:code]) %>&year=' + ($selectedseason || <%= @salary_year %>))"
+                  data-on:click.prevent="$activeteam = '<%= team[:code] %>'; window.__salaryBookScrollToTeam?.('<%= team[:code] %>', 'smooth')"
                   data-class="{
                     'bg-primary text-primary-foreground border-primary shadow-sm': $activeteam === '<%= team[:code] %>',
                     'bg-muted/50 text-foreground border-border hover:bg-muted hover:border-foreground/20': $activeteam !== '<%= team[:code] %>'

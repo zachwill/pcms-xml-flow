@@ -1,13 +1,11 @@
 <%# TableHeader — Tailwind port of the React prototype %>
 
 <% salary_years ||= SalaryBookHelper::SALARY_YEARS %>
-<% base_year = local_assigns.fetch(:base_year, salary_years.first) %>
+<% team_code = local_assigns.fetch(:team_code) %>
 
 <div class="border-b border-border bg-background">
   <div
     class="h-8 flex items-center text-xs font-medium text-muted-foreground select-none cursor-default"
-    data-on:mouseleave="if ($selectedseason !== null) { $selectedseason = null; if ($activeteam) { @get('<%= tools_salary_book_sidebar_team_path(team: '__TEAM__') %>'.replace('__TEAM__', $activeteam) + '&year=<%= base_year %>'); } }"
-    data-on:focusout="if (!el.contains(evt.relatedTarget) && $selectedseason !== null) { $selectedseason = null; if ($activeteam) { @get('<%= tools_salary_book_sidebar_team_path(team: '__TEAM__') %>'.replace('__TEAM__', $activeteam) + '&year=<%= base_year %>'); } }"
   >
     <%# Player column (sticky left) %>
     <div
@@ -21,14 +19,21 @@
     </div>
 
     <%# Year columns %>
-    <% salary_years.each do |year| %>
-      <div
-        class="w-24 tabular-nums text-center transition-colors duration-100 cursor-default select-none"
-        data-on:mouseenter="if (Number($selectedseason) !== <%= year %>) { $selectedseason = <%= year %>; if ($activeteam) { @get('<%= tools_salary_book_sidebar_team_path(team: '__TEAM__') %>'.replace('__TEAM__', $activeteam) + '&year=' + $selectedseason); } }"
-        data-on:focusin="if (Number($selectedseason) !== <%= year %>) { $selectedseason = <%= year %>; if ($activeteam) { @get('<%= tools_salary_book_sidebar_team_path(team: '__TEAM__') %>'.replace('__TEAM__', $activeteam) + '&year=' + $selectedseason); } }"
-        data-class="{ 'bg-yellow-50/70 dark:bg-yellow-900/10 text-foreground': Number($selectedseason) === <%= year %> }"
-      ><%= format_year_label(year) %></div>
-    <% end %>
+    <div
+      class="h-full flex"
+      data-on:salarybook-setseason="if ($activeteam !== '<%= team_code %>') { $activeteam = '<%= team_code %>'; }; if ($selectedseasonteam !== '<%= team_code %>') { $selectedseasonteam = '<%= team_code %>'; }; if (Number($selectedseason) !== evt.detail.year) { $selectedseason = evt.detail.year; }"
+      data-on:mouseleave="if ($selectedseasonteam === '<%= team_code %>' && $selectedseason !== '') { $selectedseason = ''; $selectedseasonteam = ''; }"
+      data-on:focusout="if (evt.relatedTarget && !el.contains(evt.relatedTarget) && $selectedseasonteam === '<%= team_code %>' && $selectedseason !== '') { $selectedseason = ''; $selectedseasonteam = ''; }"
+    >
+      <% salary_years.each do |year| %>
+        <div
+          class="w-24 h-full shrink-0 flex items-center justify-center tabular-nums text-center transition-colors duration-100 cursor-default select-none"
+          data-on:mouseenter="el.dispatchEvent(new CustomEvent('salarybook-setseason', { detail: { year: <%= year %> }, bubbles: true }))"
+          data-on:focusin="el.dispatchEvent(new CustomEvent('salarybook-setseason', { detail: { year: <%= year %> }, bubbles: true }))"
+          data-class="{ 'bg-yellow-50/70 dark:bg-yellow-900/10 text-foreground': Number($selectedseason) === <%= year %> && $selectedseasonteam === '<%= team_code %>' }"
+        ><%= format_year_label(year) %></div>
+      <% end %>
+    </div>
 
     <%# Total column %>
     <div class="w-24 tabular-nums text-center font-semibold">Total</div>

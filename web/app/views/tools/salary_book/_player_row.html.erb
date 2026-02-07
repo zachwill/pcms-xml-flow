@@ -80,7 +80,7 @@
 
         <div
           class="w-24 shrink-0 <%= (show_two_way_badge || is_empty) ? 'grid place-items-center h-[40px]' : 'flex flex-col' %> <%= cell_classes %>"
-          <% unless has_special_bg %>data-class="{ 'bg-yellow-50/70 dark:bg-yellow-900/10': Number($selectedseason) === <%= year %> }"<% end %>
+          <% unless has_special_bg %>data-class="{ 'bg-yellow-50/70 dark:bg-yellow-900/10': Number($selectedseason) === <%= year %> && $selectedseasonteam === '<%= player["team_code"] %>' }"<% end %>
           <% if tooltip.present? %>title="<%= tooltip %>"<% end %>
         >
           <% if show_two_way_badge %>

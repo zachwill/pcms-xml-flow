@@ -2,6 +2,7 @@
 
 <% label = local_assigns.fetch(:label) %>
 <% salary_years ||= SalaryBookHelper::SALARY_YEARS %>
+<% team_code = local_assigns.fetch(:team_code, nil) %>
 
 <div class="border-b border-border/50 bg-muted">
   <div class="h-8 flex items-center text-xs">
@@ -18,7 +19,7 @@
     <% salary_years.each do |year| %>
       <div
         class="w-24 font-mono tabular-nums text-center text-muted-foreground/50"
-        data-class="{ 'bg-yellow-50/70 dark:bg-yellow-900/10': Number($selectedseason) === <%= year %> }"
+        data-class="{ 'bg-yellow-50/70 dark:bg-yellow-900/10': Number($selectedseason) === <%= year %> && $selectedseasonteam === '<%= team_code %>' }"
       >—</div>
     <% end %>
 

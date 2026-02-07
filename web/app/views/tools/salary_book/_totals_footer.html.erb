@@ -2,6 +2,7 @@
 
 <% salary_years ||= SalaryBookHelper::SALARY_YEARS %>
 <% show_tax_aprons = local_assigns.fetch(:show_tax_aprons, true) %>
+<% team_code = local_assigns.fetch(:team_code, nil) %>
 
 <% year_label = ->(y) { format_year_label(y) } %>
 
@@ -26,7 +27,7 @@
         <% cap_total = summary&.dig("cap_total") %>
         <div
           class="w-24 shrink-0 flex justify-center"
-          data-class="{ 'bg-yellow-50/70 dark:bg-yellow-900/10': Number($selectedseason) === <%= year %> }"
+          data-class="{ 'bg-yellow-50/70 dark:bg-yellow-900/10': Number($selectedseason) === <%= year %> && $selectedseasonteam === '<%= team_code %>' }"
         >
           <%= render partial: "tools/salary_book/kpi_cell", locals: {
             label: year_label.call(year),
@@ -65,7 +66,7 @@
         <% variant = cap_space.nil? ? "muted" : (cap_space.to_f < 0 ? "negative" : "positive") %>
         <div
           class="w-24 shrink-0 flex justify-center"
-          data-class="{ 'bg-yellow-50/70 dark:bg-yellow-900/10': Number($selectedseason) === <%= year %> }"
+          data-class="{ 'bg-yellow-50/70 dark:bg-yellow-900/10': Number($selectedseason) === <%= year %> && $selectedseasonteam === '<%= team_code %>' }"
         >
           <%= render partial: "tools/salary_book/kpi_cell", locals: {
             label: year_label.call(year),
@@ -106,7 +107,7 @@
           <% status = tax_status(summary) %>
           <div
             class="w-24 shrink-0 flex justify-center"
-            data-class="{ 'bg-yellow-50/70 dark:bg-yellow-900/10': Number($selectedseason) === <%= year %> }"
+            data-class="{ 'bg-yellow-50/70 dark:bg-yellow-900/10': Number($selectedseason) === <%= year %> && $selectedseasonteam === '<%= team_code %>' }"
           >
             <%= render partial: "tools/salary_book/kpi_cell", locals: {
               label: status[:label],

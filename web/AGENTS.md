@@ -176,6 +176,18 @@ ruby -v  # should be 3.4.x
 - Tools: `/tools/salary-book`, `/tools/trade-machine`
 - Tool fragments: `/tools/salary-book/sidebar/player/:id` (nested under tool)
 
+### Page layout pattern (mandatory — three layers)
+
+Every page follows this structure. No exceptions.
+
+1. **Command Bar** — `sticky top-0 z-40 h-[130px]`, `border-b border-border bg-background`
+2. **Sticky Header(s)** (if applicable) — `sticky top-[130px] z-30` for column headers on data-dense pages
+3. **Edge-to-edge flex layout** — No `max-w-*` or `mx-auto` on `<main>`. Use `px-4 pb-8`.
+
+Best examples: Salary Book → Two-Way Utility → Team Summary.
+
+More detail: `web/docs/ui_invariants.md`
+
 ### Tailwind patterns
 
 - Utility classes in ERB directly (not custom CSS classes)

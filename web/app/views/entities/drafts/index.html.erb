@@ -33,6 +33,16 @@
             checked: @view == "selections",
             bind: "draftview",
             on_change: refresh_expr
+          },
+          {
+            type: "radio",
+            name: "draft-view",
+            id: "draft-view-grid",
+            value: "grid",
+            label: "Grid",
+            checked: @view == "grid",
+            bind: "draftview",
+            on_change: refresh_expr
           }
         ]
       },

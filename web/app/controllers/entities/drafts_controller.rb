@@ -1,12 +1,13 @@
 module Entities
   class DraftsController < ApplicationController
     # GET /drafts
-    # Unified workspace for draft picks (future assets) and draft selections (historical)
+    # Unified workspace for draft picks (future assets), draft selections (historical),
+    # and pick grid (team × year × round ownership matrix).
     def index
       conn = ActiveRecord::Base.connection
 
       @view = params[:view].to_s.strip.presence || "picks"
-      @view = "picks" unless %w[picks selections].include?(@view)
+      @view = "picks" unless %w[picks selections grid].include?(@view)
 
       @year = params[:year].to_s.strip.presence
       @round = params[:round].to_s.strip.presence
@@ -17,7 +18,9 @@ module Entities
       default_picks_year = Date.today.month >= 7 ? current_year + 1 : current_year
       default_selections_year = Date.today.month >= 7 ? current_year : current_year - 1
 
-      if @view == "picks"
+      if @view == "grid"
+        load_grid(conn)
+      elsif @view == "picks"
         @year ||= default_picks_year.to_s
         load_picks(conn)
       else
@@ -25,8 +28,10 @@ module Entities
         load_selections(conn)
       end
 
-      # Available years for the year selector
-      @available_years = if @view == "picks"
+      # Available years for the year selector (not used in grid mode)
+      @available_years = if @view == "grid"
+        []
+      elsif @view == "picks"
         (current_year..(current_year + 7)).to_a
       else
         conn.exec_query(<<~SQL).rows.flatten
@@ -99,6 +104,64 @@ module Entities
         WHERE #{where_clauses.join(" AND ")}
         ORDER BY ds.draft_round ASC, ds.pick_number ASC
       SQL
+    end
+
+    def load_grid(conn)
+      current_year = Date.today.year
+
+      round_clauses = []
+      round_clauses << "v.draft_round = #{conn.quote(@round.to_i)}" if @round.present? && @round != "all"
+      team_clauses = []
+      team_clauses << "v.team_code = #{conn.quote(@team)}" if @team.present?
+
+      where_sql = "v.draft_year >= #{conn.quote(current_year)}"
+      where_sql += " AND #{round_clauses.join(' AND ')}" if round_clauses.any?
+      where_sql += " AND #{team_clauses.join(' AND ')}" if team_clauses.any?
+
+      rows = conn.exec_query(<<~SQL).to_a
+        SELECT
+          v.team_code,
+          t.team_name,
+          v.draft_year,
+          v.draft_round,
+          STRING_AGG(v.display_text, '; ' ORDER BY v.asset_slot, v.sub_asset_slot) AS cell_text,
+          BOOL_OR(v.asset_type = 'TO') AS has_outgoing,
+          BOOL_OR(v.is_swap) AS has_swap,
+          BOOL_OR(v.is_conditional) AS has_conditional,
+          BOOL_OR(v.is_forfeited) AS has_forfeited
+        FROM pcms.vw_draft_pick_assets v
+        LEFT JOIN pcms.teams t ON t.team_code = v.team_code AND t.league_lk = 'NBA'
+        WHERE #{where_sql}
+        GROUP BY v.team_code, t.team_name, v.draft_year, v.draft_round
+        ORDER BY v.team_code, v.draft_round, v.draft_year
+      SQL
+
+      # Build grid structure: { team_code => { round => { year => cell_hash } } }
+      @grid_data = {}
+      @grid_teams = {}
+      grid_years = Set.new
+
+      rows.each do |row|
+        team = row["team_code"]
+        year = row["draft_year"]
+        round = row["draft_round"]
+
+        @grid_teams[team] ||= row["team_name"]
+        grid_years << year
+
+        @grid_data[team] ||= {}
+        @grid_data[team][round] ||= {}
+        @grid_data[team][round][year] = {
+          text: row["cell_text"],
+          has_outgoing: row["has_outgoing"],
+          has_swap: row["has_swap"],
+          has_conditional: row["has_conditional"],
+          has_forfeited: row["has_forfeited"]
+        }
+      end
+
+      @grid_years = grid_years.sort
+      @grid_teams = @grid_teams.sort_by { |code, _| code }
     end
   end
 end

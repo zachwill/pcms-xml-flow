@@ -5,6 +5,8 @@
 <% team_row = players.first || {} %>
 <% team_name = team_row["team_name"].presence || team_meta["team_name"].presence || team_code %>
 <% conference_name = team_row["conference_name"].presence || team_meta["conference_name"].presence || "—" %>
+<% team_id = team_meta["team_id"] || team_row["team_id"] %>
+<% logo_url = team_logo_url(team_id) %>
 
 <% standard_contracts = team_row["team_current_contract_count"] || team_capacity["team_current_contract_count"] %>
 <% two_way_contracts = team_row["team_two_way_contract_count"] || players.size %>
@@ -16,50 +18,101 @@ else
 end %>
 
 <% games_remaining_number = games_remaining_context&.to_i %>
-<% games_remaining_class = games_remaining_number && games_remaining_number < 30 ? "text-red-500" : "text-foreground" %>
+<% games_remaining_variant = games_remaining_number && games_remaining_number < 30 ? "negative" : "default" %>
+<% under_15_label = under_15_context.nil? ? "—" : (under_15_context ? "<15 Std" : "15 Std") %>
+<% under_15_variant = under_15_context.nil? ? "muted" : "default" %>
 
-<section id="<%= team_code %>" data-teamcode="<%= team_code %>" class="scroll-mt-4">
-  <div class="sticky top-0 z-20 border-y border-border bg-background/95 backdrop-blur">
-    <div class="px-4 py-2 flex items-center gap-3">
-      <div class="w-52 shrink-0 min-w-0">
-        <div class="text-[14px] font-semibold leading-tight truncate"><%= team_name %></div>
-        <div class="text-[10px] text-muted-foreground uppercase tracking-wide"><%= team_code %> • <%= conference_name %></div>
+<section id="<%= team_code %>" data-teamcode="<%= team_code %>" class="border-b border-border snap-start scroll-mt-[138px]">
+  <div class="sticky top-[130px] z-30 bg-background will-change-transform shadow-[0_1px_3px_0_rgb(0_0_0/0.08),0_1px_2px_-1px_rgb(0_0_0/0.08)]">
+    <div class="h-14 flex items-center border-b border-border bg-muted">
+      <div class="w-52 shrink-0 pl-4 flex items-center gap-3">
+        <div class="w-8 h-8 rounded flex items-center justify-center flex-shrink-0 bg-background border border-border overflow-hidden">
+          <% if logo_url %>
+            <img
+              src="<%= logo_url %>"
+              alt="<%= team_name %> logo"
+              class="w-full h-full object-contain"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            />
+            <span class="hidden text-[10px] font-mono font-bold uppercase tracking-tight text-muted-foreground"><%= team_code %></span>
+          <% else %>
+            <span class="text-[10px] font-mono font-bold uppercase tracking-tight text-muted-foreground"><%= team_code %></span>
+          <% end %>
+        </div>
+
+        <div class="grid grid-rows-[24px_16px] min-w-0">
+          <div class="h-[24px] flex items-end min-w-0">
+            <span class="font-semibold leading-tight text-[14px] block w-full truncate"><%= team_name %></span>
+          </div>
+          <div class="h-[16px] -mt-px flex items-start min-w-0">
+            <span class="text-[10px] leading-none tabular-nums text-muted-foreground/80 truncate"><%= conference_name %> Conference</span>
+          </div>
+        </div>
       </div>
 
-      <div class="flex items-center gap-2">
-        <div class="w-24 h-10 rounded bg-zinc-200/80 dark:bg-zinc-700/80 px-1 flex flex-col items-center justify-center">
-          <span class="text-[9px] uppercase tracking-wide text-muted-foreground">Std Cts</span>
-          <span class="text-xs font-semibold font-mono tabular-nums"><%= standard_contracts || "—" %></span>
+      <div class="flex items-center">
+        <div class="w-24 shrink-0 flex justify-center">
+          <%= render partial: "tools/salary_book/kpi_cell", locals: {
+            label: "Roster",
+            value: (standard_contracts || "—").to_s,
+            title: "Current roster contracts"
+          } %>
         </div>
 
-        <div class="w-24 h-10 rounded bg-zinc-200/80 dark:bg-zinc-700/80 px-1 flex flex-col items-center justify-center">
-          <span class="text-[9px] uppercase tracking-wide text-muted-foreground">Two-Way</span>
-          <span class="text-xs font-semibold font-mono tabular-nums"><%= two_way_contracts || "—" %></span>
+        <div class="w-24 shrink-0 flex justify-center">
+          <%= render partial: "tools/salary_book/kpi_cell", locals: {
+            label: "Two-Way",
+            value: (two_way_contracts || "—").to_s,
+            title: "Current two-way contracts"
+          } %>
         </div>
 
-        <div class="w-24 h-10 rounded bg-zinc-200/80 dark:bg-zinc-700/80 px-1 flex flex-col items-center justify-center">
-          <span class="text-[9px] uppercase tracking-wide text-muted-foreground">Games Left</span>
-          <span class="text-xs font-semibold font-mono tabular-nums <%= games_remaining_class %>"><%= games_remaining_context || "—" %></span>
+        <div class="w-24 shrink-0 flex justify-center">
+          <%= render partial: "tools/salary_book/kpi_cell", locals: {
+            label: "Games Left",
+            value: (games_remaining_context || "—").to_s,
+            title: "Remaining active-list games",
+            variant: games_remaining_variant
+          } %>
         </div>
 
-        <div class="w-24 h-10 rounded bg-zinc-200/80 dark:bg-zinc-700/80 px-1 flex flex-col items-center justify-center">
-          <span class="text-[9px] uppercase tracking-wide text-muted-foreground">Context</span>
-          <span class="text-[10px] font-semibold tabular-nums"><%= under_15_context.nil? ? "—" : (under_15_context ? "<15 Std" : "15 Std") %></span>
+        <div class="w-24 shrink-0 flex justify-center">
+          <%= render partial: "tools/salary_book/kpi_cell", locals: {
+            label: "Context",
+            value: under_15_label,
+            title: "Whether under-15 or 15-standard context applies",
+            variant: under_15_variant
+          } %>
         </div>
+
+        <div class="w-24 shrink-0"></div>
+        <div class="w-28 shrink-0"></div>
+        <div class="w-28 shrink-0"></div>
+        <div class="w-40 shrink-0"></div>
       </div>
     </div>
 
-    <div class="h-8 px-4 border-t border-border/60 bg-muted/20 flex items-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-      <div class="w-52 shrink-0">Player</div>
-      <div class="w-24 shrink-0 text-right">Used</div>
-      <div class="w-24 shrink-0 text-right">Limit</div>
-      <div class="w-24 shrink-0 text-right">Remain</div>
-      <div class="w-28 shrink-0 text-right">Last Game</div>
-      <div class="w-28 shrink-0 text-right">Signed</div>
+    <div class="border-b border-border bg-background">
+      <div class="h-8 flex items-center text-xs font-medium text-muted-foreground select-none cursor-default">
+        <div
+          class="w-52 shrink-0 pl-4 sticky left-0 z-[2] bg-background relative
+                 after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/50"
+        >
+          Name / Details
+        </div>
+        <div class="w-24 shrink-0 text-center tabular-nums">25-26</div>
+        <div class="w-24 shrink-0 text-center tabular-nums">26-27</div>
+        <div class="w-24 shrink-0 text-center tabular-nums">Used</div>
+        <div class="w-24 shrink-0 text-center tabular-nums">Limit</div>
+        <div class="w-24 shrink-0 text-center tabular-nums">Remain</div>
+        <div class="w-28 shrink-0 text-center tabular-nums">Last Game</div>
+        <div class="w-28 shrink-0 text-center tabular-nums">Signed</div>
+        <div class="w-40 shrink-0 text-left tabular-nums">Agent / Agency</div>
+      </div>
     </div>
   </div>
 
-  <div>
+  <div class="[&>*:first-child]:mt-1">
     <% if players.any? %>
       <% players.each do |player| %>
         <%= render partial: "tools/two_way_utility/player_row", locals: { player: player } %>

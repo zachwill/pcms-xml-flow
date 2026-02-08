@@ -7,33 +7,265 @@
 <% games_used_pct = player["games_used_pct"] %>
 <% status_chip = player["limit_status_chip"] %>
 
-<% last_game = format_date_short(player["last_game_date_est"]) %>
-<% signing_date = format_date_short(player["signing_date"]) %>
+<% age_yos = player_age_yos_display(player) %>
+<% cap_2025 = player["cap_2025"] %>
+<% cap_2026 = player["cap_2026"] %>
+<% trade_restricted_now = player["is_trade_consent_required_now"] || player["is_trade_restricted_now"] || player["is_poison_pill"] %>
 
-<div class="group h-10 px-4 border-b border-border/40 flex items-center text-xs hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
-  <div class="w-52 shrink-0 min-w-0 pr-3">
-    <a href="<%= player_href(player_id) %>" class="text-[13px] font-medium truncate block text-foreground hover:text-primary hover:underline" title="<%= player_name %>">
-      <%= player_name %>
-    </a>
+<% restricted_2025_cell_class = trade_restricted_now ? "bg-red-100/60 dark:bg-red-900/30" : "" %>
+<% restricted_2025_text_class = trade_restricted_now ? "text-red-700 dark:text-red-300" : "text-foreground" %>
+<% two_way_badge_2025_class = trade_restricted_now ? "bg-red-200 dark:bg-red-900/50 text-red-700 dark:text-red-300" : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300" %>
+<% two_way_badge_2026_class = "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300" %>
+
+<% used_ratio = games_used_pct&.to_f %>
+<% used_pct_label = used_ratio ? "#{(used_ratio * 100).round}%" : nil %>
+<% used_blocks = used_ratio ? pct_cap_blocks(used_ratio) : nil %>
+
+<% limit_ratio = if games_limit.present? && games_limit.to_f.positive?
+  [games_limit.to_f / 50.0, 1.0].min
+end %>
+<% limit_pct_label = limit_ratio ? "#{(limit_ratio * 100).round}%" : nil %>
+<% limit_blocks = limit_ratio ? pct_cap_blocks(limit_ratio) : nil %>
+
+<% remain_ratio = if games_remaining.present? && games_limit.present? && games_limit.to_f.positive?
+  games_remaining.to_f / games_limit.to_f
+end %>
+<% remain_pct_label = remain_ratio ? "#{(remain_ratio * 100).round}%" : nil %>
+<% remain_blocks = remain_ratio ? pct_cap_blocks(remain_ratio) : nil %>
+
+<% remaining_games_value = games_remaining&.to_f %>
+<% usage_warning_tier = if remaining_games_value.present? && remaining_games_value <= 10
+  :critical
+elsif remaining_games_value.present? && remaining_games_value <= 20
+  :warning
+end %>
+
+<% usage_warning_cell_class = case usage_warning_tier
+when :critical then "bg-red-100/60 dark:bg-red-900/30"
+when :warning then "bg-orange-100/60 dark:bg-orange-900/30"
+else ""
+end %>
+
+<% usage_warning_top_text_class = case usage_warning_tier
+when :critical then "text-red-700 dark:text-red-300"
+when :warning then "text-orange-700 dark:text-orange-300"
+else "text-foreground"
+end %>
+
+<% usage_warning_sub_text_class = case usage_warning_tier
+when :critical then "text-red-700/90 dark:text-red-300/90"
+when :warning then "text-orange-700/90 dark:text-orange-300/90"
+else "text-muted-foreground/80"
+end %>
+
+<% last_game_top = "—" %>
+<% last_game_bottom = "" %>
+<% if player["last_game_date_est"].present? %>
+  <% begin %>
+    <% last_game_date = Date.parse(player["last_game_date_est"].to_s) %>
+    <% last_game_top = last_game_date.strftime("%b %d") %>
+    <% last_game_bottom = last_game_date.strftime("%Y") %>
+  <% rescue ArgumentError %>
+    <% last_game_top = format_date_short(player["last_game_date_est"]) || "—" %>
+  <% end %>
+<% end %>
+
+<% signing_top = "—" %>
+<% signing_bottom = "" %>
+<% if player["signing_date"].present? %>
+  <% begin %>
+    <% signing_date = Date.parse(player["signing_date"].to_s) %>
+    <% signing_top = signing_date.strftime("%b %d") %>
+    <% signing_bottom = signing_date.strftime("%Y") %>
+  <% rescue ArgumentError %>
+    <% signing_top = format_date_short(player["signing_date"]) || "—" %>
+  <% end %>
+<% end %>
+
+<div class="group h-10 border-b border-border/40 flex items-center text-xs hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+  <div
+    class="w-52 shrink-0 pl-4 sticky left-0 z-20 relative bg-background transition-colors duration-75
+           group-hover:bg-yellow-50/70 dark:group-hover:bg-yellow-900/10
+           after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/30"
+  >
+    <div class="grid grid-cols-[40px_1fr] grid-rows-[24px_16px]" aria-label="<%= player_name %> player info">
+      <div class="row-span-2 flex items-center justify-start">
+        <div class="w-7 h-7 rounded border border-border bg-background overflow-hidden">
+          <img
+            src="<%= player_headshot_url(player_id) %>"
+            alt="<%= player_name %>"
+            class="w-full h-full object-cover object-top bg-muted"
+            loading="lazy"
+            decoding="async"
+            onerror="if (this.src !== '<%= fallback_headshot_data_uri %>') { this.src = '<%= fallback_headshot_data_uri %>'; }"
+          />
+        </div>
+      </div>
+
+      <div class="h-[24px] flex items-end min-w-0 pl-1 pr-2">
+        <a href="<%= player_href(player_id) %>" class="block truncate font-medium text-[14px] text-foreground transition-colors group-hover:text-primary" title="<%= player_name %>">
+          <%= player_name %>
+        </a>
+      </div>
+
+      <div class="h-[16px] -mt-px flex items-start gap-2 min-w-0 pl-1 pr-2 leading-none text-[10px] text-muted-foreground/80 tabular-nums">
+        <% if age_yos.present? %>
+          <span class="truncate"><%= age_yos %></span>
+        <% end %>
+        <% if player["is_two_way"] %>
+          <span class="text-blue-600 dark:text-blue-400">2W</span>
+        <% end %>
+      </div>
+    </div>
   </div>
 
-  <div class="w-24 shrink-0 text-right font-mono tabular-nums">
-    <div><%= games_used || "—" %></div>
-    <div class="text-[10px] text-muted-foreground leading-none"><%= games_used_pct ? "#{(games_used_pct.to_f * 100).round}%" : "" %></div>
+  <div class="w-24 shrink-0 h-10 grid place-items-center <%= restricted_2025_cell_class %>">
+    <% if cap_2025.nil? %>
+      <span class="grid place-items-center w-full">
+        <span class="inline-block font-mono tabular-nums text-center text-gray-400/50" style="width: 6ch">—</span>
+      </span>
+    <% elsif cap_2025.to_f == 0 %>
+      <span class="inline-flex items-center justify-center text-[10px] px-1.5 py-0.5 rounded font-medium <%= two_way_badge_2025_class %>">
+        Two-Way
+      </span>
+    <% else %>
+      <span class="grid place-items-center w-full">
+        <span class="inline-block font-mono tabular-nums text-right <%= restricted_2025_text_class %>" style="width: 6ch"><%= format_salary(cap_2025) %></span>
+      </span>
+    <% end %>
   </div>
 
-  <div class="w-24 shrink-0 text-right font-mono tabular-nums">
-    <div class="flex items-center justify-end gap-1">
-      <span><%= games_limit || "—" %></span>
-      <% if status_chip.present? %>
-        <span class="entity-chip entity-chip--warning" title="Game limit is estimated">
-          <%= status_chip %>
+  <div class="w-24 shrink-0 h-10 grid place-items-center">
+    <% if cap_2026.nil? %>
+      <span class="grid place-items-center w-full">
+        <span class="inline-block font-mono tabular-nums text-center text-gray-400/50" style="width: 6ch">—</span>
+      </span>
+    <% elsif cap_2026.to_f == 0 %>
+      <span class="inline-flex items-center justify-center text-[10px] px-1.5 py-0.5 rounded font-medium <%= two_way_badge_2026_class %>">
+        Two-Way
+      </span>
+    <% else %>
+      <span class="grid place-items-center w-full">
+        <span class="inline-block font-mono tabular-nums text-right text-foreground" style="width: 6ch"><%= format_salary(cap_2026) %></span>
+      </span>
+    <% end %>
+  </div>
+
+  <div class="w-24 shrink-0 flex flex-col <%= usage_warning_cell_class %>">
+    <div class="h-[24px] flex items-end justify-center text-sm">
+      <span class="inline-block font-mono tabular-nums text-right <%= games_used.present? ? usage_warning_top_text_class : 'text-gray-400/50' %>" style="width: 4ch"><%= games_used || "—" %></span>
+    </div>
+    <div class="h-[16px] -mt-px flex items-start justify-center">
+      <% if used_pct_label.present? %>
+        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap <%= usage_warning_sub_text_class %>">
+          <%= used_pct_label %>
+          <% if used_blocks.present? %>
+            <span class="ml-0.5 opacity-70"><%= used_blocks %></span>
+          <% end %>
         </span>
+      <% else %>
+        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap opacity-0">00% ▪︎▪︎▫︎▫︎</span>
       <% end %>
     </div>
   </div>
 
-  <div class="w-24 shrink-0 text-right font-mono tabular-nums"><%= games_remaining || "—" %></div>
-  <div class="w-28 shrink-0 text-right font-mono tabular-nums"><%= last_game || "—" %></div>
-  <div class="w-28 shrink-0 text-right font-mono tabular-nums"><%= signing_date || "—" %></div>
+  <div class="w-24 shrink-0 flex flex-col <%= usage_warning_cell_class %>">
+    <div class="h-[24px] flex items-end justify-center text-sm">
+      <span class="inline-block font-mono tabular-nums text-right <%= games_limit.present? ? usage_warning_top_text_class : 'text-gray-400/50' %>" style="width: 4ch"><%= games_limit || "—" %></span>
+    </div>
+    <div class="h-[16px] -mt-px flex items-start justify-center">
+      <% if limit_pct_label.present? || status_chip.present? %>
+        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap <%= usage_warning_sub_text_class %>" title="<%= status_chip.present? ? 'Game limit is estimated' : nil %>">
+          <% if status_chip.present? %>
+            <% if usage_warning_tier.present? %>
+              <%= status_chip %>
+            <% else %>
+              <span class="text-amber-600 dark:text-amber-400"><%= status_chip %></span>
+            <% end %>
+          <% elsif limit_pct_label.present? %>
+            <%= limit_pct_label %>
+          <% end %>
+          <% if limit_blocks.present? %>
+            <span class="ml-0.5 opacity-70"><%= limit_blocks %></span>
+          <% end %>
+        </span>
+      <% else %>
+        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap opacity-0">00% ▪︎▪︎▫︎▫︎</span>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="w-24 shrink-0 flex flex-col <%= usage_warning_cell_class %>">
+    <div class="h-[24px] flex items-end justify-center text-sm">
+      <span class="inline-block font-mono tabular-nums text-right <%= games_remaining.present? ? usage_warning_top_text_class : 'text-gray-400/50' %>" style="width: 4ch"><%= games_remaining || "—" %></span>
+    </div>
+    <div class="h-[16px] -mt-px flex items-start justify-center">
+      <% if remain_pct_label.present? %>
+        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap <%= usage_warning_sub_text_class %>">
+          <%= remain_pct_label %>
+          <% if remain_blocks.present? %>
+            <span class="ml-0.5 opacity-70"><%= remain_blocks %></span>
+          <% end %>
+        </span>
+      <% else %>
+        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap opacity-0">00% ▪︎▪︎▫︎▫︎</span>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="w-28 shrink-0 flex flex-col">
+    <div class="h-[24px] flex items-end justify-center">
+      <span class="inline-block font-mono tabular-nums text-right <%= last_game_top == '—' ? 'text-gray-400/50' : 'text-foreground' %>" style="width: 8ch"><%= last_game_top %></span>
+    </div>
+    <div class="h-[16px] -mt-px flex items-start justify-center">
+      <% if last_game_bottom.present? %>
+        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap text-muted-foreground/80"><%= last_game_bottom %></span>
+      <% else %>
+        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap opacity-0">0000</span>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="w-28 shrink-0 flex flex-col">
+    <div class="h-[24px] flex items-end justify-center">
+      <span class="inline-block font-mono tabular-nums text-right <%= signing_top == '—' ? 'text-gray-400/50' : 'text-foreground' %>" style="width: 8ch"><%= signing_top %></span>
+    </div>
+    <div class="h-[16px] -mt-px flex items-start justify-center">
+      <% if signing_bottom.present? %>
+        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap text-muted-foreground/80"><%= signing_bottom %></span>
+      <% else %>
+        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap opacity-0">0000</span>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="w-40 shrink-0 flex flex-col pr-4">
+    <%#
+      Pixel-tuned alignment (do not casually tweak):
+      - Agent text uses `-translate-y-[3px]`
+      - Agency text uses `-translate-y-px`
+      This preserves baseline alignment with Salary/% rows while avoiding descender clipping
+      (e.g. g/p/q/y) in truncated names.
+    %>
+    <div class="h-[24px] flex items-end justify-start min-w-0">
+      <% if player['agent_name'].present? && player['agent_id'].present? %>
+        <a
+          href="<%= agent_href(player['agent_id']) %>"
+          class="block text-xs leading-tight truncate -translate-y-[3px] text-gray-400 dark:text-gray-500 hover:text-muted-foreground hover:underline focus:outline-none focus-visible:underline focus-visible:text-muted-foreground transition-colors"
+        ><%= player['agent_name'] %></a>
+      <% elsif player['agent_name'].present? %>
+        <span class="text-xs leading-tight truncate -translate-y-[3px] text-gray-400 dark:text-gray-500"><%= player['agent_name'] %></span>
+      <% else %>
+        <span class="text-xs -translate-y-[3px] text-muted-foreground/50">—</span>
+      <% end %>
+    </div>
+
+    <div class="h-[16px] -mt-px flex items-start justify-start gap-1.5 leading-none text-[10px] tabular-nums min-w-0">
+      <% if player['agency_name'].present? %>
+        <span class="text-gray-400 dark:text-gray-500 leading-tight truncate -translate-y-px"><%= player['agency_name'] %></span>
+      <% else %>
+        <span class="text-gray-400/50 dark:text-gray-500/50 -translate-y-px">—</span>
+      <% end %>
+    </div>
+  </div>
 </div>

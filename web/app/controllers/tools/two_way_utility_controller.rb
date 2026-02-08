@@ -27,23 +27,53 @@ module Tools
     def fetch_rows
       conn.exec_query(<<~SQL).to_a.map { |row| decorate_row(row) }
         SELECT
-          team_code,
-          team_name,
-          conference_name,
-          team_current_contract_count,
-          team_games_remaining_context,
-          team_is_under_15_contracts,
-          team_two_way_contract_count,
-          player_id,
-          player_name,
-          games_on_active_list,
-          active_list_games_limit,
-          remaining_active_list_games,
-          active_list_games_limit_is_estimate,
-          signing_date,
-          last_game_date_est
-        FROM pcms.two_way_utility_warehouse
-        ORDER BY team_code, games_on_active_list DESC NULLS LAST, player_name
+          tw.team_code,
+          tw.team_name,
+          tw.conference_name,
+          tw.team_current_contract_count,
+          tw.team_games_remaining_context,
+          tw.team_is_under_15_contracts,
+          tw.team_two_way_contract_count,
+          tw.player_id,
+          tw.player_name,
+          tw.years_of_service,
+          tw.games_on_active_list,
+          tw.active_list_games_limit,
+          tw.remaining_active_list_games,
+          tw.active_list_games_limit_is_estimate,
+          tw.signing_date,
+          tw.last_game_date_est,
+          sbw.age,
+          sbw.cap_2025,
+          sbw.cap_2026,
+          sbw.agent_id,
+          sbw.agent_name,
+          ag.agency_name,
+          COALESCE(sbw.is_two_way, true) AS is_two_way,
+          COALESCE(sbw.is_trade_consent_required_now, false) AS is_trade_consent_required_now,
+          COALESCE(sbw.is_trade_restricted_now, false) AS is_trade_restricted_now,
+          COALESCE(sbw.is_poison_pill, false) AS is_poison_pill
+        FROM pcms.two_way_utility_warehouse tw
+        LEFT JOIN LATERAL (
+          SELECT
+            s.age,
+            s.cap_2025,
+            s.cap_2026,
+            s.agent_id,
+            s.agent_name,
+            s.is_two_way,
+            s.is_trade_consent_required_now,
+            s.is_trade_restricted_now,
+            s.is_poison_pill
+          FROM pcms.salary_book_warehouse s
+          WHERE s.player_id = tw.player_id
+            AND s.team_code = tw.team_code
+          ORDER BY s.cap_2025 DESC NULLS LAST
+          LIMIT 1
+        ) sbw ON true
+        LEFT JOIN pcms.agents ag
+          ON ag.agent_id = sbw.agent_id
+        ORDER BY tw.team_code, tw.games_on_active_list DESC NULLS LAST, tw.player_name
       SQL
     end
 
@@ -62,6 +92,7 @@ module Tools
     def fetch_teams
       rows = conn.exec_query(<<~SQL).to_a
         SELECT
+          team_id,
           team_code,
           team_name,
           conference_name

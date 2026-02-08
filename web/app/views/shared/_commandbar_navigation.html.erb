@@ -15,9 +15,11 @@
     >
       <option value="/players" <%= "selected" if active_destination == "rip_city" %>>Rip City</option>
       <option value="/" <%= "selected" if active_destination == "salary_book" %>>Salary Book</option>
-      <option value="/tools/two-way-utility" <%= "selected" if active_destination == "two_way_utility" %>>Two-Way Utility</option>
-      <option value="/tools/system-values" <%= "selected" if active_destination == "system_values" %>>System Values</option>
-      <option value="/tools/team-summary" <%= "selected" if active_destination == "team_summary" %>>Team Summary</option>
+      <optgroup label="Tools">
+        <option value="/tools/two-way-utility" <%= "selected" if active_destination == "two_way_utility" %>>Two-Way Utility</option>
+        <option value="/tools/system-values" <%= "selected" if active_destination == "system_values" %>>System Values</option>
+        <option value="/tools/team-summary" <%= "selected" if active_destination == "team_summary" %>>Team Summary</option>
+      </optgroup>
     </select>
 
     <label class="flex items-center gap-1.5 cursor-pointer select-none">

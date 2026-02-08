@@ -1,32 +1,27 @@
 <% content_for :title, "Two-Way Utility" %>
 
 <div class="min-h-screen bg-background">
-  <header id="commandbar" class="border-b border-border bg-background h-[130px] px-4 pt-3 flex items-start gap-4">
-    <div class="flex-1 min-w-0 space-y-2">
-      <div>
-        <h1 class="text-sm font-semibold tracking-wide uppercase">Two-Way Utility</h1>
-        <p class="text-[11px] text-muted-foreground">Active two-way usage by team • warehouse-backed</p>
-      </div>
-
-      <% if @teams_by_conference["Eastern"].any? || @teams_by_conference["Western"].any? %>
-        <div class="flex gap-4" role="navigation" aria-label="Teams">
-          <% %w[Eastern Western].each do |conference| %>
-            <div class="space-y-1">
-              <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70"><%= conference %></div>
-              <div class="grid grid-cols-5 gap-1">
-                <% @teams_by_conference[conference].each do |team| %>
-                  <a
-                    href="#<%= team[:code] %>"
-                    class="h-7 px-2 rounded text-xs font-medium border border-border bg-muted/50 text-foreground inline-flex items-center justify-center no-underline hover:bg-muted hover:border-foreground/20 hover:no-underline"
-                    title="<%= team[:name] %>"
-                  ><%= team[:code] %></a>
-                <% end %>
-              </div>
+  <header id="commandbar" class="sticky top-0 z-40 border-b border-border bg-background h-[130px] px-4 pt-3 flex items-start gap-4">
+    <% if @teams_by_conference["Eastern"].any? || @teams_by_conference["Western"].any? %>
+      <div class="flex gap-4" role="navigation" aria-label="Teams">
+        <% %w[Eastern Western].each do |conference| %>
+          <div class="space-y-1">
+            <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70"><%= conference %></div>
+            <div class="grid grid-cols-5 gap-1">
+              <% @teams_by_conference[conference].each do |team| %>
+                <a
+                  href="#<%= team[:code] %>"
+                  class="relative h-7 px-2 rounded text-xs font-medium transition-all duration-150 border outline-none inline-flex items-center justify-center no-underline hover:no-underline bg-muted/50 text-foreground border-border hover:bg-muted hover:border-foreground/20"
+                  title="<%= team[:name] %>"
+                ><%= team[:code] %></a>
+              <% end %>
             </div>
-          <% end %>
-        </div>
-      <% end %>
-    </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="text-sm text-muted-foreground">No teams.</div>
+    <% end %>
 
     <div class="h-20 w-px bg-border self-center ml-auto shrink-0"></div>
     <%= render partial: "shared/commandbar_navigation", locals: { active_destination: "two_way_utility" } %>
@@ -44,7 +39,10 @@
     <% elsif @team_codes.empty? %>
       <div class="p-6 text-sm text-muted-foreground">No NBA teams available.</div>
     <% else %>
-      <% prefetch_canonical_slugs(entity_type: "player", entity_ids: @rows.map { |row| row["player_id"] }) if @rows.any? %>
+      <% if @rows.any? %>
+        <% prefetch_canonical_slugs(entity_type: "player", entity_ids: @rows.map { |row| row["player_id"] }) %>
+        <% prefetch_canonical_slugs(entity_type: "agent", entity_ids: @rows.map { |row| row["agent_id"] }.compact) %>
+      <% end %>
 
       <div class="divide-y divide-border/60">
         <% @team_codes.each do |team_code| %>

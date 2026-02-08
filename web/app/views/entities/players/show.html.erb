@@ -44,7 +44,6 @@
 <div
   id="player-show"
   class="min-h-screen w-full bg-background"
-  data-signals="{ bootstrapstatus: '<%= @defer_heavy_load ? "idle" : "done" %>', playersseticks: 0 }"
 >
   <%= render partial: "entities/shared/commandbar", locals: {
     active_entity_scope: "players"
@@ -62,7 +61,7 @@
       id="player-bootstrap"
       class="hidden"
       aria-hidden="true"
-      data-effect="if ($bootstrapstatus === 'idle') { $bootstrapstatus = 'loading'; @get('/players/<%= @player_slug %>/sse/bootstrap', { requestCancellation: 'disabled' }); }"
+      data-init="@get('/players/<%= @player_slug %>/sse/bootstrap')"
     ></div>
   <% end %>
 

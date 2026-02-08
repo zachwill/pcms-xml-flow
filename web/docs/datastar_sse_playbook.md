@@ -98,15 +98,47 @@ data: elements </div>
 ## Repo examples
 
 - Concern: `web/app/controllers/concerns/datastar.rb`
-- Production usage: `web/app/controllers/tools/salary_book_sse_controller.rb`
+- SSE usage (Salary Book): `web/app/controllers/tools/salary_book_sse_controller.rb`
+- HTML bootstrap (entities): `web/app/controllers/entities/players_sse_controller.rb`, `teams_sse_controller.rb`
 - Routes:
-  - `GET /tools/salary-book/sse/bootstrap` (shell → full maincanvas hydration)
+  - `GET /tools/salary-book/sse/bootstrap` (shell → full maincanvas hydration, SSE)
   - `GET /tools/salary-book/sse/patch-template`
   - `GET /tools/salary-book/sse/demo` (legacy alias)
+  - `GET /players/:slug/sse/bootstrap` (text/html, morph-by-id)
+  - `GET /teams/:slug/sse/bootstrap` (text/html, morph-by-id)
+
+## Entity page bootstrap pattern (text/html, not SSE)
+
+Entity pages (players, teams) use a simpler pattern than the Salary Book:
+the bootstrap endpoint returns **`text/html`** with all rendered sections
+concatenated. Datastar morphs each top-level element by its `id` attribute.
+
+```ruby
+# Controller — return concatenated HTML partials
+def bootstrap
+  load_workspace_data!
+  html_parts = SECTION_PARTIALS.map { |p| render_to_string(partial: p) }
+  render html: html_parts.join("\n").html_safe, layout: false
+end
+```
+
+```erb
+<%# View — fire once when element is processed by Datastar %>
+<div id="player-bootstrap" class="hidden" aria-hidden="true"
+     data-init="@get('/players/<%= @player_slug %>/sse/bootstrap')">
+</div>
+```
+
+Why not SSE here? Entity workspaces have a fixed set of sections that all
+render from the same data load. A single `text/html` response is simpler,
+avoids `ActionController::Live` threading, and Datastar's morph handles
+the rest.
 
 ## Avoid these traps
 
-- Missing anti-buffering headers (the concern handles this).
+- Missing anti-buffering headers (the concern handles this for SSE).
 - Treating SSE as "only long-lived" — one-off SSE is fine and preferred for multi-region.
 - Emitting too many micro-patches instead of section-level patches.
-- Forgetting disconnect handling (the concern handles this).
+- Forgetting disconnect handling (the concern handles this for SSE).
+- Using SSE when `text/html` morph-by-id is sufficient (entity pages).
+- Missing `Cache-Control: no-store` on bootstrap endpoints (prevents stale 304s).

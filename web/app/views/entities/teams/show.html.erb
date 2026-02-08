@@ -43,7 +43,6 @@
 <div
   id="team-show"
   class="min-h-screen w-full bg-background"
-  data-signals="{ bootstrapstatus: '<%= @defer_heavy_load ? "idle" : "done" %>', teamsseticks: 0 }"
 >
   <%= render partial: "entities/shared/commandbar", locals: {
     active_entity_scope: "teams"
@@ -61,7 +60,7 @@
       id="team-bootstrap"
       class="hidden"
       aria-hidden="true"
-      data-effect="if ($bootstrapstatus === 'idle') { $bootstrapstatus = 'loading'; @get('/teams/<%= @team_slug %>/sse/bootstrap', { requestCancellation: 'disabled' }); }"
+      data-init="@get('/teams/<%= @team_slug %>/sse/bootstrap')"
     ></div>
   <% end %>
 

@@ -79,20 +79,6 @@
     } %>
 
     <div class="lg:flex lg:gap-8">
-      <%= render partial: "entities/shared/local_nav", locals: {
-        sections: [
-          ["vitals", "Vitals"],
-          ["constraints", "Constraint posture"],
-          ["connections", "Connections"],
-          ["contract", "Contract horizon"],
-          ["contract-history", "Contract history"],
-          ["guarantees", "Guarantees"],
-          ["incentives", "Incentives"],
-          ["ledger", "Ledger timeline"],
-          ["team-history", "Team history"]
-        ]
-      } %>
-
       <div class="min-w-0 flex-1 space-y-8">
         <% if @defer_heavy_load %>
           <%= render partial: "entities/shared/section_skeleton", locals: { section_id: "vitals", title: "Vitals", rows: 4 } %>
@@ -116,6 +102,20 @@
           <%= render partial: "entities/players/section_team_history" %>
         <% end %>
       </div>
+
+      <%= render partial: "entities/shared/local_nav", locals: {
+        sections: [
+          ["vitals", "Vitals"],
+          ["constraints", "Constraint posture"],
+          ["connections", "Connections"],
+          ["contract", "Contract horizon"],
+          ["contract-history", "Contract history"],
+          ["guarantees", "Guarantees"],
+          ["incentives", "Incentives"],
+          ["ledger", "Ledger timeline"],
+          ["team-history", "Team history"]
+        ]
+      } %>
     </div>
 
     <%= render partial: "entities/players/rightpanel_base" %>

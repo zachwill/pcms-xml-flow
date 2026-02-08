@@ -1,6 +1,8 @@
 # web/AGENTS.md — Rails + Datastar
 
-> Read the hard rules. Follow the decision trees. Check the checklist before coding.
+> Read the hard rules. Follow the decision trees. Read the design guide. Check the checklist before coding.
+>
+> **New here?** Read in this order: hard rules → `web/docs/design_guide.md` (30-second startup + shell patterns) → checklist below.
 
 ---
 
@@ -100,8 +102,11 @@ Salary Book guardrail:
 
 Answer these before writing code:
 
+- [ ] **Design baseline:** Which shell pattern am I using (A full-viewport, B scrolling page, C entity workspace)?
 - [ ] **Patch targets:** Which `id`(s) am I patching? (`#commandbar`, `#maincanvas`, `#rightpanel-base`, `#rightpanel-overlay`, `#flash`)
 - [ ] **Response type:** Is this 1 region (HTML) or 2+ regions (SSE)?
+- [ ] **Row treatment:** Am I using dense row patterns (identity double-row grid / `entity-cell-two-line`) instead of card layouts?
+- [ ] **Visual invariants:** Row hover uses yellow class, and financial/numeric cells use `font-mono tabular-nums`.
 - [ ] **Client JS:** Am I keeping JS to scroll/measure/sync/transition only? No business logic?
 - [ ] **Data source:** Is the data I need already in a warehouse or `fn_*` function? If not, extend SQL first.
 - [ ] **Existing patterns:** Have I checked similar implementations in `web/app/views/` before inventing something new?
@@ -128,6 +133,7 @@ More detail: `web/docs/patch_boundaries.md`
 
 | Doc | What it covers |
 |-----|----------------|
+| `web/docs/design_guide.md` | Concrete visual patterns (shells, row/cell anatomy, table conventions, checklist) |
 | `web/docs/datastar_sse_playbook.md` | SSE response templates, Rails `ActionController::Live` patterns |
 | `web/docs/ui_invariants.md` | Product-level interaction rules |
 | `web/docs/patch_boundaries.md` | Full patch boundary ownership map |
@@ -178,13 +184,15 @@ ruby -v  # should be 3.4.x
 
 ### Page layout pattern (mandatory — three layers)
 
-Every page follows this structure. No exceptions.
+This is the default structure for new pages. If an existing page differs, follow its local pattern unless you are intentionally migrating it.
 
 1. **Command Bar** — `sticky top-0 z-40 h-[130px]`, `border-b border-border bg-background`
 2. **Sticky Header(s)** (if applicable) — `sticky top-[130px] z-30` for column headers on data-dense pages
 3. **Edge-to-edge flex layout** — No `max-w-*` or `mx-auto` on `<main>`. Use `px-4 pb-8`.
 
 Best examples: Salary Book → Two-Way Utility → Team Summary.
+
+Concrete templates: `web/docs/design_guide.md`
 
 More detail: `web/docs/ui_invariants.md`
 

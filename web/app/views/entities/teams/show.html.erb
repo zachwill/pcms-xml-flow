@@ -65,7 +65,7 @@
     ></div>
   <% end %>
 
-  <main id="maincanvas" class="max-w-5xl mx-auto px-4 py-6" data-entity-workspace>
+  <main id="maincanvas" class="px-4 pb-8" data-entity-workspace>
     <%= render partial: "entities/shared/entity_header", locals: {
       image_url: team_logo_url(@team_id),
       image_alt: team_name.presence || team_code,

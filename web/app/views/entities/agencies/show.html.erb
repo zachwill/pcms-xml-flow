@@ -10,7 +10,7 @@
     active_entity_scope: "agencies"
   } %>
 
-  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6" data-entity-workspace>
+  <main class="px-4 pb-8 space-y-6" data-entity-workspace>
     <%= render partial: "entities/shared/workspace_header", locals: {
       breadcrumbs: [["Agencies", "/agencies"], [agency_name.presence || "Agency", nil]],
       title: (agency_name.presence || "Agency"),

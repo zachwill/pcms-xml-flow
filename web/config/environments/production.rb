@@ -18,6 +18,13 @@ Rails.application.configure do
   # Cache assets for far-future expiry since they are all digest stamped.
   config.public_file_server.headers = { "cache-control" => "public, max-age=#{1.year.to_i}" }
 
+  # Compress responses (HTML/JSON/etc.) for large payloads like Salary Book maincanvas.
+  # Keep SSE uncompressed to avoid buffering/streaming issues.
+  config.middleware.use Rack::Deflater,
+                        if: lambda { |_env, _status, headers, _body|
+                          !headers["Content-Type"].to_s.start_with?("text/event-stream")
+                        }
+
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
   # config.asset_host = "http://assets.example.com"
 

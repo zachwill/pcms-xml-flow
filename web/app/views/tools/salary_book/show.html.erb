@@ -89,6 +89,51 @@
       <%# Divider %>
       <div class="h-20 w-px bg-border self-center"></div>
 
+      <%# Apps (placeholder radios; Salaries is the only active app today) %>
+      <div class="min-w-[5.5rem] space-y-1" role="radiogroup" aria-label="Apps">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Apps</div>
+        <div class="space-y-1">
+          <label class="flex items-center gap-1.5 cursor-not-allowed opacity-60">
+            <input
+              type="radio"
+              id="app-injuries"
+              name="salarybook-app"
+              value="injuries"
+              class="size-3.5 accent-primary"
+              disabled
+            />
+            <span class="text-[11px] leading-none select-none text-muted-foreground">Injuries</span>
+          </label>
+
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input
+              type="radio"
+              id="app-salaries"
+              name="salarybook-app"
+              value="salaries"
+              class="size-3.5 accent-primary"
+              checked
+            />
+            <span class="text-[11px] leading-none select-none text-foreground font-semibold">Salaries</span>
+          </label>
+
+          <label class="flex items-center gap-1.5 cursor-not-allowed opacity-60">
+            <input
+              type="radio"
+              id="app-tankathon"
+              name="salarybook-app"
+              value="tankathon"
+              class="size-3.5 accent-primary"
+              disabled
+            />
+            <span class="text-[11px] leading-none select-none text-muted-foreground">Tankathon</span>
+          </label>
+        </div>
+      </div>
+
+      <%# Divider %>
+      <div class="h-20 w-px bg-border self-center"></div>
+
       <%# Filter Toggles (client-only lenses) %>
       <div class="flex items-start gap-4" role="group" aria-label="Filters">
         <div class="min-w-[4.5rem] space-y-1">

@@ -1,0 +1,49 @@
+<% horizon_years = (2025..2030).to_a %>
+
+<section id="contract" class="space-y-3">
+  <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contract horizon</h2>
+  <% if @salary_book_row.present? %>
+    <div class="overflow-x-auto rounded-lg border border-border">
+      <div class="flex min-w-max">
+        <% horizon_years.each do |year| %>
+          <% cap_amt = @salary_book_row["cap_#{year}"]&.to_f %>
+          <% option = normalize_contract_option(@salary_book_row["option_#{year}"]) %>
+          <% is_partial = @salary_book_row["is_partially_guaranteed_#{year}"] %>
+          <% is_non_gtd = @salary_book_row["is_non_guaranteed_#{year}"] %>
+          <% gtd_amount = @salary_book_row["guaranteed_amount_#{year}"]&.to_f %>
+          <% bg_class = "" %>
+          <% if option.present? && year > 2025 %>
+            <% bg_class = case option
+              when "PO" then "bg-blue-50/80 dark:bg-blue-900/20"
+              when "TO" then "bg-purple-50/80 dark:bg-purple-900/20"
+              when "ETO" then "bg-orange-50/80 dark:bg-orange-900/20"
+              else ""
+            end %>
+          <% elsif is_non_gtd %>
+            <% bg_class = "bg-yellow-50/80 dark:bg-yellow-900/20" %>
+          <% elsif is_partial %>
+            <% bg_class = "bg-amber-50/60 dark:bg-amber-900/15" %>
+          <% end %>
+
+          <div class="min-w-24 flex-1 border-r border-border p-3 text-center last:border-r-0 <%= bg_class %>">
+            <div class="text-[10px] text-muted-foreground uppercase tracking-wide font-medium"><%= format_year_label(year) %></div>
+            <% if cap_amt.present? && cap_amt > 0 %>
+              <div class="mt-1 text-base font-semibold font-mono tabular-nums"><%= format_salary(cap_amt) %></div>
+              <% if option.present? %>
+                <div class="mt-1 text-[10px] text-muted-foreground"><%= option %></div>
+              <% elsif is_non_gtd %>
+                <div class="mt-1 text-[10px] text-yellow-700 dark:text-yellow-400">Non-GTD</div>
+              <% elsif is_partial && gtd_amount.present? && gtd_amount > 0 %>
+                <div class="mt-1 text-[10px] text-muted-foreground">GTD <%= format_salary(gtd_amount) %></div>
+              <% end %>
+            <% else %>
+              <div class="mt-1 text-sm text-muted-foreground/50">—</div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% else %>
+    <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No contract data found.</div>
+  <% end %>
+</section>

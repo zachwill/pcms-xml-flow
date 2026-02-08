@@ -7,6 +7,8 @@ Rails.application.routes.draw do
     # Primary tool surface
     get "salary-book", to: "salary_book#show"
     get "two-way-utility", to: "two_way_utility#show"
+    get "system-values", to: "system_values#show"
+    get "team-summary", to: "team_summary#show"
 
     # Datastar HTML fragment endpoints (patch targets)
     get "salary-book/teams/:teamcode/section", to: "salary_book#team_section", as: :salary_book_team_section

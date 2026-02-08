@@ -1,0 +1,131 @@
+<% content_for :title, "Team Summary" %>
+
+<%
+  filter_params = request.query_parameters.slice("year", "conference", "pressure")
+  next_cap_space_sort = (@sort == "cap_space_desc") ? "cap_space_asc" : "cap_space_desc"
+  next_tax_overage_sort = (@sort == "tax_overage_desc") ? "tax_overage_asc" : "tax_overage_desc"
+%>
+
+<div class="min-h-screen bg-background">
+  <header id="commandbar" class="border-b border-border bg-background h-[130px] px-4 pt-3 flex items-start gap-4">
+    <div class="flex-1 min-w-0 space-y-2">
+      <div>
+        <h1 class="text-sm font-semibold tracking-wide uppercase">Team Summary</h1>
+        <p class="text-[11px] text-muted-foreground">Workbook-style cap/tax/apron snapshot for all NBA teams</p>
+      </div>
+
+      <form method="get" action="<%= tools_team_summary_path %>" class="flex flex-wrap items-center gap-2">
+        <label class="text-[11px] text-muted-foreground">Year</label>
+        <select name="year" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs">
+          <% @available_years.each do |candidate_year| %>
+            <option value="<%= candidate_year %>" <%= "selected" if candidate_year == @selected_year %>><%= candidate_year %></option>
+          <% end %>
+        </select>
+
+        <label class="text-[11px] text-muted-foreground">Conference</label>
+        <select name="conference" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs">
+          <% [["all", "All"], ["Eastern", "Eastern"], ["Western", "Western"]].each do |value, label| %>
+            <option value="<%= value %>" <%= "selected" if @conference == value %>><%= label %></option>
+          <% end %>
+        </select>
+
+        <label class="text-[11px] text-muted-foreground">Filter</label>
+        <select name="pressure" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs">
+          <% [["all", "All"], ["over_tax", "Over tax"], ["over_apron", "Over apron"]].each do |value, label| %>
+            <option value="<%= value %>" <%= "selected" if @pressure == value %>><%= label %></option>
+          <% end %>
+        </select>
+
+        <label class="text-[11px] text-muted-foreground">Sort</label>
+        <select name="sort" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs">
+          <% [["cap_space_desc", "Cap space ↓"], ["cap_space_asc", "Cap space ↑"], ["tax_overage_desc", "Tax overage ↓"], ["tax_overage_asc", "Tax overage ↑"], ["team_asc", "Team A→Z"]].each do |value, label| %>
+            <option value="<%= value %>" <%= "selected" if @sort == value %>><%= label %></option>
+          <% end %>
+        </select>
+
+        <button type="submit" class="h-7 px-2 rounded border border-border bg-muted/50 text-xs font-medium hover:bg-muted">Apply</button>
+      </form>
+    </div>
+
+    <div class="h-20 w-px bg-border self-center ml-auto shrink-0"></div>
+    <%= render partial: "shared/commandbar_navigation", locals: { active_destination: "team_summary" } %>
+  </header>
+
+  <main class="p-4">
+    <% if @boot_error %>
+      <div class="p-4 rounded-lg border border-border bg-muted/20">
+        <div class="text-sm font-medium text-destructive">Warehouse query failed</div>
+        <pre class="mt-2 text-xs text-muted-foreground overflow-x-auto"><%= @boot_error %></pre>
+      </div>
+    <% elsif @rows.empty? %>
+      <div class="p-3 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No teams match the current filters.</div>
+    <% else %>
+      <div class="overflow-x-auto rounded-lg border border-border">
+        <table class="entity-table min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+            <tr>
+              <th class="text-left px-3 py-2 font-medium">Team</th>
+              <th class="text-left px-3 py-2 font-medium">Conf</th>
+              <th class="text-right px-3 py-2 font-medium">Cap Total</th>
+              <th class="text-right px-3 py-2 font-medium">
+                <a class="hover:underline" href="<%= tools_team_summary_path(filter_params.merge("sort" => next_cap_space_sort)) %>">Cap Space</a>
+              </th>
+              <th class="text-right px-3 py-2 font-medium">Tax Total</th>
+              <th class="text-right px-3 py-2 font-medium">Tax Level</th>
+              <th class="text-right px-3 py-2 font-medium">
+                <a class="hover:underline" href="<%= tools_team_summary_path(filter_params.merge("sort" => next_tax_overage_sort)) %>">Tax Overage</a>
+              </th>
+              <th class="text-right px-3 py-2 font-medium">Room Tax</th>
+              <th class="text-right px-3 py-2 font-medium">Room A1</th>
+              <th class="text-right px-3 py-2 font-medium">Room A2</th>
+              <th class="text-left px-3 py-2 font-medium">Flags</th>
+              <th class="text-right px-3 py-2 font-medium">Luxury Tax</th>
+              <th class="text-right px-3 py-2 font-medium">Roster</th>
+              <th class="text-right px-3 py-2 font-medium">2W</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <% @rows.each do |row| %>
+              <% cap_space = row["cap_space"].to_f %>
+              <% tax_overage = row["tax_overage"].to_f %>
+              <% room_tax = row["room_under_tax"]&.to_f %>
+              <% room_a1 = row["room_under_apron1"]&.to_f %>
+              <% room_a2 = row["room_under_apron2"]&.to_f %>
+              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
+                <td class="px-3 py-2 font-medium">
+                  <a href="<%= team_href(team_code: row['team_code'], team_id: row['team_id']) %>" class="hover:underline"><%= row["team_code"] %></a>
+                  <div class="text-[10px] text-muted-foreground"><%= row["team_name"] %></div>
+                </td>
+                <td class="px-3 py-2 text-muted-foreground"><%= row["conference_name"]&.first || "—" %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_compact_currency(row["cap_total"]) %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums <%= cap_space >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500' %>"><%= format_room_amount(cap_space) %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_compact_currency(row["tax_total"]) %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_compact_currency(row["tax_level_amount"]) %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums <%= tax_overage > 0 ? 'text-red-500' : 'text-muted-foreground' %>"><%= tax_overage > 0 ? format_compact_currency(tax_overage) : "—" %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums <%= room_tax && room_tax < 0 ? 'text-red-500' : '' %>"><%= room_tax.nil? ? "—" : format_room_amount(room_tax) %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums <%= room_a1 && room_a1 < 0 ? 'text-red-500' : '' %>"><%= room_a1.nil? ? "—" : format_room_amount(room_a1) %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums <%= room_a2 && room_a2 < 0 ? 'text-red-500' : '' %>"><%= room_a2.nil? ? "—" : format_room_amount(room_a2) %></td>
+                <td class="px-3 py-2">
+                  <div class="flex flex-wrap gap-1">
+                    <% if row["is_taxpayer"] %>
+                      <span class="entity-chip entity-chip--danger">Taxpayer</span>
+                    <% end %>
+                    <% if row["is_repeater_taxpayer"] %>
+                      <span class="entity-chip entity-chip--warning">Repeater</span>
+                    <% end %>
+                    <% if row["is_subject_to_apron"] %>
+                      <span class="entity-chip entity-chip--accent"><%= row["apron_level_lk"].presence || "Apron" %></span>
+                    <% end %>
+                  </div>
+                </td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= row["luxury_tax_owed"].to_f > 0 ? format_compact_currency(row["luxury_tax_owed"]) : "—" %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= row["roster_row_count"] %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= row["two_way_row_count"] %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </main>
+</div>

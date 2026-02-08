@@ -1,0 +1,94 @@
+<% content_for :title, "System Values" %>
+
+<div
+  id="system-values"
+  class="min-h-screen bg-background"
+  data-signals="{ showsystemvalues: true, showtaxrates: true, showsalaryscales: true, showrookiescales: true }"
+>
+  <header id="commandbar" class="border-b border-border bg-background h-[130px] px-4 pt-3 flex items-start gap-4">
+    <div class="flex-1 min-w-0 space-y-2">
+      <div>
+        <h1 class="text-sm font-semibold tracking-wide uppercase">System Values</h1>
+        <p class="text-[11px] text-muted-foreground">League constants, tax brackets, salary scales, rookie scale grid</p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <form method="get" action="<%= tools_system_values_path %>" class="flex flex-wrap items-center gap-2">
+          <label class="text-[11px] text-muted-foreground">Year</label>
+          <select name="year" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs">
+            <% @available_years.each do |candidate_year| %>
+              <option value="<%= candidate_year %>" <%= "selected" if candidate_year == @selected_year %>><%= candidate_year %></option>
+            <% end %>
+          </select>
+
+          <label class="text-[11px] text-muted-foreground">From</label>
+          <select name="from_year" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs">
+            <% @available_years.each do |candidate_year| %>
+              <option value="<%= candidate_year %>" <%= "selected" if candidate_year == @from_year %>><%= candidate_year %></option>
+            <% end %>
+          </select>
+
+          <label class="text-[11px] text-muted-foreground">To</label>
+          <select name="to_year" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs">
+            <% @available_years.each do |candidate_year| %>
+              <option value="<%= candidate_year %>" <%= "selected" if candidate_year == @to_year %>><%= candidate_year %></option>
+            <% end %>
+          </select>
+
+          <button type="submit" class="h-7 px-2 rounded border border-border bg-muted/50 text-xs font-medium hover:bg-muted">Apply</button>
+        </form>
+
+        <div class="h-5 w-px bg-border"></div>
+
+        <label class="flex items-center gap-1.5 text-[11px] text-foreground/80">
+          <input type="checkbox" class="size-3.5 accent-primary" data-bind="showsystemvalues" />
+          System
+        </label>
+        <label class="flex items-center gap-1.5 text-[11px] text-foreground/80">
+          <input type="checkbox" class="size-3.5 accent-primary" data-bind="showtaxrates" />
+          Tax Rates
+        </label>
+        <label class="flex items-center gap-1.5 text-[11px] text-foreground/80">
+          <input type="checkbox" class="size-3.5 accent-primary" data-bind="showsalaryscales" />
+          Minimum Salary
+        </label>
+        <label class="flex items-center gap-1.5 text-[11px] text-foreground/80">
+          <input type="checkbox" class="size-3.5 accent-primary" data-bind="showrookiescales" />
+          Rookie Scale
+        </label>
+      </div>
+    </div>
+
+    <div class="h-20 w-px bg-border self-center ml-auto shrink-0"></div>
+    <%= render partial: "shared/commandbar_navigation", locals: { active_destination: "system_values" } %>
+  </header>
+
+  <main class="p-4 space-y-4">
+    <% if @boot_error %>
+      <div class="p-4 rounded-lg border border-border bg-muted/20">
+        <div class="text-sm font-medium text-destructive">Warehouse query failed</div>
+        <pre class="mt-2 text-xs text-muted-foreground overflow-x-auto"><%= @boot_error %></pre>
+      </div>
+    <% else %>
+      <%= render partial: "tools/system_values/league_system_values_table", locals: {
+        rows: @league_system_values,
+        selected_year: @selected_year
+      } %>
+
+      <%= render partial: "tools/system_values/league_tax_rates_table", locals: {
+        rows: @league_tax_rates,
+        selected_year: @selected_year
+      } %>
+
+      <%= render partial: "tools/system_values/league_salary_scales_table", locals: {
+        rows: @league_salary_scales,
+        selected_year: @selected_year
+      } %>
+
+      <%= render partial: "tools/system_values/rookie_scale_amounts_table", locals: {
+        rows: @rookie_scale_amounts,
+        selected_year: @selected_year
+      } %>
+    <% end %>
+  </main>
+</div>

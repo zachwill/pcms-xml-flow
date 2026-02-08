@@ -1,6 +1,7 @@
 <%
   active_destination = local_assigns[:active_destination].to_s
-  active_destination = "salary_book" unless %w[rip_city salary_book tools].include?(active_destination)
+  valid_destinations = %w[rip_city salary_book two_way_utility system_values team_summary]
+  active_destination = "salary_book" unless valid_destinations.include?(active_destination)
 %>
 
 <div class="w-48 shrink-0 space-y-1">
@@ -14,7 +15,9 @@
     >
       <option value="/players" <%= "selected" if active_destination == "rip_city" %>>Rip City</option>
       <option value="/" <%= "selected" if active_destination == "salary_book" %>>Salary Book</option>
-      <option value="/tools/two-way-utility" <%= "selected" if active_destination == "tools" %>>Tools</option>
+      <option value="/tools/two-way-utility" <%= "selected" if active_destination == "two_way_utility" %>>Two-Way Utility</option>
+      <option value="/tools/system-values" <%= "selected" if active_destination == "system_values" %>>System Values</option>
+      <option value="/tools/team-summary" <%= "selected" if active_destination == "team_summary" %>>Team Summary</option>
     </select>
 
     <label class="flex items-center gap-1.5 cursor-pointer select-none">

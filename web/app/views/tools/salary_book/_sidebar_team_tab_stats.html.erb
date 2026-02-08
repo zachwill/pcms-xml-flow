@@ -1,0 +1,42 @@
+<% stats_by_year ||= {} %>
+<% year ||= SalaryBookHelper::SALARY_YEARS.first %>
+<% years = SalaryBookHelper::SALARY_YEARS %>
+
+<div data-show="$sidebartab === 'stats'" class="border-t border-border pt-4 space-y-3">
+  <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Team Stats</div>
+
+  <% if stats_by_year.empty? %>
+    <div class="p-3 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">
+      No team salary warehouse rows available.
+    </div>
+  <% else %>
+    <div class="overflow-x-auto rounded-lg border border-border/60">
+      <table class="min-w-full text-[11px]">
+        <thead class="bg-muted/20 text-muted-foreground uppercase tracking-wide text-[10px]">
+          <tr>
+            <th class="text-left px-2 py-1.5 font-medium">Year</th>
+            <th class="text-right px-2 py-1.5 font-medium">Cap</th>
+            <th class="text-right px-2 py-1.5 font-medium">Tax</th>
+            <th class="text-right px-2 py-1.5 font-medium">Apron</th>
+            <th class="text-right px-2 py-1.5 font-medium">Roster</th>
+            <th class="text-right px-2 py-1.5 font-medium">2W</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border/50">
+          <% years.each do |stats_year| %>
+            <% row = stats_by_year[stats_year] || {} %>
+            <% highlight = stats_year.to_i == year.to_i %>
+            <tr class="<%= highlight ? 'bg-yellow-50/70 dark:bg-yellow-900/10' : '' %>">
+              <td class="px-2 py-1.5 font-mono tabular-nums"><%= format_year_label(stats_year) %></td>
+              <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= row["cap_total"] ? format_compact_currency(row["cap_total"]) : "—" %></td>
+              <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= row["tax_total"] ? format_compact_currency(row["tax_total"]) : "—" %></td>
+              <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= row["apron_total"] ? format_compact_currency(row["apron_total"]) : "—" %></td>
+              <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= row["roster_row_count"] || "—" %></td>
+              <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= row["two_way_row_count"] || "—" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>

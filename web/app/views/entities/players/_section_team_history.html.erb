@@ -1,0 +1,29 @@
+<% team_history_rows = Array(@team_history_rows) %>
+
+<section id="team-history" class="space-y-3">
+  <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Team history</h2>
+  <% if team_history_rows.empty? %>
+    <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No team history found.</div>
+  <% else %>
+    <div class="flex flex-wrap gap-2">
+      <% team_history_rows.each do |row| %>
+        <% is_current = (row["team_code"] == @salary_book_row&.fetch("team_code", nil)) %>
+        <div class="flex items-center gap-2 px-3 py-2 rounded-lg border <%= is_current ? 'border-primary/50 bg-primary/5' : 'border-border bg-background' %>">
+          <% if row["team_id"].present? %>
+            <img src="<%= team_logo_url(row['team_id']) %>" alt="<%= row['team_code'] %>" class="w-6 h-6 object-contain" onerror="this.style.display='none'" />
+          <% end %>
+          <div>
+            <a href="<%= team_href(team_code: row['team_code'], team_id: row['team_id']) %>" class="font-medium hover:underline"><%= row["team_code"] %></a>
+            <% if is_current %><span class="ml-1 text-[10px] text-primary font-medium">(current)</span><% end %>
+            <div class="text-[10px] text-muted-foreground">
+              <%= row["start_date"] ? row["start_date"].to_s.slice(0, 4) : "?" %>
+              <% if row["last_date"] && row["start_date"] != row["last_date"] %>
+                → <%= row["last_date"].to_s.slice(0, 4) %>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</section>

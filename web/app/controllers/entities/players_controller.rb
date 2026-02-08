@@ -99,20 +99,81 @@ module Entities
     # GET /players/:slug
     # Canonical route.
     def show
-      slug = params[:slug].to_s.strip.downcase
+      @defer_heavy_load = params[:full].to_s != "1"
+
+      resolve_player_from_slug!(params[:slug])
+      return if performed?
+
+      if @defer_heavy_load
+        load_player_header_snapshot!
+        seed_empty_player_workspace!
+      else
+        load_player_workspace_data!
+      end
+
+      render :show
+    end
+
+    # GET /players/:id (numeric fallback)
+    def redirect
+      id = Integer(params[:id])
+
+      canonical = Slug.find_by(entity_type: "player", entity_id: id, canonical: true)
+      if canonical
+        redirect_to player_path(canonical.slug), status: :moved_permanently
+        return
+      end
+
+      # Create a default canonical slug on-demand, using PCMS name.
+      conn = ActiveRecord::Base.connection
+      id_sql = conn.quote(id)
+
+      row = conn.exec_query(
+        "SELECT COALESCE(display_first_name, first_name) AS first_name, COALESCE(display_last_name, last_name) AS last_name FROM pcms.people WHERE person_id = #{id_sql} LIMIT 1"
+      ).first
+
+      raise ActiveRecord::RecordNotFound unless row
+
+      base = [row["first_name"], row["last_name"]].compact.join(" ").parameterize
+      base = "player-#{id}" if base.blank?
+
+      slug = base
+      i = 2
+      while Slug.reserved_slug?(slug) || Slug.exists?(entity_type: "player", slug: slug)
+        slug = "#{base}-#{i}"
+        i += 1
+      end
+
+      Slug.create!(entity_type: "player", entity_id: id, slug: slug, canonical: true)
+
+      redirect_to player_path(slug), status: :moved_permanently
+    rescue ArgumentError
+      raise ActiveRecord::RecordNotFound
+    end
+
+    private
+
+    def resolve_player_from_slug!(raw_slug, redirect_on_canonical_miss: true)
+      slug = raw_slug.to_s.strip.downcase
       raise ActiveRecord::RecordNotFound if slug.empty?
 
       record = Slug.find_by!(entity_type: "player", slug: slug)
 
       canonical = Slug.find_by(entity_type: "player", entity_id: record.entity_id, canonical: true)
       if canonical && canonical.slug != record.slug
-        redirect_to player_path(canonical.slug), status: :moved_permanently
-        return
+        if redirect_on_canonical_miss
+          redirect_to player_path(canonical.slug), status: :moved_permanently
+          return
+        end
+
+        record = canonical
       end
 
       @player_id = record.entity_id
       @player_slug = record.slug
+    end
 
+    def load_player_header_snapshot!
       conn = ActiveRecord::Base.connection
       id_sql = conn.quote(@player_id)
 
@@ -233,6 +294,27 @@ module Entities
         WHERE player_id = #{id_sql}
         LIMIT 1
       SQL
+    end
+
+    def seed_empty_player_workspace!
+      @team_history_rows = []
+      @salary_book_yearly_rows = []
+      @contract_chronology_rows = []
+      @contract_version_rows = []
+      @salary_rows = []
+      @protection_rows = []
+      @protection_condition_rows = []
+      @bonus_rows = []
+      @bonus_max_rows = []
+      @payment_schedule_rows = []
+      @ledger_entries = []
+    end
+
+    def load_player_workspace_data!
+      load_player_header_snapshot!
+
+      conn = ActiveRecord::Base.connection
+      id_sql = conn.quote(@player_id)
 
       # Team history (derived from transactions) — track stints with each team.
       # Uses key transaction types that indicate team changes (SIGN, TRADE, DRAFT, etc.)
@@ -543,45 +625,6 @@ module Entities
         ORDER BY le.ledger_date DESC, le.transaction_ledger_entry_id DESC
         LIMIT 80
       SQL
-
-      render :show
-    end
-
-    # GET /players/:id (numeric fallback)
-    def redirect
-      id = Integer(params[:id])
-
-      canonical = Slug.find_by(entity_type: "player", entity_id: id, canonical: true)
-      if canonical
-        redirect_to player_path(canonical.slug), status: :moved_permanently
-        return
-      end
-
-      # Create a default canonical slug on-demand, using PCMS name.
-      conn = ActiveRecord::Base.connection
-      id_sql = conn.quote(id)
-
-      row = conn.exec_query(
-        "SELECT COALESCE(display_first_name, first_name) AS first_name, COALESCE(display_last_name, last_name) AS last_name FROM pcms.people WHERE person_id = #{id_sql} LIMIT 1"
-      ).first
-
-      raise ActiveRecord::RecordNotFound unless row
-
-      base = [row["first_name"], row["last_name"]].compact.join(" ").parameterize
-      base = "player-#{id}" if base.blank?
-
-      slug = base
-      i = 2
-      while Slug.reserved_slug?(slug) || Slug.exists?(entity_type: "player", slug: slug)
-        slug = "#{base}-#{i}"
-        i += 1
-      end
-
-      Slug.create!(entity_type: "player", entity_id: id, slug: slug, canonical: true)
-
-      redirect_to player_path(slug), status: :moved_permanently
-    rescue ArgumentError
-      raise ActiveRecord::RecordNotFound
     end
   end
 end

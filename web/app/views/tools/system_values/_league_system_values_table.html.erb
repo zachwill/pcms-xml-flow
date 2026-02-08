@@ -1,0 +1,54 @@
+<% rows ||= [] %>
+<% selected_year ||= nil %>
+
+<section data-show="$showsystemvalues" class="space-y-2">
+  <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">League System Values</div>
+
+  <% if rows.empty? %>
+    <div class="p-3 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No rows in selected range.</div>
+  <% else %>
+    <div class="overflow-x-auto rounded-lg border border-border">
+      <table class="min-w-full text-xs font-mono tabular-nums">
+        <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+          <tr>
+            <th class="text-left px-3 py-2 font-medium">Year</th>
+            <th class="text-right px-3 py-2 font-medium">Cap</th>
+            <th class="text-right px-3 py-2 font-medium">Tax</th>
+            <th class="text-right px-3 py-2 font-medium">Apron 1</th>
+            <th class="text-right px-3 py-2 font-medium">Apron 2</th>
+            <th class="text-right px-3 py-2 font-medium">Max 25%</th>
+            <th class="text-right px-3 py-2 font-medium">Max 30%</th>
+            <th class="text-right px-3 py-2 font-medium">Max 35%</th>
+            <th class="text-right px-3 py-2 font-medium">NT MLE</th>
+            <th class="text-right px-3 py-2 font-medium">Tax MLE</th>
+            <th class="text-right px-3 py-2 font-medium">Room MLE</th>
+            <th class="text-right px-3 py-2 font-medium">BAE</th>
+            <th class="text-right px-3 py-2 font-medium">TPE</th>
+            <th class="text-right px-3 py-2 font-medium">Cash</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          <% rows.each do |row| %>
+            <% highlighted = row["salary_year"].to_i == selected_year.to_i %>
+            <tr class="<%= highlighted ? 'bg-yellow-50/70 dark:bg-yellow-900/10' : '' %>">
+              <td class="px-3 py-2"><%= row["salary_year"] %></td>
+              <td class="px-3 py-2 text-right"><%= format_compact_currency(row["salary_cap_amount"]) %></td>
+              <td class="px-3 py-2 text-right"><%= format_compact_currency(row["tax_level_amount"]) %></td>
+              <td class="px-3 py-2 text-right"><%= format_compact_currency(row["tax_apron_amount"]) %></td>
+              <td class="px-3 py-2 text-right"><%= format_compact_currency(row["tax_apron2_amount"]) %></td>
+              <td class="px-3 py-2 text-right"><%= format_compact_currency(row["maximum_salary_25_pct"]) %></td>
+              <td class="px-3 py-2 text-right"><%= format_compact_currency(row["maximum_salary_30_pct"]) %></td>
+              <td class="px-3 py-2 text-right"><%= format_compact_currency(row["maximum_salary_35_pct"]) %></td>
+              <td class="px-3 py-2 text-right"><%= format_compact_currency(row["non_taxpayer_mid_level_amount"]) %></td>
+              <td class="px-3 py-2 text-right"><%= format_compact_currency(row["taxpayer_mid_level_amount"]) %></td>
+              <td class="px-3 py-2 text-right"><%= format_compact_currency(row["room_mid_level_amount"]) %></td>
+              <td class="px-3 py-2 text-right"><%= format_compact_currency(row["bi_annual_amount"]) %></td>
+              <td class="px-3 py-2 text-right"><%= format_compact_currency(row["tpe_dollar_allowance"]) %></td>
+              <td class="px-3 py-2 text-right"><%= format_compact_currency(row["max_trade_cash_amount"]) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</section>

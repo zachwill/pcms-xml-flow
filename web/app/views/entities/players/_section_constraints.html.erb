@@ -1,0 +1,46 @@
+<% horizon_years = (2025..2030).to_a %>
+<% option_chips = horizon_years.filter_map do |year|
+  option = normalize_contract_option(@salary_book_row&.fetch("option_#{year}", nil))
+  next if option.blank?
+  "#{option} #{year}"
+end %>
+
+<section id="constraints" class="space-y-3">
+  <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Constraint posture</h2>
+  <div class="flex flex-wrap gap-2">
+    <% chips = [] %>
+    <% if @salary_book_row&.fetch("is_trade_restricted_now", nil) %>
+      <% label = "Trade restricted now" %>
+      <% if @salary_book_row["trade_restriction_end_date"].present? %>
+        <% label = "Trade restricted until #{format_plain_date(@salary_book_row['trade_restriction_end_date'])}" %>
+      <% end %>
+      <% chips << [label, "entity-chip--danger"] %>
+    <% end %>
+    <% if @salary_book_row&.fetch("is_trade_consent_required_now", nil) %>
+      <% label = "Player consent required" %>
+      <% if @salary_book_row["player_consent_end_date"].present? %>
+        <% label = "Consent required until #{format_plain_date(@salary_book_row['player_consent_end_date'])}" %>
+      <% end %>
+      <% chips << [label, "entity-chip--warning"] %>
+    <% end %>
+    <% if @salary_book_row&.fetch("is_no_trade", nil) %>
+      <% chips << ["No-trade clause", "entity-chip--danger"] %>
+    <% end %>
+    <% if @salary_book_row&.fetch("is_trade_bonus", nil) %>
+      <% pct = @salary_book_row["trade_bonus_percent"].presence %>
+      <% chips << ["Trade kicker#{pct ? " #{pct.to_f.round}%" : ""}", "entity-chip--warning"] %>
+    <% end %>
+    <% if @salary_book_row&.fetch("is_poison_pill", nil) %>
+      <% chips << ["Poison pill", "entity-chip--warning"] %>
+    <% end %>
+    <% option_chips.each { |option_label| chips << [option_label, "entity-chip--accent"] } %>
+
+    <% if chips.empty? %>
+      <span class="entity-chip entity-chip--muted">No active restrictions</span>
+    <% else %>
+      <% chips.each do |label, klass| %>
+        <span class="entity-chip <%= klass %>"><%= label %></span>
+      <% end %>
+    <% end %>
+  </div>
+</section>

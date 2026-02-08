@@ -7,6 +7,9 @@
 <% team_meta ||= {} %>
 <% summaries_by_year ||= {} %>
 <% summary ||= summaries_by_year[year] || {} %>
+<% draft_assets ||= [] %>
+<% rights_by_kind ||= {} %>
+<% stats_by_year ||= summaries_by_year %>
 
 <% team_name = team_meta["team_name"] || "Team #{team_code}" %>
 <% conference = team_meta["conference_name"] || "—" %>
@@ -215,25 +218,25 @@
     <% end %>
   </div>
 
-  <%# Draft / Rights / Injuries placeholders %>
-  <div data-show="$sidebartab === 'draft'" class="border-t border-border pt-4">
-    <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Draft</div>
-    <div class="p-3 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">Coming soon</div>
-  </div>
+  <%= render partial: "tools/salary_book/sidebar_team_tab_draft", locals: {
+    team_code:,
+    year:,
+    draft_assets:
+  } %>
 
-  <div data-show="$sidebartab === 'rights'" class="border-t border-border pt-4">
-    <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Rights</div>
-    <div class="p-3 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">Coming soon</div>
-  </div>
+  <%= render partial: "tools/salary_book/sidebar_team_tab_rights", locals: {
+    rights_by_kind:
+  } %>
 
   <div data-show="$sidebartab === 'injuries'" class="border-t border-border pt-4">
     <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Injuries</div>
-    <div class="p-3 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">Coming soon</div>
+    <div class="p-3 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">
+      Data unavailable (no confirmed <code>pcms.*</code> injury source table yet).
+    </div>
   </div>
 
-  <%# Stats tab (placeholder) %>
-  <div data-show="$sidebartab === 'stats'" class="border-t border-border pt-4">
-    <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">Team Stats</div>
-    <div class="p-3 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">Coming soon</div>
-  </div>
+  <%= render partial: "tools/salary_book/sidebar_team_tab_stats", locals: {
+    stats_by_year:,
+    year:
+  } %>
 </div>

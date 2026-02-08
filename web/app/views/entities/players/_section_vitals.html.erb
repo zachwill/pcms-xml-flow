@@ -1,0 +1,27 @@
+<% horizon_years = (2025..2030).to_a %>
+<% cap_2025 = @salary_book_row&.fetch("cap_2025", nil) %>
+<% total_from_2025 = @salary_book_row&.fetch("total_salary_from_2025", nil) %>
+<% years_remaining = horizon_years.count { |y| (@salary_book_row&.fetch("cap_#{y}", nil).to_f > 0) } %>
+<% trade_status = @salary_book_row&.fetch("is_trade_restricted_now", nil) ? "Restricted" : "Available" %>
+
+<section id="vitals" class="space-y-3">
+  <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Vitals</h2>
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="rounded-lg border border-border bg-background p-3">
+      <div class="text-xs text-muted-foreground">Cap 2025</div>
+      <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= format_salary(cap_2025) %></div>
+    </div>
+    <div class="rounded-lg border border-border bg-background p-3">
+      <div class="text-xs text-muted-foreground">Total from 2025</div>
+      <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= format_salary(total_from_2025) %></div>
+    </div>
+    <div class="rounded-lg border border-border bg-background p-3">
+      <div class="text-xs text-muted-foreground">Years remaining</div>
+      <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= years_remaining %></div>
+    </div>
+    <div class="rounded-lg border border-border bg-background p-3">
+      <div class="text-xs text-muted-foreground">Trade status</div>
+      <div class="mt-1 text-lg font-semibold <%= @salary_book_row&.fetch('is_trade_restricted_now', nil) ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400' %>"><%= trade_status %></div>
+    </div>
+  </div>
+</section>

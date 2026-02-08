@@ -1,0 +1,54 @@
+<section id="connections" class="space-y-3">
+  <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Connections</h2>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <% team_code = @salary_book_row&.fetch("team_code", nil) %>
+    <% team_id = @salary_book_row&.fetch("team_id", nil) %>
+    <% team_name = @salary_book_row&.fetch("team_name", nil) %>
+    <div class="p-4 rounded-lg border border-border bg-background">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">Team</div>
+      <% if team_code.present? %>
+        <div class="mt-1 flex items-center gap-2">
+          <% if team_id.present? %>
+            <div class="w-6 h-6 rounded border border-border bg-background overflow-hidden flex items-center justify-center shrink-0">
+              <img src="<%= team_logo_url(team_id) %>" alt="<%= team_code %>" class="w-full h-full object-contain" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+              <span class="hidden text-[9px] font-mono text-muted-foreground"><%= team_code %></span>
+            </div>
+          <% end %>
+          <a href="<%= team_href(team_code: team_code, team_id: team_id) %>" class="font-medium hover:underline"><%= team_code %></a>
+        </div>
+        <div class="text-sm text-muted-foreground truncate"><%= team_name.presence || "—" %></div>
+      <% else %>
+        <div class="mt-1 text-sm text-muted-foreground italic">Unknown</div>
+      <% end %>
+    </div>
+
+    <% agent_id = @salary_book_row&.fetch("agent_id", nil) %>
+    <% agent_name = @salary_book_row&.fetch("agent_name", nil) %>
+    <% agency_id = @salary_book_row&.fetch("agency_id", nil) %>
+    <% agency_name = @salary_book_row&.fetch("agency_name", nil) %>
+    <div class="p-4 rounded-lg border border-border bg-background">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">Agent / agency</div>
+      <% if agent_id.present? && agent_name.present? %>
+        <a href="<%= agent_href(agent_id) %>" class="mt-1 block font-medium hover:underline"><%= agent_name %></a>
+      <% else %>
+        <div class="mt-1 text-sm text-muted-foreground italic"><%= agent_name.presence || "Unknown" %></div>
+      <% end %>
+      <% if agency_id.present? && agency_name.present? %>
+        <a href="<%= agency_href(agency_id) %>" class="text-sm text-muted-foreground hover:underline"><%= agency_name %></a>
+      <% else %>
+        <div class="text-sm text-muted-foreground"><%= agency_name.presence || "—" %></div>
+      <% end %>
+    </div>
+
+    <div class="p-4 rounded-lg border border-border bg-background">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground">Draft selection</div>
+      <% if @draft_selection.present? %>
+        <div class="mt-1 font-medium"><%= @draft_selection["draft_year"] %> · R<%= @draft_selection["draft_round"] %> · P<%= @draft_selection["pick_number"] %></div>
+        <div class="text-sm text-muted-foreground">Drafting team: <%= @draft_selection["drafting_team_code"] || "—" %></div>
+        <a href="<%= draft_selection_href(@draft_selection['transaction_id']) %>" class="mt-1 inline-block text-xs text-muted-foreground hover:underline">Open selection</a>
+      <% else %>
+        <div class="mt-1 text-sm text-muted-foreground italic">Unknown</div>
+      <% end %>
+    </div>
+  </div>
+</section>

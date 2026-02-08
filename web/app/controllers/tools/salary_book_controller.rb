@@ -118,7 +118,7 @@ module Tools
       team_code = normalize_team_code(params[:team])
       year = salary_year_param
 
-      # Multi-year summaries for projections bar chart
+      # Multi-year summaries for projections bar chart + stats tab
       summaries_by_year = fetch_all_team_summaries([team_code])[team_code] || {}
 
       # Current year summary (includes computed cap_space + apron aliases)
@@ -127,11 +127,17 @@ module Tools
       # Team metadata (name, conference, logo)
       team_meta = fetch_team_meta(team_code)
 
+      # Sidebar tab payloads
+      draft_assets = fetch_sidebar_draft_assets(team_code, start_year: year, year_count: 3)
+      rights_by_kind = fetch_sidebar_rights_by_kind(team_code)
+
       render partial: "tools/salary_book/sidebar_team", locals: {
         team_code:,
         summary:,
         team_meta:,
         summaries_by_year:,
+        draft_assets:,
+        rights_by_kind:,
         year:
       }, layout: false
     end
@@ -576,6 +582,65 @@ module Tools
       end
 
       rows.group_by { |r| r["team_code"] }
+    end
+
+    # -------------------------------------------------------------------------
+    # Sidebar tab data (team context)
+    # -------------------------------------------------------------------------
+
+    def fetch_sidebar_draft_assets(team_code, start_year:, year_count: 3)
+      team_sql = conn.quote(team_code)
+      from_year = start_year.to_i
+      to_year = from_year + year_count.to_i - 1
+
+      rows = conn.exec_query(<<~SQL).to_a
+        SELECT
+          team_code,
+          draft_year AS year,
+          draft_round AS round,
+          asset_slot,
+          sub_asset_slot,
+          asset_type,
+          is_conditional,
+          is_swap,
+          counterparty_team_code AS origin_team_code,
+          raw_part AS description
+        FROM pcms.draft_pick_summary_assets
+        WHERE team_code = #{team_sql}
+          AND draft_year BETWEEN #{conn.quote(from_year)} AND #{conn.quote(to_year)}
+        ORDER BY draft_year, draft_round, asset_slot, sub_asset_slot
+      SQL
+
+      rows.each do |row|
+        row["id"] = "#{row['team_code']}-#{row['year']}-#{row['round']}-#{row['asset_slot']}-#{row['sub_asset_slot']}"
+      end
+
+      rows
+    end
+
+    def fetch_sidebar_rights_by_kind(team_code)
+      team_sql = conn.quote(team_code)
+
+      rows = conn.exec_query(<<~SQL).to_a
+        SELECT
+          player_id,
+          player_name,
+          rights_kind,
+          rights_source,
+          source_trade_id,
+          source_trade_date,
+          draft_year,
+          draft_round,
+          draft_pick,
+          draft_team_code,
+          needs_review,
+          refreshed_at
+        FROM pcms.player_rights_warehouse
+        WHERE rights_team_code = #{team_sql}
+        ORDER BY rights_kind, draft_year DESC NULLS LAST, draft_round ASC NULLS LAST, draft_pick ASC NULLS LAST, player_name
+      SQL
+
+      rows.group_by { |row| row["rights_kind"] }
     end
 
     # -------------------------------------------------------------------------

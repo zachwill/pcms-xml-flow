@@ -79,7 +79,7 @@
                       <%
                         cell = @grid_data.dig(team_code, round, year)
                         cell_text = cell ? cell[:text] : "Own"
-                        is_own = cell.nil? || (!cell[:has_outgoing] && !cell[:has_swap] && !cell[:has_forfeited])
+                        is_own = cell.nil? || (!cell[:has_outgoing] && !cell[:has_swap] && !cell[:has_forfeited] && !cell[:has_conditional])
                         cell_classes = ["px-2 py-1 text-[11px] leading-snug max-w-[12rem]"]
                         if cell && cell[:has_forfeited]
                           cell_classes << "line-through text-muted-foreground/60"

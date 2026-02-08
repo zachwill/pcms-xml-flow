@@ -6,8 +6,8 @@
   next_tax_overage_sort = (@sort == "tax_overage_desc") ? "tax_overage_asc" : "tax_overage_desc"
 %>
 
-<div class="min-h-screen bg-background">
-  <header id="commandbar" class="sticky top-0 z-40 border-b border-border bg-background h-[130px] px-4 pt-3 flex items-start gap-4">
+<div class="h-screen bg-background flex flex-col">
+  <header id="commandbar" class="sticky top-0 z-40 border-b border-border bg-background h-[130px] px-4 pt-3 flex items-start gap-4 shrink-0">
     <div class="flex-1 min-w-0 space-y-2">
       <div>
         <h1 class="text-sm font-semibold tracking-wide uppercase">Team Summary</h1>
@@ -51,7 +51,7 @@
     <%= render partial: "shared/commandbar_navigation", locals: { active_destination: "team_summary" } %>
   </header>
 
-  <main class="p-4">
+  <main class="flex-1 min-h-0 overflow-y-auto p-4">
     <% if @boot_error %>
       <div class="p-4 rounded-lg border border-border bg-muted/20">
         <div class="text-sm font-medium text-destructive">Warehouse query failed</div>
@@ -65,27 +65,27 @@
           <thead class="text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr class="bg-muted">
               <th
-                class="sticky top-[130px] left-0 z-50 min-w-[220px] text-left px-3 py-2 font-medium bg-muted relative
+                class="sticky top-0 left-0 z-50 min-w-[220px] text-left px-3 py-2 font-medium bg-muted relative
                        after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/60"
               >
                 Team / Context
               </th>
-              <th class="sticky top-[130px] z-40 bg-muted text-right px-3 py-2 font-medium">Cap Total</th>
-              <th class="sticky top-[130px] z-40 bg-muted text-right px-3 py-2 font-medium">
+              <th class="sticky top-0 z-40 bg-muted text-right px-3 py-2 font-medium">Cap Total</th>
+              <th class="sticky top-0 z-40 bg-muted text-right px-3 py-2 font-medium">
                 <a class="hover:underline" href="<%= tools_team_summary_path(filter_params.merge("sort" => next_cap_space_sort)) %>">Cap Space</a>
               </th>
-              <th class="sticky top-[130px] z-40 bg-muted text-right px-3 py-2 font-medium">Tax Total</th>
-              <th class="sticky top-[130px] z-40 bg-muted text-right px-3 py-2 font-medium">Tax Level</th>
-              <th class="sticky top-[130px] z-40 bg-muted text-right px-3 py-2 font-medium">
+              <th class="sticky top-0 z-40 bg-muted text-right px-3 py-2 font-medium">Tax Total</th>
+              <th class="sticky top-0 z-40 bg-muted text-right px-3 py-2 font-medium">Tax Level</th>
+              <th class="sticky top-0 z-40 bg-muted text-right px-3 py-2 font-medium">
                 <a class="hover:underline" href="<%= tools_team_summary_path(filter_params.merge("sort" => next_tax_overage_sort)) %>">Tax Overage</a>
               </th>
-              <th class="sticky top-[130px] z-40 bg-muted text-right px-3 py-2 font-medium">Room Tax</th>
-              <th class="sticky top-[130px] z-40 bg-muted text-right px-3 py-2 font-medium">Room A1</th>
-              <th class="sticky top-[130px] z-40 bg-muted text-right px-3 py-2 font-medium">Room A2</th>
-              <th class="sticky top-[130px] z-40 bg-muted text-left px-3 py-2 font-medium">Flags</th>
-              <th class="sticky top-[130px] z-40 bg-muted text-right px-3 py-2 font-medium">Luxury Tax</th>
-              <th class="sticky top-[130px] z-40 bg-muted text-right px-3 py-2 font-medium">Roster</th>
-              <th class="sticky top-[130px] z-40 bg-muted text-right px-3 py-2 font-medium">2W</th>
+              <th class="sticky top-0 z-40 bg-muted text-right px-3 py-2 font-medium">Room Tax</th>
+              <th class="sticky top-0 z-40 bg-muted text-right px-3 py-2 font-medium">Room A1</th>
+              <th class="sticky top-0 z-40 bg-muted text-right px-3 py-2 font-medium">Room A2</th>
+              <th class="sticky top-0 z-40 bg-muted text-left px-3 py-2 font-medium">Flags</th>
+              <th class="sticky top-0 z-40 bg-muted text-right px-3 py-2 font-medium">Luxury Tax</th>
+              <th class="sticky top-0 z-40 bg-muted text-right px-3 py-2 font-medium">Roster</th>
+              <th class="sticky top-0 z-40 bg-muted text-right px-3 py-2 font-medium">2W</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border">

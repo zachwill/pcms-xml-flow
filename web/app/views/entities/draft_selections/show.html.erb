@@ -7,17 +7,16 @@
 
 <div id="entity-directory" class="min-h-screen w-full bg-background">
   <%= render partial: "entities/shared/commandbar", locals: {
-    title: pick_label,
-    subtitle: ((player_name.present? ? "#{player_name} · " : "") + "transaction_id: #{@draft_selection_id} · slug: #{@draft_selection_slug}" + (ds["transaction_date"].present? ? " · date: #{ds['transaction_date']}" : "")),
-    breadcrumbs: [["Draft selections", "/draft-selections"], [pick_label, nil]],
-    search_scope: "players",
-    search_query: "",
-    search_placeholder: "Search players/teams/agents/agencies…",
-    salary_book_label: "Open Salary Book",
-    right_links: [["Find player", "/players"]]
+    active_entity_scope: "drafts"
   } %>
 
   <main class="max-w-6xl mx-auto px-4 py-6 space-y-6" data-entity-workspace>
+    <%= render partial: "entities/shared/workspace_header", locals: {
+      breadcrumbs: [["Draft selections", "/draft-selections"], [pick_label, nil]],
+      title: pick_label,
+      subtitle: ((player_name.present? ? "#{player_name} · " : "") + "transaction_id: #{@draft_selection_id} · slug: #{@draft_selection_slug}" + (ds["transaction_date"].present? ? " · date: #{ds['transaction_date']}" : "")),
+      right_links: [["Open Salary Book", "/tools/salary-book"], ["Find player", "/players"]]
+    } %>
 
   <div class="lg:flex lg:gap-8">
     <%= render partial: "entities/shared/local_nav", locals: {

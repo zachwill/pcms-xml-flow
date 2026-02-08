@@ -7,15 +7,16 @@
 
 <div id="entity-directory" class="min-h-screen w-full bg-background">
   <%= render partial: "entities/shared/commandbar", locals: {
-    title: (agency_name.presence || "Agency"),
-    subtitle: ("agency_id: #{@agency_id} · slug: #{@agency_slug}" + (@agency["is_active"] == false ? " · inactive" : "")),
-    breadcrumbs: [["Agencies", "/agencies"], [agency_name.presence || "Agency", nil]],
-    search_scope: "agencies",
-    salary_book_label: "Open Salary Book",
-    right_links: [["Browse Agents", "/agents"]]
+    active_entity_scope: "agencies"
   } %>
 
   <main class="max-w-7xl mx-auto px-4 py-6 space-y-6" data-entity-workspace>
+    <%= render partial: "entities/shared/workspace_header", locals: {
+      breadcrumbs: [["Agencies", "/agencies"], [agency_name.presence || "Agency", nil]],
+      title: (agency_name.presence || "Agency"),
+      subtitle: ("agency_id: #{@agency_id} · slug: #{@agency_slug}" + (@agency["is_active"] == false ? " · inactive" : "")),
+      right_links: [["Open Salary Book", "/tools/salary-book"], ["Browse Agents", "/agents"]]
+    } %>
 
   <div class="lg:flex lg:gap-8">
     <%= render partial: "entities/shared/local_nav", locals: {

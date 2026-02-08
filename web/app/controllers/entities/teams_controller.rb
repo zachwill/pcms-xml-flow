@@ -34,10 +34,81 @@ module Entities
       render :index
     end
 
+    # GET /teams/pane
+    # Reserved for Datastar index-pane updates (phase 4).
+    def pane
+      head :not_implemented
+    end
+
+    # GET /teams/sidebar/:id
+    # Reserved for rightpanel overlay patches (phase 5).
+    def sidebar
+      head :not_implemented
+    end
+
+
     # GET /teams/:slug
     # Canonical route.
     def show
-      slug = params[:slug].to_s.strip.downcase
+      @defer_heavy_load = params[:full].to_s != "1"
+
+      resolve_team_from_slug!(params[:slug])
+      return if performed?
+
+      if @defer_heavy_load
+        load_team_header_snapshot!
+        seed_empty_team_workspace!
+      else
+        load_team_workspace_data!
+      end
+
+      render :show
+    end
+
+    # GET /teams/:id (numeric fallback)
+    def redirect
+      id = Integer(params[:id])
+
+      canonical = Slug.find_by(entity_type: "team", entity_id: id, canonical: true)
+      if canonical
+        redirect_to team_path(canonical.slug), status: :moved_permanently
+        return
+      end
+
+      conn = ActiveRecord::Base.connection
+      id_sql = conn.quote(id)
+
+      row = conn.exec_query(<<~SQL).first
+        SELECT team_code, team_name
+        FROM pcms.teams
+        WHERE team_id = #{id_sql}
+        LIMIT 1
+      SQL
+      raise ActiveRecord::RecordNotFound unless row
+
+      base = row["team_code"].to_s.strip.downcase
+      base = row["team_name"].to_s.parameterize if base.blank?
+      base = "team-#{id}" if base.blank?
+
+      slug = base
+      i = 2
+      while Slug.reserved_slug?(slug) || Slug.exists?(entity_type: "team", slug: slug)
+        slug = "#{base}-#{i}"
+        i += 1
+      end
+
+      Slug.create!(entity_type: "team", entity_id: id, slug: slug, canonical: true)
+
+      redirect_to team_path(slug), status: :moved_permanently
+    rescue ArgumentError
+      raise ActiveRecord::RecordNotFound
+    end
+
+    private
+
+
+    def resolve_team_from_slug!(raw_slug, redirect_on_canonical_miss: true)
+      slug = raw_slug.to_s.strip.downcase
       raise ActiveRecord::RecordNotFound if slug.blank?
 
       # Teams are special: team_code is stable + guessable.
@@ -47,8 +118,12 @@ module Entities
 
       canonical = Slug.find_by(entity_type: "team", entity_id: record.entity_id, canonical: true)
       if canonical && canonical.slug != record.slug
-        redirect_to team_path(canonical.slug), status: :moved_permanently
-        return
+        if redirect_on_canonical_miss
+          redirect_to team_path(canonical.slug), status: :moved_permanently
+          return
+        end
+
+        record = canonical
       end
 
       @team_id = record.entity_id
@@ -64,7 +139,49 @@ module Entities
         LIMIT 1
       SQL
       raise ActiveRecord::RecordNotFound unless @team
+    end
 
+    def load_team_header_snapshot!
+      conn = ActiveRecord::Base.connection
+      code_sql = conn.quote(@team["team_code"])
+
+      row = conn.exec_query(<<~SQL).first
+        SELECT
+          tsw.salary_year,
+          tsw.room_under_tax,
+          tsw.room_under_apron1,
+          tsw.room_under_apron2,
+          tsw.is_taxpayer,
+          tsw.is_repeater_taxpayer,
+          tsw.apron_level_lk,
+          tsw.roster_row_count,
+          tsw.two_way_row_count
+        FROM pcms.team_salary_warehouse tsw
+        WHERE tsw.team_code = #{code_sql}
+          AND tsw.salary_year = 2025
+        LIMIT 1
+      SQL
+
+      @team_salary_rows = row ? [row] : []
+    end
+
+    def seed_empty_team_workspace!
+      @roster = []
+      @cap_holds = []
+      @exceptions = []
+      @dead_money = []
+      @draft_assets = []
+      @recent_ledger_entries = []
+      @exception_usage_rows = []
+      @apron_provenance_rows = []
+      @two_way_capacity_row = nil
+      @two_way_watchlist_rows = []
+      @team_salary_rows ||= []
+    end
+
+    def load_team_workspace_data!
+      conn = ActiveRecord::Base.connection
+      id_sql = conn.quote(@team_id)
       code_sql = conn.quote(@team["team_code"])
 
       # Salary book (current horizon) roster view.
@@ -372,53 +489,11 @@ module Entities
           ON p.person_id = l.player_id
         ORDER BY remaining_games ASC NULLS LAST, l.games_on_active_list DESC NULLS LAST, player_name
       SQL
-
-      render :show
     end
-
-    # GET /teams/:id (numeric fallback)
-    def redirect
-      id = Integer(params[:id])
-
-      canonical = Slug.find_by(entity_type: "team", entity_id: id, canonical: true)
-      if canonical
-        redirect_to team_path(canonical.slug), status: :moved_permanently
-        return
-      end
-
-      conn = ActiveRecord::Base.connection
-      id_sql = conn.quote(id)
-
-      row = conn.exec_query(<<~SQL).first
-        SELECT team_code, team_name
-        FROM pcms.teams
-        WHERE team_id = #{id_sql}
-        LIMIT 1
-      SQL
-      raise ActiveRecord::RecordNotFound unless row
-
-      base = row["team_code"].to_s.strip.downcase
-      base = row["team_name"].to_s.parameterize if base.blank?
-      base = "team-#{id}" if base.blank?
-
-      slug = base
-      i = 2
-      while Slug.exists?(entity_type: "team", slug: slug)
-        slug = "#{base}-#{i}"
-        i += 1
-      end
-
-      Slug.create!(entity_type: "team", entity_id: id, slug: slug, canonical: true)
-
-      redirect_to team_path(slug), status: :moved_permanently
-    rescue ArgumentError
-      raise ActiveRecord::RecordNotFound
-    end
-
-    private
 
     def bootstrap_team_slug_from_code!(slug)
       code = slug.to_s.strip.upcase
+      raise ActiveRecord::RecordNotFound if Slug.reserved_slug?(slug)
       raise ActiveRecord::RecordNotFound unless code.match?(/\A[A-Z]{3}\z/)
 
       conn = ActiveRecord::Base.connection

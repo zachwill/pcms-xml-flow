@@ -5,12 +5,7 @@
 
 <div id="entity-directory" class="min-h-screen w-full bg-background">
   <%= render partial: "entities/shared/commandbar", locals: {
-    title: "Agencies",
-    subtitle: "Agency directory (from pcms.agencies).",
-    breadcrumbs: [["Agencies", nil]],
-    search_scope: "agencies",
-    search_query: @query,
-    search_placeholder: "Search agencies…"
+    active_entity_scope: "agencies"
   } %>
 
   <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">

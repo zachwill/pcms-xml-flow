@@ -12,18 +12,16 @@
 
 <div id="entity-directory" class="min-h-screen w-full bg-background">
   <%= render partial: "entities/shared/commandbar", locals: {
-    title: "Trade ##{tr['trade_id']}",
-    subtitle: [tr['trade_date'], tr['record_status_lk']].compact.join(' · '),
-    breadcrumbs: [["Trades", "/trades"], ["##{tr['trade_id']}", nil]],
-    search_scope: "players",
-    search_query: "",
-    search_placeholder: "Search players/teams/agents/agencies…",
-    salary_book_label: "Open Salary Book",
-    right_links: [["Draft selections", "/draft-selections"]],
-    search_enabled: false
+    active_entity_scope: "trades"
   } %>
 
   <main class="max-w-7xl mx-auto px-4 py-6 space-y-6" data-entity-workspace>
+    <%= render partial: "entities/shared/workspace_header", locals: {
+      breadcrumbs: [["Trades", "/trades"], ["##{tr['trade_id']}", nil]],
+      title: "Trade ##{tr['trade_id']}",
+      subtitle: [tr['trade_date'], tr['record_status_lk']].compact.join(' · '),
+      right_links: [["Open Salary Book", "/tools/salary-book"], ["Draft selections", "/draft-selections"]]
+    } %>
 
   <div class="lg:flex lg:gap-8">
     <%= render partial: "entities/shared/local_nav", locals: {

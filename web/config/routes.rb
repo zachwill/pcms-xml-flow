@@ -25,23 +25,35 @@ Rails.application.routes.draw do
 
   # Entities (Bricklink-style navigation; clean top-level URLs)
   scope module: :entities do
+    reserved_slug_segments = %w[pane sidebar sse bootstrap up tools].freeze
+    slug_route_constraint = lambda do |req|
+      slug = req.params[:slug].to_s.strip.downcase
+      slug.present? && !reserved_slug_segments.include?(slug)
+    end
+
     # ---------------------------------------------------------------------
     # Players
     # ---------------------------------------------------------------------
     get "players", to: "players#index"
+    get "players/pane", to: "players#pane"
+    get "players/sidebar/:id", to: "players#sidebar", constraints: { id: /\d+/ }
+    get "players/:slug/sse/bootstrap", to: "players_sse#bootstrap"
 
     # Numeric fallback (NBA/PCMS shared id) → redirects to canonical slug.
     get "players/:id", to: "players#redirect", constraints: { id: /\d+/ }
 
     # Canonical route.
-    get "players/:slug", to: "players#show", as: :player
+    get "players/:slug", to: "players#show", as: :player, constraints: slug_route_constraint
 
     # ---------------------------------------------------------------------
     # Teams
     # ---------------------------------------------------------------------
     get "teams", to: "teams#index"
+    get "teams/pane", to: "teams#pane"
+    get "teams/sidebar/:id", to: "teams#sidebar", constraints: { id: /\d+/ }
+    get "teams/:slug/sse/bootstrap", to: "teams_sse#bootstrap"
     get "teams/:id", to: "teams#redirect", constraints: { id: /\d+/ }
-    get "teams/:slug", to: "teams#show", as: :team
+    get "teams/:slug", to: "teams#show", as: :team, constraints: slug_route_constraint
 
     # ---------------------------------------------------------------------
     # Agents
@@ -49,14 +61,14 @@ Rails.application.routes.draw do
     get "agents", to: "agents#index"
     get "agents/pane", to: "agents#pane"
     get "agents/:id", to: "agents#redirect", constraints: { id: /\d+/ }
-    get "agents/:slug", to: "agents#show", as: :agent
+    get "agents/:slug", to: "agents#show", as: :agent, constraints: slug_route_constraint
 
     # ---------------------------------------------------------------------
     # Agencies
     # ---------------------------------------------------------------------
     get "agencies", to: "agencies#index"
     get "agencies/:id", to: "agencies#redirect", constraints: { id: /\d+/ }
-    get "agencies/:slug", to: "agencies#show", as: :agency
+    get "agencies/:slug", to: "agencies#show", as: :agency, constraints: slug_route_constraint
 
     # ---------------------------------------------------------------------
     # Drafts (unified workspace for picks + selections)
@@ -68,7 +80,7 @@ Rails.application.routes.draw do
     # Draft selections (historical drafts) — show pages
     # ---------------------------------------------------------------------
     get "draft-selections/:id", to: "draft_selections#redirect", constraints: { id: /\d+/ }
-    get "draft-selections/:slug", to: "draft_selections#show", as: :draft_selection
+    get "draft-selections/:slug", to: "draft_selections#show", as: :draft_selection, constraints: slug_route_constraint
 
     # ---------------------------------------------------------------------
     # Draft picks (future pick assets) — natural key, no slug registry yet.

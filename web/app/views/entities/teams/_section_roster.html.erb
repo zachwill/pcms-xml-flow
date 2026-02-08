@@ -1,0 +1,8 @@
+<section id="roster">
+  <%= render partial: "entities/teams/roster_breakdown", locals: {
+    roster: @roster,
+    cap_holds: @cap_holds,
+    exceptions: @exceptions,
+    dead_money: @dead_money
+  } %>
+</section>

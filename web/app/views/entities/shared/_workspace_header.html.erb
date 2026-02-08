@@ -1,0 +1,79 @@
+<%#
+  WorkspaceHeader — sticky context header for entity workspaces.
+
+  locals:
+  - breadcrumbs: Array[[label, href]] (href optional for current crumb)
+  - title: String
+  - subtitle: String (optional)
+  - right_links: Array[[label, href]] (optional)
+%>
+
+<%
+  breadcrumbs = Array(local_assigns[:breadcrumbs]).filter_map do |entry|
+    next unless entry.is_a?(Array) || entry.is_a?(Hash)
+
+    if entry.is_a?(Array)
+      label = entry[0].to_s.strip
+      href = entry[1].to_s.strip.presence
+      next if label.blank?
+      [label, href]
+    else
+      label = (entry[:label] || entry["label"]).to_s.strip
+      href = (entry[:href] || entry["href"]).to_s.strip.presence
+      next if label.blank?
+      [label, href]
+    end
+  end
+
+  title = local_assigns[:title].to_s.strip
+  subtitle = local_assigns[:subtitle].to_s.strip.presence
+
+  right_links = Array(local_assigns[:right_links]).filter_map do |entry|
+    if entry.is_a?(Array)
+      label = entry[0].to_s.strip
+      href = entry[1].to_s.strip
+      next if label.blank? || href.blank?
+      [label, href]
+    elsif entry.is_a?(Hash)
+      label = (entry[:label] || entry["label"]).to_s.strip
+      href = (entry[:href] || entry["href"]).to_s.strip
+      next if label.blank? || href.blank?
+      [label, href]
+    end
+  end
+%>
+
+<header class="sticky top-[130px] z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 -mx-4 px-4 py-3">
+  <div class="flex items-start justify-between gap-4">
+    <div class="min-w-0 space-y-1">
+      <% if breadcrumbs.any? %>
+        <nav aria-label="Breadcrumb" class="text-xs text-muted-foreground">
+          <% breadcrumbs.each_with_index do |(label, href), idx| %>
+            <% if href.present? %>
+              <a href="<%= href %>" class="hover:underline"><%= label %></a>
+            <% else %>
+              <span class="text-foreground/90"><%= label %></span>
+            <% end %>
+            <% unless idx == breadcrumbs.length - 1 %>
+              <span class="mx-1 text-muted-foreground/60">/</span>
+            <% end %>
+          <% end %>
+        </nav>
+      <% end %>
+
+      <h1 class="text-lg font-semibold text-foreground truncate"><%= title %></h1>
+
+      <% if subtitle.present? %>
+        <p class="text-sm text-muted-foreground truncate"><%= subtitle %></p>
+      <% end %>
+    </div>
+
+    <% if right_links.any? %>
+      <div class="shrink-0 flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs">
+        <% right_links.each do |label, href| %>
+          <a href="<%= href %>" class="text-muted-foreground hover:text-foreground hover:underline"><%= label %></a>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</header>

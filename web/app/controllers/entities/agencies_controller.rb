@@ -159,7 +159,7 @@ module Entities
 
       slug = base
       i = 2
-      while Slug.exists?(entity_type: "agency", slug: slug)
+      while Slug.reserved_slug?(slug) || Slug.exists?(entity_type: "agency", slug: slug)
         slug = "#{base}-#{i}"
         i += 1
       end

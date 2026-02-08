@@ -51,18 +51,16 @@
 
 <div id="entity-directory" class="min-h-screen w-full bg-background">
   <%= render partial: "entities/shared/commandbar", locals: {
-    title: "#{team_code} — #{year} Round #{round}",
-    subtitle: ((@team.present? && @team["team_name"].present?) ? "#{@team['team_name']} · Source: pcms.vw_draft_pick_assets" : "Source: pcms.vw_draft_pick_assets"),
-    breadcrumbs: [["Teams", "/teams"], [team_code, team_href(team_code: team_code)], ["#{year} R#{round} draft pick", nil]],
-    search_scope: "players",
-    search_query: "",
-    search_placeholder: "Search players/teams/agents/agencies…",
-    salary_book_href: "/tools/salary-book?team=#{team_code}##{team_code}",
-    salary_book_label: "Open in Salary Book",
-    right_links: [["Draft selections", "/draft-selections"]]
+    active_entity_scope: "drafts"
   } %>
 
   <main class="max-w-7xl mx-auto px-4 py-6 space-y-6" data-entity-workspace>
+    <%= render partial: "entities/shared/workspace_header", locals: {
+      breadcrumbs: [["Teams", "/teams"], [team_code, team_href(team_code: team_code)], ["#{year} R#{round} draft pick", nil]],
+      title: "#{team_code} — #{year} Round #{round}",
+      subtitle: ((@team.present? && @team["team_name"].present?) ? "#{@team['team_name']} · Source: pcms.vw_draft_pick_assets" : "Source: pcms.vw_draft_pick_assets"),
+      right_links: [["Open in Salary Book", "/tools/salary-book?team=#{team_code}##{team_code}"], ["Draft selections", "/draft-selections"]]
+    } %>
 
   <div class="lg:flex lg:gap-8">
     <%= render partial: "entities/shared/local_nav", locals: {

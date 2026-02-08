@@ -84,6 +84,18 @@ module Entities
       render :index
     end
 
+    # GET /players/pane
+    # Reserved for Datastar index-pane updates (phase 4).
+    def pane
+      head :not_implemented
+    end
+
+    # GET /players/sidebar/:id
+    # Reserved for rightpanel overlay patches (phase 5).
+    def sidebar
+      head :not_implemented
+    end
+
     # GET /players/:slug
     # Canonical route.
     def show
@@ -560,7 +572,7 @@ module Entities
 
       slug = base
       i = 2
-      while Slug.exists?(entity_type: "player", slug: slug)
+      while Slug.reserved_slug?(slug) || Slug.exists?(entity_type: "player", slug: slug)
         slug = "#{base}-#{i}"
         i += 1
       end

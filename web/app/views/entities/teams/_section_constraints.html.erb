@@ -1,0 +1,40 @@
+<% current_year_row = @team_salary_rows.find { |r| r["salary_year"].to_i == 2025 } || {} %>
+<% room_tax = current_year_row["room_under_tax"].to_f %>
+<% room_a1 = current_year_row["room_under_apron1"].to_f %>
+<% room_a2 = current_year_row["room_under_apron2"].to_f %>
+
+<section id="constraints" class="space-y-3">
+  <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Constraint posture</h2>
+  <div class="flex flex-wrap gap-2">
+    <% chips = [] %>
+    <% if room_tax < 0 %>
+      <% chips << ["Above tax line #{format_room_amount(room_tax)}", "entity-chip--warning"] %>
+    <% else %>
+      <% chips << ["Under tax #{format_room_amount(room_tax)}", "entity-chip--success"] %>
+    <% end %>
+
+    <% if room_a1 < 0 %>
+      <% chips << ["Above 1st apron #{format_room_amount(room_a1)}", "entity-chip--danger"] %>
+    <% else %>
+      <% chips << ["Under 1st apron #{format_room_amount(room_a1)}", "entity-chip--muted"] %>
+    <% end %>
+
+    <% if room_a2 < 0 %>
+      <% chips << ["Above 2nd apron #{format_room_amount(room_a2)}", "entity-chip--danger"] %>
+    <% else %>
+      <% chips << ["Under 2nd apron #{format_room_amount(room_a2)}", "entity-chip--muted"] %>
+    <% end %>
+
+    <% if current_year_row["is_subject_to_apron"] %>
+      <% chips << ["Hardcapped", "entity-chip--danger"] %>
+    <% end %>
+
+    <% if current_year_row["apron_level_lk"].present? && current_year_row["apron_level_lk"] != "NONE" %>
+      <% chips << ["Apron level #{current_year_row['apron_level_lk']}", "entity-chip--warning"] %>
+    <% end %>
+
+    <% chips.each do |label, klass| %>
+      <span class="entity-chip <%= klass %>"><%= label %></span>
+    <% end %>
+  </div>
+</section>

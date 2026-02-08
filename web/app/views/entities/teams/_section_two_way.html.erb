@@ -1,0 +1,72 @@
+<section id="two-way" class="space-y-3">
+  <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Two-way capacity</h2>
+  <details class="rounded-lg border border-border bg-background" open>
+    <summary class="cursor-pointer px-4 py-3 text-sm font-medium hover:bg-muted/30">
+      Capacity + watchlist
+      <span class="ml-2 text-xs text-muted-foreground">(<%= @two_way_watchlist_rows.size %> players)</span>
+    </summary>
+    <div class="px-4 pb-4 space-y-3">
+      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mt-3">
+        <div class="rounded-lg border border-border bg-background p-3">
+          <div class="text-xs text-muted-foreground">Current contracts</div>
+          <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @two_way_capacity_row&.fetch("current_contract_count", nil) || "—" %></div>
+        </div>
+        <div class="rounded-lg border border-border bg-background p-3">
+          <div class="text-xs text-muted-foreground">Open standard slots</div>
+          <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @two_way_capacity_row&.fetch("open_standard_slots", nil) || "—" %></div>
+        </div>
+        <div class="rounded-lg border border-border bg-background p-3">
+          <div class="text-xs text-muted-foreground">Games remaining</div>
+          <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @two_way_capacity_row&.fetch("games_remaining", nil) || "—" %></div>
+        </div>
+        <div class="rounded-lg border border-border bg-background p-3">
+          <div class="text-xs text-muted-foreground">Under-15 count</div>
+          <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @two_way_capacity_row&.fetch("under_15_games_count", nil) || "—" %></div>
+        </div>
+        <div class="rounded-lg border border-border bg-background p-3">
+          <div class="text-xs text-muted-foreground">Under-15 remaining</div>
+          <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @two_way_capacity_row&.fetch("under_15_games_remaining", nil) || "—" %></div>
+        </div>
+        <div class="rounded-lg border border-border bg-background p-3">
+          <div class="text-xs text-muted-foreground">Context remaining</div>
+          <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @two_way_capacity_row&.fetch("context_games_remaining", nil) || "—" %></div>
+        </div>
+      </div>
+
+      <% if @two_way_watchlist_rows.empty? %>
+        <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No two-way game utility rows found for this team.</div>
+      <% else %>
+        <div class="overflow-x-auto rounded-lg border border-border">
+          <table class="entity-table min-w-full text-xs">
+            <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+              <tr>
+                <th class="text-left px-3 py-2 font-medium">Player</th>
+                <th class="text-right px-3 py-2 font-medium">Games used</th>
+                <th class="text-right px-3 py-2 font-medium">Limit</th>
+                <th class="text-right px-3 py-2 font-medium">Remaining</th>
+                <th class="text-left px-3 py-2 font-medium">Latest game</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              <% @two_way_watchlist_rows.each do |r| %>
+                <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
+                  <td class="px-3 py-2 text-xs">
+                    <% if r["player_id"].present? %>
+                      <a href="<%= player_href(r['player_id']) %>" class="font-medium hover:underline"><%= r["player_name"] %></a>
+                    <% else %>
+                      <span class="text-muted-foreground"><%= r["player_name"] || "—" %></span>
+                    <% end %>
+                  </td>
+                  <td class="px-3 py-2 text-right font-mono tabular-nums"><%= r["games_on_active_list"].presence || "—" %></td>
+                  <td class="px-3 py-2 text-right font-mono tabular-nums"><%= r["active_list_games_limit"].presence || "—" %></td>
+                  <td class="px-3 py-2 text-right font-mono tabular-nums"><%= r["remaining_games"].presence || "—" %></td>
+                  <td class="px-3 py-2 text-xs text-muted-foreground"><%= r["game_date_est"] || "—" %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </div>
+  </details>
+</section>

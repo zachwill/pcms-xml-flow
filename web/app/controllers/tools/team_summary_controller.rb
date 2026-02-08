@@ -14,9 +14,9 @@ module Tools
     def show
       @available_years = fetch_available_years
       @selected_year = resolve_selected_year(@available_years)
-      @conference = resolve_conference(params[:conference])
+      @conference = resolve_conference_from_params
       @pressure = resolve_pressure(params[:pressure])
-      @sort = resolve_sort(params[:sort])
+      @sort = resolve_sort_from_params
 
       @rows = fetch_team_summary_rows(
         year: @selected_year,
@@ -65,6 +65,27 @@ module Tools
       available_years.max
     end
 
+    def checkbox_on?(value)
+      %w[1 true on yes].include?(value.to_s.strip.downcase)
+    end
+
+    def resolve_conference_from_params
+      east_raw = params[:conference_east]
+      west_raw = params[:conference_west]
+
+      if !east_raw.nil? || !west_raw.nil?
+        east = checkbox_on?(east_raw)
+        west = checkbox_on?(west_raw)
+
+        return "Eastern" if east && !west
+        return "Western" if west && !east
+
+        return "all"
+      end
+
+      resolve_conference(params[:conference])
+    end
+
     def resolve_conference(value)
       normalized = value.to_s.strip
       return normalized if ["all", "Eastern", "Western"].include?(normalized)
@@ -74,9 +95,31 @@ module Tools
 
     def resolve_pressure(value)
       normalized = value.to_s.strip
-      return normalized if ["all", "over_tax", "over_apron"].include?(normalized)
+      normalized = "over_apron1" if normalized == "over_apron"
+      return normalized if ["all", "over_tax", "over_apron1", "over_apron2"].include?(normalized)
 
       "all"
+    end
+
+    def resolve_sort_from_params
+      metric = params[:sort_metric].to_s.strip
+
+      if metric.present?
+        ascending = checkbox_on?(params[:sort_asc])
+
+        derived_sort = case metric
+        when "cap_space"
+          ascending ? "cap_space_asc" : "cap_space_desc"
+        when "tax_overage"
+          ascending ? "tax_overage_asc" : "tax_overage_desc"
+        when "team"
+          "team_asc"
+        end
+
+        return resolve_sort(derived_sort) if derived_sort.present?
+      end
+
+      resolve_sort(params[:sort])
     end
 
     def resolve_sort(value)
@@ -98,8 +141,10 @@ module Tools
       case pressure
       when "over_tax"
         where_clauses << "COALESCE(tsw.room_under_tax, 0) < 0"
-      when "over_apron"
+      when "over_apron1"
         where_clauses << "COALESCE(tsw.room_under_apron1, 0) < 0"
+      when "over_apron2"
+        where_clauses << "COALESCE(tsw.room_under_apron2, 0) < 0"
       end
 
       order_sql = SORT_SQL.fetch(sort)

@@ -1,15 +1,29 @@
 const DEFAULT_SCROLL_OFFSET = 120;
 const WORKSPACE_TOP_GAP = 12; // matches the `pt-3`/`py-6` era top content spacing under the commandbar
 
-function computeScrollOffset() {
+function workspaceExtraOffset(workspace) {
+  if (!workspace) return 0;
+
+  const raw = workspace.dataset.scrollOffsetExtra;
+  if (!raw) return 0;
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return 0;
+
+  return Math.max(0, parsed);
+}
+
+function computeScrollOffset(workspace) {
   const bar = document.getElementById("commandbar");
-  if (!bar) return DEFAULT_SCROLL_OFFSET;
+  const extraOffset = workspaceExtraOffset(workspace);
+
+  if (!bar) return Math.max(DEFAULT_SCROLL_OFFSET, Math.ceil(DEFAULT_SCROLL_OFFSET + extraOffset));
 
   const height = bar.getBoundingClientRect().height || bar.offsetHeight || 0;
-  if (!height) return DEFAULT_SCROLL_OFFSET;
+  if (!height) return Math.max(DEFAULT_SCROLL_OFFSET, Math.ceil(DEFAULT_SCROLL_OFFSET + extraOffset));
 
   // Ensure we never go *smaller* than the legacy value (helps during transitions / no-commandbar pages).
-  return Math.max(DEFAULT_SCROLL_OFFSET, Math.ceil(height + WORKSPACE_TOP_GAP));
+  return Math.max(DEFAULT_SCROLL_OFFSET, Math.ceil(height + WORKSPACE_TOP_GAP + extraOffset));
 }
 
 function setActiveLink(links, activeId) {
@@ -54,7 +68,7 @@ function setupWorkspace(workspace) {
 
   if (sections.length === 0) return;
 
-  let scrollOffset = computeScrollOffset();
+  let scrollOffset = computeScrollOffset(workspace);
 
   const findSectionById = (id) => sections.find((section) => section.id === id);
 
@@ -104,7 +118,7 @@ function setupWorkspace(workspace) {
   };
 
   const onResize = () => {
-    scrollOffset = computeScrollOffset();
+    scrollOffset = computeScrollOffset(workspace);
     refreshActiveFromScroll();
   };
 

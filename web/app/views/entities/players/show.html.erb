@@ -33,7 +33,10 @@
 <% header_meta << "Draft: #{draft_label_parts.join(' · ')}" if draft_label_parts.any? %>
 <% header_meta << current_team_name || current_team_code if current_team_code.present? %>
 
+<% salary_book_href = (@salary_book_row&.fetch("team_code", nil).present? ? "/tools/salary-book?team=#{@salary_book_row['team_code']}##{@salary_book_row['team_code']}" : "/tools/salary-book") %>
+
 <% header_links = [] %>
+<% header_links << ["Open in Salary Book", salary_book_href] if salary_book_href.present? %>
 <% if current_team_code.present? %>
   <% header_links << ["Team page", team_href(team_code: current_team_code, team_id: current_team_id)] %>
 <% end %>
@@ -65,17 +68,19 @@
     ></div>
   <% end %>
 
-  <main id="maincanvas" class="px-4 pb-8" data-entity-workspace>
-    <%= render partial: "entities/shared/entity_header", locals: {
+  <main id="maincanvas" class="px-4 pb-8" data-entity-workspace data-scroll-offset-extra="64">
+    <%= render partial: "entities/players/sticky_header", locals: {
       image_url: player_headshot_url(@player_id),
       image_alt: full_name,
       image_fallback: "NBA",
       title: full_name.presence || "Player",
-      subtitle: "player_id: #{@player_id}",
       badges: header_badges,
       meta: header_meta,
       links: header_links,
-      salary_book_href: (@salary_book_row&.fetch("team_code", nil).present? ? "/tools/salary-book?team=#{@salary_book_row['team_code']}##{@salary_book_row['team_code']}" : "/tools/salary-book")
+      team_code: current_team_code,
+      cap_2025: @salary_book_row&.fetch("cap_2025", nil),
+      total_from_2025: @salary_book_row&.fetch("total_salary_from_2025", nil),
+      trade_restricted_now: @salary_book_row&.fetch("is_trade_restricted_now", nil)
     } %>
 
     <div class="lg:flex lg:gap-8">
@@ -104,6 +109,7 @@
       </div>
 
       <%= render partial: "entities/shared/local_nav", locals: {
+        sticky_top_class: "top-[196px]",
         sections: [
           ["vitals", "Vitals"],
           ["constraints", "Constraint posture"],

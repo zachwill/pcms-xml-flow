@@ -1,53 +1,156 @@
 <% content_for :title, "Team Summary" %>
 
 <%
-  filter_params = request.query_parameters.slice("year", "conference", "pressure")
+  current_filter_params = {
+    "year" => @selected_year,
+    "conference" => @conference,
+    "pressure" => @pressure,
+    "sort" => @sort
+  }
+  sort_toggle_params = current_filter_params.slice("year", "conference", "pressure")
+  year_options = @available_years.presence || [@selected_year]
+  season_first_column = year_options.first(4)
+  season_second_column = year_options.drop(4)
+  pressure_options = [["all", "All teams"], ["over_tax", "Over Tax"], ["over_apron1", "Over Apron 1"], ["over_apron2", "Over Apron 2"]]
+
+  sort_metric = if @sort.start_with?("tax_overage")
+    "tax_overage"
+  elsif @sort == "team_asc"
+    "team"
+  else
+    "cap_space"
+  end
+
+  sort_ascending = @sort.end_with?("_asc") && @sort != "team_asc"
+  conference_east_checked = @conference != "Western"
+  conference_west_checked = @conference != "Eastern"
+
   next_cap_space_sort = (@sort == "cap_space_desc") ? "cap_space_asc" : "cap_space_desc"
   next_tax_overage_sort = (@sort == "tax_overage_desc") ? "tax_overage_asc" : "tax_overage_desc"
 %>
 
 <div class="min-h-screen bg-background">
   <header id="commandbar" class="sticky top-0 z-40 border-b border-border bg-background h-[130px] px-4 pt-3 flex items-start gap-4">
-    <div class="flex-1 min-w-0 space-y-2">
-      <div>
-        <h1 class="text-sm font-semibold tracking-wide uppercase">Team Summary</h1>
-        <p class="text-[11px] text-muted-foreground">Workbook-style cap/tax/apron snapshot for all NBA teams</p>
+    <form method="get" action="<%= tools_team_summary_path %>" class="flex items-start gap-3 min-w-0 flex-1" role="group" aria-label="Team Summary controls">
+      <div class="min-w-[9rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Sort</div>
+        <select name="sort_metric" class="h-7 w-full rounded border border-border bg-muted/50 px-2 text-xs" onchange="this.form.requestSubmit()">
+          <option value="cap_space" <%= "selected" if sort_metric == "cap_space" %>>Cap Space</option>
+          <option value="tax_overage" <%= "selected" if sort_metric == "tax_overage" %>>Tax Overage</option>
+          <option value="team" <%= "selected" if sort_metric == "team" %>>Team (A→Z)</option>
+        </select>
+
+        <input type="hidden" name="sort_asc" value="0" />
+        <label class="flex items-center gap-1.5 cursor-pointer select-none <%= 'opacity-50 cursor-not-allowed' if sort_metric == 'team' %>">
+          <input
+            type="checkbox"
+            name="sort_asc"
+            value="1"
+            class="size-3.5 accent-primary"
+            <%= "checked" if sort_ascending %>
+            <%= "disabled" if sort_metric == "team" %>
+            onchange="this.form.requestSubmit()"
+          />
+          <span class="text-[11px] leading-none text-foreground/80">Ascending</span>
+        </label>
       </div>
 
-      <form method="get" action="<%= tools_team_summary_path %>" class="flex flex-wrap items-center gap-2">
-        <label class="text-[11px] text-muted-foreground">Year</label>
-        <select name="year" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs">
-          <% @available_years.each do |candidate_year| %>
-            <option value="<%= candidate_year %>" <%= "selected" if candidate_year == @selected_year %>><%= candidate_year %></option>
-          <% end %>
-        </select>
+      <div class="h-20 w-px bg-border self-center shrink-0 mx-1"></div>
 
-        <label class="text-[11px] text-muted-foreground">Conference</label>
-        <select name="conference" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs">
-          <% [["all", "All"], ["Eastern", "Eastern"], ["Western", "Western"]].each do |value, label| %>
-            <option value="<%= value %>" <%= "selected" if @conference == value %>><%= label %></option>
-          <% end %>
-        </select>
+      <div class="shrink-0 w-fit space-y-1" role="radiogroup" aria-label="Season">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Season</div>
+        <div class="flex items-start gap-6">
+          <div class="space-y-1">
+            <% season_first_column.each do |candidate_year| %>
+              <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="radio"
+                  name="year"
+                  value="<%= candidate_year %>"
+                  class="size-3.5 accent-primary"
+                  <%= "checked" if candidate_year == @selected_year %>
+                  onchange="this.form.requestSubmit()"
+                />
+                <span class="text-[11px] leading-none text-foreground/80 tabular-nums"><%= format_year_label(candidate_year) %></span>
+              </label>
+            <% end %>
+          </div>
 
-        <label class="text-[11px] text-muted-foreground">Filter</label>
-        <select name="pressure" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs">
-          <% [["all", "All"], ["over_tax", "Over tax"], ["over_apron", "Over apron"]].each do |value, label| %>
-            <option value="<%= value %>" <%= "selected" if @pressure == value %>><%= label %></option>
-          <% end %>
-        </select>
+          <div class="space-y-1">
+            <% season_second_column.each do |candidate_year| %>
+              <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="radio"
+                  name="year"
+                  value="<%= candidate_year %>"
+                  class="size-3.5 accent-primary"
+                  <%= "checked" if candidate_year == @selected_year %>
+                  onchange="this.form.requestSubmit()"
+                />
+                <span class="text-[11px] leading-none text-foreground/80 tabular-nums"><%= format_year_label(candidate_year) %></span>
+              </label>
+            <% end %>
+          </div>
+        </div>
+      </div>
 
-        <label class="text-[11px] text-muted-foreground">Sort</label>
-        <select name="sort" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs">
-          <% [["cap_space_desc", "Cap space ↓"], ["cap_space_asc", "Cap space ↑"], ["tax_overage_desc", "Tax overage ↓"], ["tax_overage_asc", "Tax overage ↑"], ["team_asc", "Team A→Z"]].each do |value, label| %>
-            <option value="<%= value %>" <%= "selected" if @sort == value %>><%= label %></option>
-          <% end %>
-        </select>
+      <div class="h-20 w-px bg-border self-center shrink-0 mx-1"></div>
 
-        <button type="submit" class="h-7 px-2 rounded border border-border bg-muted/50 text-xs font-medium hover:bg-muted">Apply</button>
-      </form>
-    </div>
+      <div class="flex items-start gap-1">
+        <div class="w-[7.25rem] space-y-1" role="radiogroup" aria-label="Pressure">
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Pressure</div>
+          <div class="space-y-1">
+            <% pressure_options.each do |value, label| %>
+              <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="radio"
+                  name="pressure"
+                  value="<%= value %>"
+                  class="size-3.5 accent-primary"
+                  <%= "checked" if @pressure == value %>
+                  onchange="this.form.requestSubmit()"
+                />
+                <span class="text-[11px] leading-none text-foreground/80"><%= label %></span>
+              </label>
+            <% end %>
+          </div>
+        </div>
 
-    <div class="h-20 w-px bg-border self-center ml-auto shrink-0"></div>
+        <div class="w-[6rem] space-y-1">
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Conference</div>
+          <div class="space-y-1">
+            <input type="hidden" name="conference_east" value="0" />
+            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                name="conference_east"
+                value="1"
+                class="size-3.5 accent-primary"
+                <%= "checked" if conference_east_checked %>
+                onchange="this.form.requestSubmit()"
+              />
+              <span class="text-[11px] leading-none text-foreground/80">East</span>
+            </label>
+
+            <input type="hidden" name="conference_west" value="0" />
+            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                name="conference_west"
+                value="1"
+                class="size-3.5 accent-primary"
+                <%= "checked" if conference_west_checked %>
+                onchange="this.form.requestSubmit()"
+              />
+              <span class="text-[11px] leading-none text-foreground/80">West</span>
+            </label>
+          </div>
+          <div class="text-[10px] leading-none text-muted-foreground/70 tabular-nums"><%= @rows.length %> teams in view</div>
+        </div>
+      </div>
+    </form>
+
+    <div class="h-20 w-px bg-border self-center ml-auto mr-1 shrink-0"></div>
     <%= render partial: "shared/commandbar_navigation", locals: { active_destination: "team_summary" } %>
   </header>
 
@@ -79,12 +182,12 @@
           </div>
           <div class="w-24 shrink-0 text-right pr-3">Cap Total</div>
           <div class="w-24 shrink-0 text-right pr-3">
-            <a class="hover:underline" href="<%= tools_team_summary_path(filter_params.merge("sort" => next_cap_space_sort)) %>">Cap Space</a>
+            <a class="hover:underline" href="<%= tools_team_summary_path(sort_toggle_params.merge("sort" => next_cap_space_sort)) %>">Cap Space</a>
           </div>
           <div class="w-24 shrink-0 text-right pr-3">Tax Total</div>
           <div class="w-24 shrink-0 text-right pr-3">Tax Level</div>
           <div class="w-24 shrink-0 text-right pr-3">
-            <a class="hover:underline" href="<%= tools_team_summary_path(filter_params.merge("sort" => next_tax_overage_sort)) %>">Tax Overage</a>
+            <a class="hover:underline" href="<%= tools_team_summary_path(sort_toggle_params.merge("sort" => next_tax_overage_sort)) %>">Tax Overage</a>
           </div>
           <div class="w-24 shrink-0 text-right pr-3">Room Tax</div>
           <div class="w-24 shrink-0 text-right pr-3">Room A1</div>
@@ -114,7 +217,7 @@
           <% cap_pct_of_cap = salary_cap_amount > 0 ? "#{((cap_total / salary_cap_amount) * 100).round}% cap" : "—" %>
           <% tax_pct_of_line = tax_level_amount > 0 ? "#{((tax_total / tax_level_amount) * 100).round}% line" : "—" %>
 
-          <div class="group flex items-stretch hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75 text-xs">
+          <div id="team-summary-row-<%= row['team_code'].to_s.downcase %>" class="group flex items-stretch scroll-mt-[176px] hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75 text-xs">
             <%# Sticky left: Team / Context %>
             <div
               class="w-52 shrink-0 px-3 py-1.5 sticky left-0 z-20 bg-background relative transition-colors duration-75

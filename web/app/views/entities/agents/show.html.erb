@@ -18,8 +18,11 @@
 <% header_meta << "Cap 2025: #{format_salary(@client_rollup['cap_2025_total'])}" if @client_rollup['cap_2025_total'] %>
 <% header_meta << agency_name if agency_name.present? %>
 
+<% salary_book_href = "/tools/salary-book" %>
+
 <%# Header links %>
 <% header_links = [] %>
+<% header_links << ["Open in Salary Book", salary_book_href] if salary_book_href.present? %>
 <% if @agent["agency_id"].present? && agency_name.present? %>
   <% header_links << ["Agency page", agency_href(@agent['agency_id'])] %>
 <% end %>
@@ -30,18 +33,22 @@
     active_entity_scope: "agents"
   } %>
 
-  <main class="px-4 pb-8">
-    <%# Entity header %>
-    <%= render partial: "entities/shared/entity_header", locals: {
+  <main class="px-4 pb-8" data-entity-workspace data-scroll-offset-extra="64">
+    <%= render partial: "entities/agents/sticky_header", locals: {
       image_fallback: "AG",
       title: agent_name.presence || "Agent",
-      subtitle: "agent_id: #{@agent_id}",
       badges: header_badges,
       meta: header_meta,
-      links: header_links
+      links: header_links,
+      agency_name: agency_name,
+      client_count: @client_rollup["client_count"],
+      team_count: @client_rollup["team_count"],
+      cap_2025_total: @client_rollup["cap_2025_total"],
+      total_salary_from_2025: @client_rollup["total_salary_from_2025"]
     } %>
 
-    <div class="space-y-8">
+    <div class="lg:flex lg:gap-8">
+      <div class="min-w-0 flex-1 space-y-8">
       <%# Vitals %>
       <section id="vitals" class="space-y-3">
         <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Vitals</h2>
@@ -289,6 +296,19 @@
           </div>
         </details>
       </section>
+      </div>
+
+      <%= render partial: "entities/shared/local_nav", locals: {
+        sticky_top_class: "top-[196px]",
+        sections: [
+          ["vitals", "Vitals"],
+          ["connections", "Connections"],
+          ["team-distribution", "Team distribution"],
+          ["clients", "Client list"],
+          ["book-by-season", "Book by season"],
+          ["historical", "Historical footprint"]
+        ]
+      } %>
     </div>
 
     <%= render partial: "entities/shared/known_slugs", locals: { entity_type: "agent", entity_id: @agent_id, path_prefix: "agents" } %>

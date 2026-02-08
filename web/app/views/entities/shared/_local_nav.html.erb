@@ -3,6 +3,7 @@
 
   locals:
   - sections: Array of [id, label] pairs (or hashes: {id:, label:})
+  - sticky_top_class: Optional Tailwind `top-*` class for sticky offset (default: top-32)
 %>
 
 <%
@@ -19,11 +20,13 @@
       [id, label]
     end
   end
+
+  sticky_top_class = local_assigns[:sticky_top_class].to_s.strip.presence || "top-32"
 %>
 
 <% if sections.any? %>
   <nav class="hidden lg:block w-48 shrink-0" aria-label="On this page">
-    <div class="sticky top-32">
+    <div class="sticky <%= sticky_top_class %>">
       <ul class="space-y-1 text-xs" data-entity-scrollspy-nav>
         <% sections.each_with_index do |(id, label), idx| %>
           <li>

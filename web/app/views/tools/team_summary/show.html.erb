@@ -64,191 +64,196 @@
         <div class="p-3 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No teams match the current filters.</div>
       </div>
     <% else %>
-      <div class="overflow-x-auto border-y border-border">
-        <table class="entity-table min-w-full text-xs">
-          <thead class="text-[10px] uppercase tracking-wide text-muted-foreground/90">
-            <tr class="bg-muted">
-              <th
-                class="sticky top-[130px] left-0 z-[32] min-w-[220px] text-left px-3 py-2 font-medium bg-muted relative
-                       after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/60"
-              >
-                Team / Context
-              </th>
-              <th class="sticky top-[130px] z-30 bg-muted text-right px-3 py-2 font-medium">Cap Total</th>
-              <th class="sticky top-[130px] z-30 bg-muted text-right px-3 py-2 font-medium">
-                <a class="hover:underline" href="<%= tools_team_summary_path(filter_params.merge("sort" => next_cap_space_sort)) %>">Cap Space</a>
-              </th>
-              <th class="sticky top-[130px] z-30 bg-muted text-right px-3 py-2 font-medium">Tax Total</th>
-              <th class="sticky top-[130px] z-30 bg-muted text-right px-3 py-2 font-medium">Tax Level</th>
-              <th class="sticky top-[130px] z-30 bg-muted text-right px-3 py-2 font-medium">
-                <a class="hover:underline" href="<%= tools_team_summary_path(filter_params.merge("sort" => next_tax_overage_sort)) %>">Tax Overage</a>
-              </th>
-              <th class="sticky top-[130px] z-30 bg-muted text-right px-3 py-2 font-medium">Room Tax</th>
-              <th class="sticky top-[130px] z-30 bg-muted text-right px-3 py-2 font-medium">Room A1</th>
-              <th class="sticky top-[130px] z-30 bg-muted text-right px-3 py-2 font-medium">Room A2</th>
-              <th class="sticky top-[130px] z-30 bg-muted text-left px-3 py-2 font-medium">Flags</th>
-              <th class="sticky top-[130px] z-30 bg-muted text-right px-3 py-2 font-medium">Luxury Tax</th>
-              <th class="sticky top-[130px] z-30 bg-muted text-right px-3 py-2 font-medium">Roster</th>
-              <th class="sticky top-[130px] z-30 bg-muted text-right px-3 py-2 font-medium">2W</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <% @rows.each do |row| %>
-              <% logo_url = team_logo_url(row["team_id"]) %>
-              <% conference_name = row["conference_name"].presence || "—" %>
-              <% cap_space = row["cap_space"].to_f %>
-              <% tax_overage = row["tax_overage"].to_f %>
-              <% room_tax = row["room_under_tax"]&.to_f %>
-              <% room_a1 = row["room_under_apron1"]&.to_f %>
-              <% room_a2 = row["room_under_apron2"]&.to_f %>
-              <% cap_total = row["cap_total"].to_f %>
-              <% tax_total = row["tax_total"].to_f %>
-              <% salary_cap_amount = row["salary_cap_amount"].to_f %>
-              <% tax_level_amount = row["tax_level_amount"].to_f %>
-              <% luxury_tax_owed = row["luxury_tax_owed"].to_f %>
-              <% cap_pct_of_cap = salary_cap_amount > 0 ? "#{((cap_total / salary_cap_amount) * 100).round}% cap" : "—" %>
-              <% tax_pct_of_line = tax_level_amount > 0 ? "#{((tax_total / tax_level_amount) * 100).round}% line" : "—" %>
-              <tr class="group hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                <td
-                  class="sticky left-0 z-20 min-w-[220px] px-3 py-1.5 bg-background relative transition-colors duration-75
-                         group-hover:bg-yellow-50/70 dark:group-hover:bg-yellow-900/10
-                         after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/50"
-                >
-                  <div class="grid grid-cols-[34px_1fr] grid-rows-[20px_14px] min-h-[34px]">
-                    <div class="row-span-2 flex items-center">
-                      <div class="w-7 h-7 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
-                        <% if logo_url.present? %>
-                          <img
-                            src="<%= logo_url %>"
-                            alt="<%= row['team_name'] %> logo"
-                            class="w-full h-full object-contain"
-                            loading="lazy"
-                            decoding="async"
-                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                          />
-                          <span class="hidden text-[9px] font-semibold text-muted-foreground"><%= row["team_code"] %></span>
-                        <% else %>
-                          <span class="text-[9px] font-semibold text-muted-foreground"><%= row["team_code"] %></span>
-                        <% end %>
-                      </div>
-                    </div>
+      <%# Sticky column header — chunky style matching Salary Book / Two-Way Utility %>
+      <div
+        class="sticky top-[130px] z-30 bg-background will-change-transform
+               shadow-[0_1px_3px_0_rgb(0_0_0/0.08),0_1px_2px_-1px_rgb(0_0_0/0.08)]"
+      >
+        <div class="h-10 flex items-center border-b border-border bg-muted
+                    text-[10px] uppercase tracking-wide font-medium text-muted-foreground/90 select-none cursor-default">
+          <div
+            class="w-52 shrink-0 pl-4 sticky left-0 z-[2] bg-muted relative
+                   after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/60"
+          >
+            Team / Context
+          </div>
+          <div class="w-24 shrink-0 text-right pr-3">Cap Total</div>
+          <div class="w-24 shrink-0 text-right pr-3">
+            <a class="hover:underline" href="<%= tools_team_summary_path(filter_params.merge("sort" => next_cap_space_sort)) %>">Cap Space</a>
+          </div>
+          <div class="w-24 shrink-0 text-right pr-3">Tax Total</div>
+          <div class="w-24 shrink-0 text-right pr-3">Tax Level</div>
+          <div class="w-24 shrink-0 text-right pr-3">
+            <a class="hover:underline" href="<%= tools_team_summary_path(filter_params.merge("sort" => next_tax_overage_sort)) %>">Tax Overage</a>
+          </div>
+          <div class="w-24 shrink-0 text-right pr-3">Room Tax</div>
+          <div class="w-24 shrink-0 text-right pr-3">Room A1</div>
+          <div class="w-24 shrink-0 text-right pr-3">Room A2</div>
+          <div class="w-36 shrink-0 pl-3">Flags</div>
+          <div class="w-24 shrink-0 text-right pr-3">Luxury Tax</div>
+          <div class="w-16 shrink-0 text-right pr-3">Roster</div>
+          <div class="w-16 shrink-0 text-right pr-3">2W</div>
+        </div>
+      </div>
 
-                    <div class="h-[20px] flex items-end gap-1 min-w-0 pl-2 pr-2">
-                      <a href="<%= team_href(team_code: row['team_code'], team_id: row['team_id']) %>" class="truncate font-medium text-[13px] hover:underline"><%= row["team_name"] %></a>
-                    </div>
+      <%# Team rows %>
+      <div class="divide-y divide-border">
+        <% @rows.each do |row| %>
+          <% logo_url = team_logo_url(row["team_id"]) %>
+          <% conference_name = row["conference_name"].presence || "—" %>
+          <% cap_space = row["cap_space"].to_f %>
+          <% tax_overage = row["tax_overage"].to_f %>
+          <% room_tax = row["room_under_tax"]&.to_f %>
+          <% room_a1 = row["room_under_apron1"]&.to_f %>
+          <% room_a2 = row["room_under_apron2"]&.to_f %>
+          <% cap_total = row["cap_total"].to_f %>
+          <% tax_total = row["tax_total"].to_f %>
+          <% salary_cap_amount = row["salary_cap_amount"].to_f %>
+          <% tax_level_amount = row["tax_level_amount"].to_f %>
+          <% luxury_tax_owed = row["luxury_tax_owed"].to_f %>
+          <% cap_pct_of_cap = salary_cap_amount > 0 ? "#{((cap_total / salary_cap_amount) * 100).round}% cap" : "—" %>
+          <% tax_pct_of_line = tax_level_amount > 0 ? "#{((tax_total / tax_level_amount) * 100).round}% line" : "—" %>
 
-                    <div class="h-[14px] -mt-px flex items-start gap-1.5 min-w-0 pl-2 pr-2 text-[10px] text-muted-foreground/80 tabular-nums leading-none">
-                      <span class="font-medium"><%= row["team_code"] %></span>
-                      <span>•</span>
-                      <span class="truncate"><%= conference_name %> Conference</span>
-                    </div>
+          <div class="group flex items-stretch hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75 text-xs">
+            <%# Sticky left: Team / Context %>
+            <div
+              class="w-52 shrink-0 px-3 py-1.5 sticky left-0 z-20 bg-background relative transition-colors duration-75
+                     group-hover:bg-yellow-50/70 dark:group-hover:bg-yellow-900/10
+                     after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/50"
+            >
+              <div class="grid grid-cols-[34px_1fr] grid-rows-[20px_14px] min-h-[34px]">
+                <div class="row-span-2 flex items-center">
+                  <div class="w-7 h-7 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
+                    <% if logo_url.present? %>
+                      <img
+                        src="<%= logo_url %>"
+                        alt="<%= row['team_name'] %> logo"
+                        class="w-full h-full object-contain"
+                        loading="lazy"
+                        decoding="async"
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                      />
+                      <span class="hidden text-[9px] font-semibold text-muted-foreground"><%= row["team_code"] %></span>
+                    <% else %>
+                      <span class="text-[9px] font-semibold text-muted-foreground"><%= row["team_code"] %></span>
+                    <% end %>
                   </div>
-                </td>
+                </div>
 
-                <td class="px-3 py-1.5">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_compact_currency(row["cap_total"]) %></div>
-                    <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= cap_pct_of_cap %></div>
-                  </div>
-                </td>
+                <div class="h-[20px] flex items-end gap-1 min-w-0 pl-2 pr-2">
+                  <a href="<%= team_href(team_code: row['team_code'], team_id: row['team_id']) %>" class="truncate font-medium text-[13px] hover:underline"><%= row["team_name"] %></a>
+                </div>
 
-                <td class="px-3 py-1.5">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary justify-end font-mono tabular-nums <%= cap_space >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500' %>"><%= format_room_amount(cap_space) %></div>
-                    <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= cap_space >= 0 ? 'under cap' : 'over cap' %></div>
-                  </div>
-                </td>
+                <div class="h-[14px] -mt-px flex items-start gap-1.5 min-w-0 pl-2 pr-2 text-[10px] text-muted-foreground/80 tabular-nums leading-none">
+                  <span class="font-medium"><%= row["team_code"] %></span>
+                  <span>•</span>
+                  <span class="truncate"><%= conference_name %> Conference</span>
+                </div>
+              </div>
+            </div>
 
-                <td class="px-3 py-1.5">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_compact_currency(row["tax_total"]) %></div>
-                    <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= tax_pct_of_line %></div>
-                  </div>
-                </td>
+            <div class="w-24 shrink-0 px-3 py-1.5">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_compact_currency(row["cap_total"]) %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= cap_pct_of_cap %></div>
+              </div>
+            </div>
 
-                <td class="px-3 py-1.5">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_compact_currency(row["tax_level_amount"]) %></div>
-                    <div class="entity-cell-secondary justify-end font-mono tabular-nums">threshold</div>
-                  </div>
-                </td>
+            <div class="w-24 shrink-0 px-3 py-1.5">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums <%= cap_space >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500' %>"><%= format_room_amount(cap_space) %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= cap_space >= 0 ? 'under cap' : 'over cap' %></div>
+              </div>
+            </div>
 
-                <td class="px-3 py-1.5">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary justify-end font-mono tabular-nums <%= tax_overage > 0 ? 'text-red-500' : 'text-muted-foreground' %>"><%= tax_overage > 0 ? format_compact_currency(tax_overage) : "—" %></div>
-                    <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= tax_overage > 0 ? 'over line' : 'under line' %></div>
-                  </div>
-                </td>
+            <div class="w-24 shrink-0 px-3 py-1.5">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_compact_currency(row["tax_total"]) %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= tax_pct_of_line %></div>
+              </div>
+            </div>
 
-                <td class="px-3 py-1.5">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary justify-end font-mono tabular-nums <%= room_tax && room_tax < 0 ? 'text-red-500' : '' %>"><%= room_tax.nil? ? "—" : format_room_amount(room_tax) %></div>
-                    <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= room_tax.nil? ? '—' : (room_tax < 0 ? 'over tax' : 'under tax') %></div>
-                  </div>
-                </td>
+            <div class="w-24 shrink-0 px-3 py-1.5">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_compact_currency(row["tax_level_amount"]) %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums">threshold</div>
+              </div>
+            </div>
 
-                <td class="px-3 py-1.5">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary justify-end font-mono tabular-nums <%= room_a1 && room_a1 < 0 ? 'text-red-500' : '' %>"><%= room_a1.nil? ? "—" : format_room_amount(room_a1) %></div>
-                    <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= room_a1.nil? ? '—' : (room_a1 < 0 ? 'over A1' : 'under A1') %></div>
-                  </div>
-                </td>
+            <div class="w-24 shrink-0 px-3 py-1.5">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums <%= tax_overage > 0 ? 'text-red-500' : 'text-muted-foreground' %>"><%= tax_overage > 0 ? format_compact_currency(tax_overage) : "—" %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= tax_overage > 0 ? 'over line' : 'under line' %></div>
+              </div>
+            </div>
 
-                <td class="px-3 py-1.5">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary justify-end font-mono tabular-nums <%= room_a2 && room_a2 < 0 ? 'text-red-500' : '' %>"><%= room_a2.nil? ? "—" : format_room_amount(room_a2) %></div>
-                    <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= room_a2.nil? ? '—' : (room_a2 < 0 ? 'over A2' : 'under A2') %></div>
-                  </div>
-                </td>
+            <div class="w-24 shrink-0 px-3 py-1.5">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums <%= room_tax && room_tax < 0 ? 'text-red-500' : '' %>"><%= room_tax.nil? ? "—" : format_room_amount(room_tax) %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= room_tax.nil? ? '—' : (room_tax < 0 ? 'over tax' : 'under tax') %></div>
+              </div>
+            </div>
 
-                <td class="px-3 py-1.5 min-w-[140px]">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary items-center">
-                      <div class="flex flex-wrap gap-1">
-                        <% if row["is_taxpayer"] %>
-                          <span class="entity-chip entity-chip--danger">Taxpayer</span>
-                        <% end %>
-                        <% if row["is_repeater_taxpayer"] %>
-                          <span class="entity-chip entity-chip--warning">Repeater</span>
-                        <% end %>
-                        <% if row["is_subject_to_apron"] %>
-                          <span class="entity-chip entity-chip--accent"><%= row["apron_level_lk"].presence || "Apron" %></span>
-                        <% end %>
-                        <% unless row["is_taxpayer"] || row["is_repeater_taxpayer"] || row["is_subject_to_apron"] %>
-                          <span class="text-[10px] text-muted-foreground/60">—</span>
-                        <% end %>
-                      </div>
-                    </div>
-                    <div class="entity-cell-secondary">
-                      <span class="truncate"><%= row["is_subject_to_apron"] ? (row["apron_level_lk"].presence || "Apron") : "No apron status" %></span>
-                    </div>
-                  </div>
-                </td>
+            <div class="w-24 shrink-0 px-3 py-1.5">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums <%= room_a1 && room_a1 < 0 ? 'text-red-500' : '' %>"><%= room_a1.nil? ? "—" : format_room_amount(room_a1) %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= room_a1.nil? ? '—' : (room_a1 < 0 ? 'over A1' : 'under A1') %></div>
+              </div>
+            </div>
 
-                <td class="px-3 py-1.5">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= luxury_tax_owed > 0 ? format_compact_currency(luxury_tax_owed) : "—" %></div>
-                    <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= luxury_tax_owed > 0 ? 'owed' : 'no tax' %></div>
-                  </div>
-                </td>
+            <div class="w-24 shrink-0 px-3 py-1.5">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums <%= room_a2 && room_a2 < 0 ? 'text-red-500' : '' %>"><%= room_a2.nil? ? "—" : format_room_amount(room_a2) %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= room_a2.nil? ? '—' : (room_a2 < 0 ? 'over A2' : 'under A2') %></div>
+              </div>
+            </div>
 
-                <td class="px-3 py-1.5">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= row["roster_row_count"] %></div>
-                    <div class="entity-cell-secondary justify-end font-mono tabular-nums">standard</div>
+            <div class="w-36 shrink-0 px-3 py-1.5">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary items-center">
+                  <div class="flex flex-wrap gap-1">
+                    <% if row["is_taxpayer"] %>
+                      <span class="entity-chip entity-chip--danger">Taxpayer</span>
+                    <% end %>
+                    <% if row["is_repeater_taxpayer"] %>
+                      <span class="entity-chip entity-chip--warning">Repeater</span>
+                    <% end %>
+                    <% if row["is_subject_to_apron"] %>
+                      <span class="entity-chip entity-chip--accent"><%= row["apron_level_lk"].presence || "Apron" %></span>
+                    <% end %>
+                    <% unless row["is_taxpayer"] || row["is_repeater_taxpayer"] || row["is_subject_to_apron"] %>
+                      <span class="text-[10px] text-muted-foreground/60">—</span>
+                    <% end %>
                   </div>
-                </td>
+                </div>
+                <div class="entity-cell-secondary">
+                  <span class="truncate"><%= row["is_subject_to_apron"] ? (row["apron_level_lk"].presence || "Apron") : "No apron status" %></span>
+                </div>
+              </div>
+            </div>
 
-                <td class="px-3 py-1.5">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= row["two_way_row_count"] %></div>
-                    <div class="entity-cell-secondary justify-end font-mono tabular-nums">two-way</div>
-                  </div>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
+            <div class="w-24 shrink-0 px-3 py-1.5">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= luxury_tax_owed > 0 ? format_compact_currency(luxury_tax_owed) : "—" %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= luxury_tax_owed > 0 ? 'owed' : 'no tax' %></div>
+              </div>
+            </div>
+
+            <div class="w-16 shrink-0 px-3 py-1.5">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= row["roster_row_count"] %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums">standard</div>
+              </div>
+            </div>
+
+            <div class="w-16 shrink-0 px-3 py-1.5">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= row["two_way_row_count"] %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums">two-way</div>
+              </div>
+            </div>
+          </div>
+        <% end %>
       </div>
     <% end %>
   </main>

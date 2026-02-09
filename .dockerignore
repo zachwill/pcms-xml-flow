@@ -1,0 +1,40 @@
+# Git
+.git
+.gitignore
+
+# CI / editor
+.github
+.devcontainer
+.vscode
+.idea
+*.swp
+
+# Non-web directories (not needed for the Rails image)
+agents/
+archive/
+excel/
+import_nba_data.flow/
+import_pcms_data.flow/
+import_sr_data.flow/
+migrations/
+nba/
+prototypes/
+queries/
+reference/
+scripts/
+shared/
+sr/
+
+# Top-level files not needed in the image
+*.md
+*.ts
+package.json
+
+# Web app ignores
+web/tmp/
+web/log/
+web/.bundle/
+web/vendor/bundle/
+web/node_modules/
+web/test/
+web/storage/

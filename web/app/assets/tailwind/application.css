@@ -106,6 +106,50 @@
   [data-entity-scrollspy-link][data-active="true"] {
     @apply bg-primary/10 text-primary font-medium;
   }
+
+  .salarybook-sand-loader {
+    @apply flex items-center justify-center;
+  }
+
+  .salarybook-sand-grid {
+    @apply grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    width: 248px;
+    height: 468px;
+  }
+
+  .salarybook-sand-dot {
+    @apply rounded border border-border bg-muted/50 transition-all duration-150 outline-none inline-flex items-center justify-center overflow-hidden;
+    opacity: 0.38;
+    transform: scale(0.94);
+    filter: grayscale(1) saturate(0.08) brightness(0.88);
+    will-change: opacity, transform, filter;
+    animation-duration: 1820ms;
+    animation-timing-function: steps(1, end);
+    animation-iteration-count: infinite;
+    animation-play-state: running;
+  }
+
+  .salarybook-sand-logo {
+    width: 74%;
+    height: 74%;
+    object-fit: contain;
+    opacity: 0.96;
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
+  }
+
+  .salarybook-sand-dot-1 { animation-name: salarybook-sand-dot-1; }
+  .salarybook-sand-dot-2 { animation-name: salarybook-sand-dot-2; }
+  .salarybook-sand-dot-3 { animation-name: salarybook-sand-dot-3; }
+  .salarybook-sand-dot-4 { animation-name: salarybook-sand-dot-4; }
+  .salarybook-sand-dot-5 { animation-name: salarybook-sand-dot-5; }
+  .salarybook-sand-dot-6 { animation-name: salarybook-sand-dot-6; }
+  .salarybook-sand-dot-7 { animation-name: salarybook-sand-dot-7; }
+  .salarybook-sand-dot-8 { animation-name: salarybook-sand-dot-8; }
 }
 
 @layer utilities {
@@ -159,4 +203,330 @@
 
 #rightpanel:has(#rightpanel-overlay:not(:empty)) #rightpanel-base-layer {
   @apply opacity-20 grayscale pointer-events-none;
+}
+
+@keyframes salarybook-sand-dot-1 {
+  0.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  2.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  5.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  8.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  11.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  14.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  17.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  20.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  22.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  25.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  28.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  31.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  34.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  37.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  40.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  42.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  45.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  48.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  51.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  54.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  57.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  60.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  62.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  65.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  68.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  71.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  74.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  77.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  80.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  82.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  85.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  88.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  91.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  94.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  97.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  100% { opacity: 1; transform: scale(1.06); filter: none; }
+}
+
+@keyframes salarybook-sand-dot-2 {
+  0.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  2.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  5.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  8.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  11.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  14.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  17.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  20.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  22.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  25.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  28.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  31.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  34.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  37.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  40.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  42.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  45.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  48.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  51.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  54.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  57.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  60.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  62.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  65.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  68.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  71.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  74.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  77.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  80.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  82.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  85.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  88.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  91.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  94.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  97.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  100% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+}
+
+@keyframes salarybook-sand-dot-3 {
+  0.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  2.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  5.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  8.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  11.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  14.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  17.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  20.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  22.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  25.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  28.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  31.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  34.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  37.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  40.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  42.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  45.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  48.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  51.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  54.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  57.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  60.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  62.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  65.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  68.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  71.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  74.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  77.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  80.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  82.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  85.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  88.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  91.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  94.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  97.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  100% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+}
+
+@keyframes salarybook-sand-dot-4 {
+  0.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  2.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  5.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  8.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  11.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  14.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  17.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  20.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  22.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  25.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  28.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  31.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  34.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  37.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  40.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  42.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  45.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  48.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  51.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  54.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  57.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  60.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  62.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  65.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  68.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  71.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  74.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  77.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  80.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  82.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  85.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  88.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  91.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  94.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  97.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  100% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+}
+
+@keyframes salarybook-sand-dot-5 {
+  0.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  2.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  5.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  8.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  11.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  14.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  17.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  20.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  22.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  25.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  28.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  31.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  34.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  37.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  40.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  42.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  45.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  48.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  51.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  54.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  57.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  60.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  62.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  65.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  68.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  71.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  74.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  77.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  80.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  82.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  85.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  88.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  91.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  94.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  97.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  100% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+}
+
+@keyframes salarybook-sand-dot-6 {
+  0.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  2.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  5.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  8.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  11.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  14.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  17.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  20.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  22.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  25.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  28.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  31.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  34.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  37.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  40.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  42.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  45.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  48.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  51.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  54.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  57.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  60.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  62.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  65.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  68.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  71.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  74.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  77.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  80.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  82.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  85.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  88.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  91.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  94.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  97.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  100% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+}
+
+@keyframes salarybook-sand-dot-7 {
+  0.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  2.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  5.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  8.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  11.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  14.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  17.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  20.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  22.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  25.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  28.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  31.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  34.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  37.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  40.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  42.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  45.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  48.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  51.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  54.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  57.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  60.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  62.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  65.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  68.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  71.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  74.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  77.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  80.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  82.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  85.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  88.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  91.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  94.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  97.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  100% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+}
+
+@keyframes salarybook-sand-dot-8 {
+  0.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  2.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  5.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  8.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  11.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  14.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  17.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  20.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  22.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  25.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  28.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  31.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  34.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  37.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  40.000000% { opacity: 1; transform: scale(1.06); filter: none; }
+  42.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  45.714286% { opacity: 1; transform: scale(1.06); filter: none; }
+  48.571429% { opacity: 1; transform: scale(1.06); filter: none; }
+  51.428571% { opacity: 1; transform: scale(1.06); filter: none; }
+  54.285714% { opacity: 1; transform: scale(1.06); filter: none; }
+  57.142857% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  60.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  62.857143% { opacity: 1; transform: scale(1.06); filter: none; }
+  65.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  68.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  71.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  74.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  77.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  80.000000% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  82.857143% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  85.714286% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  88.571429% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  91.428571% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  94.285714% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+  97.142857% { opacity: 1; transform: scale(1.06); filter: none; }
+  100% { opacity: 0.38; transform: scale(0.94); filter: grayscale(1) saturate(0.08) brightness(0.88); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .salarybook-sand-dot {
+    animation: none;
+    opacity: 0.45;
+    transform: none;
+    filter: grayscale(1) saturate(0.08) brightness(0.88);
+  }
+
+  .salarybook-sand-dot-8 {
+    opacity: 1;
+    filter: none;
+  }
 }

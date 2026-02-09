@@ -1,170 +1,42 @@
-<% team_codes ||= [] %>
 <% team_meta_by_code ||= {} %>
-<% salary_years ||= SalaryBookHelper::SALARY_YEARS %>
 
 <%
-  # Column math (must match _team_section.html.erb)
-  sticky_left_px = 208
-  col_px = 96
-  agent_px = 160
-  min_table_width_px = sticky_left_px + ((salary_years.length + 1) * col_px) + agent_px
+  fallback_team_ids = [
+    1610612737, 1610612738, 1610612739, 1610612740, 1610612741,
+    1610612742, 1610612743, 1610612744, 1610612745, 1610612746,
+    1610612747, 1610612748, 1610612749, 1610612750, 1610612751,
+    1610612752, 1610612753, 1610612754, 1610612755, 1610612756,
+    1610612757, 1610612758, 1610612759, 1610612760, 1610612761,
+    1610612762, 1610612763, 1610612764, 1610612765, 1610612766
+  ]
+
+  available_team_ids = team_meta_by_code.values.map { |meta| meta["team_id"] }.compact.uniq
+  available_team_ids = fallback_team_ids if available_team_ids.empty?
+
+  selected_team_ids = available_team_ids.shuffle.first(8)
+
+  if selected_team_ids.length < 8
+    supplement_ids = (fallback_team_ids - selected_team_ids).shuffle
+    selected_team_ids += supplement_ids.first(8 - selected_team_ids.length)
+  end
+
+  dot_logo_urls = selected_team_ids.first(8).map { |team_id| team_logo_url(team_id) }
 %>
 
-<% if team_codes.empty? %>
-  <div class="flex items-center justify-center h-96 text-muted-foreground">
-    Loading salary book…
-  </div>
-<% else %>
-  <div class="min-h-full">
-    <div class="space-y-0">
-      <% team_codes.each_with_index do |team_code, idx| %>
-        <% team_name = team_meta_by_code.dig(team_code, "team_name") || team_code %>
-        <% team_id = team_meta_by_code.dig(team_code, "team_id") %>
-        <% logo_url = team_logo_url(team_id) %>
-        <% conference = team_meta_by_code.dig(team_code, "conference_name") || "—" %>
+<div class="min-h-full bg-muted/30 dark:bg-muted/20">
+  <div class="min-h-[calc(100vh-130px)] flex items-center justify-center px-6 py-10">
+    <div class="salarybook-sand-loader" role="status" aria-live="polite" aria-label="Loading salary book">
+      <p class="sr-only">Loading salary book data.</p>
 
-        <section
-          id="<%= team_code %>"
-          data-teamcode="<%= team_code %>"
-          class="border-b border-border snap-start"
-          style="content-visibility: auto; contain-intrinsic-size: 1200px 400px;"
-        >
-          <div class="relative" data-salarytable>
-            <%# Sticky header group (matches real section) %>
-            <div class="sticky top-0 z-30 bg-background will-change-transform shadow-sm">
-              <%# TeamHeader row %>
-              <div class="h-14 flex items-center border-b border-border bg-muted">
-                <%# Left section: Logo + Team name + Conference %>
-                <div class="w-52 shrink-0 pl-4 flex items-center gap-3">
-                  <div class="w-8 h-8 rounded flex items-center justify-center flex-shrink-0 bg-background border border-border overflow-hidden">
-                    <% if logo_url %>
-                      <img
-                        src="<%= logo_url %>"
-                        alt="<%= team_name %> logo"
-                        class="w-full h-full object-contain"
-                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                      />
-                      <span class="hidden text-[10px] font-mono font-bold uppercase tracking-tight text-muted-foreground"><%= team_code %></span>
-                    <% else %>
-                      <span class="text-[10px] font-mono font-bold uppercase tracking-tight text-muted-foreground"><%= team_code %></span>
-                    <% end %>
-                  </div>
-
-                  <div class="grid grid-rows-[24px_16px] min-w-0">
-                    <div class="h-[24px] flex items-end min-w-0">
-                      <span class="font-semibold leading-tight text-left text-[14px] block w-full truncate"><%= team_name %></span>
-                    </div>
-                    <div class="h-[16px] -mt-px flex items-start min-w-0">
-                      <span class="text-[10px] leading-none tabular-nums text-muted-foreground/80 truncate"><%= conference %> Conference</span>
-                    </div>
-                  </div>
-                </div>
-
-                <%# KPI placeholders %>
-                <div class="flex items-center animate-pulse">
-                  <div class="w-24 shrink-0 flex justify-center">
-                    <div class="h-6 w-12 rounded bg-muted/70"></div>
-                  </div>
-                  <div class="w-24 shrink-0 flex justify-center">
-                    <div class="h-6 w-12 rounded bg-muted/70"></div>
-                  </div>
-                  <div class="w-24 shrink-0 flex justify-center">
-                    <div class="h-6 w-14 rounded bg-muted/70"></div>
-                  </div>
-                  <div class="w-24 shrink-0 flex justify-center">
-                    <div class="h-6 w-14 rounded bg-muted/70"></div>
-                  </div>
-                </div>
-              </div>
-
-              <%# TableHeader row (simplified skeleton) %>
-              <div class="overflow-x-hidden">
-                <div class="min-w-max" style="min-width: <%= min_table_width_px %>px;">
-                  <div class="border-b border-border bg-background">
-                    <div class="h-8 flex items-center text-xs font-medium text-muted-foreground select-none">
-                      <div class="w-52 shrink-0 pl-4 sticky left-0 z-[2] bg-background">
-                        <div class="grid grid-cols-[40px_1fr] items-center h-full">
-                          <div></div>
-                          <div class="pl-1">Name / Details</div>
-                        </div>
-                      </div>
-                      <div class="h-full flex">
-                        <% salary_years.each do |year| %>
-                          <div class="w-24 h-full shrink-0 flex items-center justify-center tabular-nums text-center"><%= format_year_label(year) %></div>
-                        <% end %>
-                      </div>
-                      <div class="w-24 tabular-nums text-center font-semibold">Total</div>
-                      <div class="w-40 text-center">Agent</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <%# Body skeleton rows %>
-            <div class="overflow-x-hidden">
-              <div class="min-w-max" style="min-width: <%= min_table_width_px %>px;">
-                <div class="animate-pulse">
-                  <%# Simulate 4-6 player rows per team %>
-                  <% row_count = 4 + (idx % 3) %>
-                  <% row_count.times do |row_idx| %>
-                    <div class="h-[42px] flex items-center border-b border-border/40">
-                      <%# Sticky left player cell %>
-                      <div class="w-52 shrink-0 pl-4 sticky left-0 z-[1] bg-background flex items-center gap-2">
-                        <%# Avatar placeholder %>
-                        <div class="w-8 h-8 rounded-full bg-muted/60 shrink-0"></div>
-                        <%# Name placeholder %>
-                        <div class="flex-1 min-w-0 space-y-1.5">
-                          <div class="h-3 rounded bg-muted/70" style="width: <%= 60 + (row_idx * 7) % 40 %>%;"></div>
-                          <div class="h-2 rounded bg-muted/40" style="width: <%= 40 + (row_idx * 11) % 30 %>%;"></div>
-                        </div>
-                      </div>
-                      <%# Year columns %>
-                      <div class="flex">
-                        <% salary_years.each_with_index do |year, year_idx| %>
-                          <div class="w-24 shrink-0 flex items-center justify-center">
-                            <% if (row_idx + year_idx) % 4 != 3 %>
-                              <div class="h-3 w-14 rounded bg-muted/50"></div>
-                            <% end %>
-                          </div>
-                        <% end %>
-                      </div>
-                      <%# Total column %>
-                      <div class="w-24 flex items-center justify-center">
-                        <div class="h-3 w-16 rounded bg-muted/60"></div>
-                      </div>
-                      <%# Agent column %>
-                      <div class="w-40 flex items-center justify-center">
-                        <div class="h-2.5 w-20 rounded bg-muted/40"></div>
-                      </div>
-                    </div>
-                  <% end %>
-
-                  <%# Totals footer placeholder %>
-                  <div class="h-10 flex items-center border-t border-border bg-muted/30">
-                    <div class="w-52 shrink-0 pl-4 sticky left-0 z-[1] bg-muted/30">
-                      <div class="h-3 w-16 rounded bg-muted/50"></div>
-                    </div>
-                    <div class="flex">
-                      <% salary_years.each do %>
-                        <div class="w-24 shrink-0 flex items-center justify-center">
-                          <div class="h-3 w-14 rounded bg-muted/60"></div>
-                        </div>
-                      <% end %>
-                    </div>
-                    <div class="w-24 flex items-center justify-center">
-                      <div class="h-3 w-16 rounded bg-muted/70"></div>
-                    </div>
-                    <div class="w-40"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <div class="salarybook-sand-grid" aria-hidden="true">
+        <% dot_logo_urls.each_with_index do |logo_url, idx| %>
+          <div class="salarybook-sand-dot salarybook-sand-dot-<%= idx + 1 %>">
+            <% if logo_url.present? %>
+              <img src="<%= logo_url %>" alt="" class="salarybook-sand-logo" loading="eager" decoding="async" />
+            <% end %>
           </div>
-        </section>
-      <% end %>
-
-      <div aria-hidden class="h-8"></div>
+        <% end %>
+      </div>
     </div>
   </div>
-<% end %>
+</div>

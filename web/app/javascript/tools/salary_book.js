@@ -80,6 +80,30 @@ const initAllSalaryTables = () => {
   tables.forEach(initSalaryTableSync);
 };
 
+const syncAllSalaryTableScrollPositions = () => {
+  if (!main) return;
+
+  const tables = main.querySelectorAll("[data-salarytable]");
+  tables.forEach((tableEl) => {
+    const headerEl = tableEl.querySelector("[data-salarytable-header-scroll]");
+    const bodyEl = tableEl.querySelector("[data-salarytable-body-scroll]");
+    const shadowEl = tableEl.querySelector("[data-salarytable-sticky-shadow]");
+
+    if (!headerEl || !bodyEl) return;
+
+    headerEl.scrollLeft = bodyEl.scrollLeft;
+
+    if (!shadowEl) return;
+    if (bodyEl.scrollLeft > 2) {
+      shadowEl.classList.add("opacity-100");
+      shadowEl.classList.remove("opacity-0");
+    } else {
+      shadowEl.classList.add("opacity-0");
+      shadowEl.classList.remove("opacity-100");
+    }
+  });
+};
+
 // -------------------------------------------------------------------------
 // Scroll-spy (active team)
 // -------------------------------------------------------------------------
@@ -194,6 +218,9 @@ const preserveContext = () => {
     } else {
       updateActiveTeam();
     }
+
+    // Layout toggles (like EPM) can change table widths; force header/body re-sync.
+    syncAllSalaryTableScrollPositions();
   });
 };
 
@@ -202,6 +229,7 @@ const preserveContext = () => {
 const rebuildCache = () => {
   if (!main) return;
   initAllSalaryTables();
+  syncAllSalaryTableScrollPositions();
   updateActiveTeam();
 };
 
@@ -217,6 +245,7 @@ const init = () => {
   }
 
   initAllSalaryTables();
+  syncAllSalaryTableScrollPositions();
 
   // Scroll-spy
   main.addEventListener("scroll", onMainScroll, { passive: true });
@@ -252,6 +281,7 @@ const init = () => {
     () =>
       requestAnimationFrame(() => {
         initAllSalaryTables();
+        syncAllSalaryTableScrollPositions();
         updateActiveTeam();
       }),
     { passive: true }
@@ -269,6 +299,7 @@ const init = () => {
   const mutationObserver = new MutationObserver(() => {
     requestAnimationFrame(() => {
       initAllSalaryTables();
+      syncAllSalaryTableScrollPositions();
       updateActiveTeam();
     });
   });

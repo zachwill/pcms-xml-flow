@@ -9,7 +9,7 @@
   >
     <%# Player column (sticky left) %>
     <div
-      class="w-52 shrink-0 pl-4 sticky left-0 z-[2] bg-background relative
+      class="w-52 shrink-0 pl-4 sticky left-0 z-20 bg-background relative
              after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/50"
     >
       <div class="grid grid-cols-[40px_1fr] items-center h-full">
@@ -18,13 +18,17 @@
       </div>
     </div>
 
-    <%# Year columns %>
+    <%# EPM + Year columns %>
     <div
-      class="h-full flex"
+      class="h-full flex shrink-0"
       data-on:salarybook-setseason="if ($activeteam !== '<%= team_code %>') { $activeteam = '<%= team_code %>'; }; if ($selectedseasonteam !== '<%= team_code %>') { $selectedseasonteam = '<%= team_code %>'; }; if (Number($selectedseason) !== evt.detail.year) { $selectedseason = evt.detail.year; }"
       data-on:mouseleave="if ($selectedseasonteam === '<%= team_code %>' && $selectedseason !== '') { $selectedseason = ''; $selectedseasonteam = ''; }"
       data-on:focusout="if (evt.relatedTarget && !el.contains(evt.relatedTarget) && $selectedseasonteam === '<%= team_code %>' && $selectedseason !== '') { $selectedseason = ''; $selectedseasonteam = ''; }"
     >
+      <div
+        class="w-24 h-full shrink-0 flex items-center justify-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+        data-show="$displayepm"
+      >EPM</div>
       <% salary_years.each do |year| %>
         <div
           class="w-24 h-full shrink-0 flex items-center justify-center tabular-nums text-center transition-colors duration-100 cursor-default select-none"
@@ -36,9 +40,9 @@
     </div>
 
     <%# Total column %>
-    <div class="w-24 tabular-nums text-center font-semibold">Total</div>
+    <div class="w-24 shrink-0 tabular-nums text-center font-semibold">Total</div>
 
     <%# Agent column %>
-    <div class="w-40 text-center">Agent</div>
+    <div class="w-40 shrink-0 text-center">Agent</div>
   </div>
 </div>

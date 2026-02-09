@@ -316,6 +316,9 @@ module Tools
           sbw.agent_name,
           sbw.agent_id,
           a.agency_name,
+          epm_latest.season AS epm_season,
+          epm_latest.epm AS epm_value,
+          epm_latest.epm_pctl AS epm_percentile,
           sbw.cap_2025, sbw.cap_2026, sbw.cap_2027, sbw.cap_2028, sbw.cap_2029, sbw.cap_2030,
           sbw.pct_cap_2025, sbw.pct_cap_2026, sbw.pct_cap_2027, sbw.pct_cap_2028, sbw.pct_cap_2029, sbw.pct_cap_2030,
           sbw.total_salary_from_2025,
@@ -344,6 +347,17 @@ module Tools
           ON p.person_id = sbw.player_id
         LEFT JOIN pcms.agents a
           ON a.agent_id = sbw.agent_id
+        LEFT JOIN (
+          SELECT DISTINCT ON (nba_id)
+            nba_id,
+            season,
+            epm,
+            epm_pctl
+          FROM dunks.epm
+          WHERE season_type = 2
+          ORDER BY nba_id, (epm IS NULL), season DESC
+        ) epm_latest
+          ON epm_latest.nba_id = sbw.player_id
         WHERE #{where_clause}
         ORDER BY sbw.team_code, sbw.cap_2025 DESC NULLS LAST, sbw.total_salary_from_2025 DESC NULLS LAST, sbw.player_name
       SQL
@@ -377,6 +391,9 @@ module Tools
             sbw.agent_id,
             sbw.age,
             p.years_of_service,
+            epm_latest.season AS epm_season,
+            epm_latest.epm AS epm_value,
+            epm_latest.epm_pctl AS epm_percentile,
             sbw.cap_2025,
             sbw.cap_2026,
             sbw.cap_2027,
@@ -447,6 +464,17 @@ module Tools
           FROM pcms.salary_book_warehouse sbw
           LEFT JOIN pcms.people p
             ON p.person_id = sbw.player_id
+          LEFT JOIN (
+            SELECT DISTINCT ON (nba_id)
+              nba_id,
+              season,
+              epm,
+              epm_pctl
+            FROM dunks.epm
+            WHERE season_type = 2
+            ORDER BY nba_id, (epm IS NULL), season DESC
+          ) epm_latest
+            ON epm_latest.nba_id = sbw.player_id
           WHERE sbw.player_id = #{id_sql}
           LIMIT 1
         SQL

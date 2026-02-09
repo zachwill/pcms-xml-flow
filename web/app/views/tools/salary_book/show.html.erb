@@ -23,6 +23,7 @@
     displayexceptions: true,
     displaydraftpicks: true,
     displaydeadmoney: false,
+    displayepm: false,
     displaytaxaprons: true,
     displaycashvscap: false,
     displayluxurytax: false,
@@ -136,28 +137,18 @@
 
       <%# Filter Toggles (client-only lenses) %>
       <div class="flex items-start gap-4" role="group" aria-label="Filters">
-        <div class="min-w-[4.5rem] space-y-1">
+        <div class="min-w-[5.75rem] space-y-1">
           <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Display</div>
           <div class="space-y-1">
             <div class="flex items-center gap-1.5">
               <input
                 type="checkbox"
-                id="filter-capholds"
+                id="filter-deadmoney"
                 class="size-3.5 accent-primary"
-                data-bind="displaycapholds"
+                data-bind="displaydeadmoney"
                 data-on:change="window.__salaryBookPreserveContext?.()"
               />
-              <label for="filter-capholds" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Cap Holds</label>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                id="filter-exceptions"
-                class="size-3.5 accent-primary"
-                data-bind="displayexceptions"
-                data-on:change="window.__salaryBookPreserveContext?.()"
-              />
-              <label for="filter-exceptions" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Exceptions</label>
+              <label for="filter-deadmoney" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Dead Money</label>
             </div>
             <div class="flex items-center gap-1.5">
               <input
@@ -172,12 +163,22 @@
             <div class="flex items-center gap-1.5">
               <input
                 type="checkbox"
-                id="filter-deadmoney"
+                id="filter-exceptions"
                 class="size-3.5 accent-primary"
-                data-bind="displaydeadmoney"
+                data-bind="displayexceptions"
                 data-on:change="window.__salaryBookPreserveContext?.()"
               />
-              <label for="filter-deadmoney" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Dead Money</label>
+              <label for="filter-exceptions" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Exceptions</label>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                id="filter-epm"
+                class="size-3.5 accent-primary"
+                data-bind="displayepm"
+                data-on:change="window.__salaryBookPreserveContext?.()"
+              />
+              <label for="filter-epm" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">EPM</label>
             </div>
           </div>
         </div>
@@ -193,7 +194,7 @@
                 data-bind="displaytaxaprons"
                 data-on:change="window.__salaryBookPreserveContext?.()"
               />
-              <label for="filter-taxaprons" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Tax/Aprons</label>
+              <label for="filter-taxaprons" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Aprons</label>
             </div>
             <div class="flex items-center gap-1.5">
               <input
@@ -213,7 +214,7 @@
                 data-bind="displayluxurytax"
                 data-on:change="window.__salaryBookPreserveContext?.()"
               />
-              <label for="filter-luxurytax" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Luxury Tax</label>
+              <label for="filter-luxurytax" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Tax Payment</label>
             </div>
           </div>
         </div>
@@ -221,6 +222,16 @@
         <div class="min-w-[6.5rem] space-y-1">
           <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Contracts</div>
           <div class="space-y-1">
+            <div class="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                id="filter-capholds"
+                class="size-3.5 accent-primary"
+                data-bind="displaycapholds"
+                data-on:change="window.__salaryBookPreserveContext?.()"
+              />
+              <label for="filter-capholds" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Cap Holds</label>
+            </div>
             <div class="flex items-center gap-1.5">
               <input
                 type="checkbox"
@@ -249,7 +260,7 @@
                 data-bind="displaytwoway"
                 data-on:change="window.__salaryBookPreserveContext?.()"
               />
-              <label for="filter-twoway" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Two-Way</label>
+              <label for="filter-twoway" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Two-Ways</label>
             </div>
           </div>
         </div>

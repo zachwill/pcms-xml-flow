@@ -316,6 +316,63 @@ module SalaryBookHelper
     formatted ? formatted[:label] : nil
   end
 
+  # -------------------------------------------------------------------------
+  # EPM display helpers
+  # -------------------------------------------------------------------------
+
+  def format_epm_value(value)
+    return "—" if value.nil?
+
+    v = value.to_f
+    sign = v.positive? ? "+" : ""
+    "#{sign}#{format('%.1f', v)}"
+  end
+
+  # Dunks EPM percentiles are stored on a 0..100 scale.
+  # Gracefully accepts 0..1 input too.
+  def normalize_percentile_01(percentile)
+    return nil if percentile.nil?
+
+    p = percentile.to_f
+    p = p / 100.0 if p > 1
+    p.clamp(0.0, 1.0)
+  end
+
+  def epm_percentile_blocks(percentile, bucket_count: 5)
+    p01 = normalize_percentile_01(percentile)
+    return "" if p01.nil?
+
+    filled = "▰"
+    empty = "▱"
+    filled_count = (p01 * bucket_count).round.clamp(0, bucket_count)
+
+    (filled * filled_count) + (empty * (bucket_count - filled_count))
+  end
+
+  def epm_percentile_int(percentile)
+    p01 = normalize_percentile_01(percentile)
+    return nil if p01.nil?
+
+    (p01 * 100).round.clamp(0, 100)
+  end
+
+  def format_percentile_label(percentile)
+    p_int = epm_percentile_int(percentile)
+    return nil if p_int.nil?
+
+    "#{p_int} percentile"
+  end
+
+  def epm_percentile_color_class(percentile)
+    p_int = epm_percentile_int(percentile)
+    return nil if p_int.nil?
+
+    return "text-green-700 dark:text-green-300" if p_int >= 80
+    return "text-red-700 dark:text-red-300" if p_int <= 20
+
+    nil
+  end
+
   # Calculate total salary across years
   def player_total_salary(player)
     SALARY_YEARS.sum { |year| player_salary(player, year).to_f }
@@ -339,7 +396,7 @@ module SalaryBookHelper
   end
 
   # Combined age + YOS metadata display used in Salary Book rows/sidebar.
-  def player_age_yos_display(player, separator: " - ")
+  def player_age_yos_display(player, separator: " · ")
     [player_age_display(player), player_years_of_service_display(player)].compact.join(separator).presence
   end
 

@@ -9,6 +9,11 @@
 <% player_name = player["player_name"] %>
 <% salary_years ||= SalaryBookHelper::SALARY_YEARS %>
 <% is_two_way = player["is_two_way"] %>
+<% epm_value = player["epm_value"] %>
+<% epm_percentile = player["epm_percentile"] %>
+<% epm_percentile_label = format_percentile_label(epm_percentile) %>
+<% epm_color_class = epm_percentile_color_class(epm_percentile) %>
+<% epm_has_value = !epm_value.nil? %>
 
 <div
   id="player-<%= player_id %>"
@@ -25,7 +30,7 @@
     <div
       class="w-52 shrink-0 pl-4 sticky left-0 z-20 relative
              bg-background transition-colors duration-75
-             group-hover:bg-yellow-50/70 dark:group-hover:bg-yellow-900/10
+             group-hover:bg-yellow-50 dark:group-hover:bg-yellow-900
              after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/30"
     >
       <div class="grid grid-cols-[40px_1fr] grid-rows-[24px_16px]" aria-label="<%= player_name %> player info">
@@ -66,8 +71,31 @@
       </div>
     </div>
 
-    <%# Non-sticky columns (Years + Total + Agent) %>
+    <%# Non-sticky columns (EPM + Years + Total + Agent) %>
     <div class="min-w-0 flex">
+      <div
+        class="w-24 shrink-0 <%= epm_has_value ? 'flex flex-col' : 'grid place-items-center h-[40px]' %>"
+        data-show="$displayepm"
+        title="<%= epm_percentile_label.present? ? "Latest regular-season EPM (#{epm_percentile_label})" : "Latest regular-season EPM" %>"
+      >
+        <% if epm_has_value %>
+          <div class="h-[24px] flex items-end justify-center text-sm">
+            <span class="font-mono tabular-nums <%= epm_color_class %>"><%= format_epm_value(epm_value) %></span>
+          </div>
+          <div class="h-[16px] -mt-px flex items-start justify-center">
+            <% if epm_percentile.present? %>
+              <span class="text-[10px] leading-none font-mono tabular-nums whitespace-nowrap <%= epm_color_class || 'text-muted-foreground/80' %>"><%= epm_percentile_blocks(epm_percentile) %></span>
+            <% else %>
+              <span class="text-[10px] leading-none tabular-nums whitespace-nowrap text-gray-400/50">—</span>
+            <% end %>
+          </div>
+        <% else %>
+          <span class="grid place-items-center w-full">
+            <span class="inline-block font-mono tabular-nums text-center text-gray-400/50" style="width: 6ch">—</span>
+          </span>
+        <% end %>
+      </div>
+
       <% salary_years.each do |year| %>
         <% salary = player_salary(player, year) %>
         <% cell_classes = salary_cell_classes(player, year) %>

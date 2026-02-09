@@ -27,6 +27,8 @@
 <%
   # Column math (must match Tailwind widths)
   # w-52 = 208px, w-24 = 96px, w-40 = 160px
+  # Note: EPM is an optional client-side column (added via data-show), so we keep
+  # the baseline min width here and let content width expand when EPM is enabled.
   sticky_left_px = 208
   col_px = 96
   agent_px = 160
@@ -80,7 +82,7 @@
             </div>
           </div>
 
-          <%# KPI cards row (aligned with year + total columns; follows hovered year for this team) %>
+          <%# KPI cards row (fixed position; does not shift when EPM column is toggled) %>
           <div class="flex items-center">
             <div class="w-24 shrink-0 flex justify-center">
               <% salary_years.each do |kpi_year| %>

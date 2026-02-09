@@ -24,7 +24,7 @@ The **data foundation is strong** — salaries, contracts, protections, cap hold
 | **Medium** | depth_charts empty | Starter/bench context | ? (depends on XML source) |
 | **Medium** | GLG teams missing | Two-way context | Low — add teams data |
 | **Low** | Multi-team trade planner | Advanced tooling | High |
-| **Low** | Pick grid view | UX convenience | Low — create view |
+| ~~Low~~ | ~~Pick grid view~~ | ~~UX convenience~~ | ✅ Done |
 
 ---
 
@@ -128,15 +128,16 @@ These tables exist for **scenario planning** (user-defined salary projections).
 
 ---
 
-### 7. Pick Database Grid View
+### 7. Pick Database Grid View ✅ DONE
 
 **Sean has:** `pick_database.json` — grid showing team × year × round → ownership status
 
 **We have:** `pcms.draft_pick_summary_assets` with detailed asset-level data (swaps, conditionals, endnotes)
 
-**Gap:** Not a gap per se — we have **more detail** than Sean. But a "pick grid" view (like `pick_database.json`) isn't materialized.
-
-**Action:** Create a view or warehouse table that pivots `draft_pick_summary_assets` into a grid format for UI consumption.
+**Status:** Implemented in commit `df15af8`. The `/drafts` page now has a "Grid" view mode showing:
+- Team × year × round ownership matrix
+- Color-coded cells (amber=outgoing, purple=swap, yellow=conditional)
+- Sticky team column with truncated cell text and tooltips
 
 ---
 
@@ -211,7 +212,7 @@ For reference, these core tables are populated and working:
 
 1. **Quick wins:**
    - [ ] Add salary tier/band computed column to `salary_book_warehouse`
-   - [ ] Create pick grid view from `draft_pick_summary_assets`
+   - [x] Create pick grid view from `draft_pick_summary_assets` — **Done** (`df15af8`): Grid view added to `/drafts` page with team × year × round matrix, color-coded cells, tooltips
 
 2. **Investigation needed:**
    - [ ] Check PCMS XML for player position data

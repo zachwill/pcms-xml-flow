@@ -94,7 +94,7 @@
   min_contract = player["is_min_contract"] ? player["min_contract_lookup_value"] : nil
 %>
 
-<div id="rightpanel-overlay" class="h-full">
+<div id="rightpanel-overlay" class="h-full" data-signals="{ playertab: 'contract' }">
   <%# Sticky header (keeps back button visible while scrolling) %>
   <div class="sticky top-0 z-20 h-10 px-4 flex items-center justify-between border-b border-border bg-background">
     <%= render partial: "tools/salary_book/sidebar_back_button" %>
@@ -124,6 +124,41 @@
         <% end %>
       </div>
     </div>
+
+    <%# Tab toggle (4 tabs) %>
+    <div class="relative grid grid-cols-4 p-1 rounded-lg bg-muted border border-border">
+      <%# Sliding indicator %>
+      <div
+        class="absolute top-1 bottom-1 left-1 w-[calc((100%-8px)/4)] rounded-md bg-background shadow-sm pointer-events-none transition-[transform,width,opacity] duration-150 ease-out"
+        data-class="{
+          'translate-x-0': $playertab === 'contract',
+          'translate-x-full': $playertab === 'stats',
+          'translate-x-[200%]': $playertab === 'history',
+          'translate-x-[300%]': $playertab === 'comps'
+        }"
+        aria-hidden="true"
+      ></div>
+
+      <% player_tabs = [
+        ["contract", "Contract"],
+        ["stats", "Stats"],
+        ["history", "History"],
+        ["comps", "Comps"]
+      ] %>
+
+      <% player_tabs.each do |(id, label)| %>
+        <button
+          type="button"
+          class="cursor-pointer relative z-10 min-w-0 px-3 py-1.5 text-sm font-medium text-center rounded-md transition-colors duration-150
+                 focus-visible:outline-none focus-visible:ring-0 focus-visible:border-foreground dark:focus-visible:border-foreground"
+          data-on:click="$playertab = '<%= id %>'"
+          data-class="{ 'text-foreground': $playertab === '<%= id %>', 'text-muted-foreground hover:text-foreground': $playertab !== '<%= id %>' }"
+        ><%= label %></button>
+      <% end %>
+    </div>
+
+    <%# Contract tab %>
+    <div data-show="$playertab === 'contract'" class="space-y-6">
 
     <%# Contract summary %>
     <div class="space-y-3">
@@ -288,6 +323,32 @@
         </div>
       </div>
     <% end %>
+
+    </div><%# end Contract tab %>
+
+    <%# Stats tab %>
+    <div data-show="$playertab === 'stats'" class="space-y-4">
+      <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Player Stats</div>
+      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">
+        Per-game and advanced stats coming soon.
+      </div>
+    </div>
+
+    <%# History tab %>
+    <div data-show="$playertab === 'history'" class="space-y-4">
+      <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contract History</div>
+      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">
+        Past contracts and team history coming soon.
+      </div>
+    </div>
+
+    <%# Comps tab %>
+    <div data-show="$playertab === 'comps'" class="space-y-4">
+      <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Comparable Players</div>
+      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">
+        Similar contracts and player comparisons coming soon.
+      </div>
+    </div>
 
   </div>
 </div>

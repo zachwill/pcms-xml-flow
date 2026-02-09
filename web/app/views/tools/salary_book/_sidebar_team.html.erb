@@ -71,7 +71,7 @@
   at_or_above_tax = room_tax_val.present? && room_tax_val <= 0
   luxury_tax_owed = summary["luxury_tax_owed"]
 
-  tax_metric_label = at_or_above_tax ? "Luxury Tax Payment" : "Tax Room"
+  tax_metric_label = at_or_above_tax ? "Luxury Tax" : "Tax Room"
   tax_metric_value = if at_or_above_tax
     if luxury_tax_owed.nil?
       room_tax_val == 0 ? format_compact_currency(0) : "—"

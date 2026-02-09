@@ -42,7 +42,7 @@ module Tools
         @dead_money_by_team = fetch_dead_money_by_team(@team_codes)
         @picks_by_team = fetch_picks_by_team(@team_codes)
 
-        # Bulk fetch team salary summaries for all teams × years (for header KPIs + totals footer)
+        # Bulk fetch team salary summaries for all teams × years (for header KPIs + sidebar ledger)
         @team_summaries = fetch_all_team_summaries(@team_codes)
 
         @initial_team_summaries_by_year = @initial_team ? (@team_summaries[@initial_team] || {}) : {}
@@ -93,7 +93,7 @@ module Tools
       dead_money = fetch_dead_money_by_team([team_code])[team_code] || []
       picks = fetch_picks_by_team([team_code])[team_code] || []
 
-      # Fetch team summaries (all years) for header + footer
+      # Fetch team summaries (all years) for header + sidebar ledger
       team_summaries = fetch_all_team_summaries([team_code])[team_code] || {}
 
       # Get team metadata from conference lookup
@@ -672,7 +672,7 @@ module Tools
     end
 
     # -------------------------------------------------------------------------
-    # Team summary data (for header KPIs + totals footer)
+    # Team summary data (for header KPIs + sidebar ledger)
     # -------------------------------------------------------------------------
 
     # Fetch all team salary summaries for all years, grouped by team_code.
@@ -696,6 +696,11 @@ module Tools
           tax_level_amount,
           tax_apron_amount,
           tax_apron2_amount,
+          pcms.fn_luxury_tax_amount(
+            salary_year,
+            GREATEST(COALESCE(tax_total, 0) - COALESCE(tax_level_amount, 0), 0),
+            COALESCE(is_repeater_taxpayer, false)
+          ) AS luxury_tax_owed,
           (COALESCE(salary_cap_amount, 0) - COALESCE(cap_total_hold, 0))::bigint AS cap_space,
           room_under_tax,
           room_under_apron1 AS room_under_first_apron,

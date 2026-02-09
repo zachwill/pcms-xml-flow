@@ -131,7 +131,7 @@
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-3">
         <div class="flex items-baseline justify-between">
           <span class="text-sm text-muted-foreground">Total Value</span>
-          <span class="font-mono tabular-nums text-lg font-semibold"><%= compact.call(total_value) %></span>
+          <span class="tabular-nums text-lg font-semibold"><%= compact.call(total_value) %></span>
         </div>
 
         <div class="flex items-baseline justify-between">
@@ -246,27 +246,27 @@
                     </span>
                   <% end %>
                 </div>
-                <span class="font-mono tabular-nums text-sm font-medium"><%= compact.call(salary) %></span>
+                <span class="tabular-nums text-sm font-medium"><%= compact.call(salary) %></span>
               </div>
 
               <% if show_guarantee %>
                 <div class="flex items-baseline justify-between text-[11px] text-muted-foreground">
                   <span>Guarantee<%= guarantee_label ? ": #{guarantee_label}" : "" %></span>
-                  <span class="font-mono tabular-nums"><%= compact.call(guaranteed_amount) %></span>
+                  <span class="tabular-nums"><%= compact.call(guaranteed_amount) %></span>
                 </div>
               <% end %>
 
               <% if show_likely %>
                 <div class="flex items-baseline justify-between text-[11px] text-muted-foreground">
                   <span>Likely Bonus</span>
-                  <span class="font-mono tabular-nums"><%= compact.call(likely_bonus) %></span>
+                  <span class="tabular-nums"><%= compact.call(likely_bonus) %></span>
                 </div>
               <% end %>
 
               <% if show_unlikely %>
                 <div class="flex items-baseline justify-between text-[11px] text-muted-foreground">
                   <span>Unlikely Bonus</span>
-                  <span class="font-mono tabular-nums"><%= compact.call(unlikely_bonus) %></span>
+                  <span class="tabular-nums"><%= compact.call(unlikely_bonus) %></span>
                 </div>
               <% end %>
             </div>

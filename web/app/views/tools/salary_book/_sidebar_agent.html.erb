@@ -72,7 +72,7 @@
       <div class="flex items-center justify-between">
         <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Client Roster</div>
         <div class="text-xs text-muted-foreground">
-          Book: <span class="font-mono tabular-nums font-medium"><%= compact.call(total_book) %></span>
+          Book: <span class="tabular-nums font-medium"><%= compact.call(total_book) %></span>
         </div>
       </div>
 
@@ -155,14 +155,14 @@
                   </div>
                 <% elsif current_salary > 0 %>
                   <div class="h-[26px] flex items-end justify-end">
-                    <div class="font-mono tabular-nums text-sm font-medium whitespace-nowrap"><%= compact.call(current_salary) %></div>
+                    <div class="tabular-nums text-sm font-medium whitespace-nowrap"><%= compact.call(current_salary) %></div>
                   </div>
                   <div class="h-[18px] -mt-px flex items-start justify-end">
                     <div class="text-[10px] leading-none tabular-nums whitespace-nowrap text-gray-400 dark:text-gray-500"><%= compact.call(total_value) %> total</div>
                   </div>
                 <% else %>
                   <div class="grid place-items-center h-[44px]">
-                    <div class="text-[10px] leading-none font-mono tabular-nums text-muted-foreground/60 italic whitespace-nowrap">No salary</div>
+                    <div class="text-[10px] leading-none tabular-nums text-muted-foreground/60 italic whitespace-nowrap">No salary</div>
                   </div>
                 <% end %>
               </div>

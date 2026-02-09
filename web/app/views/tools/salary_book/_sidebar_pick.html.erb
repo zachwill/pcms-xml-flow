@@ -141,7 +141,7 @@
           <% picks.each do |pick| %>
             <div class="flex items-baseline justify-between text-sm">
               <span class="text-muted-foreground">Slot <%= pick["asset_slot"] %>.<%= pick["sub_asset_slot"] %></span>
-              <span class="font-mono tabular-nums"><%= pick["asset_type"] %></span>
+              <span class="tabular-nums"><%= pick["asset_type"] %></span>
             </div>
           <% end %>
         </div>

@@ -27,12 +27,12 @@
             <% row = stats_by_year[stats_year] || {} %>
             <% highlight = stats_year.to_i == year.to_i %>
             <tr class="<%= highlight ? 'bg-yellow-50/70 dark:bg-yellow-900/10' : '' %>">
-              <td class="px-2 py-1.5 font-mono tabular-nums"><%= format_year_label(stats_year) %></td>
-              <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= row["cap_total"] ? format_compact_currency(row["cap_total"]) : "—" %></td>
-              <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= row["tax_total"] ? format_compact_currency(row["tax_total"]) : "—" %></td>
-              <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= row["apron_total"] ? format_compact_currency(row["apron_total"]) : "—" %></td>
-              <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= row["roster_row_count"] || "—" %></td>
-              <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= row["two_way_row_count"] || "—" %></td>
+              <td class="px-2 py-1.5 tabular-nums"><%= format_year_label(stats_year) %></td>
+              <td class="px-2 py-1.5 text-right tabular-nums"><%= row["cap_total"] ? format_compact_currency(row["cap_total"]) : "—" %></td>
+              <td class="px-2 py-1.5 text-right tabular-nums"><%= row["tax_total"] ? format_compact_currency(row["tax_total"]) : "—" %></td>
+              <td class="px-2 py-1.5 text-right tabular-nums"><%= row["apron_total"] ? format_compact_currency(row["apron_total"]) : "—" %></td>
+              <td class="px-2 py-1.5 text-right tabular-nums"><%= row["roster_row_count"] || "—" %></td>
+              <td class="px-2 py-1.5 text-right tabular-nums"><%= row["two_way_row_count"] || "—" %></td>
             </tr>
           <% end %>
         </tbody>

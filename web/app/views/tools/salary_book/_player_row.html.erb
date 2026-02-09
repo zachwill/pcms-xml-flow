@@ -74,7 +74,7 @@
     <%# Non-sticky columns (EPM + Years + Total + Agent) %>
     <div class="min-w-0 flex">
       <div
-        class="w-24 shrink-0 <%= epm_has_value ? 'flex flex-col' : 'grid place-items-center h-[40px]' %>"
+        class="w-24 shrink-0 bg-muted/40 <%= epm_has_value ? 'flex flex-col' : 'grid place-items-center h-[40px]' %>"
         data-show="$displayepm"
         title="<%= epm_percentile_label.present? ? "Latest regular-season EPM (#{epm_percentile_label})" : "Latest regular-season EPM" %>"
       >

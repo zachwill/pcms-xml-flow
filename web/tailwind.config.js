@@ -20,7 +20,15 @@ module.exports = {
     extend: {
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
-        mono: ["Geist Mono", "Fira Mono", "ui-monospace", "monospace"],
+        mono: [
+          "ui-monospace",
+          "Cascadia Code",
+          "Source Code Pro",
+          "Menlo",
+          "Consolas",
+          "DejaVu Sans Mono",
+          "monospace",
+        ],
       },
       colors: {
         border: "var(--border)",

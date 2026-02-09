@@ -370,7 +370,7 @@ module SalaryBookHelper
     return "text-green-700 dark:text-green-300" if p_int >= 80
     return "text-red-700 dark:text-red-300" if p_int <= 20
 
-    nil
+    "text-muted-foreground/90"
   end
 
   # Calculate total salary across years

@@ -20,7 +20,7 @@ FROM base AS build
 
 # Build-time deps (compilers, pg headers, git for bundler)
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential libpq-dev git && \
+    apt-get install --no-install-recommends -y build-essential libpq-dev libyaml-dev git && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Everything under web/ is the Rails app

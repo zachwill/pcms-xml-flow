@@ -1,21 +1,23 @@
 #!/bin/bash
-set -e
+set -euo pipefail
+
+cd /rails
 
 # Generate SECRET_KEY_BASE at boot when the deployer hasn't set one.
 # This lets the container "just work" on platforms like Railway without
-# requiring manual credential setup.  For multi-instance production
+# requiring manual credential setup. For multi-instance production
 # deployments, set the variable explicitly so all instances share the
 # same key (otherwise sessions/cookies won't be portable across hosts).
-if [ -z "$SECRET_KEY_BASE" ]; then
+if [ -z "${SECRET_KEY_BASE:-}" ]; then
   export SECRET_KEY_BASE="$(ruby -rsecurerandom -e 'puts SecureRandom.hex(64)')"
 fi
 
 # Safety net: if assets were not baked into the image, build them on boot.
-# This prevents runtime 500s like missing tailwind.css in production.
+# Use bin/rails so we always run in app context.
 if [ ! -f /rails/public/assets/.manifest.json ] || ! ruby -rjson -e 'm = JSON.parse(File.read("/rails/public/assets/.manifest.json")); exit(m.key?("tailwind.css") ? 0 : 1)' ; then
   echo "Precompiled assets missing/incomplete; running assets:precompile..."
-  SECRET_KEY_BASE_DUMMY=1 bundle exec rails tailwindcss:build
-  SECRET_KEY_BASE_DUMMY=1 bundle exec rails assets:precompile
+  SECRET_KEY_BASE_DUMMY=1 bundle exec bin/rails tailwindcss:build
+  SECRET_KEY_BASE_DUMMY=1 bundle exec bin/rails assets:precompile
 fi
 
 exec "$@"

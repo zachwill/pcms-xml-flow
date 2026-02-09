@@ -32,9 +32,11 @@ RUN bundle install && \
 
 # Build Tailwind explicitly, then precompile assets (Propshaft manifest).
 # SECRET_KEY_BASE_DUMMY lets Rails boot without real credentials.
+RUN test -f config/application.rb
 RUN mkdir -p app/assets/builds
-RUN SECRET_KEY_BASE_DUMMY=1 bundle exec rails tailwindcss:build
-RUN SECRET_KEY_BASE_DUMMY=1 bundle exec rails assets:precompile
+RUN SECRET_KEY_BASE_DUMMY=1 bundle exec bin/rails tailwindcss:build
+RUN SECRET_KEY_BASE_DUMMY=1 bundle exec bin/rails assets:precompile
+RUN test -f public/assets/.manifest.json
 
 # ─── Stage 3: runtime ───────────────────────────────────────────────
 FROM base

@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+
+# Generate SECRET_KEY_BASE at boot when the deployer hasn't set one.
+# This lets the container "just work" on platforms like Railway without
+# requiring manual credential setup.  For multi-instance production
+# deployments, set the variable explicitly so all instances share the
+# same key (otherwise sessions/cookies won't be portable across hosts).
+if [ -z "$SECRET_KEY_BASE" ]; then
+  export SECRET_KEY_BASE="$(ruby -rsecurerandom -e 'puts SecureRandom.hex(64)')"
+fi
+
+exec "$@"

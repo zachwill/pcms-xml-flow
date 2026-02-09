@@ -46,6 +46,9 @@ RUN groupadd --system --gid 1000 rails && \
     chown -R rails:rails db log tmp public
 USER 1000:1000
 
+# Entrypoint generates SECRET_KEY_BASE when the deployer hasn't set one
+ENTRYPOINT ["/rails/bin/docker-entrypoint"]
+
 # Puma listens on $PORT (Railway sets this automatically)
 EXPOSE 3000
 

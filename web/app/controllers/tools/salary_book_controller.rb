@@ -1,3 +1,5 @@
+require "json"
+
 module Tools
   class SalaryBookController < ApplicationController
     CURRENT_SALARY_YEAR = 2025
@@ -8,98 +10,77 @@ module Tools
     def show
       @salary_year = salary_year_param
       @salary_years = SALARY_YEARS
-      # Default path: ship shell quickly, then patch full #maincanvas HTML in a follow-up GET.
-      @defer_heavy_load = params[:full].to_s != "1"
 
       team_rows = fetch_team_index_rows(@salary_year)
       @team_codes = team_rows.map { |row| row["team_code"] }.compact
       @teams_by_conference, @team_meta_by_code = build_team_maps(team_rows)
 
       requested = params[:team]
+      default_team_code = "POR"
       @initial_team = if requested.present? && valid_team_code?(requested)
         requested.to_s.strip.upcase
+      elsif @team_codes.include?(default_team_code)
+        default_team_code
       else
         @team_codes.first
       end
 
       @initial_team_meta = @initial_team ? (@team_meta_by_code[@initial_team] || {}) : {}
 
-      if @defer_heavy_load
-        @players_by_team = {}
-        @cap_holds_by_team = {}
-        @exceptions_by_team = {}
-        @dead_money_by_team = {}
-        @picks_by_team = {}
-        @team_summaries = {}
-        @initial_team_summary = nil
-        @initial_team_summaries_by_year = {}
-      else
-        @players_by_team = fetch_players_by_team(@team_codes)
+      @initial_players = []
+      @initial_cap_holds = []
+      @initial_exceptions = []
+      @initial_dead_money = []
+      @initial_picks = []
+      @initial_team_summary = nil
+      @initial_team_summaries_by_year = {}
 
-        # Bulk fetch sub-section data (avoids N+1)
-        @cap_holds_by_team = fetch_cap_holds_by_team(@team_codes)
-        @exceptions_by_team = fetch_exceptions_by_team(@team_codes)
-        @dead_money_by_team = fetch_dead_money_by_team(@team_codes)
-        @picks_by_team = fetch_picks_by_team(@team_codes)
+      if @initial_team.present?
+        @initial_players = fetch_team_players(@initial_team)
 
-        # Bulk fetch team salary summaries for all teams × years (for header KPIs + sidebar ledger)
-        @team_summaries = fetch_all_team_summaries(@team_codes)
-
-        @initial_team_summaries_by_year = @initial_team ? (@team_summaries[@initial_team] || {}) : {}
-        @initial_team_summary = if @initial_team
-          @initial_team_summaries_by_year[@salary_year] || @initial_team_summaries_by_year[SALARY_YEARS.first]
-        end
-      end
-
-      if maincanvas_fragment_request?
-        render_maincanvas_fragment
-        return
+        payload = fetch_team_support_payload(@initial_team)
+        @initial_cap_holds = payload[:cap_holds]
+        @initial_exceptions = payload[:exceptions]
+        @initial_dead_money = payload[:dead_money]
+        @initial_picks = payload[:picks]
+        @initial_team_summaries_by_year = payload[:team_summaries]
+        @initial_team_meta = payload[:team_meta].presence || @initial_team_meta
+        @initial_team_summary = @initial_team_summaries_by_year[@salary_year] || @initial_team_summaries_by_year[SALARY_YEARS.first]
       end
     rescue ActiveRecord::StatementInvalid => e
       # Useful when a dev DB hasn't been hydrated with the pcms.* schema yet.
       @boot_error = e.message
       @salary_year = salary_year_param
       @salary_years = SALARY_YEARS
-      @defer_heavy_load = false
       @team_codes = []
       @teams_by_conference = { "Eastern" => [], "Western" => [] }
-      @players_by_team = {}
-      @cap_holds_by_team = {}
-      @exceptions_by_team = {}
-      @dead_money_by_team = {}
-      @picks_by_team = {}
-      @team_summaries = {}
       @team_meta_by_code = {}
       @initial_team = nil
       @initial_team_summary = nil
       @initial_team_meta = {}
       @initial_team_summaries_by_year = {}
-
-      if maincanvas_fragment_request?
-        render_maincanvas_fragment
-        return
-      end
+      @initial_players = []
+      @initial_cap_holds = []
+      @initial_exceptions = []
+      @initial_dead_money = []
+      @initial_picks = []
     end
 
     # GET /tools/salary-book/teams/:teamcode/section
     def team_section
       team_code = normalize_team_code(params[:teamcode])
       year = salary_year_param
+
       players = fetch_team_players(team_code)
+      payload = fetch_team_support_payload(team_code)
+      cap_holds = payload[:cap_holds]
+      exceptions = payload[:exceptions]
+      dead_money = payload[:dead_money]
+      picks = payload[:picks]
+      team_summaries = payload[:team_summaries]
+      team_meta = payload[:team_meta]
 
-      # Fetch sub-sections for this team
-      cap_holds = fetch_cap_holds_by_team([team_code])[team_code] || []
-      exceptions = fetch_exceptions_by_team([team_code])[team_code] || []
-      dead_money = fetch_dead_money_by_team([team_code])[team_code] || []
-      picks = fetch_picks_by_team([team_code])[team_code] || []
-
-      # Fetch team summaries (all years) for header + sidebar ledger
-      team_summaries = fetch_all_team_summaries([team_code])[team_code] || {}
-
-      # Get team metadata from conference lookup
-      team_meta = fetch_team_meta(team_code)
-
-      render partial: "tools/salary_book/team_section", locals: {
+      render partial: "tools/salary_book/maincanvas_team_frame", locals: {
         team_code:,
         players:,
         cap_holds:,
@@ -109,7 +90,24 @@ module Tools
         team_summaries:,
         team_meta:,
         year:,
-        salary_years: SALARY_YEARS
+        salary_years: SALARY_YEARS,
+        boot_error: nil,
+        empty_message: nil
+      }, layout: false
+    rescue ActiveRecord::StatementInvalid => e
+      render partial: "tools/salary_book/maincanvas_team_frame", locals: {
+        team_code: nil,
+        players: [],
+        cap_holds: [],
+        exceptions: [],
+        dead_money: [],
+        picks: [],
+        team_summaries: {},
+        team_meta: {},
+        year: salary_year_param,
+        salary_years: SALARY_YEARS,
+        boot_error: e.message,
+        empty_message: nil
       }, layout: false
     end
 
@@ -261,32 +259,6 @@ module Tools
       team
     end
 
-    def maincanvas_fragment_request?
-      params[:fragment].to_s == "maincanvas"
-    end
-
-    def render_maincanvas_fragment
-      original = ActionView::Base.annotate_rendered_view_with_filenames
-      ActionView::Base.annotate_rendered_view_with_filenames = false
-
-      render partial: "tools/salary_book/maincanvas", locals: {
-        defer_heavy_load: @defer_heavy_load,
-        boot_error: @boot_error,
-        team_codes: @team_codes,
-        salary_year: @salary_year,
-        salary_years: @salary_years,
-        players_by_team: @players_by_team,
-        cap_holds_by_team: @cap_holds_by_team,
-        exceptions_by_team: @exceptions_by_team,
-        dead_money_by_team: @dead_money_by_team,
-        picks_by_team: @picks_by_team,
-        team_summaries: @team_summaries,
-        team_meta_by_code: @team_meta_by_code
-      }, layout: false
-    ensure
-      ActionView::Base.annotate_rendered_view_with_filenames = original
-    end
-
     # Team index rows for the selected salary year (single query).
     # Includes all metadata needed by the shell command bar + logos map.
     def fetch_team_index_rows(year)
@@ -387,17 +359,18 @@ module Tools
           ON p.person_id = sbw.player_id
         LEFT JOIN pcms.agents a
           ON a.agent_id = sbw.agent_id
-        LEFT JOIN (
-          SELECT DISTINCT ON (nba_id)
-            nba_id,
-            season,
-            epm,
-            epm_pctl
-          FROM dunks.epm
-          WHERE season_type = 2
-          ORDER BY nba_id, (epm IS NULL), season DESC
+        LEFT JOIN LATERAL (
+          SELECT
+            e.season,
+            e.epm,
+            e.epm_pctl
+          FROM dunks.epm e
+          WHERE e.nba_id = sbw.player_id
+            AND e.season_type = 2
+          ORDER BY (e.epm IS NULL), e.season DESC
+          LIMIT 1
         ) epm_latest
-          ON epm_latest.nba_id = sbw.player_id
+          ON true
         WHERE #{where_clause}
         ORDER BY sbw.team_code, sbw.cap_2025 DESC NULLS LAST, sbw.total_salary_from_2025 DESC NULLS LAST, sbw.player_name
       SQL
@@ -504,17 +477,18 @@ module Tools
           FROM pcms.salary_book_warehouse sbw
           LEFT JOIN pcms.people p
             ON p.person_id = sbw.player_id
-          LEFT JOIN (
-            SELECT DISTINCT ON (nba_id)
-              nba_id,
-              season,
-              epm,
-              epm_pctl
-            FROM dunks.epm
-            WHERE season_type = 2
-            ORDER BY nba_id, (epm IS NULL), season DESC
+          LEFT JOIN LATERAL (
+            SELECT
+              e.season,
+              e.epm,
+              e.epm_pctl
+            FROM dunks.epm e
+            WHERE e.nba_id = sbw.player_id
+              AND e.season_type = 2
+            ORDER BY (e.epm IS NULL), e.season DESC
+            LIMIT 1
           ) epm_latest
-            ON epm_latest.nba_id = sbw.player_id
+            ON true
           WHERE sbw.player_id = #{id_sql}
           LIMIT 1
         SQL
@@ -650,6 +624,217 @@ module Tools
       end
 
       rows.group_by { |r| r["team_code"] }
+    end
+
+    # One-query payload for a single team's non-player sections.
+    # Reduces request latency on remote Postgres by collapsing multiple round-trips.
+    # Returns:
+    # {
+    #   cap_holds: [...],
+    #   exceptions: [...],
+    #   dead_money: [...],
+    #   picks: [...],
+    #   team_summaries: { 2025 => {...}, ... },
+    #   team_meta: {...}
+    # }
+    def fetch_team_support_payload(team_code)
+      team_sql = conn.quote(team_code)
+
+      row = conn.exec_query(<<~SQL).first || {}
+        WITH
+        cap_holds AS (
+          SELECT
+            non_contract_amount_id AS id,
+            team_code,
+            player_id,
+            player_name,
+            amount_type_lk,
+            MAX(cap_amount) FILTER (WHERE salary_year = 2025)::numeric AS cap_2025,
+            MAX(cap_amount) FILTER (WHERE salary_year = 2026)::numeric AS cap_2026,
+            MAX(cap_amount) FILTER (WHERE salary_year = 2027)::numeric AS cap_2027,
+            MAX(cap_amount) FILTER (WHERE salary_year = 2028)::numeric AS cap_2028,
+            MAX(cap_amount) FILTER (WHERE salary_year = 2029)::numeric AS cap_2029,
+            MAX(cap_amount) FILTER (WHERE salary_year = 2030)::numeric AS cap_2030
+          FROM pcms.cap_holds_warehouse
+          WHERE team_code = #{team_sql}
+            AND salary_year BETWEEN 2025 AND 2030
+          GROUP BY non_contract_amount_id, team_code, player_id, player_name, amount_type_lk
+        ),
+        exceptions AS (
+          SELECT
+            team_exception_id AS id,
+            team_code,
+            exception_type_lk,
+            exception_type_name,
+            trade_exception_player_id,
+            trade_exception_player_name,
+            expiration_date,
+            is_expired,
+            MAX(remaining_amount) FILTER (WHERE salary_year = 2025)::numeric AS remaining_2025,
+            MAX(remaining_amount) FILTER (WHERE salary_year = 2026)::numeric AS remaining_2026,
+            MAX(remaining_amount) FILTER (WHERE salary_year = 2027)::numeric AS remaining_2027,
+            MAX(remaining_amount) FILTER (WHERE salary_year = 2028)::numeric AS remaining_2028,
+            MAX(remaining_amount) FILTER (WHERE salary_year = 2029)::numeric AS remaining_2029,
+            MAX(remaining_amount) FILTER (WHERE salary_year = 2030)::numeric AS remaining_2030
+          FROM pcms.exceptions_warehouse
+          WHERE team_code = #{team_sql}
+            AND salary_year BETWEEN 2025 AND 2030
+            AND COALESCE(is_expired, false) = false
+          GROUP BY
+            team_exception_id,
+            team_code,
+            exception_type_lk,
+            exception_type_name,
+            trade_exception_player_id,
+            trade_exception_player_name,
+            expiration_date,
+            is_expired
+        ),
+        dead_money AS (
+          SELECT
+            transaction_waiver_amount_id AS id,
+            team_code,
+            player_id,
+            player_name,
+            waive_date,
+            MAX(cap_value) FILTER (WHERE salary_year = 2025)::numeric AS cap_2025,
+            MAX(cap_value) FILTER (WHERE salary_year = 2026)::numeric AS cap_2026,
+            MAX(cap_value) FILTER (WHERE salary_year = 2027)::numeric AS cap_2027,
+            MAX(cap_value) FILTER (WHERE salary_year = 2028)::numeric AS cap_2028,
+            MAX(cap_value) FILTER (WHERE salary_year = 2029)::numeric AS cap_2029,
+            MAX(cap_value) FILTER (WHERE salary_year = 2030)::numeric AS cap_2030
+          FROM pcms.dead_money_warehouse
+          WHERE team_code = #{team_sql}
+            AND salary_year BETWEEN 2025 AND 2030
+          GROUP BY transaction_waiver_amount_id, team_code, player_id, player_name, waive_date
+        ),
+        picks AS (
+          SELECT
+            team_code,
+            draft_year AS year,
+            draft_round AS round,
+            asset_slot,
+            sub_asset_slot,
+            asset_type,
+            is_conditional,
+            is_swap,
+            counterparty_team_code AS origin_team_code,
+            raw_part AS description
+          FROM pcms.draft_pick_summary_assets
+          WHERE team_code = #{team_sql}
+            AND draft_year BETWEEN 2025 AND 2030
+        ),
+        team_summaries AS (
+          SELECT
+            team_code,
+            salary_year,
+            cap_total,
+            cap_total_hold,
+            tax_total,
+            apron_total,
+            roster_row_count,
+            two_way_row_count,
+            salary_cap_amount,
+            tax_level_amount,
+            tax_apron_amount,
+            tax_apron2_amount,
+            pcms.fn_luxury_tax_amount(
+              salary_year,
+              GREATEST(COALESCE(tax_total, 0) - COALESCE(tax_level_amount, 0), 0),
+              COALESCE(is_repeater_taxpayer, false)
+            ) AS luxury_tax_owed,
+            (COALESCE(salary_cap_amount, 0) - COALESCE(cap_total_hold, 0))::bigint AS cap_space,
+            room_under_tax,
+            room_under_apron1 AS room_under_first_apron,
+            room_under_apron2 AS room_under_second_apron,
+            is_taxpayer AS is_over_tax,
+            is_subject_to_apron AS is_over_first_apron,
+            apron_level_lk,
+            refreshed_at
+          FROM pcms.team_salary_warehouse
+          WHERE team_code = #{team_sql}
+            AND salary_year BETWEEN 2025 AND 2030
+        ),
+        team_meta AS (
+          SELECT
+            team_code,
+            team_name,
+            conference_name,
+            team_id
+          FROM pcms.teams
+          WHERE team_code = #{team_sql}
+            AND league_lk = 'NBA'
+          LIMIT 1
+        )
+        SELECT
+          COALESCE(
+            (SELECT jsonb_agg(to_jsonb(ch) ORDER BY ch.cap_2025 DESC NULLS LAST, ch.player_name ASC NULLS LAST) FROM cap_holds ch),
+            '[]'::jsonb
+          ) AS cap_holds,
+          COALESCE(
+            (SELECT jsonb_agg(to_jsonb(ex) ORDER BY ex.remaining_2025 DESC NULLS LAST, ex.exception_type_name ASC NULLS LAST) FROM exceptions ex),
+            '[]'::jsonb
+          ) AS exceptions,
+          COALESCE(
+            (SELECT jsonb_agg(to_jsonb(dm) ORDER BY dm.cap_2025 DESC NULLS LAST, dm.player_name ASC NULLS LAST) FROM dead_money dm),
+            '[]'::jsonb
+          ) AS dead_money,
+          COALESCE(
+            (SELECT jsonb_agg(to_jsonb(p) ORDER BY p.year, p.round, p.asset_slot, p.sub_asset_slot) FROM picks p),
+            '[]'::jsonb
+          ) AS picks,
+          COALESCE(
+            (SELECT jsonb_agg(to_jsonb(ts) ORDER BY ts.salary_year) FROM team_summaries ts),
+            '[]'::jsonb
+          ) AS team_summaries,
+          COALESCE(
+            (SELECT to_jsonb(tm) FROM team_meta tm),
+            '{}'::jsonb
+          ) AS team_meta
+      SQL
+
+      cap_holds = parse_jsonb_array(row["cap_holds"])
+      exceptions = parse_jsonb_array(row["exceptions"])
+      dead_money = parse_jsonb_array(row["dead_money"])
+      picks = parse_jsonb_array(row["picks"])
+      team_meta = parse_jsonb_object(row["team_meta"])
+
+      picks.each do |pick|
+        pick["id"] = "#{pick['team_code']}-#{pick['year']}-#{pick['round']}-#{pick['asset_slot']}-#{pick['sub_asset_slot']}"
+      end
+
+      team_summaries = {}
+      parse_jsonb_array(row["team_summaries"]).each do |summary|
+        next unless summary.is_a?(Hash)
+
+        year = summary["salary_year"]
+        next if year.nil?
+
+        team_summaries[year.to_i] = summary
+      end
+
+      {
+        cap_holds:,
+        exceptions:,
+        dead_money:,
+        picks:,
+        team_summaries:,
+        team_meta:
+      }
+    end
+
+    def parse_jsonb_array(value)
+      parsed = value.is_a?(String) ? JSON.parse(value) : value
+      parsed.is_a?(Array) ? parsed : []
+    rescue JSON::ParserError
+      []
+    end
+
+    def parse_jsonb_object(value)
+      parsed = value.is_a?(String) ? JSON.parse(value) : value
+      parsed.is_a?(Hash) ? parsed : {}
+    rescue JSON::ParserError
+      {}
     end
 
     # -------------------------------------------------------------------------

@@ -23,6 +23,7 @@ Rails.application.routes.draw do
 
     # SSE bootstrap + patch template endpoints (canonical one-off SSE pattern)
     get "salary-book/sse/bootstrap", to: "salary_book_sse#bootstrap", as: :salary_book_sse_bootstrap
+    get "salary-book/sse/switch-team", to: "salary_book_sse#switch_team", as: :salary_book_sse_switch_team
     get "salary-book/sse/patch-template", to: "salary_book_sse#demo", as: :salary_book_sse_patch_template
     # Legacy alias
     get "salary-book/sse/demo", to: "salary_book_sse#demo", as: :salary_book_sse_demo

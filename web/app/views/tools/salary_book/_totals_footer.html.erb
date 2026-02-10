@@ -1,0 +1,164 @@
+<%# Totals footer (single-team view) %>
+
+<% salary_years ||= SalaryBookHelper::SALARY_YEARS %>
+<% team_summaries ||= {} %>
+<% team_code = local_assigns.fetch(:team_code, nil) %>
+
+<div class="!bg-zinc-900 dark:!bg-background border-t border-zinc-700/70 dark:border-border">
+  <%# Roster Cost %>
+  <div class="h-12 flex items-center text-xs !bg-zinc-900 dark:!bg-background">
+    <div
+      class="w-52 shrink-0 pl-4 sticky left-0 z-[2] relative !bg-zinc-900 dark:!bg-background
+             after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-zinc-700/80 dark:after:bg-border/40"
+    >
+      <div class="grid grid-cols-[40px_1fr] items-center h-full">
+        <div class="flex items-center justify-start text-zinc-400 dark:text-muted-foreground">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+          </svg>
+        </div>
+        <div class="pl-1 min-w-0 text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-muted-foreground">Roster Cost</div>
+      </div>
+    </div>
+
+    <div class="w-24 shrink-0" data-show="$displayepm"></div>
+
+    <% salary_years.each do |y| %>
+      <% summary = team_summaries[y] %>
+      <% cap_total = summary && summary["cap_total"] %>
+      <div
+        class="w-24 shrink-0 flex justify-center"
+        data-class="{ 'bg-yellow-900/20': $selectedseason === '<%= y %>' && $selectedseasonteam === '<%= team_code %>' }"
+      >
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: format_year_label(y),
+          value: cap_total ? format_compact_currency(cap_total) : "—",
+          variant: cap_total ? "default" : "muted",
+          dark: true
+        } %>
+      </div>
+    <% end %>
+
+    <div class="w-24 shrink-0"></div>
+    <div class="w-40 pr-4 shrink-0"></div>
+  </div>
+
+  <%# Cap Space %>
+  <div class="h-12 flex items-center text-xs !bg-zinc-900 dark:!bg-background">
+    <div
+      class="w-52 shrink-0 pl-4 sticky left-0 z-[2] relative !bg-zinc-900 dark:!bg-background
+             after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-zinc-700/80 dark:after:bg-border/40"
+    >
+      <div class="grid grid-cols-[40px_1fr] items-center h-full">
+        <div class="flex items-center justify-start text-zinc-400 dark:text-muted-foreground">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/>
+            <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>
+          </svg>
+        </div>
+        <div class="pl-1 min-w-0 text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-muted-foreground">Cap Space</div>
+      </div>
+    </div>
+
+    <div class="w-24 shrink-0" data-show="$displayepm"></div>
+
+    <% salary_years.each do |y| %>
+      <% summary = team_summaries[y] %>
+      <% cap_space = summary && summary["cap_space"] %>
+      <% variant = cap_space.nil? ? "muted" : (cap_space.to_f < 0 ? "negative" : "positive") %>
+      <div
+        class="w-24 shrink-0 flex justify-center"
+        data-class="{ 'bg-yellow-900/20': $selectedseason === '<%= y %>' && $selectedseasonteam === '<%= team_code %>' }"
+      >
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: format_year_label(y),
+          value: cap_space.nil? ? "—" : format_room_amount(cap_space),
+          variant:,
+          dark: true
+        } %>
+      </div>
+    <% end %>
+
+    <div class="w-24 shrink-0"></div>
+    <div class="w-40 pr-4 shrink-0"></div>
+  </div>
+
+  <%# Tax/Apron Status %>
+  <div class="h-12 flex items-center text-xs !bg-zinc-900 dark:!bg-background" data-show="$displaytaxaprons">
+    <div
+      class="w-52 shrink-0 pl-4 sticky left-0 z-[2] relative !bg-zinc-900 dark:!bg-background
+             after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-zinc-700/80 dark:after:bg-border/40"
+    >
+      <div class="grid grid-cols-[40px_1fr] items-center h-full">
+        <div class="flex items-center justify-start text-zinc-400 dark:text-muted-foreground">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+            <path d="M12 8v4"/><path d="M12 16h.01"/>
+          </svg>
+        </div>
+        <div class="pl-1 min-w-0 text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-muted-foreground">Tax Status</div>
+      </div>
+    </div>
+
+    <div class="w-24 shrink-0" data-show="$displayepm"></div>
+
+    <% salary_years.each do |y| %>
+      <% summary = team_summaries[y] %>
+      <% status = tax_status(summary) %>
+      <div
+        class="w-24 shrink-0 flex justify-center"
+        data-class="{ 'bg-yellow-900/20': $selectedseason === '<%= y %>' && $selectedseasonteam === '<%= team_code %>' }"
+      >
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: status[:label],
+          value: status[:value],
+          variant: status[:variant],
+          dark: true
+        } %>
+      </div>
+    <% end %>
+
+    <div class="w-24 shrink-0"></div>
+    <div class="w-40 pr-4 shrink-0"></div>
+  </div>
+
+  <%# Luxury Tax Owed %>
+  <div class="h-12 flex items-center text-xs !bg-zinc-900 dark:!bg-background" data-show="$displayluxurytax">
+    <div
+      class="w-52 shrink-0 pl-4 sticky left-0 z-[2] relative !bg-zinc-900 dark:!bg-background
+             after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-zinc-700/80 dark:after:bg-border/40"
+    >
+      <div class="grid grid-cols-[40px_1fr] items-center h-full">
+        <div class="flex items-center justify-start text-zinc-400 dark:text-muted-foreground">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 3v18h18"/>
+            <path d="M7 13h3v5H7z"/><path d="M11 9h3v9h-3z"/><path d="M15 6h3v12h-3z"/>
+          </svg>
+        </div>
+        <div class="pl-1 min-w-0 text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-muted-foreground">Luxury Tax</div>
+      </div>
+    </div>
+
+    <div class="w-24 shrink-0" data-show="$displayepm"></div>
+
+    <% salary_years.each do |y| %>
+      <% summary = team_summaries[y] %>
+      <% luxury_tax = summary && summary["luxury_tax_owed"] %>
+      <% variant = luxury_tax.nil? ? "muted" : (luxury_tax.to_f > 0 ? "negative" : "muted") %>
+      <div
+        class="w-24 shrink-0 flex justify-center"
+        data-class="{ 'bg-yellow-900/20': $selectedseason === '<%= y %>' && $selectedseasonteam === '<%= team_code %>' }"
+      >
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: format_year_label(y),
+          value: luxury_tax.nil? ? "—" : format_compact_currency(luxury_tax),
+          variant:,
+          dark: true
+        } %>
+      </div>
+    <% end %>
+
+    <div class="w-24 shrink-0"></div>
+    <div class="w-40 pr-4 shrink-0"></div>
+  </div>
+</div>

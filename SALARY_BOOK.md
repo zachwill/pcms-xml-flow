@@ -401,6 +401,7 @@ psql "$POSTGRES_URL" -c "
 | Doc | Purpose |
 |-----|---------|
 | `TODO.md` | Next implementation priorities |
+| `SALARY_BOOK_STATE_MODEL.md` | Official/Live/Scenario state model + external report system-of-record |
 | `AGENTS.md` | Pipeline architecture + "what counts" rules |
 | `DRAFT_PICKS.md` | Draft pick model + warehouse guidance |
 | `reference/warehouse/AGENTS.md` | Sean workbook file guide |

@@ -1,42 +1,31 @@
-<% defer_heavy_load = local_assigns.fetch(:defer_heavy_load, false) %>
 <% boot_error = local_assigns.fetch(:boot_error, nil) %>
-<% team_codes = local_assigns.fetch(:team_codes, []) %>
 <% salary_year = local_assigns.fetch(:salary_year, 2025) %>
 <% salary_years = local_assigns.fetch(:salary_years, SalaryBookHelper::SALARY_YEARS) %>
-<% players_by_team = local_assigns.fetch(:players_by_team, {}) %>
-<% cap_holds_by_team = local_assigns.fetch(:cap_holds_by_team, {}) %>
-<% exceptions_by_team = local_assigns.fetch(:exceptions_by_team, {}) %>
-<% dead_money_by_team = local_assigns.fetch(:dead_money_by_team, {}) %>
-<% picks_by_team = local_assigns.fetch(:picks_by_team, {}) %>
-<% team_summaries = local_assigns.fetch(:team_summaries, {}) %>
-<% team_meta_by_code = local_assigns.fetch(:team_meta_by_code, {}) %>
+<% initial_team = local_assigns.fetch(:initial_team, nil) %>
+<% initial_players = local_assigns.fetch(:initial_players, []) %>
+<% initial_cap_holds = local_assigns.fetch(:initial_cap_holds, []) %>
+<% initial_exceptions = local_assigns.fetch(:initial_exceptions, []) %>
+<% initial_dead_money = local_assigns.fetch(:initial_dead_money, []) %>
+<% initial_picks = local_assigns.fetch(:initial_picks, []) %>
+<% initial_team_summaries = local_assigns.fetch(:initial_team_summaries, {}) %>
+<% initial_team_meta = local_assigns.fetch(:initial_team_meta, {}) %>
 
 <main
   id="maincanvas"
-  class="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-background relative overscroll-y-contain scroll-touch isolate snap-y snap-proximity"
+  class="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-background relative overscroll-y-contain scroll-touch isolate"
 >
-  <% unless defer_heavy_load %>
-    <div class="hidden" aria-hidden="true" data-signals="{ bootstrapstatus: 'done' }"></div>
-  <% end %>
-
-  <% if defer_heavy_load && boot_error.blank? %>
-    <%= render partial: "tools/salary_book/maincanvas_skeleton", locals: {
-      team_codes:,
-      team_meta_by_code:
-    } %>
-  <% else %>
-    <%= render partial: "tools/salary_book/maincanvas_content", locals: {
-      boot_error:,
-      team_codes:,
-      salary_year:,
-      salary_years:,
-      players_by_team:,
-      cap_holds_by_team:,
-      exceptions_by_team:,
-      dead_money_by_team:,
-      picks_by_team:,
-      team_summaries:,
-      team_meta_by_code:
-    } %>
-  <% end %>
+  <%= render partial: "tools/salary_book/maincanvas_team_frame", locals: {
+    team_code: initial_team,
+    players: initial_players,
+    cap_holds: initial_cap_holds,
+    exceptions: initial_exceptions,
+    dead_money: initial_dead_money,
+    picks: initial_picks,
+    team_summaries: initial_team_summaries,
+    team_meta: initial_team_meta,
+    year: salary_year,
+    salary_years: salary_years,
+    boot_error: boot_error,
+    empty_message: "No teams available for #{salary_year}."
+  } %>
 </main>

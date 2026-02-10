@@ -38,7 +38,7 @@
 <section
   id="<%= team_code %>"
   data-teamcode="<%= team_code %>"
-  class="border-b border-border snap-start"
+  class="border-b border-border"
   style="content-visibility: auto; contain-intrinsic-size: 1200px 600px;"
 >
   <div class="relative" data-salarytable>
@@ -267,6 +267,11 @@
           <% end %>
         </div>
 
+        <%= render partial: "tools/salary_book/totals_footer", locals: {
+          team_summaries: team_summaries,
+          salary_years: salary_years,
+          team_code: team_code
+        } %>
       </div>
     </div>
   </div>

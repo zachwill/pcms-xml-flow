@@ -102,9 +102,11 @@ These tables exist for **scenario planning** (user-defined salary projections).
 
 **Rows:** 0 in all three tables
 
-**Gap:** Schema is ready, but no data — these are **UI-driven** tables, not XML-sourced.
+**Updated direction:** We are standardizing on a richer **state model** (`Official` / `Live` / `Scenario`) with external-report ingestion + interpretation + reconciliation, documented in:
 
-**Action:** No action needed. Rails app will populate these when projection features are built.
+- `SALARY_BOOK_STATE_MODEL.md`
+
+That spec supersedes the older `ui_*` direction and proposes deprecating the `ui_*` tables after the new state tables are implemented.
 
 ---
 

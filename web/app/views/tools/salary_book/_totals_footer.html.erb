@@ -30,7 +30,6 @@
       <% salary_years.each do |year| %>
         <div
           class="w-24 h-full shrink-0 flex items-center justify-center tabular-nums text-center transition-colors duration-100 cursor-pointer select-none"
-          title="Hover to preview season · click to lock"
           data-on:mouseenter="el.dispatchEvent(new CustomEvent('salarybook-setseason', { detail: { year: '<%= year %>' }, bubbles: true }))"
           data-on:focusin="el.dispatchEvent(new CustomEvent('salarybook-setseason', { detail: { year: '<%= year %>' }, bubbles: true }))"
           data-on:click="const samecell = ($selectedseason === '<%= year %>'); if (samecell && $seasonlocked) { $seasonlocked = false; $selectedseason = ''; } else { $selectedseason = '<%= year %>'; $seasonlocked = true; }"

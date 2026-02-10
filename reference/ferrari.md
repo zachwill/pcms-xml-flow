@@ -4,17 +4,19 @@
 
 ## 0 — Mental Model: The "Phygital Cockpit"
 
-Before any detail, internalize four design patterns that govern every decision in this system:
+Before any detail, internalize five design patterns that govern every decision in this system:
 
-1. **Tactile hardware, digital state.** Physical controls are almost always *momentary* — sticks spring back to center, toggles snap to neutral, rotaries click between detents. The controls produce *impulses* (events). State lives in software. The hardware never "holds" a position for the system.
+1. **Tactile hardware, digital state.** Physical *input* controls are almost always momentary — sticks spring back to center, toggles snap to neutral, rotaries click between detents. The controls produce impulses (events). State lives in software. Input hardware never "holds" a position for the system.
 
-2. **High-contrast digital feedback on OLED black.** Every screen assumes a pure-black background that vanishes into its bezel. Visual elements are sparse, typographically strict, and color-coded by meaning — not decoration.
+2. **Hybrid mechanical-digital instruments.** The most critical *output* instruments combine physical mechanical elements (motor-driven needles, clock hands) with digital OLED faces beneath them. The mechanical layer provides visceral, analog legibility; the digital layer provides mode-colored overlays, numerics, and contextual graphics. This duality is a core design signature — not every display is a screen.
 
-3. **Strict safety gating.** Actions are validated against preconditions before execution. Invalid inputs are silently ignored or produce a brief warning. The system never errors, never crashes, never enters an ambiguous state.
+3. **High-contrast digital feedback on OLED black.** Every screen assumes a pure-black background that vanishes into its bezel. Visual elements are sparse, typographically strict, and color-coded by meaning — not decoration.
 
-4. **Layered state machines.** The cockpit runs many concurrent state machines (gear, drive mode, powertrain mode, launch sequence, passenger chrono, etc.) that influence each other through well-defined couplings. No module is truly independent.
+4. **Strict safety gating.** Actions are validated against preconditions before execution. Invalid inputs are silently ignored or produce a brief warning. The system never errors, never crashes, never enters an ambiguous state.
 
-A key consequence: **every physical input maps to a named event, every event is validated against the current state, and every valid transition produces multi-modal feedback** (visual change + physical sensation + implied audio).
+5. **Layered state machines.** The cockpit runs many concurrent state machines (gear, drive mode, powertrain mode, torque control, launch sequence, multigraph chrono, etc.) that influence each other through well-defined couplings. No module is truly independent.
+
+A key consequence: **every physical input maps to a named event, every event is validated against the current state, and every valid transition produces multi-modal feedback** (visual change + physical sensation + implied audio). And the most important outputs are expressed physically — a needle, a hand — even in a fully electric car.
 
 ---
 
@@ -34,7 +36,7 @@ A key consequence: **every physical input maps to a named event, every event is 
 | Name | Hex | Terminal | Semantic Role |
 |------|-----|---------|---------------|
 | OLED Black | `#000000` | Default | Background — always pure black to merge with bezels |
-| Giallo Modena | `#FCD116` | `\033[93m` | Primary active: tachometer arc, Prancing Horse, normal-state highlights |
+| Giallo Modena | `#FCD116` | `\033[93m` | Primary active: tachometer arc, Prancing Horse, normal-state highlights, key surge |
 | Rosso Corsa | `#FF2800` | `\033[91m` | Limit / performance / warning: redline, Sport mode, Launch Control |
 | Verde Signal | `#00FF00` | `\033[92m` | Efficiency: Range mode, battery health, regen indicators |
 | Grigio | `#666666` | `\033[90m` | Inactive: disabled elements, ghost values, bezels, faded neighbors |
@@ -45,10 +47,11 @@ Colors are *semantic, not decorative.* The mode system (Section 5.3) shifts acce
 
 | Context | Motion Type | Description |
 |---------|-------------|-------------|
+| Key dock boot | Yellow surge | Giallo Modena radiates outward from the key dock point across all displays sequentially. |
 | Gear changes | Drum scroll | Letters slide through a viewport; intermediate gears pass as ghosts. Never an instant swap. |
 | Mode changes | Color migration | Accent color shifts + label updates. Layout is constant. No page transitions. |
-| Speed / power | Continuous arc fill | Ring fills/drains smoothly. Regen dips counter-clockwise into a "charge zone." |
-| Launch sequence | Dramatic palette override | Screen darkens, orange overlay, checklist appears, white flash (100ms) on launch. |
+| Speed / power | Continuous arc fill + needle | Ring fills/drains smoothly. Mechanical needle sweeps continuously. Regen dips counter-clockwise into a "charge zone." |
+| Launch sequence | Dramatic palette override | Displays darken, orange overlay, checklist appears, multigraph auto-switches to 5s chrono, white flash (100ms) on launch. |
 | Toggle feedback | Transient HUD | Brief on-screen indicator (slider, icon) appears and fades after ~2s. |
 
 ### 1.4 Input Semantics
@@ -57,11 +60,14 @@ Physical controls produce discrete events with timing metadata:
 
 | Hardware Type | Events Produced | Duration Matters? |
 |---------------|----------------|-------------------|
+| Physical key dock | `DOCK`, `UNDOCK` | No — binary insertion/removal |
 | Momentary stick (gear) | `TAP`, `HOLD` | Yes — tap < 0.5s vs hold ≥ 0.5s changes meaning |
 | Spring toggle (climate) | `UP`, `DOWN` | No — each actuation is one step |
 | Rotary detent (Manettino) | `ROTATE_CW`, `ROTATE_CCW` | No — each click is one position |
-| Paddle (shifter) | `PULL` | No — but triggers a 5s timeout state |
-| Button (P, Launch, SOS) | `PRESS`, `LONG_PRESS` | Yes — chrono reset requires 2s hold |
+| Mechanical toggle (right dial) | `TOGGLE` | No — each actuation cycles one mode |
+| Paddle (torque) | `PULL` | No — each pull is one torque level step |
+| Overhead pull (launch) | `PULL` | No — single deliberate actuation |
+| Button (P, multigraph, SOS) | `PRESS`, `LONG_PRESS` | Yes — stopwatch reset requires 2s hold |
 
 ---
 
@@ -70,29 +76,41 @@ Physical controls produce discrete events with timing metadata:
 ### 2.1 Component Tree
 
 ```
-MobileKeyApp
-CarWakeSystem
+PhysicalKeyDock
+├── Emits KEY_DOCK → boots entire system
+├── Yellow surge animation radiates across all displays
+└── Mechanically unlocks shifter
+
 CockpitRoot
-├── DriverCluster (3-tunnel layout)
-│   ├── LeftTunnel (battery / range)
-│   ├── CenterTunnel (speed / power ring)
-│   └── RightTunnel (nav / g-force)
+├── DriverBinnacle (3-dial, steering-column-fixed)
+│   ├── LeftDial (Power — linked to E-Manettino)
+│   ├── CenterDial (Speed + Battery — mechanical needle + digital face + torque meter)
+│   └── RightDial (Driver performance — 7 modes, toggle-cycled)
 ├── GearSelectorModule
 │   ├── MiniDisplay (drum viewport)
-│   └── JoystickInput (momentary + top button)
+│   └── JoystickInput (momentary + top P button)
 ├── SteeringWheelControls
-│   ├── Manettino (left pod — dynamics)
-│   ├── EManettino (right pod — powertrain)
-│   └── PaddleShifters (column-fixed blades)
+│   ├── Manettino (left pod — dynamics rotary, 5 detents)
+│   ├── EManettinoPod (right pod — powertrain rotary, 3 positions + driver dial toggle)
+│   └── TorqueControlPaddles (column-fixed blades, torque level stepping)
 ├── CenterBridge
 │   ├── ComfortConsole (windows / locks / frunk)
-│   └── AuxToggles + LaunchRing + SOS
-└── CopilotBox
-    ├── MainDisplay (telemetry + mode labels + graphs)
-    ├── ClimateTogglesRow (5 spring toggles)
-    └── RoundSidecar (clock / chrono / compass / g-force)
-        ├── YellowButton (mode cycle)
-        └── RedButton (action / chrono)
+│   └── AuxControls (Park Assist / Lift)
+├── OverheadPanel
+│   ├── LaunchPull (physical pull mechanism)
+│   ├── LightsToggle
+│   ├── DefrostToggle
+│   └── SOSButton
+├── ControlPanel (articulating, shared driver/co-pilot)
+│   ├── ModeButtons (3 physical: Climate / Settings / Media + Off)
+│   ├── Touchscreen (OLED — deep settings, media, navigation)
+│   ├── ClimateControls (physical: temp, fan, seat heat/vent)
+│   └── Multigraph (hybrid mechanical-digital round instrument)
+│       ├── ModeButton (cycle: Clock / Stopwatch / Compass)
+│       └── ActionButton (stopwatch control)
+└── RearPassengerDisplay
+    ├── Real-time drive data mirror
+    └── Rear climate controls
 ```
 
 ### 2.2 State Management Pattern
@@ -106,10 +124,11 @@ nextState = reduce(previousState, event, timestamp_ms)
 All precondition checks (speed lockouts, mode prerequisites, sequence validation) live inside the reducer. UI components are derived views:
 
 ```
-clusterTheme    = deriveClusterTheme(state)
-gearDisplay     = deriveGearDisplay(state)
-launchOverlay   = deriveLaunchOverlay(state)
-copilotLabels   = deriveCopilotLabels(state)
+binnacleTheme       = deriveBinnacleTheme(state)
+gearDisplay         = deriveGearDisplay(state)
+launchOverlay       = deriveLaunchOverlay(state)
+controlPanelLabels  = deriveControlPanelLabels(state)
+multigraphMode      = deriveMultigraphMode(state)
 ```
 
 This guarantees that the UI can never desync from safety logic.
@@ -117,18 +136,35 @@ This guarantees that the UI can never desync from safety logic.
 ### 2.3 Type Definitions
 
 ```ts
-// Gear supports both automatic and manual-override representations
-type Gear = "P" | "R" | "N" | "D" | { kind: "D_MANUAL"; gear: 1|2|3|4|5|6|7|8 };
+// Gear — automatic only. No manual gear ratios (this is an EV).
+type Gear = "P" | "R" | "N" | "D";
+
+// Torque — paddles control torque delivery levels, not gears
+type TorqueLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+type TorqueMode = "AUTO" | "MANUAL";
+type TorqueIndicator = "BELOW" | "OPTIMAL" | "ABOVE";
 
 type DriveMode      = "WET" | "ICE" | "DRY" | "SPORT" | "ESC_OFF";
 type PowertrainMode = "RANGE" | "TOUR" | "PERFO";
-type HeadlightMode  = "OFF" | "AUTO" | "HIGH";
-type FanLevel       = "LO" | "MED" | "HI";
-type SeatHeatLevel  = 0 | 1 | 2 | 3;
 
-type LaunchState = "IDLE" | "PRE_ARM" | "ARMED" | "STAGING" | "LAUNCH";
-type SidecarMode = "CLOCK" | "CHRONO" | "COMPASS" | "G_FORCE";
-type ChronoState = "RESET" | "RUNNING" | "PAUSED";
+type DriverDialMode =
+  | "G_METER"
+  | "VEHICLE_STATUS"
+  | "BATTERY"
+  | "TRIP"
+  | "DYNAMICS"
+  | "TIRES";
+// Note: source references "seven functional data points" but names six modes.
+// A seventh may be an unnamed default/home state. Listed modes are authoritative.
+
+type MultigraphMode = "CLOCK" | "STOPWATCH" | "COMPASS";
+// Launch auto-override adds a system-driven "LAUNCH_CHRONO" mode (not user-selectable)
+
+type StopwatchState = "RESET" | "RUNNING" | "PAUSED";
+type ControlPanelContext = "OFF" | "CLIMATE" | "SETTINGS" | "MEDIA";
+type KeyState       = "ABSENT" | "DOCKED";
+type HeadlightMode  = "OFF" | "AUTO" | "HIGH";
+type LaunchState    = "IDLE" | "PRE_ARM" | "ARMED" | "STAGING" | "LAUNCH";
 
 // Color mapping (mode → accent color)
 const MODE_COLORS: Record<DriveMode, string> = {
@@ -151,38 +187,51 @@ const POWER_COLORS: Record<PowertrainMode, string> = {
 ## 3 — Cockpit Spatial Map
 
 ```
+┌──────────────── OVERHEAD PANEL (HEADLINER) ───────────────────┐
+│                                                                │
+│   [LAUNCH PULL]    [LIGHTS]    [DEFROST]    [SOS]             │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+
 ┌────────────────────────── DASHBOARD ──────────────────────────┐
 │                                                                │
-│  ┌──────────┬────────────────┬──────────┐    ┌──────────────┐ │
-│  │  LEFT    │    CENTER      │  RIGHT   │    │  COPILOT BOX │ │
-│  │  Battery │  Speed/Power   │  Nav/G   │    │  Square LCD  │ │
-│  │  Range   │  Ring Dial     │  Compass │    │  + Graphs    │ │
-│  └──────────┴────────────────┴──────────┘    └──────┬───────┘ │
-│         DRIVER CLUSTER                              (●)       │
-│                                                   Sidecar     │
-│                                                   Round LCD   │
+│  ┌──────────┬────────────────┬──────────┐                     │
+│  │  LEFT    │    CENTER      │  RIGHT   │    CONTROL PANEL    │
+│  │  DIAL    │    DIAL        │  DIAL    │    (articulating)   │
+│  │  Power   │  Speed+Battery │  Driver  │   ┌──────────────┐ │
+│  │  (E-Man  │  Mech. needle  │  Perf.   │   │ [C] [S] [M]  │ │
+│  │  linked) │  + torque mtr  │  7 modes │   │  Touchscreen  │ │
+│  └──────────┴────────────────┴──────────┘   │  Climate Ctrls│ │
+│     DRIVER BINNACLE (moves with steering)   │              ○│ │
+│                                              │  Multigraph  │ │
+│                                              └──────────────┘ │
 ├───────────────────────────────────────────────────────────────┤
 │                                                                │
 │  STEERING WHEEL                                                │
 │  ├─ Left pod:  Manettino (red rotary, 5 detents)              │
 │  ├─ Right pod: E-Manettino (silver rotary, 3 positions)       │
-│  └─ Behind:    Paddle blades (+/−), fixed to column           │
+│  │             + Driver Dial Toggle (mechanical, cycles modes) │
+│  └─ Behind:    Torque paddle blades (+/−), fixed to column    │
 │                                                                │
 ├──────────────────────── CENTER CONSOLE ────────────────────────┤
 │                                                                │
 │  ┌──────────────┐ ┌───┐                                       │
 │  │ Gear Display  │ │ ● │ Joystick (momentary)                 │
-│  └──────────────┘ └───┘                                       │
+│  └──────────────┘ └───┘ (locked until key docked)             │
+│                                                                │
+│   ◈ KEY DOCK ◈  (physical key receptacle)                     │
 │                                                                │
 │  ┌─────┐ ┌─────┐  (●)     (●)                                │
 │  │ ╲╱  │ │ ╲╱  │  Frunk   Door                               │
 │  └─────┘ └─────┘  Release  Lock                              │
 │  Drv Win  Pas Win                                             │
 │                                                                │
-│  [LIGHTS] [PARK] [LIFT]  ◉ LAUNCH ◉  [ SOS ]                │
+│  [PARK ASSIST]   [LIFT]                                       │
 │                                                                │
 └───────────────────────────────────────────────────────────────┘
 ```
+
+**Note on Park Assist and Lift placement:** The authoritative source does not explicitly locate these controls. They are placed on the center console as the most ergonomically logical position for driver-operated vehicle controls. This may require verification against final production layout.
 
 ---
 
@@ -193,8 +242,7 @@ const POWER_COLORS: Record<PowertrainMode, string> = {
   "time_ms": 0,
 
   "system": {
-    "mobile_key_state": "DISCONNECTED",
-    "ignition": "OFF"
+    "key_state": "ABSENT"
   },
 
   "vehicle": {
@@ -207,9 +255,14 @@ const POWER_COLORS: Record<PowertrainMode, string> = {
     "current_gear": "P",
     "drive_mode": "DRY",
     "powertrain_mode": "TOUR",
-    "manual_timeout_remaining_ms": 0,
     "gear_animation_state": "IDLE",
-    "gear_scroll_progress": 0.0
+    "gear_scroll_progress": 0.0,
+    "torque": {
+      "mode": "AUTO",
+      "current_level": 4,
+      "optimal_indicator": "OPTIMAL",
+      "regen_contribution_kw": 0.0
+    }
   },
 
   "power": {
@@ -220,8 +273,7 @@ const POWER_COLORS: Record<PowertrainMode, string> = {
     "max_power_available_kw": 500,
     "range_remaining_km": 408,
     "is_regenerating": false,
-    "regen_kw": 0.0,
-    "regen_level": "STANDARD"
+    "regen_kw": 0.0
   },
 
   "launch": {
@@ -257,36 +309,59 @@ const POWER_COLORS: Record<PowertrainMode, string> = {
     "door_ajar": false
   },
 
+  "binnacle": {
+    "moves_with_steering": true,
+    "left_dial": {
+      "type": "POWER",
+      "linked_to": "powertrain_mode",
+      "launch_override_active": false
+    },
+    "center_dial": {
+      "type": "SPEED_AND_BATTERY",
+      "has_mechanical_needle": true,
+      "torque_meter_visible": true
+    },
+    "right_dial": {
+      "type": "DRIVER",
+      "current_mode": "G_METER",
+      "available_modes": [
+        "G_METER", "VEHICLE_STATUS", "BATTERY",
+        "TRIP", "DYNAMICS", "TIRES"
+      ]
+    },
+    "brightness_pct": 80
+  },
+
+  "control_panel": {
+    "context": "CLIMATE",
+    "articulates": true,
+    "multigraph": {
+      "mode": "CLOCK",
+      "has_mechanical_hands": true,
+      "stopwatch_state": "RESET",
+      "stopwatch_value_ms": 0,
+      "compass_heading_deg": 330,
+      "launch_override_active": false
+    }
+  },
+
+  "overhead": {
+    "launch_pull_available": true,
+    "headlight_mode": "AUTO",
+    "defrost_active": false,
+    "sos_triggered": false
+  },
+
   "systems": {
     "is_frunk_open": false,
     "is_lift_active": false,
     "is_park_assist_active": false,
-    "headlight_mode": "AUTO",
-    "door_lock_state": "LOCKED",
-    "sos_triggered": false
-  },
-
-  "copilot": {
-    "main_display_mode": "TELEMETRY",
-    "telemetry_window_s": 30,
-    "sidecar_mode": "CLOCK",
-    "chrono": {
-      "state": "RESET",
-      "value_ms": 0
-    },
-    "compass_heading_deg": 330
-  },
-
-  "cluster": {
-    "left_mode": "BATTERY",
-    "center_mode": "SPEED",
-    "right_mode": "NAV",
-    "brightness_pct": 80
+    "door_lock_state": "LOCKED"
   }
 }
 ```
 
-**Battery display thresholds** (derived from `battery_soc_pct`):
+**Battery display thresholds** (rendered on the center dial's digital face):
 
 | SOC Range | Color | Animation |
 |-----------|-------|-----------|
@@ -300,43 +375,54 @@ const POWER_COLORS: Record<PowertrainMode, string> = {
 
 ---
 
-### Module 1: Digital Key (Mobile App Entry)
+### Module 1: Physical Key Dock
 
-The root state of the entire system. The interface begins on a smartphone before the car awakens.
+The root state of the entire system. The interface begins with a physical key before the car awakens.
 
-**Visual Interface**
-- Background: Deep black
-- Center element: Ferrari Prancing Horse in silver/chrome
-- Animation: Subtle pulse / "breathing" effect on the logo
-- Transition: Logo morphs into the car's wake sequence upon authentication
+**Hardware**: A precision-machined physical key that docks into a receptacle on the center console. The key represents the driver's persistent, personal connection to their Ferrari Luce.
+
+**Boot Sequence**:
+1. Key is inserted into dock
+2. Key locks into place with mechanical confirmation
+3. Giallo Modena "surges" from the key outward across all displays — a radiant boot animation
+4. Displays initialize sequentially (binnacle → control panel → multigraph)
+5. Shifter mechanically unlocks — ready to drive
 
 **State Machine**
 
 ```
-DISCONNECTED
+KEY_ABSENT
     │
-    ├─ [APP_OPEN] ─→ CONNECTING
-    │                    │
-    │                    ├─ [BIOMETRIC_OK] ─→ AUTHENTICATED
-    │                    │                        │
-    │                    │                        └─→ Emits CAR_WAKE_REQUESTED
-    │                    │                             • Exterior lights illuminate
-    │                    │                             • Door handles present
-    │                    │                             • Cluster begins boot animation
-    │                    │
-    │                    └─ [BIOMETRIC_FAIL] ─→ DISCONNECTED
+    │  Shifter mechanically locked
+    │  Displays dark or minimal ambient state
+    │  All modules inactive
     │
-    └─ [APP_CLOSED] ─→ DISCONNECTED
+    └─ [KEY_DOCK] ─→ KEY_DOCKED
+                         │
+                         │  Yellow surge animation radiates from console
+                         │  Displays initialize sequentially
+                         │  Shifter mechanically unlocks
+                         │  All modules become active
+                         │
+                         ├─ [KEY_UNDOCK] ─→ KEY_ABSENT
+                         │                    Shifter locks
+                         │                    Displays fade to dark
+                         │                    All modules deactivate
+                         │
+                         └─ System is now live
+
 ```
+
+**Note**: A mobile app or digital key may exist as a secondary convenience feature for approach lighting, door handle presentation, and remote functions. But the primary ignition root is the physical key dock.
 
 ---
 
 ### Module 2: Gear Selector (Center Console)
 
-Replaces the traditional gear stick with a minimalist sculptural interaction.
+Replaces the traditional gear stick with a minimalist sculptural interaction. Mechanically locked until the key is docked.
 
 **Hardware**
-- **The Stick**: Short, glossy black joystick nub. Momentary — always returns to center after actuation.
+- **The Stick**: Short, glossy black joystick nub. Momentary — always returns to center after actuation. Mechanically locked (cannot move) when `key_state == "ABSENT"`.
 - **Top Button**: Dedicated PARK selector on top of the stick.
 - **Mini Display**: Small high-resolution rectangular screen positioned directly left of the stick.
 
@@ -344,6 +430,7 @@ Replaces the traditional gear stick with a minimalist sculptural interaction.
 
 | State | Content |
 |-------|---------|
+| Key absent | Dark / inactive |
 | Idle / Intro | Prancing Horse on Giallo Modena field |
 | Active | Selected gear letter in Heritage Serif, bold, glow |
 | Transitioning | Drum scroll animation (see below) |
@@ -389,9 +476,7 @@ PARK (P)
 DRIVE (D)
     ├─ [JOYSTICK_FWD_TAP] ─→ NEUTRAL (N)
     ├─ [GEAR_P_PRESS, speed==0] ─→ PARK (P)
-    └─ [PADDLE_UP or PADDLE_DOWN] ─→ DRIVE_MANUAL(n)
-                                          │
-                                          └─ See Module 8 (Paddle Shifters)
+    └─ Torque paddles affect torque levels, not gear — see Module 8
 
 REVERSE (R)
     ├─ [JOYSTICK_FWD_TAP] ─→ NEUTRAL (N)
@@ -423,13 +508,17 @@ Controls the vehicle's dynamic stability character.
 | 4 | SPORT | Reduced TC | Sharp | Rosso |
 | 5 | ESC OFF | TC Disabled | Direct | Rosso (persistent warning) |
 
-**Cross-effects**: Changing the Manettino updates the cluster accent color and modifies Launch Control eligibility (Launch requires SPORT or ESC_OFF).
+**Cross-effects**: Changing the Manettino updates the binnacle accent color and modifies Launch Control eligibility (Launch requires SPORT or ESC_OFF).
 
-**Feedback**: Dashboard highlight migrates to match the current position. A brief mode label appears on the cluster for ~2s, then fades.
+**Feedback**: Binnacle highlight migrates to match the current position. A brief mode label appears on the binnacle for ~2s, then fades.
 
 ---
 
-### Module 4: Steering Wheel — E-Manettino (Right Pod)
+### Module 4: Steering Wheel — E-Manettino Pod (Right Pod)
+
+The right steering pod houses two separate controls: the E-Manettino rotary and the Driver Dial toggle.
+
+#### 4A: E-Manettino (Powertrain Rotary)
 
 Controls the powertrain's energy strategy.
 
@@ -437,51 +526,100 @@ Controls the powertrain's energy strategy.
 
 **States**
 
-| Position | UI Color | Regen Level | Power Cap | Cooling |
-|----------|----------|-------------|-----------|---------|
-| RANGE | Verde Signal | High | Limited | Eco |
-| TOUR | Giallo Modena | Standard | Standard | Standard |
-| PERFO | Rosso Corsa | Low | Maximum kW | Maximum |
+| Position | UI Color | Power Cap | Cooling | Left Dial Display |
+|----------|----------|-----------|---------|-------------------|
+| RANGE | Verde Signal | Limited | Eco | Regen zone prominent, limited power arc |
+| TOUR | Giallo Modena | Standard | Standard | Balanced power/regen display |
+| PERFO | Rosso Corsa | Maximum kW | Maximum | Power zone expanded, full scale |
 
 **Cross-effects**: Changes `powertrain_mode` in state. This affects:
-- Cluster ring color (center tunnel)
-- Copilot "POWER: {mode}" label
+- Left dial (Power Dial) — color and scale
+- Center dial ring color
+- Control panel "POWER: {mode}" label
 - `max_power_available_kw` value
 - Range estimate calculation
 
+#### 4B: Driver Dial Toggle (Mode Cycler)
+
+Cycles the right binnacle dial through its seven data modes.
+
+**Hardware**: Mechanical toggle co-located with the E-Manettino on the right steering pod. Each actuation cycles one mode forward.
+
+**Modes cycled**: G_METER → VEHICLE_STATUS → BATTERY → TRIP → DYNAMICS → TIRES → G_METER
+
 ---
 
-### Module 5: Driver Instrument Cluster (3-Tunnel Digital Display)
+### Module 5: Driver Binnacle (3-Dial, Steering-Column-Fixed)
 
-A fully digital screen mimicking the layout of three analog gauge "tunnels."
+A fully analog-digital hybrid instrument cluster arranged as three circular dials. The entire binnacle is **fixed to the steering column and moves with the steering wheel**, ensuring the driver's view of instrumentation is always optimal regardless of steering angle.
 
 **Layout**
 
 ```
-┌──────────────────┬────────────────────────┬──────────────────┐
-│   LEFT TUNNEL    │     CENTER TUNNEL      │   RIGHT TUNNEL   │
-│                  │                        │                  │
-│  Battery/Range   │     Speed/Power        │   Nav/G-Force    │
-│                  │                        │                  │
-│     408 km       │       125 km/h         │    Compass/Map   │
-│   (Green Arc)    │    (Yellow Ring)       │    (Crosshair)   │
-└──────────────────┴────────────────────────┴──────────────────┘
+┌──────────────────┬──────────────────────────┬──────────────────┐
+│    LEFT DIAL     │      CENTER DIAL         │    RIGHT DIAL    │
+│                  │                          │                  │
+│   POWER DIAL     │   SPEED + BATTERY        │   DRIVER DIAL    │
+│   (E-Manettino   │   (Mechanical needle     │   (7 data modes, │
+│    linked)       │    + digital face)        │    toggle-cycled)│
+│                  │                          │                  │
+│  Power output &  │  Speed: physical needle  │  Current mode:   │
+│  regen display   │  Battery: digital ring   │  G Meter /       │
+│                  │  Torque meter above      │  Vehicle Status / │
+│  RANGE: green    │                          │  Battery / Trip / │
+│  TOUR: yellow    │                          │  Dynamics / Tires │
+│  PERFO: red      │                          │                  │
+└──────────────────┴──────────────────────────┴──────────────────┘
 ```
 
-#### Center Tunnel — Speed & Power Ring
+#### Left Dial — Power Dial
 
-**Geometry**: A perfect circle centered in the screen.
-
-**The Ring**: No physical needle. A colored sector arc fills the outer ring clockwise from 6 o'clock as speed increases.
+Directly connected to the E-Manettino mode. Shows available power output and regenerative braking.
 
 ```
         . - - - .
-     /     120     \      ← Speed: Large, White, Telemetry Mono
-    |   ◜███████◝   |     ← Ring fills clockwise proportional to speed
-    |     km/h      |     ← Unit: Small, Grigio
-     \             /
+     /   ◜████◝   \      ← Power arc: fills with current kW output
+    |    316 kW     |     ← Numeric: Telemetry Mono
+    |    ─ ─ ─ ─    |     ← Regen zone below baseline (Verde)
+     \    PERFO    /      ← Current E-Manettino mode label
         ' - - - '
 ```
+
+**Mode-color mapping** (inherited from E-Manettino):
+
+| E-Manettino | Dial Color | Power Cap | Regen Display |
+|-------------|-----------|-----------|---------------|
+| RANGE | Verde Signal | Limited | Regen zone prominent |
+| TOUR | Giallo Modena | Standard | Balanced |
+| PERFO | Rosso Corsa | Maximum kW | Power zone expanded |
+
+**Regen visualization**: When regenerating, the arc extends into a dedicated "charge zone" segment below the baseline, colored Verde Signal. The regen contribution in kW is shown numerically.
+
+**Launch override**: During Launch Mode, this dial transitions to orange and expands its scale to display the boosted power delivery envelope. See Module 10.
+
+#### Center Dial — Speed + Battery (Hybrid Mechanical-Digital)
+
+The centerpiece of the binnacle. Combines a **physical mechanical needle** driven by a motor with a **digital OLED face** beneath it. Both speed and battery — the two most critical data points — are shown on this single dial.
+
+```
+              [|||]              ← Torque meter (small, above dial)
+        . - - - - - .
+     /   ◜███████◝    \        ← Digital ring fill (mode-colored)
+    |     ↗             |
+    |      125           |       ← Mechanical needle (physical!) + digital speed
+    |      km/h          |       ← Unit: Small, Grigio
+    |   [████  ] 78%     |       ← Battery SOC indicator (digital)
+     \                 /
+        ' - - - - - '
+```
+
+**Mechanical needle**: Physical aluminium needle, motor-driven. Provides a visceral, analog speed reading. Sweeps continuously and smoothly.
+
+**Digital layer beneath needle**:
+- Ring fill: Mode-colored sector arc, fills clockwise proportional to `speed_kmh / max_speed_kmh`
+- Speed numeral: Large, white, Telemetry Mono (redundant with needle for precision)
+- Battery SOC: Digital bar or arc segment with color thresholds (see Section 4)
+- Ghost tick marks at 0 and max positions
 
 **Ring color logic** (derived from current modes):
 
@@ -494,151 +632,174 @@ function getRingColor(driveMode: DriveMode, powertrainMode: PowertrainMode): str
 }
 ```
 
-**Regen visualization**: When `is_regenerating == true`, the arc extends *counter-clockwise* from the current position into a dedicated "charge zone" segment, colored Verde Signal.
+**Torque meter**: A small indicator positioned **above** the central dial. Shows the current torque delivery level and indicates the **optimal moment to increase** — a coaching instrument for the paddle-based torque control system (Module 8). In `AUTO` torque mode, the meter displays passively. In `MANUAL` torque mode, it becomes an active coaching display.
 
-**Additional elements**:
-- Ghost tick marks at 0 (6 o'clock) and max positions
-- Fill percent: `speed_kmh / max_speed_kmh`
-
-#### Left Tunnel — Battery & Efficiency
-
-A vertical bar gauge curved slightly to hug the bezel. Battery icon silhouette "drains" (fills with black from top) as charge drops.
-
-```
-[█████████] 100%   ← Verde Signal
-[██████   ]  60%   ← Giallo Modena
-[██       ]  20%   ← Giallo Modena
-[█        ]  10%   ← Rosso Corsa + Blink
-```
-
-**Threshold rules** (from Section 4):
+**Battery thresholds** (rendered digitally on the center dial):
 
 | SOC Range | Color | Animation |
 |-----------|-------|-----------|
-| 100% – 30% | `#00FF00` | Steady |
-| 29% – 15% | `#FCD116` | Steady |
-| Below 15% | `#FF2800` | Blink at 0.5s interval |
+| 100% – 30% | Verde Signal | Steady |
+| 29% – 15% | Giallo Modena | Steady |
+| Below 15% | Rosso Corsa | Blink (0.5s interval) |
 
-**Numeric display**: Range in km below the bar, Telemetry Mono.
+#### Right Dial — Driver Performance Dial
 
-#### Right Tunnel — Navigation / G-Force
+A multi-mode instrument cycled via the **mechanical toggle on the right steering pod** (co-located with the E-Manettino rotary — see Module 4B).
 
-Contextual display area. Default shows compass heading or minimap. During active driving, can show a g-force crosshair.
+**Modes**:
+
+| Mode | Content | Use Case |
+|------|---------|----------|
+| G Meter | Lateral/longitudinal g-force crosshair | Track driving, cornering feedback |
+| Vehicle Status | System health overview | Pre-drive check, diagnostics |
+| Battery | Detailed battery info (temp, cell balance, charge rate) | Range planning, charging |
+| Trip | Trip distance, time, efficiency | Journey tracking |
+| Dynamics | Suspension, stability, traction detail | Tuning feedback |
+| Tires | Tire pressure, temperature per wheel | Safety, track prep |
+
+**Note**: The authoritative source references "seven functional data points" but names six modes. A seventh may represent a default/home view or an unnamed mode. The six listed modes are confirmed.
 
 #### Theme Override (Launch Control)
 
-When `launch.state` is ARMED or beyond, the cluster enters a dramatic override:
+When `launch.state` is ARMED or beyond, the binnacle enters a dramatic override:
 - Background darkens further
 - All text shifts to Rosso Corsa / orange
-- Checklist and staging bars overlay the center tunnel
+- Left dial (Power) transitions to orange with expanded scale
+- Checklist and staging bars overlay the center dial
 - Normal speed ring is suppressed
+- Right dial continues displaying its current mode (non-critical, not suppressed)
 
 ---
 
-### Module 6: Co-Pilot Box
+### Module 6: Control Panel (Articulating, Shared)
 
-A retro-futuristic enclosure mounted on the passenger dashboard. Contains three sub-components: a main rectangular display, a row of climate toggles, and a small round sidecar screen.
+A self-contained articulating panel with an aluminium bracket that forms both a handle and a palm rest. Can be **physically pivoted** by either driver or co-pilot to angle toward themselves. Made from premium materials: aluminium, leather, Alcantara, glass.
 
-#### 6A: Main Rectangular Display
+Contains four sub-components: mode buttons, a touchscreen, physical climate controls, and a multigraph instrument.
 
-**Layout**
+#### 6A: Mode Buttons (Physical)
 
-```
-┌──────────────────────────────────────────┐
-│ MODE: SPORT                              │  ← Drive mode, in MODE_COLORS[mode]
-│                                          │
-│ 153 km/h                                 │  ← Large white, Telemetry Mono
-│                          ┌─────────────┐ │
-│ POWER: PERFO | 316 kW   │  ╱╲_╱╲___╱  │ │  ← Speed graph (30s rolling window)
-│                          └─────────────┘ │
-│                          ┌─────────────┐ │
-│                          │ _╱╲_╱╲__╱╲  │ │  ← Power/Regen graph
-│                          └─────────────┘ │
-└──────────────────────────────────────────┘
-```
+Three physical buttons that set the touchscreen context, plus an Off state:
 
-**Elements**:
-- **Top Left**: Current drive mode in its accent color
-- **Mid Left**: Current speed, large white Telemetry Mono
-- **Bottom Left**: Powertrain mode + live kW consumption
-- **Right Column**: Two rolling telemetry graphs
-  - Top: Speed vs time (30-second rolling window)
-  - Bottom: Power/Regen vs time (positive = discharge, negative = regen)
+| Button | Screen Context | Content |
+|--------|---------------|---------|
+| Off | Dark | Touchscreen inactive |
+| Climate | Climate detail view | Zone control, scheduling, detailed settings |
+| Settings | Vehicle settings | Personalization, system configuration |
+| Media | Media & navigation | Audio, source selection, route planning, maps |
 
-**Graph specification**:
+#### 6B: Touchscreen (OLED)
+
+High-resolution custom-shaped OLED, laminated to coverglass. Used for **low-frequency, configuration-depth** tasks:
+- Deeper climate settings (zone control, scheduling)
+- Media playback and source selection
+- Navigation maps and route planning
+- Vehicle settings and personalization
+
+**Design principle**: The touchscreen handles secondary, configuration-depth interactions. High-frequency adjustments (temperature, fan speed, seat heat) are always physical controls — never buried in a touchscreen menu.
+
+When in CLIMATE context, the touchscreen may display:
+- Current drive mode in its accent color
+- Current speed (large, white, Telemetry Mono)
+- Powertrain mode and live kW consumption
+- Rolling telemetry graphs (speed vs. time, power/regen vs. time)
+
+**Telemetry graph specification** (when displayed):
 - X-axis: Time (rolling 30s window, right edge = now)
 - Y-axis: Value (km/h or kW)
 - Line: Thin, antialiased, colored by current mode accent
 - Grid: Subtle at 25% opacity
 - New data point pushed every 100ms
 
-#### 6B: Climate Toggle Row
+#### 6C: Climate Controls (Physical)
 
-Located directly below the main display. Five heavy metal toggle switches with spring-loaded momentary ON-OFF-ON action — they snap back to center after every actuation.
+Physical controls for immediate climate needs — accessible without looking at a screen:
 
-| # | Function | Up Action | Down Action | On-Screen Feedback |
-|---|----------|-----------|-------------|-------------------|
-| 1 | Passenger Temp | +0.5°C | −0.5°C | Vertical slider showing `21.0°` |
-| 2 | Fan Speed | +1 level | −1 level | Text: `LO` / `MED` / `HI` |
-| 3 | Sync | Toggle on/off | Toggle on/off | Lock icon (links passenger to driver settings) |
-| 4 | Display Mode | Cycle forward | Cycle backward | Mode label flash |
-| 5 | Seat Heat | +1 level (wraps 3→0) | −1 level | Seat icon + heat waves (0–3 bars) |
+| Control | Type | Action |
+|---------|------|--------|
+| Cabin temperature | Adjustment control | Increase / decrease in 0.5°C steps |
+| Fan speed | Stepped control | LO → MED → HI |
+| Seat heating | Stepped control | 0 → 1 → 2 → 3 (wraps) |
+| Seat ventilation | Stepped control | Off / On levels |
 
-**UX rule**: Each toggle produces a transient HUD overlay on the main display that fades after ~2 seconds.
+**UX rule**: Each physical climate input produces a transient HUD overlay on the touchscreen that fades after ~2 seconds. The overlay shows the current value (e.g., "21.0°C", "FAN: HI", seat icon with heat waves).
 
-#### 6C: Round Sidecar Display
+#### 6D: Multigraph (Hybrid Mechanical-Digital Round Instrument)
 
-A small circular screen attached to the side of the main box. Two physical buttons control it.
+A small circular instrument attached to the control panel. Combines **physical mechanical hands** driven by motors with a **digital OLED face** beneath them. This is not a screen — it is a hybrid instrument.
 
 **Buttons**:
-- **Yellow (side)**: Cycles mode: CLOCK → CHRONO → COMPASS → G_FORCE → CLOCK
-- **Red (top)**: Contextual action (primarily controls chrono)
+- **Mode Button (side)**: Cycles mode: CLOCK → STOPWATCH → COMPASS → CLOCK
+- **Action Button (top)**: Contextual action (primarily controls stopwatch)
 
-**Display Modes**
+**Three Modes**:
 
-| Mode | Visual | Description |
-|------|--------|-------------|
-| CLOCK | White face, black hands, red second hand | Analog watch. Second hand sweeps smoothly (no tick). |
-| CHRONO | Yellow face, red hand | Stopwatch. Digital readout: `MM:SS.ss` |
-| COMPASS | Black face, red N-triangle | Heading in center: `330° NW` |
-| G_FORCE | Concentric circle grid | Yellow "marble" dot moves opposite to acceleration vector |
+| Mode | Mechanical Hands | Digital Face | Description |
+|------|-----------------|-------------|-------------|
+| CLOCK | Hour + minute + seconds hands (physical) | Minimal face markings | Analog watch. Seconds hand sweeps smoothly (no tick). |
+| STOPWATCH | Single chrono hand (physical, 60s sweep) | 60-second scale | 60-second stopwatch. One full revolution = 60 seconds. |
+| COMPASS | Pointer hand (physical, points north) | Heading degrees + cardinal direction | Navigational compass. |
 
 **ASCII Renderings**
 
 ```
-   CLOCK              CHRONO             COMPASS            G_FORCE
-  .------.           .------.           .------.           .------.
- / 12     \         /        \         / 330°   \         /  ○     \
-|9   |  3  |       | 02:14.55 |       |   NW     |       |    ●    |
-|    |     |       |    ●     |       |   ▲ N    |       |  ○   ○  |
- \  6    /         \        /         \        /         \       /
-  '------'          '------'           '------'           '------'
+   CLOCK              STOPWATCH           COMPASS
+  .------.           .------.           .------.
+ / 12     \         /  60    \         / 330°   \
+|9   |  3  |       | 0  ●  30|       |   NW     |
+|    |     |       |         |       |   ▲ N    |
+ \  6    /         \ 15   45/         \        /
+  '------'          '------'           '------'
 ```
 
-**Chrono State Machine**
+**Stopwatch State Machine** (normal, non-launch mode):
 
 ```
-RESET (00:00.00)
+RESET (00.00, hand at 0)
     │
-    └─ [RED_PRESS] ─→ RUNNING
-                          │
-                          ├─ [RED_PRESS] ─→ PAUSED
-                          │                     │
-                          │                     ├─ [RED_PRESS] ─→ RUNNING (resume)
-                          │                     │
-                          │                     └─ [RED_LONG_PRESS ≥ 2s] ─→ RESET
-                          │
-                          └─ [YELLOW_PRESS] ─→ Mode cycles, but timer
-                                                continues running in background
+    └─ [ACTION_PRESS] ─→ RUNNING (hand sweeps 60s scale)
+                              │
+                              ├─ [ACTION_PRESS] ─→ PAUSED (hand stops)
+                              │                        │
+                              │                        ├─ [ACTION_PRESS] ─→ RUNNING (resume)
+                              │                        │
+                              │                        └─ [ACTION_LONG_PRESS ≥ 2s] ─→ RESET
+                              │                             (hand returns to 0)
+                              │
+                              └─ [MODE_PRESS] ─→ Mode cycles, but stopwatch
+                                                  continues running in background
 ```
 
-**Critical**: Pressing YELLOW while CHRONO is RUNNING cycles the *display mode* but does NOT stop the timer. The chrono continues counting in state even when not visible. Returning to CHRONO mode reveals the running time.
+**Critical**: Pressing the mode button while STOPWATCH is RUNNING cycles the *display mode* but does NOT stop the timer. The stopwatch continues counting in state even when not visible. Returning to STOPWATCH mode reveals the running time and the hand at its current position.
+
+**Launch Mode Auto-Override**:
+
+When Launch Mode activates (`launch.state` enters ARMED or beyond), the multigraph **automatically** transitions — regardless of its current mode — to a dedicated **5-second Launch Mode stopwatch**. This is system-driven, not user-initiated.
+
+```
+NORMAL_MODE (Clock / Stopwatch / Compass)
+    │
+    │  User cycles via mode button
+    │
+    └─ [launch.state enters ARMED] ─→ LAUNCH_CHRONO_OVERRIDE
+                                            │
+                                            │  Digital face switches to 5-second scale
+                                            │  Mechanical hand positions at 0
+                                            │  Normal stopwatch state preserved in background
+                                            │
+                                            ├─ [launch.state enters LAUNCH] ─→ Hand sweeps 5s scale
+                                            │                                   Timer counts in ms
+                                            │
+                                            └─ [launch.state returns to IDLE] ─→ NORMAL_MODE
+                                                 Returns to whatever mode was active before
+                                                 If stopwatch was running, it's still running
+```
 
 ---
 
 ### Module 7: Comfort Console (Center Bridge)
 
-Located on the center console below the gear selector. Contains high-frequency utility controls.
+Located on the center console below the gear selector. Contains high-frequency utility controls for windows, frunk, and door locks.
 
 **Hardware Layout**
 
@@ -649,6 +810,8 @@ Located on the center console below the gear selector. Contains high-frequency u
 │  └─────┘  └─────┘                       │
 │  Driver    Passenger  Frunk     Door     │
 │  Window    Window     Release   Lock     │
+│                                         │
+│  [PARK ASSIST]    [LIFT]                │
 └─────────────────────────────────────────┘
 ```
 
@@ -692,69 +855,9 @@ FRUNK_CLOSED
                                                        └─ [Physical close + FRUNK_PRESS] ─→ FRUNK_CLOSED
 ```
 
-**Door Lock**: Toggles `door_lock_state` between LOCKED and UNLOCKED. Produces a transient lock/unlock icon on the cluster.
+**Door Lock**: Toggles `door_lock_state` between LOCKED and UNLOCKED. Produces a transient lock/unlock icon on the binnacle.
 
----
-
-### Module 8: Paddle Shifters (Manual Override)
-
-Two tall, vertical metallic blades fixed to the steering column. They do **not** rotate with the wheel.
-
-**Hardware**:
-- Right Paddle (+): Upshift
-- Left Paddle (−): Downshift
-
-**Behavior in DRIVE**:
-
-```
-AUTOMATIC (gear displays "D")
-    │
-    │  Car shifts automatically based on speed/load/mode
-    │
-    └─ [PADDLE_UP or PADDLE_DOWN] ─→ TEMPORARY_MANUAL
-                                          │
-                                          │ Gear display changes from "D" to number ("3", "4")
-                                          │ Using type: { kind: "D_MANUAL", gear: n }
-                                          │ Timer starts: manual_timeout_remaining_ms = 5000
-                                          │
-                                          ├─ [Any PADDLE within timeout] ─→ Stay in TEMP_MANUAL
-                                          │                                   (shift + reset timer)
-                                          │
-                                          ├─ [Timeout expires + steady throttle] ─→ AUTOMATIC
-                                          │     Gear display smoothly transitions back to "D"
-                                          │
-                                          └─ [MANUAL_MODE_TOGGLE *or* hold both paddles] ─→ PERMANENT_MANUAL
-                                                                                                │
-                                                                                                │ No auto-upshift
-                                                                                                │ Will ride rev limiter
-                                                                                                │ Gear display stays numeric
-                                                                                                │
-                                                                                                └─ [MANUAL_MODE_TOGGLE again] ─→ AUTOMATIC
-```
-
-**Display note**: During manual modes, the gear mini-display shows the number in Heritage Serif with the same drum-scroll animation used for letter gears. Shifting from "3" to "4" scrolls the drum upward.
-
----
-
-### Module 9: Pilot Auxiliary Toggles
-
-Located flanking the Launch Control ring on the center console.
-
-**Layout**:
-
-```
-[LIGHTS]  [PARK]  [LIFT]    ◉ LAUNCH ◉    [ SOS ]
-  Left of ring                              Right of ring
-```
-
-**Toggle Functions**
-
-| Toggle | Icon | States | Behavior |
-|--------|------|--------|----------|
-| Lights | Headlight beam | OFF → AUTO → HIGH (cycles) | Each press advances one step. AUTO is default after ignition. |
-| Park Assist | P + cone | OFF / ON | Activates proximity sensors + 360° camera mosaic |
-| Lift | Car + up arrow | OFF / ON | Raises front suspension for speed bumps/ramps |
-| SOS | "SOS" text | Momentary | Emergency beacon / call trigger. Requires confirmation in production. |
+**Park Assist Toggle**: Activates proximity sensors and 360° camera mosaic. OFF / ON.
 
 **Lift System State Machine**:
 
@@ -764,11 +867,11 @@ LIFT_INACTIVE
     └─ [LIFT_TOGGLE] ─→ Check speed
                             │
                             ├─ [speed_kmh > 40] ─→ Rejected
-                            │                       Brief warning on cluster: "Speed too high"
+                            │                       Brief warning on binnacle: "Speed too high"
                             │
                             └─ [speed_kmh ≤ 40] ─→ LIFT_ACTIVE
                                                        │
-                                                       │ Cluster shows "Vehicle Raising" animation
+                                                       │ Binnacle shows "Vehicle Raising" animation
                                                        │ Suspension physically raises
                                                        │
                                                        ├─ [speed_kmh > 40] ─→ Auto-lower → LIFT_INACTIVE
@@ -780,11 +883,87 @@ LIFT_INACTIVE
 
 ---
 
+### Module 8: Torque Control Paddles
+
+Two tall, vertical metallic blades precision-machined from 100% recycled aluminium with anodised finish. Fixed to the steering column — they do **not** rotate with the wheel. A magnetic mechanism provides clear, deliberate, and satisfying feedback on each pull.
+
+**Fundamental framing**: This is an EV. There are no multi-ratio gears. The paddles control **torque delivery levels** for progressive, manual acceleration management, combined with regenerative braking recovery on lift-off.
+
+**Hardware**:
+- Right Paddle (+): Increase torque level
+- Left Paddle (−): Decrease torque level / increase regen
+
+**Torque Meter Interaction**: The torque meter positioned above the central dial (see Module 5) shows the current torque level and indicates the **optimal moment to increase**. When the meter shows the driver is in the optimal band, pulling the right paddle steps up to the next torque level for smooth, progressive acceleration. This is a coaching instrument — the driver learns to build speed progressively rather than relying on binary throttle input.
+
+**State Machine**:
+
+```
+AUTO_TORQUE (default)
+    │
+    │  System manages torque delivery automatically
+    │  Torque meter shows current level passively
+    │  Gear display shows "D"
+    │
+    └─ [PADDLE_UP or PADDLE_DOWN] ─→ MANUAL_TORQUE
+                                          │
+                                          │ Driver now controls torque stepping
+                                          │ Torque meter becomes active coaching display
+                                          │   (shows BELOW / OPTIMAL / ABOVE indicator)
+                                          │
+                                          ├─ [PADDLE_UP] ─→ Increase torque level
+                                          │                  (capped at level 8)
+                                          │
+                                          ├─ [PADDLE_DOWN] ─→ Decrease torque level /
+                                          │                    increase regen
+                                          │                    (floored at level 1)
+                                          │
+                                          ├─ [Timeout + steady throttle] ─→ AUTO_TORQUE
+                                          │     Torque meter returns to passive display
+                                          │
+                                          └─ [TORQUE_MODE_TOGGLE] ─→ PERMANENT_MANUAL
+                                                                          │
+                                                                          │ No auto-revert
+                                                                          │ Torque meter stays active
+                                                                          │
+                                                                          └─ [TORQUE_MODE_TOGGLE] ─→ AUTO_TORQUE
+```
+
+**Display note**: During manual torque mode, the torque meter above the center dial highlights the current level and the optimal band. The gear mini-display continues showing "D" — torque levels are not rendered on the gear display (they are a throttle modulation, not a gear change).
+
+---
+
+### Module 9: Overhead Control Panel
+
+Located in the headliner above the driver and front passenger. Houses controls that are either safety-critical (requiring deliberate, non-accidental actuation) or infrequently adjusted.
+
+**Layout**:
+
+```
+┌──────────── OVERHEAD PANEL (HEADLINER) ──────────────┐
+│                                                       │
+│   [LAUNCH PULL]   [LIGHTS]   [DEFROST]   [SOS]      │
+│                                                       │
+└───────────────────────────────────────────────────────┘
+```
+
+**Controls**:
+
+| Control | Type | States / Behavior |
+|---------|------|-------------------|
+| Launch Pull | Physical pull mechanism | Initiates Launch Mode sequence (see Module 10). Deliberate overhead reach required — hard to trigger accidentally. |
+| Lights | Toggle | OFF → AUTO → HIGH (cycles). AUTO is default after key dock. |
+| Defrost | Toggle | OFF / ON. Activates front and/or rear defroster. |
+| SOS | Momentary | Emergency beacon / call trigger. Requires confirmation in production. |
+
+**Design rationale**: Placing Launch in the overhead panel (not on the center console) ensures it requires a deliberate, committed physical gesture — an overhead reach and pull. This is a safety-conscious ergonomic choice for a feature that unlocks maximum acceleration.
+
+---
+
 ### Module 10: Launch Control
 
 The most complex state machine in the cockpit. A multi-step gated sequence that unlocks maximum acceleration.
 
-**Hardware Trigger**: A sculptural silver ring labeled "LAUNCH" on the center console.
+**Hardware Trigger**: A physical pull mechanism in the overhead panel (Module 9).
 
 **Complete State Machine**
 
@@ -792,13 +971,13 @@ The most complex state machine in the cockpit. A multi-step gated sequence that 
 ┌──────────────────────────────────────────────────────────────────┐
 │                            IDLE                                   │
 │                                                                   │
-│  The default state. LAUNCH press is ignored here.                │
+│  The default state. LAUNCH_PULL is ignored here.                 │
 │                                                                   │
 │  Active when ANY of:                                             │
 │    • speed_kmh > 0                                               │
 │    • drive_mode ∉ {SPORT, ESC_OFF}                               │
 │                                                                   │
-│  Display: Standard cluster (no launch overlay)                   │
+│  Display: Standard binnacle (no launch overlay)                  │
 └──────────────────────────────────────────────────────────────────┘
          │
          │  [speed_kmh == 0 AND drive_mode ∈ {SPORT, ESC_OFF}]
@@ -806,24 +985,28 @@ The most complex state machine in the cockpit. A multi-step gated sequence that 
 ┌──────────────────────────────────────────────────────────────────┐
 │                          PRE_ARM                                  │
 │                                                                   │
-│  System is eligible. Waiting for user to press LAUNCH.           │
-│  No visual change yet — user may not intend to launch.           │
+│  System is eligible. Waiting for driver to pull LAUNCH.          │
+│  No visual change yet — driver may not intend to launch.         │
 │                                                                   │
 │  Transitions:                                                     │
-│    • [LAUNCH_PRESS] → ARMED                                      │
+│    • [LAUNCH_PULL] → ARMED                                       │
 │    • [speed_kmh > 0] → IDLE                                      │
 │    • [drive_mode changes to ineligible] → IDLE                   │
 └──────────────────────────────────────────────────────────────────┘
          │
-         │  [LAUNCH_PRESS]
+         │  [LAUNCH_PULL]
          ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │                           ARMED                                   │
 │                                                                   │
-│  Visual Changes:                                                  │
-│    • Cluster darkens — standard gauges suppressed                │
+│  Visual Changes (system-driven, automatic):                      │
+│    • Binnacle darkens — standard gauges suppressed               │
 │    • All text shifts to Rosso Corsa / orange                     │
-│    • Center display shows: "BOOST READY"                         │
+│    • Left dial (Power): transitions to ORANGE, scale expands     │
+│      to show boosted power delivery envelope                     │
+│    • Multigraph: auto-overrides to 5-second Launch stopwatch     │
+│      (mechanical hand at 0, digital face shows 5s scale)         │
+│    • Center dial shows: "BOOST READY"                            │
 │    • Checklist overlay appears:                                   │
 │                                                                   │
 │    ┌──────────────────────────────────────┐                      │
@@ -835,13 +1018,13 @@ The most complex state machine in the cockpit. A multi-step gated sequence that 
 │    └──────────────────────────────────────┘                      │
 │                                                                   │
 │  Transitions:                                                     │
-│    • [LAUNCH_PRESS again] → IDLE (user cancels)                  │
+│    • [LAUNCH_PULL again] → IDLE (driver cancels)                 │
 │    • [speed_kmh > 0] → IDLE (car moved)                          │
 │    • [brake_pressure ≥ threshold] → STAGING                      │
 │    • [any checklist item fails] → remain ARMED, show warning     │
 └──────────────────────────────────────────────────────────────────┘
          │
-         │  [User presses brake firmly — begins two-foot maneuver]
+         │  [Driver presses brake firmly — begins two-foot maneuver]
          ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │                          STAGING                                  │
@@ -868,7 +1051,7 @@ The most complex state machine in the cockpit. A multi-step gated sequence that 
 │    • [Brake released while throttle ≥ 100%] → LAUNCH            │
 └──────────────────────────────────────────────────────────────────┘
          │
-         │  [User releases brake pedal — stored energy unleashes]
+         │  [Driver releases brake pedal — stored energy unleashes]
          ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │                           LAUNCH                                  │
@@ -877,6 +1060,7 @@ The most complex state machine in the cockpit. A multi-step gated sequence that 
 │    • Screen flashes WHITE for 100ms                              │
 │    • Transitions to "big numbers only" high-contrast mode        │
 │    • Brake bar drops to 0% instantly                             │
+│    • Multigraph 5s chrono hand begins sweeping                   │
 │                                                                   │
 │  Display:                                                         │
 │    ┌──────────────────────────────────────┐                      │
@@ -890,18 +1074,22 @@ The most complex state machine in the cockpit. A multi-step gated sequence that 
 │    • Elapsed time: counting up in ms, displayed as ss.xx         │
 │    • Distance: counting up in meters                             │
 │    • 0–100 km/h split: captured automatically when crossed       │
+│    • Multigraph: mechanical hand sweeping 5s scale in sync       │
 │                                                                   │
 │  Transitions:                                                     │
 │    • [Throttle released] → IDLE                                  │
-│    • [Speed stabilizes / user brakes] → IDLE                    │
+│    • [Speed stabilizes / driver brakes] → IDLE                   │
 │    • Results saved to launch.results before returning to IDLE    │
+│    • Multigraph returns to previous mode on IDLE                 │
+│    • Left dial (Power) returns to normal mode/color on IDLE      │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
 **Critical implementation rules**:
 1. The `LaunchController` is a strict step-by-step validator. Releasing throttle during STAGING resets to IDLE — not ARMED. The entire sequence must restart.
 2. The checklist is evaluated continuously during ARMED. If battery temp exceeds 80°C mid-arm, the warning appears but the system does not force-exit — the driver decides.
-3. LAUNCH results (`timer_ms`, `distance_m`, `zero_to_100_ms`) persist in state after returning to IDLE so they can be displayed on the copilot screen.
+3. LAUNCH results (`timer_ms`, `distance_m`, `zero_to_100_ms`) persist in state after returning to IDLE so they can be displayed on the control panel touchscreen.
+4. The left dial (Power) and multigraph overrides are **system-driven** — they engage automatically on entering ARMED and disengage automatically on returning to IDLE. No user action required.
 
 ---
 
@@ -911,10 +1099,22 @@ Not a dedicated module but a system of conditional overlays triggered by other m
 
 | Triggering Condition | Overlay Content |
 |---------------------|-----------------|
-| `current_gear == "R"` | Rear camera view with dynamic trajectory lines on cluster |
+| `current_gear == "R"` | Rear camera view with dynamic trajectory lines on binnacle |
 | `is_park_assist_active` | 360° camera mosaic with proximity-colored zones (green/yellow/red) |
-| Navigation active | Turn-by-turn arrows on cluster right tunnel (or projected on windshield) |
-| `launch.state ∈ {ARMED, STAGING, LAUNCH}` | Launch overlay suppresses normal cluster — see Module 10 |
+| Navigation active | Turn-by-turn arrows on binnacle right dial (or projected on windshield) |
+| `launch.state ∈ {ARMED, STAGING, LAUNCH}` | Launch overlay suppresses normal binnacle content — see Module 10 |
+
+---
+
+### Module 12: Rear Passenger Display
+
+A display panel in the rear cabin that shares real-time drive information with passengers, alongside independent rear climate controls.
+
+**Known elements** (source provides limited detail):
+- Real-time drive data mirroring (speed, mode, power)
+- Rear climate controls (independent temperature, fan, seat heat for rear occupants)
+
+**Note**: The authoritative source confirms this module exists but provides minimal specification detail. Full interaction design for the rear display requires further documentation.
 
 ---
 
@@ -922,20 +1122,25 @@ Not a dedicated module but a system of conditional overlays triggered by other m
 
 These dependencies are where "systems thinking" matters. Building modules in isolation will produce a cockpit that doesn't feel integrated.
 
-### 6.1 Gear ↔ Camera System
-Entering REVERSE emits `REAR_CAMERA_REQUESTED`. Even if the camera subsystem isn't implemented, the event hook must exist so the cluster knows to show the overlay.
+### 6.1 Key Dock ↔ Everything
+Docking the key is the system root. Yellow surge animation radiates outward from the console across all displays. Shifter mechanically unlocks. All displays initialize. Undocking reverses: shifter locks, displays fade. Every other module's `active` state depends on `key_state == "DOCKED"`.
 
-### 6.2 DriveMode / PowertrainMode ↔ Cluster Theme
-`SPORT` / `PERFO` push orange/red accents across the cluster. `RANGE` pushes green efficiency emphasis. The layout never changes — only colors, labels, and threshold emphasis shift. Implement as:
+### 6.2 Gear ↔ Camera System
+Entering REVERSE emits `REAR_CAMERA_REQUESTED`. Even if the camera subsystem isn't implemented, the event hook must exist so the binnacle knows to show the overlay.
+
+### 6.3 DriveMode / PowertrainMode ↔ Binnacle Theme
+`SPORT` / `PERFO` push orange/red accents across the binnacle. `RANGE` pushes green efficiency emphasis. The layout never changes — only colors, labels, and threshold emphasis shift. Implement as:
 ```ts
-const theme = deriveClusterTheme(state.drivetrain.drive_mode, state.drivetrain.powertrain_mode);
-// theme contains: ringColor, accentColor, emphasisLabels
+const theme = deriveBinnacleTheme(state.drivetrain.drive_mode, state.drivetrain.powertrain_mode);
+// theme contains: ringColor, accentColor, leftDialColor, emphasisLabels
 ```
 
-### 6.3 Launch ↔ Everything
-Launch overrides the cluster theme, adds its own overlay, suppresses "busy" UI elements. Launch press is silently ignored unless all prerequisites are met. During STAGING and LAUNCH, other non-critical controls (climate, display mode) should still function but their visual feedback is suppressed.
+### 6.4 Launch ↔ Everything
+Launch overrides the binnacle theme, adds its own overlay, suppresses "busy" UI elements. The launch pull is silently ignored unless all prerequisites are met. During STAGING and LAUNCH, other non-critical controls (climate, display mode) should still function but their visual feedback is suppressed. Additionally:
+- **Launch ↔ Power Dial**: Left dial transitions to orange with expanded power scale (automatic).
+- **Launch ↔ Multigraph**: Multigraph auto-overrides to 5-second stopwatch with mechanical hand at 0 (automatic). Returns to previous mode on IDLE.
 
-### 6.4 Speed ↔ Safety Lockouts
+### 6.5 Speed ↔ Safety Lockouts
 A single speed check gates multiple systems:
 - `speed > 0`: Frunk press ignored, P gear rejected, R gear rejected
 - `speed > 5`: Reverse rejected
@@ -943,11 +1148,14 @@ A single speed check gates multiple systems:
 
 Centralize this in the reducer — don't scatter speed checks across UI components.
 
-### 6.5 Manual Paddles ↔ Gear Display
-The gear mini-display must support both `"D"` (automatic) and `{ kind: "D_MANUAL", gear: n }` (manual override) rendering. The drum animation applies to numeric shifts too (scrolling "3" to "4"). The 5-second timeout that reverts to automatic triggers a smooth "4" → "D" drum transition.
+### 6.6 Torque Paddles ↔ Torque Meter ↔ Center Dial
+The torque meter above the center dial reflects the current torque level and coaching indicator (BELOW / OPTIMAL / ABOVE). Paddle inputs change the torque level. The meter is passive in AUTO mode and active-coaching in MANUAL mode. The torque level also affects the power drawn from the battery, which is reflected on the left dial.
 
-### 6.6 Chrono ↔ Sidecar Mode Cycling
-The chrono timer runs independently of display mode. Pressing YELLOW to cycle away from CHRONO does not stop the timer. This means `chrono.state` and `chrono.value_ms` must be updated by the reducer's time-tick logic regardless of `sidecar_mode`.
+### 6.7 Stopwatch ↔ Multigraph Mode Cycling
+The stopwatch timer runs independently of display mode. Pressing the mode button to cycle away from STOPWATCH does not stop the timer. This means `stopwatch_state` and `stopwatch_value_ms` must be updated by the reducer's time-tick logic regardless of `multigraph.mode`. The mechanical hand position is tracked even when not visible and restored on return.
+
+### 6.8 E-Manettino ↔ Left Dial (Power Dial)
+The left dial is "directly connected" to the E-Manettino mode. Changing from RANGE to PERFO shifts the left dial's color from green to red, expands the power arc scale, and reduces the regen zone emphasis. This is a direct, always-active coupling — no lag, no transition delay.
 
 ---
 
@@ -955,48 +1163,58 @@ The chrono timer runs independently of display mode. Pressing YELLOW to cycle aw
 
 Every physical input in the cockpit, named as a dispatchable event:
 
-**Mobile Key**
-- `APP_OPEN`, `BIOMETRIC_OK`, `BIOMETRIC_FAIL`, `APP_CLOSED`
+**Key Dock**
+- `KEY_DOCK`, `KEY_UNDOCK`
 
 **Gear Selector**
 - `GEAR_P_PRESS` (top button)
 - `JOYSTICK_BACK_TAP`, `JOYSTICK_BACK_HOLD`
 - `JOYSTICK_FWD_TAP`, `JOYSTICK_FWD_HOLD`
 
-**Steering Wheel Modes**
+**Steering Wheel — Left Pod (Manettino)**
 - `MANETTINO_CW`, `MANETTINO_CCW`
-- `EMANETTINO_CW`, `EMANETTINO_CCW`, `EMANETTINO_PRESS`
 
-**Paddle Shifters**
-- `PADDLE_UP`, `PADDLE_DOWN`
-- `MANUAL_MODE_TOGGLE` (M button or both-paddle hold)
+**Steering Wheel — Right Pod (E-Manettino + Driver Dial)**
+- `EMANETTINO_CW`, `EMANETTINO_CCW`, `EMANETTINO_PRESS`
+- `DRIVER_DIAL_TOGGLE`
+
+**Torque Control Paddles**
+- `PADDLE_UP` (increase torque level)
+- `PADDLE_DOWN` (decrease torque level / increase regen)
+- `TORQUE_MODE_TOGGLE` (switch between auto and permanent manual)
 
 **Comfort Console**
 - `WINDOW_DRIVER_UP`, `WINDOW_DRIVER_DOWN`
 - `WINDOW_PASS_UP`, `WINDOW_PASS_DOWN`
 - `FRUNK_PRESS`, `LOCK_PRESS`
 - `DOOR_AJAR_CHANGED(boolean)`
+- `PARK_ASSIST_TOGGLE`, `LIFT_TOGGLE`
 
-**Auxiliary Toggles**
-- `HEADLIGHT_TOGGLE`, `PARK_ASSIST_TOGGLE`, `LIFT_TOGGLE`, `SOS_PRESS`
+**Overhead Panel**
+- `LAUNCH_PULL`
+- `HEADLIGHT_TOGGLE`, `DEFROST_TOGGLE`, `SOS_PRESS`
 
-**Launch Control**
-- `LAUNCH_PRESS`
+**Control Panel**
+- `CONTROL_PANEL_OFF`, `CONTROL_PANEL_CLIMATE`, `CONTROL_PANEL_SETTINGS`, `CONTROL_PANEL_MEDIA`
+- `TOUCHSCREEN_INPUT(context, action)` (generic for deep settings interactions)
+
+**Control Panel — Climate Controls**
+- `TEMP_UP`, `TEMP_DOWN`
+- `FAN_UP`, `FAN_DOWN`
+- `SEAT_HEAT_UP`, `SEAT_HEAT_DOWN`
+- `SEAT_VENT_TOGGLE`
+- `SYNC_TOGGLE`
+
+**Multigraph**
+- `MULTIGRAPH_MODE_CYCLE` (mode button — cycles Clock → Stopwatch → Compass)
+- `MULTIGRAPH_ACTION_PRESS` (action button — tap)
+- `MULTIGRAPH_ACTION_LONG_PRESS` (action button — hold ≥ 2s)
+
+**Launch Control (Continuous Inputs)**
 - `BRAKE_PRESSURE_CHANGED(pct)`, `THROTTLE_CHANGED(pct)`
 
-**Co-Pilot Climate**
-- `PASS_TEMP_UP`, `PASS_TEMP_DOWN`
-- `FAN_UP`, `FAN_DOWN`
-- `SYNC_TOGGLE`
-- `DISPLAY_MODE_FWD`, `DISPLAY_MODE_BACK`
-- `SEAT_HEAT_UP`, `SEAT_HEAT_DOWN`
-
-**Sidecar**
-- `SIDECAR_YELLOW_PRESS`
-- `SIDECAR_RED_PRESS`, `SIDECAR_RED_LONG_PRESS`
-
 **System / Continuous**
-- `TICK(delta_ms)` — drives chrono counting, manual-override timeout, animation progress
+- `TICK(delta_ms)` — drives stopwatch counting, torque timeout, animation progress
 - `SPEED_UPDATED(kmh)` — from vehicle sensors, triggers lockout re-evaluation
 
 ---
@@ -1008,51 +1226,77 @@ Each display surface has a "must support" contract — the minimum set of visual
 ### 8.1 Gear Mini-Display
 
 Must render:
+- [ ] Dark/inactive state when key is absent
 - [ ] Idle logo screen (Prancing Horse on Giallo field)
-- [ ] Active gear letter (Heritage Serif, white, bold, glow)
+- [ ] Active gear letter (Heritage Serif, white, bold, glow) for P, R, N, D
 - [ ] Drum scroll animation with ghost letters at partial opacity
-- [ ] Manual override numbers ("1"–"8") with same drum animation
-- [ ] Transition animation between any two valid gear states
+- [ ] Transition animation between any two valid gear states (P↔R↔N↔D)
 
-### 8.2 Driver Cluster (3-Tunnel)
+### 8.2 Driver Binnacle (3-Dial, Steering-Fixed)
 
 Must render:
-- [ ] Three-tunnel layout simultaneously (never collapses to fewer)
-- [ ] Center ring fill proportional to speed, colored by mode
-- [ ] Regen counter-fill segment (Verde, counter-clockwise)
-- [ ] Left battery bar with color thresholds + blink animation at <15%
-- [ ] Right tunnel contextual content (compass/nav/g-force)
+- [ ] Three-dial layout simultaneously (never collapses to fewer)
+- [ ] **Left dial**: Power arc proportional to current kW, colored by E-Manettino mode
+- [ ] **Left dial**: Regen zone below baseline (Verde) when regenerating
+- [ ] **Left dial**: Launch override — orange color, expanded power scale
+- [ ] **Center dial**: Awareness of mechanical needle (digital layer must not conflict with physical needle position)
+- [ ] **Center dial**: Digital ring fill proportional to speed, colored by mode
+- [ ] **Center dial**: Battery SOC indicator with color thresholds + blink at <15%
+- [ ] **Center dial**: Torque meter above dial showing current level and optimal band
+- [ ] **Right dial**: All six confirmed modes (G Meter, Vehicle Status, Battery, Trip, Dynamics, Tires)
+- [ ] **Right dial**: Mode transition on DRIVER_DIAL_TOGGLE
 - [ ] Full theme recolor when drive_mode or powertrain_mode changes
-- [ ] Launch overlay that suppresses normal content during ARMED/STAGING/LAUNCH
+- [ ] Launch overlay that suppresses normal center content during ARMED/STAGING/LAUNCH
 
-### 8.3 Co-Pilot Main Display
+### 8.3 Control Panel Touchscreen
 
 Must render:
-- [ ] Left text stack: mode label (colored), speed (white, large), power info
-- [ ] Right telemetry graphs: two rolling-window line charts
-- [ ] Transient HUD overlays for climate toggle feedback (fade after ~2s)
+- [ ] Four context states: OFF (dark), CLIMATE, SETTINGS, MEDIA
+- [ ] In CLIMATE context: mode label (colored), speed (white, large), power info
+- [ ] Telemetry graphs: rolling-window line charts (when displayed)
+- [ ] Transient HUD overlays for physical climate control feedback (fade after ~2s)
 - [ ] Content updates reflecting cross-module state (mode changes, speed changes)
 
-### 8.4 Round Sidecar
+### 8.4 Multigraph (Hybrid Mechanical-Digital)
 
-Must render:
-- [ ] All four modes: CLOCK, CHRONO, COMPASS, G_FORCE
-- [ ] Smooth analog clock (no ticking second hand)
-- [ ] Chrono with MM:SS.ss precision, correct button behavior
-- [ ] Compass with heading degrees and cardinal direction
-- [ ] G-force marble that moves opposite to acceleration vector
+Must render (digital face layer — mechanical hands are physical):
+- [ ] All three modes: CLOCK, STOPWATCH, COMPASS
+- [ ] CLOCK: Minimal face markings for analog watch (hands are mechanical)
+- [ ] STOPWATCH: 60-second scale face (hand is mechanical, sweeps one revolution per 60s)
+- [ ] COMPASS: Heading degrees and cardinal direction (hand is mechanical, points north)
+- [ ] Launch auto-override: 5-second scale face (hand sweeps 5s on launch)
+- [ ] Return to previous mode after launch override ends
+- [ ] Face must coordinate with mechanical hand position (sync digital markings to physical hand)
 
 ---
 
 ## 9 — Implementation Classes
+
+### PhysicalKeyDock
+
+```
+PhysicalKeyDock
+├── Properties
+│   └── key_state: KeyState
+├── Methods
+│   ├── handleDock() → void  // triggers boot sequence
+│   ├── handleUndock() → void  // triggers shutdown sequence
+│   └── isSystemLive() → boolean
+├── Events Emitted
+│   ├── onKeyDocked() → triggers yellow surge, display init, shifter unlock
+│   └── onKeyUndocked() → triggers display fade, shifter lock
+└── Invariants
+    └── All other modules require key_state == "DOCKED" to be active
+```
 
 ### GearSelector
 
 ```
 GearSelector
 ├── Properties
-│   ├── current_gear: Gear
+│   ├── current_gear: Gear  // "P" | "R" | "N" | "D"
 │   ├── gear_sequence: LinkedList<GearNode>  // P ↔ R ↔ N ↔ D
+│   ├── is_locked: boolean  // true when key_state == "ABSENT"
 │   ├── animation_state: "IDLE" | "SCROLLING"
 │   └── scroll_progress: float (0.0 – 1.0)
 ├── Methods
@@ -1063,6 +1307,7 @@ GearSelector
 ├── Events Emitted
 │   └── onGearChanged(old_gear, new_gear)
 └── Invariants
+    └── Rejects all input when is_locked == true
     └── Rejects P and R when speed > 0; rejects R when speed > 5
 ```
 
@@ -1084,43 +1329,57 @@ Manettino
     └── Cannot rotate past ends (WET is min, ESC_OFF is max)
 ```
 
-### EManettino
+### EManettinoPod
 
 ```
-EManettino
+EManettinoPod
+├── EManettino (Powertrain Rotary)
+│   ├── Properties
+│   │   ├── position: PowertrainMode
+│   │   ├── positions: ["RANGE", "TOUR", "PERFO"]
+│   │   └── color_map: Record<PowertrainMode, HexColor>
+│   ├── Methods
+│   │   ├── rotate(direction: "CW" | "CCW") → PowertrainMode
+│   │   ├── getActiveColor() → HexColor
+│   │   └── getMaxPowerKw() → number
+│   ├── Events Emitted
+│   │   └── onPositionChanged(old_mode, new_mode)
+│   └── Cross-Effects
+│       └── Updates left dial color/scale, center ring color, range estimate, control panel labels
+│
+└── DriverDialToggle (Mode Cycler)
+    ├── Properties
+    │   ├── current_mode: DriverDialMode
+    │   └── modes: ["G_METER","VEHICLE_STATUS","BATTERY","TRIP","DYNAMICS","TIRES"]
+    ├── Methods
+    │   └── toggle() → DriverDialMode  // advances one position, wraps
+    └── Events Emitted
+        └── onModeChanged(old_mode, new_mode)
+```
+
+### TorqueController
+
+```
+TorqueController
 ├── Properties
-│   ├── position: PowertrainMode
-│   ├── positions: ["RANGE", "TOUR", "PERFO"]
-│   └── color_map: Record<PowertrainMode, HexColor>
+│   ├── mode: TorqueMode  // "AUTO" | "MANUAL"
+│   ├── current_level: TorqueLevel  // 1–8
+│   ├── optimal_indicator: TorqueIndicator  // "BELOW" | "OPTIMAL" | "ABOVE"
+│   ├── regen_contribution_kw: number
+│   └── timeout_remaining_ms: number  // for auto-revert from temporary manual
 ├── Methods
-│   ├── rotate(direction: "CW" | "CCW") → PowertrainMode
-│   ├── getActiveColor() → HexColor
-│   └── getMaxPowerKw() → number
-├── Events Emitted
-│   └── onPositionChanged(old_mode, new_mode)
-└── Cross-Effects
-    └── Updates range_remaining_km estimate, cluster ring color, copilot power label
-```
-
-### PaddleShiftController
-
-```
-PaddleShiftController
-├── Properties
-│   ├── mode: "AUTOMATIC" | "TEMP_MANUAL" | "PERM_MANUAL"
-│   ├── current_manual_gear: 1–8 | null
-│   └── timeout_remaining_ms: number
-├── Methods
-│   ├── handlePaddle(direction: "UP" | "DOWN") → Gear
-│   ├── handleManualToggle() → void
+│   ├── handlePaddle(direction: "UP" | "DOWN") → TorqueLevel
+│   ├── handleModeToggle() → void  // switch to/from permanent manual
 │   ├── tick(delta_ms) → void  // decrements timeout, reverts if expired
-│   └── getCurrentGearDisplay() → Gear
+│   ├── getCurrentLevel() → TorqueLevel
+│   └── getOptimalIndicator(speed, power, mode) → TorqueIndicator
 ├── Events Emitted
-│   └── onShiftModeChanged(old_mode, new_mode)
-│   └── onGearNumberChanged(old_n, new_n)
+│   ├── onTorqueModeChanged(old_mode, new_mode)
+│   └── onTorqueLevelChanged(old_level, new_level)
 └── Invariants
-    └── TEMP_MANUAL reverts to AUTOMATIC after 5s of no paddle input + steady throttle
-    └── PERM_MANUAL never auto-reverts — only explicit toggle
+    └── Temporary manual reverts to AUTO after timeout + steady throttle
+    └── Permanent manual never auto-reverts — only explicit toggle
+    └── Level capped at 8, floored at 1
 ```
 
 ### LaunchController
@@ -1133,7 +1392,7 @@ LaunchController
 │   ├── staging: { brake_pct, throttle_pct }
 │   └── results: { timer_ms, distance_m, zero_to_100_ms }
 ├── Methods
-│   ├── handleLaunchPress() → void
+│   ├── handleLaunchPull() → void
 │   ├── updateStaging(brake_pct, throttle_pct) → void
 │   ├── tick(delta_ms, current_speed) → void  // updates timer + distance during LAUNCH
 │   ├── validatePreconditions(state: CarState) → ChecklistResult
@@ -1141,63 +1400,101 @@ LaunchController
 ├── Events Emitted
 │   ├── onStateChanged(old_state, new_state)
 │   ├── onChecklistUpdated(checklist)
-│   └── onLaunchComplete(results)
-└── Invariants
-    └── Throttle release during STAGING → reset to IDLE (not ARMED)
-    └── LAUNCH_PRESS during ARMED → return to IDLE (cancel)
-    └── Any speed > 0 during PRE_ARM or ARMED → return to IDLE
+│   ├── onLaunchComplete(results)
+│   ├── onPowerDialOverride(active: boolean)  // signals left dial to go orange
+│   └── onMultigraphOverride(active: boolean)  // signals multigraph to 5s chrono
+├── Invariants
+│   └── Throttle release during STAGING → reset to IDLE (not ARMED)
+│   └── LAUNCH_PULL during ARMED → return to IDLE (cancel)
+│   └── Any speed > 0 during PRE_ARM or ARMED → return to IDLE
+└── Override Management
+    └── On entering ARMED: emit onPowerDialOverride(true), onMultigraphOverride(true)
+    └── On returning to IDLE: emit onPowerDialOverride(false), onMultigraphOverride(false)
 ```
 
-### ClusterRenderer
+### BinnacleRenderer
 
 ```
-ClusterRenderer
+BinnacleRenderer
 ├── Properties
-│   ├── theme: { ringColor, accentColor, textColor }
+│   ├── theme: { ringColor, accentColor, leftDialColor, textColor }
 │   ├── launch_overlay_active: boolean
 │   └── battery_blink_state: boolean
 ├── Methods
 │   ├── deriveTheme(drive_mode, powertrain_mode, launch_state) → Theme
-│   ├── renderCenterTunnel(speed, max_speed, is_regen, regen_amount) → void
-│   ├── renderLeftTunnel(soc_pct, range_km) → void
-│   ├── renderRightTunnel(mode, heading, g_lateral, g_longitudinal) → void
+│   ├── renderLeftDial(power_kw, max_power_kw, is_regen, regen_kw, powertrain_mode, launch_override) → void
+│   ├── renderCenterDial(speed, max_speed, soc_pct, torque_level, torque_indicator) → void
+│   │   // Note: mechanical needle position is motor-driven, not rendered digitally
+│   │   // Digital layer renders ring fill, battery, torque meter, numerics
+│   ├── renderRightDial(driver_dial_mode, mode_data) → void
 │   └── renderLaunchOverlay(launch_state, checklist, staging, results) → void
 ├── Tick Behavior
 │   └── Battery blink toggles every 500ms when soc < 15%
 └── Invariants
-    └── Three tunnels always rendered (never collapse)
+    └── Three dials always rendered (never collapse)
     └── Launch overlay suppresses normal center content
+    └── Left dial color always tracks E-Manettino (unless launch override)
 ```
 
-### CopilotBox
+### ControlPanel
 
 ```
-CopilotBox
-├── MainDisplay
-│   ├── Properties: mode_label, speed, power_label, power_kw
+ControlPanel
+├── Properties
+│   ├── context: ControlPanelContext
+│   ├── articulation_angle: float  // physical pivot position
+│   └── is_touchscreen_active: boolean
+├── Touchscreen
 │   ├── Methods
-│   │   ├── render(state) → void
+│   │   ├── setContext(context: ControlPanelContext) → void
+│   │   ├── render(state, context) → void
+│   │   ├── handleTouchInput(context, action) → StateUpdate
 │   │   ├── pushSpeedDataPoint(timestamp, kmh) → void
 │   │   └── pushPowerDataPoint(timestamp, kw) → void
 │   └── Graph Config: 30s rolling window, 100ms sample rate
-├── ClimateRow
+├── ClimateControls
 │   ├── Methods
-│   │   └── handleToggle(toggle_id, direction: "UP"|"DOWN") → StateUpdate
-│   └── Transient HUD: each toggle shows overlay for ~2s, then fades
-└── Sidecar
+│   │   └── handleInput(control_id, direction: "UP"|"DOWN") → StateUpdate
+│   └── Transient HUD: each input shows overlay for ~2s, then fades
+└── Multigraph
     ├── Properties
-    │   ├── mode: SidecarMode
-    │   ├── chrono_state: ChronoState
-    │   ├── chrono_value_ms: number
-    │   └── compass_heading: float
+    │   ├── mode: MultigraphMode  // CLOCK | STOPWATCH | COMPASS
+    │   ├── has_mechanical_hands: true  // always
+    │   ├── stopwatch_state: StopwatchState
+    │   ├── stopwatch_value_ms: number
+    │   ├── compass_heading_deg: float
+    │   └── launch_override_active: boolean
     ├── Methods
-    │   ├── cycleMode() → void  // YELLOW button
-    │   ├── handleAction(duration_ms) → void  // RED button
-    │   ├── tick(delta_ms) → void  // increments chrono if RUNNING
-    │   └── renderCurrentMode() → void
+    │   ├── cycleMode() → void  // mode button
+    │   ├── handleAction(duration_ms) → void  // action button
+    │   ├── tick(delta_ms) → void  // increments stopwatch if RUNNING
+    │   ├── enterLaunchOverride() → void  // switch to 5s chrono, preserve previous state
+    │   ├── exitLaunchOverride() → void  // return to previous mode
+    │   └── renderDigitalFace() → void  // renders face layer; hands are physical
     └── Invariants
-        └── Chrono ticks in background regardless of visible sidecar mode
-        └── RED_LONG_PRESS (≥2s) resets chrono ONLY from PAUSED state
+        └── Stopwatch ticks in background regardless of visible mode
+        └── ACTION_LONG_PRESS (≥2s) resets stopwatch ONLY from PAUSED state
+        └── Launch override is system-driven, not user-initiated
+        └── Previous mode and stopwatch state preserved through launch override
+```
+
+### OverheadPanel
+
+```
+OverheadPanel
+├── Properties
+│   ├── headlight_mode: HeadlightMode
+│   ├── defrost_active: boolean
+│   └── sos_triggered: boolean
+├── Methods
+│   ├── handleLaunchPull() → void  // delegates to LaunchController
+│   ├── cycleHeadlights() → HeadlightMode  // OFF → AUTO → HIGH
+│   ├── toggleDefrost() → boolean
+│   └── handleSOS() → void  // requires confirmation
+└── Events Emitted
+    ├── onHeadlightChanged(mode)
+    ├── onDefrostChanged(active)
+    └── onSOSTriggered()
 ```
 
 ---
@@ -1209,11 +1506,17 @@ CopilotBox
 ```json
 {
   "time_ms": 3847200,
+  "system": { "key_state": "DOCKED" },
   "vehicle": { "speed_kmh": 112.0 },
   "drivetrain": {
     "current_gear": "D",
     "drive_mode": "DRY",
-    "powertrain_mode": "RANGE"
+    "powertrain_mode": "RANGE",
+    "torque": {
+      "mode": "AUTO",
+      "current_level": 4,
+      "optimal_indicator": "OPTIMAL"
+    }
   },
   "power": {
     "battery_soc_pct": 64,
@@ -1222,25 +1525,37 @@ CopilotBox
     "is_regenerating": false
   },
   "launch": { "state": "IDLE" },
-  "copilot": {
-    "sidecar_mode": "COMPASS",
-    "chrono": { "state": "RESET", "value_ms": 0 }
-  }
+  "binnacle": {
+    "left_dial": { "launch_override_active": false },
+    "center_dial": { "torque_meter_visible": true },
+    "right_dial": { "current_mode": "TRIP" }
+  },
+  "control_panel": {
+    "context": "CLIMATE",
+    "multigraph": { "mode": "COMPASS", "stopwatch_state": "RESET" }
+  },
+  "overhead": { "headlight_mode": "AUTO", "defrost_active": false }
 }
 ```
 
-Expected cluster: Green-accented ring at ~35% fill. Left tunnel green at 64%. Normal layout, no overlays.
+**Expected binnacle**: Left dial green (RANGE), power arc at ~38 kW. Center dial green-accented ring at ~35% fill, mechanical needle at 112, battery indicator green at 64%. Right dial showing Trip data. Normal layout, no overlays.
 
 ### 10.2 Launch Control — Staging (Ready to Launch)
 
 ```json
 {
   "time_ms": 812345,
+  "system": { "key_state": "DOCKED" },
   "vehicle": { "speed_kmh": 0.0 },
   "drivetrain": {
     "current_gear": "D",
     "drive_mode": "SPORT",
-    "powertrain_mode": "PERFO"
+    "powertrain_mode": "PERFO",
+    "torque": {
+      "mode": "AUTO",
+      "current_level": 8,
+      "optimal_indicator": "ABOVE"
+    }
   },
   "power": {
     "battery_soc_pct": 84,
@@ -1253,37 +1568,63 @@ Expected cluster: Green-accented ring at ~35% fill. Left tunnel green at 64%. No
     "checklist": { "battery_temp_ok": true, "traction_mode_ok": true, "power_potential_pct": 100 },
     "staging": { "brake_pressure_pct": 100, "throttle_position_pct": 100 }
   },
-  "copilot": {
-    "sidecar_mode": "CHRONO",
-    "chrono": { "state": "RUNNING", "value_ms": 14502 }
-  }
+  "binnacle": {
+    "left_dial": { "launch_override_active": true },
+    "center_dial": { "torque_meter_visible": true },
+    "right_dial": { "current_mode": "G_METER" }
+  },
+  "control_panel": {
+    "context": "CLIMATE",
+    "multigraph": {
+      "mode": "CLOCK",
+      "launch_override_active": true,
+      "stopwatch_state": "RESET",
+      "stopwatch_value_ms": 0
+    }
+  },
+  "overhead": { "headlight_mode": "AUTO" }
 }
 ```
 
-Expected cluster: Dark override, orange text, "BOOST READY", both bars at 100%. Car is vibrating, rear squatting. Next action: release brake to launch.
+**Expected binnacle**: Dark override, orange text, "BOOST READY", both bars at 100%. Left dial orange with expanded power scale. Car is vibrating, rear squatting. **Expected multigraph**: Auto-overridden to 5-second launch chrono (regardless of previous CLOCK mode). Mechanical hand at 0, digital face showing 5s scale. Next action: release brake to launch.
 
-### 10.3 Manual Downshift in Sport Mode
+### 10.3 Manual Torque Stepping in Sport Mode
 
 ```json
 {
   "time_ms": 2100000,
+  "system": { "key_state": "DOCKED" },
   "vehicle": { "speed_kmh": 87.0 },
   "drivetrain": {
-    "current_gear": { "kind": "D_MANUAL", "gear": 3 },
+    "current_gear": "D",
     "drive_mode": "SPORT",
     "powertrain_mode": "TOUR",
-    "manual_timeout_remaining_ms": 4200
+    "torque": {
+      "mode": "MANUAL",
+      "current_level": 5,
+      "optimal_indicator": "OPTIMAL",
+      "regen_contribution_kw": 12.3
+    }
   },
   "power": {
     "battery_soc_pct": 71,
     "current_power_kw": 185.0,
     "is_regenerating": false
   },
-  "launch": { "state": "IDLE" }
+  "launch": { "state": "IDLE" },
+  "binnacle": {
+    "left_dial": { "launch_override_active": false },
+    "center_dial": { "torque_meter_visible": true },
+    "right_dial": { "current_mode": "DYNAMICS" }
+  },
+  "control_panel": {
+    "context": "SETTINGS",
+    "multigraph": { "mode": "STOPWATCH", "stopwatch_state": "RUNNING", "stopwatch_value_ms": 14502 }
+  }
 }
 ```
 
-Expected gear display: "3" in Heritage Serif on mini-display. Cluster ring in Rosso accent. Timer counting down — will revert to "D" in 4.2s unless another paddle input.
+**Expected binnacle**: Left dial Giallo (TOUR) showing 185 kW power output. Center dial Rosso-accented ring (SPORT overrides TOUR for ring color), mechanical needle at 87, torque meter active-coaching showing level 5 in OPTIMAL band. Right dial showing Dynamics data. Gear display shows "D" (torque levels are not shown on the gear mini-display). **Expected multigraph**: Stopwatch running, mechanical hand sweeping 60s scale, digital readout showing 14.50s.
 
 ---
 
@@ -1310,21 +1651,27 @@ The palette carries meaning everywhere it appears:
 If a UI element changes color, its *meaning* has changed.
 
 ### 11.5 Animation as Communication
-The gear drum scroll isn't decorative — it communicates that gears exist in a sequence and that the system is transitioning through intermediate states. Every animation should answer the question: "What is the system doing right now?"
+The gear drum scroll isn't decorative — it communicates that gears exist in a sequence and that the system is transitioning through intermediate states. The yellow surge from the key dock communicates that the car is coming alive from a specific physical origin point. Every animation should answer the question: "What is the system doing right now?"
 
-### 11.6 Graceful Rejection
+### 11.6 Hybrid Mechanical-Digital as Trust Signal
+The most critical readings — speed, time, direction — are expressed through **physical mechanical elements** (needle, hands) even in a fully digital car. Mechanical movement is instinctively trusted. It cannot lag, cannot glitch, cannot freeze while the software reboots. The digital layer adds richness (color, mode overlays, numerics) but the mechanical layer provides the anchor of confidence. When designing high-stakes instruments, consider what deserves physical expression.
+
+### 11.7 Graceful Rejection
 Invalid inputs are silently ignored or produce a brief, non-blocking warning. The system never enters an error state, never shows a modal dialog, never requires the user to "dismiss" something before continuing. Design for the driver who just hit the wrong button at 200 km/h.
 
-### 11.7 Multi-Modal Feedback
+### 11.8 Multi-Modal Feedback
 Every valid input produces feedback across multiple channels simultaneously:
 - **Visual**: Screen updates, color shifts, animations
-- **Physical**: Haptic vibration, suspension changes, control resistance
-- **Audio**: (Implied) confirmation tones, engine note modulation
+- **Physical**: Haptic vibration, suspension changes, control resistance, mechanical needle/hand movement
+- **Audio**: (Implied) confirmation tones, motor note modulation
 
 No input should feel "silent."
 
-### 11.8 Nested State Machines
-Complex interactions emerge from layered state machines. Launch Control has an outer machine (IDLE → ARMED → STAGING → LAUNCH) and inner machines (checklist items, brake/throttle percentages). The reducer handles all layers coherently because they share one state tree.
+### 11.9 Nested State Machines
+Complex interactions emerge from layered state machines. Launch Control has an outer machine (IDLE → ARMED → STAGING → LAUNCH) and inner machines (checklist items, brake/throttle percentages, multigraph override, power dial override). The reducer handles all layers coherently because they share one state tree.
+
+### 11.10 System-Driven Overrides
+Some transitions are not user-initiated — they are system-driven responses to state changes. Launch Mode auto-overriding the multigraph and power dial is an example. The user didn't ask for the multigraph to switch; the system determined it was contextually necessary. Design for automatic transitions that serve the moment, with clean restoration of previous state when the triggering condition ends.
 
 ---
 
@@ -1332,11 +1679,20 @@ Complex interactions emerge from layered state machines. Launch Control has an o
 
 An acceptance checklist. If these behaviors are absent, the implementation does not match the cockpit:
 
+- [ ] **Physical key dock as system root**: Docking the key triggers yellow surge boot animation, display initialization, and mechanical shifter unlock. Undocking reverses everything. All modules depend on key state.
 - [ ] **Momentary hardware semantics**: Sticks return to center. Toggles snap back. The UI must not depend on a control "staying" in position.
-- [ ] **Drum scroll gear animation**: Gear changes are never instant label swaps. Intermediate gears scroll past as ghosts.
-- [ ] **Launch gating with strict reset**: The full IDLE → PRE_ARM → ARMED → STAGING → LAUNCH sequence must be validated step by step. Throttle release during STAGING resets to IDLE, not ARMED.
-- [ ] **Manual paddle override with timeout**: Temporary manual reverts to automatic after 5s. Permanent manual requires explicit toggle.
+- [ ] **Drum scroll gear animation**: Gear changes between P, R, N, and D are never instant label swaps. Intermediate gears scroll past as ghosts.
+- [ ] **Mechanical needle on center dial**: The center dial has a physical, motor-driven needle for speed. The digital layer must be designed to coexist with (not conflict with) the physical needle.
+- [ ] **Mechanical hands on multigraph**: The multigraph clock, stopwatch, and compass modes use physical motor-driven hands on a digital OLED face. This is a hybrid instrument, not a screen.
+- [ ] **Multigraph auto-override during Launch**: Entering ARMED auto-switches the multigraph to a 5-second Launch stopwatch. Returning to IDLE restores the previous mode. This is system-driven.
+- [ ] **Torque control via paddles, not gear ratios**: This is an EV. Paddles step through torque delivery levels (1–8), not gear numbers. The torque meter above the center dial coaches optimal stepping.
+- [ ] **Launch gating with strict reset**: The full IDLE → PRE_ARM → ARMED → STAGING → LAUNCH sequence must be validated step by step. Throttle release during STAGING resets to IDLE, not ARMED. Launch trigger is an overhead pull, not a console button.
+- [ ] **Power dial (left) linked to E-Manettino**: Color and scale always track the powertrain mode (RANGE=green, TOUR=yellow, PERFO=red). Launch overrides to orange with expanded scale.
 - [ ] **Safety lockouts tied to speed**: Frunk at 0 only. Lift deactivates above 40. P/R gear rejected while moving. Centralized in the reducer.
 - [ ] **Theme as mode-derived color, not layout swap**: Changing from TOUR to SPORT recolors accents. It does not change the screen layout.
-- [ ] **Sidecar chrono runs in background**: Timer keeps counting when mode is cycled away from CHRONO. Long-press reset only works from PAUSED.
-- [ ] **Cross-module event propagation**: Entering R triggers camera overlay. Mode changes propagate to cluster theme AND copilot labels. Launch suppresses cluster. These are not optional integrations.
+- [ ] **Stopwatch runs in background**: Timer keeps counting when multigraph mode is cycled away from STOPWATCH. Long-press reset only works from PAUSED.
+- [ ] **Control panel articulates**: The control panel can be physically pivoted between driver and co-pilot.
+- [ ] **Overhead panel houses launch + lights + defrost + SOS**: These controls are in the headliner, not on the center console.
+- [ ] **Right dial cycles 7 modes via dedicated toggle**: The mechanical toggle on the right steering pod (separate from E-Manettino rotary) cycles the right binnacle dial through its data modes.
+- [ ] **Binnacle moves with steering wheel**: The entire instrument cluster is fixed to the steering column and rotates with the wheel.
+- [ ] **Cross-module event propagation**: Entering R triggers camera overlay. Mode changes propagate to binnacle theme AND control panel labels. Launch suppresses binnacle, overrides power dial and multigraph. Key dock/undock activates/deactivates everything. These are not optional integrations.

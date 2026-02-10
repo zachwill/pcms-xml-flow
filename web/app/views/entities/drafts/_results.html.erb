@@ -43,7 +43,7 @@
           <table class="min-w-full text-xs border-collapse">
             <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
               <tr>
-                <th class="text-left px-2 py-2 font-medium sticky left-0 z-10 bg-muted/40 border-r border-border min-w-[4rem]">Team</th>
+                <th class="text-left px-2 py-2 font-medium sticky left-0 z-10 bg-muted/40 border-r border-border min-w-[4rem] relative before:absolute before:right-0 before:top-0 before:bottom-0 before:w-[6px] before:bg-gradient-to-r before:from-[rgba(0,0,0,0.08)] before:to-transparent">Team</th>
                 <th class="text-center px-1 py-2 font-medium min-w-[2rem]">Rd</th>
                 <% @grid_years.each do |year| %>
                   <th class="text-left px-2 py-2 font-medium font-mono tabular-nums min-w-[8rem]"><%= year %></th>
@@ -60,7 +60,7 @@
                     bg_class = team_idx.even? ? "bg-background" : "bg-muted/20"
                   %>
                   <tr class="group hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75 <%= border_class %> <%= bg_class %>">
-                    <td class="px-2 py-1 sticky left-0 z-10 border-r border-border <%= bg_class %> group-hover:bg-yellow-50/70 dark:group-hover:bg-yellow-900/10">
+                    <td class="px-2 py-1 sticky left-0 z-10 border-r border-border <%= bg_class %> group-hover:bg-yellow-50/70 dark:group-hover:bg-yellow-900/10 relative before:absolute before:right-0 before:top-0 before:bottom-0 before:w-[6px] before:bg-gradient-to-r before:from-[rgba(0,0,0,0.08)] before:to-transparent">
                       <% if is_first_round_row %>
                         <div class="entity-cell-two-line">
                           <div class="text-[11px] font-medium">

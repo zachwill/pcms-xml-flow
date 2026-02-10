@@ -9,7 +9,7 @@
     </div>
 
     <div class="h-8 flex items-center border-b border-border bg-background text-[10px] uppercase tracking-wide font-medium text-muted-foreground/90 select-none cursor-default">
-      <div class="w-36 shrink-0 pl-4 sticky left-0 z-[2] bg-background relative after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/60">Season</div>
+      <div class="w-36 shrink-0 pl-4 sticky left-0 z-[2] bg-background relative before:absolute before:right-0 before:top-0 before:bottom-0 before:w-[6px] before:bg-gradient-to-r before:from-[rgba(0,0,0,0.08)] before:to-transparent after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/60">Season</div>
       <div class="w-24 shrink-0 text-right pr-3">YOS</div>
       <div class="w-40 shrink-0 text-right pr-3">Minimum Salary</div>
     </div>
@@ -25,7 +25,7 @@
         <% sticky_bg = highlighted ? "bg-yellow-100/70 dark:bg-yellow-900/20 group-hover:bg-yellow-100/70 dark:group-hover:bg-yellow-900/20" : "bg-background group-hover:bg-yellow-50/70 dark:group-hover:bg-yellow-900/10" %>
 
         <div class="group flex items-stretch text-xs transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 <%= row_bg %>">
-          <div class="w-36 shrink-0 px-4 py-1.5 sticky left-0 z-20 relative transition-colors duration-75 <%= sticky_bg %> after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/50">
+          <div class="w-36 shrink-0 px-4 py-1.5 sticky left-0 z-20 relative transition-colors duration-75 <%= sticky_bg %> before:absolute before:right-0 before:top-0 before:bottom-0 before:w-[6px] before:bg-gradient-to-r before:from-[rgba(0,0,0,0.08)] before:to-transparent after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/50">
             <div class="entity-cell-two-line">
               <div class="entity-cell-primary font-mono tabular-nums"><%= format_year_label(row["salary_year"].to_i) %></div>
               <div class="entity-cell-secondary"><%= highlighted ? "selected season" : "minimum scale" %></div>

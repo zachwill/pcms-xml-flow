@@ -73,6 +73,14 @@ Rules:
 - Sticky headers inside that scroll owner should use `top-0`.
 - Main canvas and sidebar may scroll independently, but avoid nested accidental scroll owners inside the main surface.
 
+#### Right panel layering contract (Pattern A)
+
+For tool sidebars (Salary Book is the reference):
+- `#rightpanel-base-layer` is the scrolling underlay wrapper. Do not patch this directly.
+- `#rightpanel-base` is the base context patch target (team/system home context).
+- `#rightpanel-overlay` is the drill-in patch target (player/agent/pick detail).
+- Closing overlay means returning an empty `#rightpanel-overlay` shell; base remains mounted underneath.
+
 ### Pattern B — Document-scroll page
 
 Use when the page is lightweight and document scroll is intentional.
@@ -173,8 +181,16 @@ Use this for numeric/financial columns.
 
 ### 3) Row container + hover (universal)
 
+Default shared hover:
+
 ```erb
 <div class="group cursor-pointer transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+```
+
+Dense Salary Book surfaces may use a stronger dark hover:
+
+```erb
+<div class="group cursor-pointer transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/25">
 ```
 
 For `<tr>` rows:
@@ -183,7 +199,7 @@ For `<tr>` rows:
 <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
 ```
 
-If a column is sticky-left, it must carry matching `group-hover:` background classes.
+If a column is sticky-left, it must carry matching `group-hover:` background classes. Keep hover intensity consistent across the same surface.
 
 ---
 
@@ -230,7 +246,7 @@ Common text sizes:
 - [ ] Main content is edge-to-edge (no max-width centering).
 - [ ] Identity rows use double-row grid pattern.
 - [ ] Numeric/data cells use `entity-cell-two-line` where appropriate.
-- [ ] Row hover uses yellow hover class.
+- [ ] Row hover uses yellow hover class (and consistent dark hover intensity for that surface).
 - [ ] Financial numbers use `font-mono tabular-nums`.
 - [ ] Sticky headers use `top-0` inside scrolling `<main>`; use `top-[130px]` only in document-scroll shells.
 - [ ] Dark mode variants are present for custom color overrides.

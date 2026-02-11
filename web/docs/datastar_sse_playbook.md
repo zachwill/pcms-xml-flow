@@ -107,6 +107,25 @@ data: elements </div>
 
 Note: Salary Book **does not use an SSE bootstrap**. The initial team is server-rendered on page load (`SalaryBookController#show`). SSE is only used for subsequent team switches.
 
+## Salary Book endpoint patch map (current)
+
+| Endpoint | Response type | Primary patch target(s) |
+|---|---|---|
+| `GET /tools/salary-book/sse/switch-team` | `text/event-stream` | `#salarybook-team-frame`, `#rightpanel-base` |
+| `GET /tools/salary-book/sidebar/team?team=...&year=...` | `text/html` | `#rightpanel-base` |
+| `GET /tools/salary-book/sidebar/team/cap?team=...&year=...` | `text/html` | `#sidebar-team-tab-cap` |
+| `GET /tools/salary-book/sidebar/team/draft?team=...&year=...` | `text/html` | `#sidebar-team-tab-draft` |
+| `GET /tools/salary-book/sidebar/team/rights?team=...` | `text/html` | `#sidebar-team-tab-rights` |
+| `GET /tools/salary-book/sidebar/player/:id` | `text/html` | `#rightpanel-overlay` |
+| `GET /tools/salary-book/sidebar/agent/:id` | `text/html` | `#rightpanel-overlay` |
+| `GET /tools/salary-book/sidebar/pick?...` | `text/html` | `#rightpanel-overlay` |
+| `GET /tools/salary-book/sidebar/clear` | `text/html` | empty `#rightpanel-overlay` |
+
+Lazy-tab notes:
+- Cap/Draft/Rights tab content is patched as single-region HTML (not SSE).
+- Team-cap hover/year refresh runs from a dedicated loader element (`#salarybook-sidebar-loader`), separate from the root team-switch trigger.
+- Keep heavy fetches on dedicated elements so Datastar `requestCancellation: auto` does not cross-cancel unrelated requests.
+
 ## Entity page bootstrap pattern (text/html, not SSE)
 
 Entity pages (players, teams) use a simpler pattern than the Salary Book:

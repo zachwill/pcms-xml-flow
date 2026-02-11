@@ -130,17 +130,17 @@
           <span class="tabular-nums text-sm font-medium <%= cap_space_color %>"><%= cap_space_display %></span>
         </div>
 
-        <div class="flex justify-between items-baseline py-1.5" data-show="$displaytaxaprons">
+        <div class="flex justify-between items-baseline py-1.5">
           <span class="text-sm text-muted-foreground">Room Under Tax</span>
           <span class="tabular-nums text-sm font-medium <%= room_under_color.call(room_tax) %>"><%= room_tax ? format_room_amount(room_tax) : "—" %></span>
         </div>
 
-        <div class="flex justify-between items-baseline py-1.5" data-show="$displaytaxaprons">
+        <div class="flex justify-between items-baseline py-1.5">
           <span class="text-sm text-muted-foreground">Room Under 1st Apron</span>
           <span class="tabular-nums text-sm font-medium <%= room_under_color.call(room_a1) %>"><%= room_a1 ? format_room_amount(room_a1) : "—" %></span>
         </div>
 
-        <div class="flex justify-between items-baseline py-1.5" data-show="$displaytaxaprons">
+        <div class="flex justify-between items-baseline py-1.5">
           <span class="text-sm text-muted-foreground">Room Under 2nd Apron</span>
           <span class="tabular-nums text-sm font-medium <%= room_under_color.call(room_a2) %>"><%= room_a2 ? format_room_amount(room_a2) : "—" %></span>
         </div>
@@ -161,7 +161,7 @@
               <th class="text-left px-2 py-1.5 font-medium">Year</th>
               <th class="text-right px-2 py-1.5 font-medium">Roster Cost</th>
               <th class="text-right px-2 py-1.5 font-medium">Cap Space</th>
-              <th class="text-right px-2 py-1.5 font-medium" data-show="$displaytaxaprons">Tax Status</th>
+              <th class="text-right px-2 py-1.5 font-medium">Tax Status</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border/50">
@@ -177,7 +177,7 @@
                 <td class="px-2 py-1.5 tabular-nums"><%= format_year_label(ledger_year) %></td>
                 <td class="px-2 py-1.5 text-right tabular-nums"><%= ledger_cap_total ? format_compact_currency(ledger_cap_total) : "—" %></td>
                 <td class="px-2 py-1.5 text-right tabular-nums <%= ledger_cap_space_class %>"><%= ledger_cap_space ? format_room_amount(ledger_cap_space) : "—" %></td>
-                <td class="px-2 py-1.5 text-right" data-show="$displaytaxaprons">
+                <td class="px-2 py-1.5 text-right">
                   <div class="flex flex-col items-end leading-tight">
                     <span class="inline-flex px-1.5 py-px rounded text-[10px] font-medium leading-none <%= status_badge_class_for.call(ledger_status[:label]) %>"><%= ledger_status_label %></span>
                     <span class="tabular-nums text-[10px] <%= status_value_class_for.call(ledger_status[:variant]) %>"><%= ledger_status[:value] %></span>

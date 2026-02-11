@@ -135,7 +135,7 @@
               <% end %>
             </div>
 
-            <div class="w-24 shrink-0 flex justify-center" data-show="$displaytaxaprons">
+            <div class="w-24 shrink-0 flex justify-center">
               <% salary_years.each do |kpi_year| %>
                 <% summary = team_summaries[kpi_year] || {} %>
                 <% room_tax = summary["room_under_tax"] %>
@@ -151,7 +151,7 @@
               <% end %>
             </div>
 
-            <div class="w-24 shrink-0 flex justify-center" data-show="$displaytaxaprons">
+            <div class="w-24 shrink-0 flex justify-center">
               <% salary_years.each do |kpi_year| %>
                 <% summary = team_summaries[kpi_year] || {} %>
                 <% room_a1 = summary["room_under_first_apron"] %>
@@ -167,7 +167,7 @@
               <% end %>
             </div>
 
-            <div class="w-24 shrink-0 flex justify-center" data-show="$displaytaxaprons">
+            <div class="w-24 shrink-0 flex justify-center">
               <% salary_years.each do |kpi_year| %>
                 <% summary = team_summaries[kpi_year] || {} %>
                 <% room_a2 = summary["room_under_second_apron"] %>
@@ -227,23 +227,21 @@
           <div class="h-24 flex items-center justify-center text-muted-foreground text-sm">No players</div>
         <% end %>
 
-        <%# Supplementary rows (Display filters) %>
+        <%# Supplementary rows (display toggles + always-on sections) %>
 
         <div data-show="$displaycapholds">
           <% if cap_holds.any? %>
             <%= render partial: "tools/salary_book/cap_holds_section", locals: { cap_holds: cap_holds, salary_years: salary_years } %>
           <% else %>
-            <%= render partial: "tools/salary_book/placeholder_section_row", locals: { label: "Cap Hold UFA", salary_years: salary_years } %>
+            <%= render partial: "tools/salary_book/placeholder_section_row", locals: { label: "FA Cap Holds", salary_years: salary_years } %>
           <% end %>
         </div>
 
-        <div data-show="$displayexceptions">
-          <% if exceptions.any? %>
-            <%= render partial: "tools/salary_book/exceptions_section", locals: { exceptions: exceptions } %>
-          <% else %>
-            <%= render partial: "tools/salary_book/placeholder_section_row", locals: { label: "Exceptions", salary_years: salary_years } %>
-          <% end %>
-        </div>
+        <% if exceptions.any? %>
+          <%= render partial: "tools/salary_book/exceptions_section", locals: { exceptions: exceptions } %>
+        <% else %>
+          <%= render partial: "tools/salary_book/placeholder_section_row", locals: { label: "Exceptions", salary_years: salary_years } %>
+        <% end %>
 
         <div data-show="$displaydeadmoney">
           <% if dead_money.any? %>
@@ -253,13 +251,11 @@
           <% end %>
         </div>
 
-        <div data-show="$displaydraftpicks">
-          <% if picks.any? %>
-            <%= render partial: "tools/salary_book/draft_assets_section", locals: { picks: picks, salary_years: salary_years } %>
-          <% else %>
-            <%= render partial: "tools/salary_book/placeholder_section_row", locals: { label: "Draft Assets", salary_years: salary_years } %>
-          <% end %>
-        </div>
+        <% if picks.any? %>
+          <%= render partial: "tools/salary_book/draft_assets_section", locals: { picks: picks, salary_years: salary_years } %>
+        <% else %>
+          <%= render partial: "tools/salary_book/placeholder_section_row", locals: { label: "Draft Assets", salary_years: salary_years } %>
+        <% end %>
 
         <%= render partial: "tools/salary_book/totals_footer", locals: {
           team_summaries: team_summaries,

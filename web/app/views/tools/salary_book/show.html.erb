@@ -24,17 +24,12 @@
     sidebardraftyearloaded: '',
     sidebarrightsloaded: false,
     displaycapholds: false,
-    displayexceptions: true,
-    displaydraftpicks: true,
     displaydeadmoney: false,
     displayepm: false,
     displayplayercapholds: false,
-    displaytaxaprons: true,
     displaycashvscap: false,
     displayluxurytax: false,
-    displayoptions: true,
-    displayincentives: true,
-    displaytwoway: true
+    displayincentives: true
   }"
 >
   <div id="flash"></div>
@@ -175,7 +170,7 @@
           </div>
         </div>
 
-        <div class="min-w-[5.75rem] space-y-1">
+        <div class="min-w-[6.5rem] space-y-1">
           <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Display</div>
           <div class="space-y-1">
             <div class="flex items-center gap-1.5">
@@ -191,22 +186,22 @@
             <div class="flex items-center gap-1.5">
               <input
                 type="checkbox"
-                id="filter-draftpicks"
+                id="filter-capholds"
                 class="size-3.5 accent-primary"
-                data-bind="displaydraftpicks"
+                data-bind="displaycapholds"
                 data-on:change="window.__salaryBookPreserveContext?.()"
               />
-              <label for="filter-draftpicks" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Draft Picks</label>
+              <label for="filter-capholds" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">FA Cap Holds</label>
             </div>
             <div class="flex items-center gap-1.5">
               <input
                 type="checkbox"
-                id="filter-exceptions"
+                id="filter-incentives"
                 class="size-3.5 accent-primary"
-                data-bind="displayexceptions"
+                data-bind="displayincentives"
                 data-on:change="window.__salaryBookPreserveContext?.()"
               />
-              <label for="filter-exceptions" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Exceptions</label>
+              <label for="filter-incentives" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Incentives</label>
             </div>
           </div>
         </div>
@@ -214,16 +209,6 @@
         <div class="min-w-[6.5rem] space-y-1">
           <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Financials</div>
           <div class="space-y-1">
-            <div class="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                id="filter-taxaprons"
-                class="size-3.5 accent-primary"
-                data-bind="displaytaxaprons"
-                data-on:change="window.__salaryBookPreserveContext?.()"
-              />
-              <label for="filter-taxaprons" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Aprons</label>
-            </div>
             <div class="flex items-center gap-1.5">
               <input
                 type="checkbox"
@@ -247,51 +232,6 @@
           </div>
         </div>
 
-        <div class="min-w-[6.5rem] space-y-1">
-          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Contracts</div>
-          <div class="space-y-1">
-            <div class="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                id="filter-capholds"
-                class="size-3.5 accent-primary"
-                data-bind="displaycapholds"
-                data-on:change="window.__salaryBookPreserveContext?.()"
-              />
-              <label for="filter-capholds" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Cap Hold UFA</label>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                id="filter-options"
-                class="size-3.5 accent-primary"
-                data-bind="displayoptions"
-                data-on:change="window.__salaryBookPreserveContext?.()"
-              />
-              <label for="filter-options" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Options</label>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                id="filter-incentives"
-                class="size-3.5 accent-primary"
-                data-bind="displayincentives"
-                data-on:change="window.__salaryBookPreserveContext?.()"
-              />
-              <label for="filter-incentives" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Incentives</label>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                id="filter-twoway"
-                class="size-3.5 accent-primary"
-                data-bind="displaytwoway"
-                data-on:change="window.__salaryBookPreserveContext?.()"
-              />
-              <label for="filter-twoway" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Two-Ways</label>
-            </div>
-          </div>
-        </div>
       </div>
     <% else %>
       <div class="text-sm text-muted-foreground">No teams.</div>

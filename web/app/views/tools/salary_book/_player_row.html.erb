@@ -8,7 +8,6 @@
 <% player_id = player["player_id"] %>
 <% player_name = player["player_name"] %>
 <% salary_years ||= SalaryBookHelper::SALARY_YEARS %>
-<% is_two_way = player["is_two_way"] %>
 <% epm_value = player["epm_value"] %>
 <% epm_percentile = player["epm_percentile"] %>
 <% epm_percentile_label = format_percentile_label(epm_percentile) %>
@@ -23,7 +22,6 @@
   tabindex="0"
   data-on:click="@get('<%= tools_salary_book_sidebar_player_path(id: player_id) %>')"
   data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); @get('<%= tools_salary_book_sidebar_player_path(id: player_id) %>') }"
-  <% if is_two_way %>data-show="$displaytwoway"<% end %>
 >
   <div class="flex">
     <%# Sticky Player column (Headshot + Name + Details) %>

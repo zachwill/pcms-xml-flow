@@ -104,6 +104,15 @@ def parse_bool(value):
     return None
 
 
+def empty_to_none(value):
+    if value is None:
+        return None
+    if isinstance(value, str):
+        text = value.strip()
+        return text if text != "" else None
+    return value
+
+
 def parse_coach_is_assistant(assistant_role_code: int | None, coach_type: str | None) -> bool | None:
     if coach_type:
         lowered = str(coach_type).strip().lower()
@@ -471,12 +480,12 @@ def main(
                 {
                     "nba_id": nba_id,
                     "team_id": team_id,
-                    "injury_status": player.get("injuryStatus"),
-                    "injury_type": player.get("injuryType"),
-                    "injury_location": player.get("injuryLocation"),
-                    "injury_details": player.get("injuryDetails"),
-                    "injury_side": player.get("injurySide"),
-                    "return_date": player.get("returnDate"),
+                    "injury_status": empty_to_none(player.get("injuryStatus")),
+                    "injury_type": empty_to_none(player.get("injuryType")),
+                    "injury_location": empty_to_none(player.get("injuryLocation")),
+                    "injury_details": empty_to_none(player.get("injuryDetails")),
+                    "injury_side": empty_to_none(player.get("injurySide")),
+                    "return_date": empty_to_none(player.get("returnDate")),
                     "created_at": fetched_at,
                     "updated_at": fetched_at,
                     "fetched_at": fetched_at,

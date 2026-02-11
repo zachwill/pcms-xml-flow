@@ -27,7 +27,8 @@ SHOT_CHART_PER_MODE = "Totals"
 SHOT_CHART_SUM_SCOPE = "Event"
 SHOT_CHART_GROUPING = "None"
 SHOT_CHART_TEAM_GROUPING = "Y"
-SHOT_CHART_MAX_ROWS = 5000
+SHOT_CHART_MAX_ROWS = 10000
+SHOT_CHART_BATCH_SIZE = 50  # ~180 shots/game × 50 = ~9000, safely under 10k API limit
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -400,6 +401,7 @@ LINEUP_STAT_MAP = {
     "G": "gp",
     "GAMES_PLAYED": "gp",
     "MIN": "minutes",
+    "MIN_PG": "minutes",
     "MINUTES": "minutes",
     "OFF_RATING": "off_rating",
     "OFFRTG": "off_rating",
@@ -562,11 +564,17 @@ def parse_minutes_interval(value: str | None):
 def normalize_lineup_stat_key(key: str) -> str:
     if not key:
         return ""
+
     normalized = key.upper()
+    if normalized in LINEUP_STAT_MAP:
+        return normalized
+
     for prefix in LINEUP_STAT_PREFIXES:
         if normalized.startswith(prefix):
-            normalized = normalized[len(prefix):]
-            break
+            candidate = normalized[len(prefix):]
+            if candidate in LINEUP_STAT_MAP:
+                return candidate
+
     return normalized
 
 
@@ -768,12 +776,28 @@ def main(
             # --- Season lineups ---
             try:
                 if season_label_value:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            """
+                            SELECT team_id
+                            FROM nba.teams
+                            WHERE league_id = %s
+                              AND COALESCE(is_active, true) = true
+                            ORDER BY team_id
+                            """,
+                            (league_id,),
+                        )
+                        lineup_team_ids = [row[0] for row in cur.fetchall() if row and row[0] is not None]
+
+                    if not lineup_team_ids:
+                        section_errors.append("lineup_season: no active teams found; falling back to league-wide query")
+
+                    team_filters: list[int | None] = lineup_team_ids or [None]
+
                     for per_mode in LINEUP_PER_MODES:
                         for measure_type in LINEUP_MEASURE_TYPES:
-                            payload = request_json(
-                                client,
-                                "/season/lineups",
-                                {
+                            for team_filter in team_filters:
+                                params = {
                                     "LeagueId": league_id,
                                     "SeasonYear": season_label_value,
                                     "SeasonType": season_type,
@@ -782,42 +806,49 @@ def main(
                                     "MeasureType": measure_type,
                                     "LineupQuantity": LINEUP_QUANTITY,
                                     "MaxRowsReturned": LINEUP_MAX_ROWS,
-                                },
-                                base_url=QUERY_TOOL_URL,
-                            )
-                            lineups = payload.get("lineups") or []
-                            for lineup in lineups:
-                                player_ids = extract_lineup_player_ids(lineup)
-                                if not player_ids:
-                                    continue
-                                team_id = parse_int(lineup.get("teamId"))
-                                if team_id is None:
-                                    continue
-                                season_label_lineup = lineup.get("seasonYear") or season_label_value
-                                season_year_lineup = parse_season_year(season_label_lineup) or season_year
-                                row = {
-                                    "league_id": lineup.get("leagueId") or league_id,
-                                    "season_year": season_year_lineup,
-                                    "season_label": season_label_lineup,
-                                    "season_type": lineup.get("seasonType") or season_type,
-                                    "team_id": team_id,
-                                    "player_ids": player_ids,
-                                    "per_mode": per_mode,
-                                    "measure_type": measure_type,
-                                    "created_at": fetched_at,
-                                    "updated_at": fetched_at,
-                                    "fetched_at": fetched_at,
                                 }
-                                for column in LINEUP_STAT_COLUMNS:
-                                    row[column] = None
-                                row.update(map_lineup_stats(lineup.get("stats") or {}))
-                                lineup_season_rows.append(row)
+                                if team_filter is not None:
+                                    params["TeamId"] = str(team_filter)
+
+                                payload = request_json(
+                                    client,
+                                    "/season/lineups",
+                                    params,
+                                    base_url=QUERY_TOOL_URL,
+                                )
+                                lineups = payload.get("lineups") or []
+                                for lineup in lineups:
+                                    player_ids = extract_lineup_player_ids(lineup)
+                                    if not player_ids:
+                                        continue
+                                    team_id = parse_int(lineup.get("teamId"))
+                                    if team_id is None:
+                                        continue
+                                    season_label_lineup = lineup.get("seasonYear") or season_label_value
+                                    season_year_lineup = parse_season_year(season_label_lineup) or season_year
+                                    row = {
+                                        "league_id": lineup.get("leagueId") or league_id,
+                                        "season_year": season_year_lineup,
+                                        "season_label": season_label_lineup,
+                                        "season_type": lineup.get("seasonType") or season_type,
+                                        "team_id": team_id,
+                                        "player_ids": player_ids,
+                                        "per_mode": per_mode,
+                                        "measure_type": measure_type,
+                                        "created_at": fetched_at,
+                                        "updated_at": fetched_at,
+                                        "fetched_at": fetched_at,
+                                    }
+                                    for column in LINEUP_STAT_COLUMNS:
+                                        row[column] = None
+                                    row.update(map_lineup_stats(lineup.get("stats") or {}))
+                                    lineup_season_rows.append(row)
             except Exception as exc:
                 section_errors.append(f"lineup_season: {exc}")
 
-            # --- Per-game lineups + shot chart ---
+            # --- Per-game lineups ---
             if season_label_value and game_list:
-                games_with_errors: list[str] = []
+                games_with_lineup_errors: list[str] = []
                 for game_id_value in game_list:
                     try:
                         for measure_type in LINEUP_MEASURE_TYPES:
@@ -864,8 +895,18 @@ def main(
                                     row[column] = None
                                 row.update(map_lineup_stats(lineup.get("stats") or {}))
                                 lineup_game_rows.append(row)
+                    except Exception as exc:
+                        games_with_lineup_errors.append(game_id_value)
+                        section_errors.append(f"game_lineup {game_id_value}: {exc}")
+                if games_with_lineup_errors:
+                    section_errors.append(f"game_lineup_errors_total: {len(games_with_lineup_errors)} games failed")
 
-                        # Shot chart (FieldGoals via Query Tool event/player)
+            # --- Shot chart (batched — up to 50 games per API call) ---
+            try:
+                if season_label_value and game_list:
+                    shot_fetched_at = now_utc()
+                    for batch_start in range(0, len(game_list), SHOT_CHART_BATCH_SIZE):
+                        batch = game_list[batch_start:batch_start + SHOT_CHART_BATCH_SIZE]
                         shot_params = {
                             "LeagueId": league_id,
                             "SeasonYear": season_label_value,
@@ -875,7 +916,7 @@ def main(
                             "Grouping": SHOT_CHART_GROUPING,
                             "TeamGrouping": SHOT_CHART_TEAM_GROUPING,
                             "EventType": "FieldGoals",
-                            "GameId": game_id_value,
+                            "GameId": ",".join(batch),
                             "MaxRowsReturned": SHOT_CHART_MAX_ROWS,
                         }
                         shot_payload = request_json(
@@ -901,7 +942,7 @@ def main(
                                 assisted_name = None
                             shot_chart_rows.append(
                                 {
-                                    "game_id": player.get("gameId") or game_id_value,
+                                    "game_id": player.get("gameId"),
                                     "event_number": event_num,
                                     "nba_id": parse_int(player.get("playerId")),
                                     "team_id": team_id_shot,
@@ -923,16 +964,13 @@ def main(
                                     "season_year": parse_season_year(season_label_shot),
                                     "season_label": season_label_shot,
                                     "season_type": player.get("seasonType") or season_type,
-                                    "created_at": fetched_at,
-                                    "updated_at": fetched_at,
-                                    "fetched_at": fetched_at,
+                                    "created_at": shot_fetched_at,
+                                    "updated_at": shot_fetched_at,
+                                    "fetched_at": shot_fetched_at,
                                 }
                             )
-                    except Exception as exc:
-                        games_with_errors.append(game_id_value)
-                        section_errors.append(f"game {game_id_value}: {exc}")
-                if games_with_errors:
-                    section_errors.append(f"game_errors_total: {len(games_with_errors)} games failed")
+            except Exception as exc:
+                section_errors.append(f"shot_chart: {exc}")
 
         player_rows = list(player_rows_by_key.values())
         team_rows = list(team_rows_by_key.values())

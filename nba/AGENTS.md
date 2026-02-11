@@ -24,6 +24,7 @@ Given recent schema evolution, treat these as canonical:
 ## Directory Map
 
 - `nba/api/` — API specs/reference docs for official NBA + NGSS endpoints
+  - `nba/api/QUERY_TOOL_NOTES.md` — empirically discovered batching/limits patterns
 - `nba/samples/` — example payloads
 - `nba/inspiration/` — UI/reporting inspiration
 - `nba/migrations/` — SQL migrations for `nba.*` tables

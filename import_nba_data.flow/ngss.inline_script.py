@@ -414,12 +414,13 @@ def build_official_rows(
     rows: list[dict] = []
     for official in officials:
         person_id = get_field(official, "personId", "PersonId")
-        if person_id is None:
+        nba_id = parse_int(person_id)
+        if nba_id is None:
             continue
         rows.append(
             {
                 "game_id": game_id,
-                "ngss_official_id": str(person_id),
+                "nba_id": nba_id,
                 "first_name": get_field(official, "firstName", "FirstName"),
                 "last_name": get_field(official, "familyName", "FamilyName", "lastName", "LastName"),
                 "jersey_num": get_field(official, "jerseyNum", "JerseyNumber"),
@@ -652,7 +653,7 @@ def main(
                     conn,
                     "nba.ngss_officials",
                     official_rows,
-                    ["game_id", "ngss_official_id"],
+                    ["game_id", "nba_id"],
                     update_exclude=["created_at"],
                 )
 

@@ -37,3 +37,6 @@
 
 -- Luxury tax primitives
 \ir 055_luxury_tax_assertions.sql
+
+-- NBA shot chart
+\ir 070_nba_shot_chart_assertions.sql

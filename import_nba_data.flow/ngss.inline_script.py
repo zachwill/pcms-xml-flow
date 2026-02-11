@@ -327,19 +327,6 @@ def upsert(conn: psycopg.Connection, table: str, rows: list[dict], conflict_keys
     return len(rows)
 
 
-def load_nba_id_lookup(conn: psycopg.Connection) -> dict[str, int]:
-    lookup: dict[str, int] = {}
-    with conn.cursor() as cur:
-        cur.execute("SELECT nba_id, ngss_person_id FROM nba.players")
-        for nba_id, ngss_person_id in cur.fetchall():
-            if nba_id is None:
-                continue
-            lookup[str(nba_id)] = nba_id
-            if ngss_person_id:
-                lookup[str(ngss_person_id)] = nba_id
-    return lookup
-
-
 def extract_person_name(person: dict) -> tuple[str | None, str | None, str | None]:
     full_name = get_field(person, "name", "Name", "fullName", "FullName")
     first_name = get_field(person, "firstName", "FirstName")
@@ -352,30 +339,23 @@ def extract_person_name(person: dict) -> tuple[str | None, str | None, str | Non
 def build_roster_rows(
     team: dict,
     game_id: str,
-    ngss_game_id: str,
-    nba_id_lookup: dict[str, int],
     fetched_at: datetime,
 ) -> list[dict]:
     rows: list[dict] = []
     team_id_raw = get_field(team, "teamId", "TeamId")
     team_id = parse_int(team_id_raw)
-    ngss_team_id_str = str(team_id_raw) if team_id_raw is not None else None
 
     players = get_field(team, "players", "PlayersList") or []
     for player in players:
         person_id = get_field(player, "personId", "PersonId")
-        if person_id is None:
+        nba_id = parse_int(person_id)
+        if nba_id is None:
             continue
-        ngss_person_id = str(person_id)
-        nba_id = nba_id_lookup.get(ngss_person_id)
         full_name, first_name, family_name = extract_person_name(player)
         row = {
             "game_id": game_id,
-            "ngss_game_id": ngss_game_id,
             "team_id": parse_int(get_field(player, "teamId", "TeamId")) or team_id,
-            "ngss_team_id": ngss_team_id_str,
             "nba_id": nba_id,
-            "ngss_person_id": ngss_person_id,
             "full_name": full_name,
             "first_name": first_name,
             "family_name": family_name,
@@ -397,18 +377,14 @@ def build_roster_rows(
     staff_members = get_field(team, "staff", "StaffList") or []
     for staff in staff_members:
         person_id = get_field(staff, "personId", "PersonId")
-        if person_id is None:
+        nba_id = parse_int(person_id)
+        if nba_id is None:
             continue
-        ngss_person_id = str(person_id)
-        nba_id = nba_id_lookup.get(ngss_person_id)
         full_name, first_name, family_name = extract_person_name(staff)
         row = {
             "game_id": game_id,
-            "ngss_game_id": ngss_game_id,
             "team_id": team_id,
-            "ngss_team_id": ngss_team_id_str,
             "nba_id": nba_id,
-            "ngss_person_id": ngss_person_id,
             "full_name": full_name,
             "first_name": first_name,
             "family_name": family_name,
@@ -520,7 +496,6 @@ def main(
             game_list = [(gid, status) for gid, status in game_list if status in (None, 3)]
 
         fetched_at = now_utc()
-        nba_id_lookup = load_nba_id_lookup(conn)
 
         game_rows: list[dict] = []
         roster_rows: list[dict] = []
@@ -535,7 +510,6 @@ def main(
                 if not isinstance(game_payload, dict) or not game_payload:
                     continue
 
-                ngss_game_id = get_field(game_payload, "gameId", "GameId") or game_id_value
                 ruleset_response = request_json(
                     client,
                     f"/Games/{game_id_value}/ruleset",
@@ -547,7 +521,6 @@ def main(
                 game_rows.append(
                     {
                         "game_id": game_id_value,
-                        "ngss_game_id": ngss_game_id,
                         "league_code": get_field(game_payload, "leagueCode", "LeagueCode"),
                         "league_name": get_field(game_payload, "leagueName", "LeagueName"),
                         "season_id": get_field(game_payload, "seasonId", "SeasonId"),
@@ -598,8 +571,6 @@ def main(
                         build_roster_rows(
                             get_field(roster_payload, "homeTeam", "HomeTeam") or {},
                             game_id_value,
-                            ngss_game_id,
-                            nba_id_lookup,
                             fetched_at,
                         )
                     )
@@ -607,8 +578,6 @@ def main(
                         build_roster_rows(
                             get_field(roster_payload, "awayTeam", "AwayTeam") or {},
                             game_id_value,
-                            ngss_game_id,
-                            nba_id_lookup,
                             fetched_at,
                         )
                     )
@@ -633,7 +602,6 @@ def main(
                     boxscore_rows.append(
                         {
                             "game_id": game_id_value,
-                            "ngss_game_id": ngss_game_id,
                             "boxscore_json": Json(boxscore_payload),
                             "created_at": fetched_at,
                             "updated_at": fetched_at,
@@ -651,7 +619,6 @@ def main(
                     pbp_rows.append(
                         {
                             "game_id": game_id_value,
-                            "ngss_game_id": ngss_game_id,
                             "ngss_pbp_json": Json(pbp_payload),
                             "created_at": fetched_at,
                             "updated_at": fetched_at,
@@ -673,7 +640,7 @@ def main(
                     conn,
                     "nba.ngss_rosters",
                     roster_rows,
-                    ["ngss_game_id", "ngss_person_id"],
+                    ["game_id", "nba_id"],
                     update_exclude=["created_at"],
                 )
             if boxscore_rows:

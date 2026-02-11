@@ -128,6 +128,15 @@ def parse_minutes_interval(value: str | None):
     return round(minutes, 2)
 
 
+def empty_to_none(value):
+    if value is None:
+        return None
+    if isinstance(value, str):
+        value = value.strip()
+        return value if value != "" else None
+    return value
+
+
 def to_bool(value):
     if value is None:
         return None
@@ -362,16 +371,6 @@ ADVANCED_COLUMNS = {
     "efg_pct",
     "ts_pct",
     "usg_pct",
-    "e_off_rating",
-    "e_def_rating",
-    "e_net_rating",
-    "e_ast_ratio",
-    "e_oreb_pct",
-    "e_dreb_pct",
-    "e_reb_pct",
-    "e_tm_tov_pct",
-    "e_usg_pct",
-    "e_pace",
     "pace",
     "pace_per40",
     "poss",
@@ -477,6 +476,78 @@ HUSTLE_TEAM_MAP = {
     "FORCEDTOV": ("forced_turnovers", parse_int),
 }
 
+TRACKING_QUERYTOOL_COLUMNS = [
+    "shot",
+    "shot_transition_fga",
+    "shot_transition_fgm",
+    "shot_transition_fg_pct",
+    "shot_catch_and_shoot_fga",
+    "shot_catch_and_shoot_fgm",
+    "shot_catch_and_shoot_fg_pct",
+    "shot_catch_and_shoot_three_fga",
+    "shot_catch_and_shoot_three_fgm",
+    "shot_catch_and_shoot_three_fg_pct",
+    "shot_pull_up_fga",
+    "shot_pull_up_fgm",
+    "shot_pull_up_fg_pct",
+    "shot_trailing_three_fga",
+    "shot_trailing_three_fgm",
+    "shot_trailing_three_fg_pct",
+    "shot_tip_in_fga",
+    "shot_tip_in_fgm",
+    "shot_tip_in_fg_pct",
+    "shot_long_heave_fga",
+    "shot_long_heave_fgm",
+    "shot_long_heave_fg_pct",
+    "shot_after_screens_fga",
+    "shot_after_screens_fgm",
+    "shot_after_screens_fg_pct",
+    "shot_lob_fga",
+    "shot_lob_fgm",
+    "shot_lob_fg_pct",
+    "pass_ball_reversal",
+    "pass_bounce",
+    "pass_give_n_go",
+    "pass_hand_off",
+    "pass_inbound",
+    "pass_in_paint",
+    "pass_kick_out",
+    "pass_outlet",
+    "pass_pitch_ahead",
+    "pass_skip",
+    "pass_to_paint",
+    "pass_touch",
+    "post_up",
+    "post_up_rim",
+    "post_up_mid",
+    "post_up_extended",
+    "post_up_dribble_entry",
+    "post_up_pass_entry",
+    "drive",
+    "drive_blow_by",
+    "drive_traverse",
+    "iso",
+    "iso_foul",
+    "iso_tov",
+    "iso_shot",
+    "iso_pass",
+    "dribble",
+]
+
+TRACKING_QUERYTOOL_PCT_COLUMNS = {
+    "shot_transition_fg_pct",
+    "shot_catch_and_shoot_fg_pct",
+    "shot_catch_and_shoot_three_fg_pct",
+    "shot_pull_up_fg_pct",
+    "shot_trailing_three_fg_pct",
+    "shot_tip_in_fg_pct",
+    "shot_long_heave_fg_pct",
+    "shot_after_screens_fg_pct",
+    "shot_lob_fg_pct",
+}
+
+TRACKING_QUERYTOOL_INT_COLUMNS = set(TRACKING_QUERYTOOL_COLUMNS) - TRACKING_QUERYTOOL_PCT_COLUMNS
+
 TRACKING_COLUMNS = [
     "minutes",
     "dist_miles",
@@ -503,6 +574,7 @@ TRACKING_COLUMNS = [
     "dfgm",
     "dfga",
     "dfg_pct",
+    *TRACKING_QUERYTOOL_COLUMNS,
 ]
 
 TRACKING_INT_COLUMNS = {
@@ -519,6 +591,7 @@ TRACKING_INT_COLUMNS = {
     "fg2a",
     "dfgm",
     "dfga",
+    *TRACKING_QUERYTOOL_INT_COLUMNS,
 }
 
 TRACKING_PCT_COLUMNS = {
@@ -527,15 +600,7 @@ TRACKING_PCT_COLUMNS = {
     "fg_pct",
     "fg2_pct",
     "dfg_pct",
-}
-
-TRACKING_FLOAT_COLUMNS = {
-    "dist_miles",
-    "dist_miles_off",
-    "dist_miles_def",
-    "avg_speed",
-    "avg_speed_off",
-    "avg_speed_def",
+    *TRACKING_QUERYTOOL_PCT_COLUMNS,
 }
 
 TRACKING_KEY_MAP = {
@@ -595,6 +660,7 @@ TRACKING_KEY_MAP = {
     "defended_fg_m": "dfgm",
     "defended_fg_a": "dfga",
     "defended_fg_pct": "dfg_pct",
+    **{column: column for column in TRACKING_QUERYTOOL_COLUMNS},
 }
 
 
@@ -614,7 +680,6 @@ ADVANCED_KEY_ALIASES = {
 
 ADVANCED_PCT_NEEDS_NORMALIZE = {
     "tm_tov_pct",
-    "e_tm_tov_pct",
 }
 
 
@@ -681,8 +746,15 @@ def map_tracking_stats(stats: dict) -> dict:
             parsed = normalize_pct(value)
         else:
             parsed = parse_float(value)
-        if parsed is not None:
-            row[column] = parsed
+        if parsed is None:
+            continue
+
+        row[column] = parsed
+
+        # Query Tool currently emits PASS_TOUCH; keep the legacy touches column
+        # populated for downstream compatibility.
+        if column == "pass_touch" and row.get("touches") is None:
+            row["touches"] = parsed
     return row
 
 
@@ -900,12 +972,12 @@ def main(
                             "game_id": game_id_value,
                             "nba_id": player.get("personId"),
                             "team_id": team_id,
-                            "status": player.get("status"),
-                            "not_playing_reason": player.get("notPlayingReason"),
-                            "not_playing_description": player.get("notPlayingDescription"),
+                            "status": empty_to_none(player.get("status")),
+                            "not_playing_reason": empty_to_none(player.get("notPlayingReason")),
+                            "not_playing_description": empty_to_none(player.get("notPlayingDescription")),
                             "order_sequence": player.get("order"),
-                            "jersey_num": player.get("jerseyNum"),
-                            "position": player.get("position"),
+                            "jersey_num": empty_to_none(player.get("jerseyNum")),
+                            "position": empty_to_none(player.get("position")),
                             "is_starter": to_bool(player.get("starter")),
                             "is_on_court": to_bool(player.get("oncourt")),
                             "played": to_bool(player.get("played")),
@@ -1039,7 +1111,10 @@ def main(
                         }
                         for column in TRACKING_COLUMNS:
                             row[column] = None
-                        row.update(map_tracking_stats(player.get("stats") or {}))
+
+                        raw_tracking_stats = player.get("stats") or {}
+                        row["tracking_stats_json"] = Json(raw_tracking_stats) if raw_tracking_stats else None
+                        row.update(map_tracking_stats(raw_tracking_stats))
                         tracking_rows.append(row)
 
         inserted_players = 0

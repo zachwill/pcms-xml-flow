@@ -122,7 +122,6 @@ def main(
                 "roster_season_id": season_calendar.get("rosterSeasonId"),
                 "schedule_season_id": season_calendar.get("scheduleSeasonId"),
                 "standings_season_id": season_calendar.get("standingsSeasonId"),
-                "ngss_season_id": None,
                 "weeks_json": Json(weeks_json) if weeks_json is not None else None,
                 "full_schedule_json": Json(full_schedule) if full_schedule is not None else None,
                 "broadcasters_json": Json(broadcasters) if broadcasters is not None else None,

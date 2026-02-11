@@ -142,7 +142,6 @@ def main(
                     "draft_flag": None,
                     "greatest_75_flag": None,
                     "roster_status": str(roster_status) if roster_status is not None else None,
-                    "ngss_person_id": None,
                     "created_at": fetched_at,
                     "updated_at": fetched_at,
                     "fetched_at": fetched_at,

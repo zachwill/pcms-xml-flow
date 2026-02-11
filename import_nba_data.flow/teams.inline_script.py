@@ -112,7 +112,6 @@ def main(
                     "arena_state": team.get("arenaState"),
                     "arena_timezone": team.get("arenaTimezone"),
                     "is_active": True,
-                    "ngss_team_id": None,
                     "created_at": fetched_at,
                     "updated_at": fetched_at,
                     "fetched_at": fetched_at,

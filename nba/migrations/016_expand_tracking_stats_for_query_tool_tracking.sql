@@ -1,0 +1,67 @@
+-- Query Tool tracking payloads now return SHOT_*/PASS_*/DRIVE/ISO-style metrics.
+--
+-- Keep legacy columns in place, and add the currently emitted metric columns plus
+-- a raw JSONB payload for forward-compatibility.
+
+ALTER TABLE IF EXISTS nba.tracking_stats
+    ADD COLUMN IF NOT EXISTS shot integer,
+    ADD COLUMN IF NOT EXISTS shot_transition_fga integer,
+    ADD COLUMN IF NOT EXISTS shot_transition_fgm integer,
+    ADD COLUMN IF NOT EXISTS shot_transition_fg_pct numeric(6,4),
+    ADD COLUMN IF NOT EXISTS shot_catch_and_shoot_fga integer,
+    ADD COLUMN IF NOT EXISTS shot_catch_and_shoot_fgm integer,
+    ADD COLUMN IF NOT EXISTS shot_catch_and_shoot_fg_pct numeric(6,4),
+    ADD COLUMN IF NOT EXISTS shot_catch_and_shoot_three_fga integer,
+    ADD COLUMN IF NOT EXISTS shot_catch_and_shoot_three_fgm integer,
+    ADD COLUMN IF NOT EXISTS shot_catch_and_shoot_three_fg_pct numeric(6,4),
+    ADD COLUMN IF NOT EXISTS shot_pull_up_fga integer,
+    ADD COLUMN IF NOT EXISTS shot_pull_up_fgm integer,
+    ADD COLUMN IF NOT EXISTS shot_pull_up_fg_pct numeric(6,4),
+    ADD COLUMN IF NOT EXISTS shot_trailing_three_fga integer,
+    ADD COLUMN IF NOT EXISTS shot_trailing_three_fgm integer,
+    ADD COLUMN IF NOT EXISTS shot_trailing_three_fg_pct numeric(6,4),
+    ADD COLUMN IF NOT EXISTS shot_tip_in_fga integer,
+    ADD COLUMN IF NOT EXISTS shot_tip_in_fgm integer,
+    ADD COLUMN IF NOT EXISTS shot_tip_in_fg_pct numeric(6,4),
+    ADD COLUMN IF NOT EXISTS shot_long_heave_fga integer,
+    ADD COLUMN IF NOT EXISTS shot_long_heave_fgm integer,
+    ADD COLUMN IF NOT EXISTS shot_long_heave_fg_pct numeric(6,4),
+    ADD COLUMN IF NOT EXISTS shot_after_screens_fga integer,
+    ADD COLUMN IF NOT EXISTS shot_after_screens_fgm integer,
+    ADD COLUMN IF NOT EXISTS shot_after_screens_fg_pct numeric(6,4),
+    ADD COLUMN IF NOT EXISTS shot_lob_fga integer,
+    ADD COLUMN IF NOT EXISTS shot_lob_fgm integer,
+    ADD COLUMN IF NOT EXISTS shot_lob_fg_pct numeric(6,4),
+    ADD COLUMN IF NOT EXISTS pass_ball_reversal integer,
+    ADD COLUMN IF NOT EXISTS pass_bounce integer,
+    ADD COLUMN IF NOT EXISTS pass_give_n_go integer,
+    ADD COLUMN IF NOT EXISTS pass_hand_off integer,
+    ADD COLUMN IF NOT EXISTS pass_inbound integer,
+    ADD COLUMN IF NOT EXISTS pass_in_paint integer,
+    ADD COLUMN IF NOT EXISTS pass_kick_out integer,
+    ADD COLUMN IF NOT EXISTS pass_outlet integer,
+    ADD COLUMN IF NOT EXISTS pass_pitch_ahead integer,
+    ADD COLUMN IF NOT EXISTS pass_skip integer,
+    ADD COLUMN IF NOT EXISTS pass_to_paint integer,
+    ADD COLUMN IF NOT EXISTS pass_touch integer,
+    ADD COLUMN IF NOT EXISTS post_up integer,
+    ADD COLUMN IF NOT EXISTS post_up_rim integer,
+    ADD COLUMN IF NOT EXISTS post_up_mid integer,
+    ADD COLUMN IF NOT EXISTS post_up_extended integer,
+    ADD COLUMN IF NOT EXISTS post_up_dribble_entry integer,
+    ADD COLUMN IF NOT EXISTS post_up_pass_entry integer,
+    ADD COLUMN IF NOT EXISTS drive integer,
+    ADD COLUMN IF NOT EXISTS drive_blow_by integer,
+    ADD COLUMN IF NOT EXISTS drive_traverse integer,
+    ADD COLUMN IF NOT EXISTS iso integer,
+    ADD COLUMN IF NOT EXISTS iso_foul integer,
+    ADD COLUMN IF NOT EXISTS iso_tov integer,
+    ADD COLUMN IF NOT EXISTS iso_shot integer,
+    ADD COLUMN IF NOT EXISTS iso_pass integer,
+    ADD COLUMN IF NOT EXISTS dribble integer,
+    ADD COLUMN IF NOT EXISTS tracking_stats_json jsonb;
+
+CREATE INDEX IF NOT EXISTS tracking_stats_json_gin ON nba.tracking_stats USING gin (tracking_stats_json);
+
+COMMENT ON COLUMN nba.tracking_stats.tracking_stats_json IS
+    'Raw stats payload from Query Tool /game/player MeasureType=Tracking.';

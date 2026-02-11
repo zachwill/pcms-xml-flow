@@ -5,6 +5,7 @@
 import hashlib
 import json
 import os
+import re
 import time
 from datetime import datetime, timezone, timedelta, date
 
@@ -99,6 +100,22 @@ def parse_bool(value):
     if text in {"1", "true", "t", "y", "yes"}:
         return True
     if text in {"0", "false", "f", "n", "no"}:
+        return False
+    return None
+
+
+def parse_coach_is_assistant(assistant_role_code: int | None, coach_type: str | None) -> bool | None:
+    if coach_type:
+        lowered = str(coach_type).strip().lower()
+        if "assistant" in lowered:
+            return True
+
+    if assistant_role_code is None:
+        return None
+
+    if assistant_role_code in {2, 4, 9, 12, 13}:
+        return True
+    if assistant_role_code in {1, 3, 5, 10, 15}:
         return False
     return None
 
@@ -216,12 +233,34 @@ def resolve_date_range(
 
 def extract_alerts(payload) -> list[dict]:
     if isinstance(payload, list):
-        return payload
+        return [item for item in payload if isinstance(item, dict)]
+
     if isinstance(payload, dict):
         for key in ["alerts", "topAlerts", "topNAlerts", "items", "alertList"]:
             value = payload.get(key)
             if isinstance(value, list):
-                return value
+                return [item for item in value if isinstance(item, dict)]
+
+        # Common shape for /api/alerts/topNAlerts:
+        # {"Alert1": {...}, "Alert2": {...}, ...}
+        keyed_alerts: list[tuple[int, str, dict]] = []
+        for key, value in payload.items():
+            if not (isinstance(key, str) and key.lower().startswith("alert") and isinstance(value, dict)):
+                continue
+            match = re.search(r"(\d+)$", key)
+            rank = int(match.group(1)) if match else 999
+            item = dict(value)
+            item.setdefault("_rank", rank)
+            keyed_alerts.append((rank, key, item))
+
+        if keyed_alerts:
+            keyed_alerts.sort(key=lambda row: (row[0], row[1]))
+            return [row[2] for row in keyed_alerts]
+
+        # Single-alert object fallback
+        if any(k in payload for k in ["alert", "alertType", "alertText"]):
+            return [payload]
+
     return []
 
 
@@ -233,6 +272,29 @@ def build_alert_id(alert: dict, game_id: str | None):
     return hashlib.sha1(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
 
+def infer_team_id_from_text(text: str | None, game_context: dict | None) -> int | None:
+    if not text or not game_context:
+        return None
+
+    text_upper = str(text).upper()
+    matches: list[tuple[int, int]] = []
+    for side in ["home", "away"]:
+        team_id = parse_int(game_context.get(f"{side}_team_id"))
+        tricode = game_context.get(f"{side}_team_tricode")
+        if team_id is None or not tricode:
+            continue
+
+        pattern = rf"\b{re.escape(str(tricode).upper())}\b"
+        found = re.search(pattern, text_upper)
+        if found:
+            matches.append((found.start(), team_id))
+
+    if not matches:
+        return None
+    matches.sort(key=lambda row: row[0])
+    return matches[0][1]
+
+
 def extract_storylines(payload: dict) -> list[dict]:
     storylines: list[dict] = []
     if not isinstance(payload, dict):
@@ -241,7 +303,19 @@ def extract_storylines(payload: dict) -> list[dict]:
     for key in ["homeTeamStorylines", "awayTeamStorylines", "storylines", "pregameStorylines"]:
         value = payload.get(key)
         if isinstance(value, list):
-            storylines.extend(value)
+            for item in value:
+                if isinstance(item, dict):
+                    storylines.append(item)
+                elif item is not None:
+                    storylines.append({"storylineText": str(item)})
+
+    stories = payload.get("stories")
+    if isinstance(stories, list):
+        for item in stories:
+            if isinstance(item, dict):
+                storylines.append(item)
+            elif item is not None:
+                storylines.append({"storylineText": str(item)})
 
     return storylines
 
@@ -336,6 +410,10 @@ def main(
                         coach_id = parse_int(coach.get("coachId"))
                         if coach_id is None:
                             continue
+
+                        assistant_role_code = parse_int(coach.get("isAssistant"))
+                        coach_type = coach.get("coachType")
+
                         roster_coach_rows.append(
                             {
                                 "league_id": payload.get("leagueId") or league_id,
@@ -347,8 +425,9 @@ def main(
                                 "team_tricode": payload.get("teamTricode") or payload.get("teamAbbreviation"),
                                 "coach_id": coach_id,
                                 "coach_name": coach.get("coachName"),
-                                "coach_type": coach.get("coachType"),
-                                "is_assistant": parse_int(coach.get("isAssistant")),
+                                "coach_type": coach_type,
+                                "assistant_role_code": assistant_role_code,
+                                "is_assistant": parse_coach_is_assistant(assistant_role_code, coach_type),
                                 "sort_sequence": parse_int(coach.get("sortSequence")),
                                 "coach_json": Json(coach),
                                 "created_at": fetched_at,
@@ -558,24 +637,61 @@ def main(
 
             game_list = [row[0] for row in game_rows]
 
+        game_context_by_id: dict[str, dict] = {}
+        if game_list:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT g.game_id,
+                           g.home_team_id,
+                           g.away_team_id,
+                           ht.team_tricode AS home_team_tricode,
+                           at.team_tricode AS away_team_tricode
+                    FROM nba.games g
+                    LEFT JOIN nba.teams ht ON ht.team_id = g.home_team_id
+                    LEFT JOIN nba.teams at ON at.team_id = g.away_team_id
+                    WHERE g.game_id = ANY(%s)
+                    """,
+                    (game_list,),
+                )
+                for game_id_value, home_team_id, away_team_id, home_team_tricode, away_team_tricode in cur.fetchall():
+                    game_context_by_id[str(game_id_value)] = {
+                        "home_team_id": home_team_id,
+                        "away_team_id": away_team_id,
+                        "home_team_tricode": home_team_tricode,
+                        "away_team_tricode": away_team_tricode,
+                    }
+
         alert_rows: list[dict] = []
         storyline_rows: list[dict] = []
         with httpx.Client(timeout=30) as client:
             for game_id_value in game_list:
+                game_context = game_context_by_id.get(str(game_id_value))
+
                 alerts_payload = request_json(
                     client,
                     "/api/alerts/topNAlerts",
                     {"gameId": game_id_value, "alertCount": 10},
                 )
                 for alert in extract_alerts(alerts_payload):
+                    alert_text = (
+                        alert.get("alertText")
+                        or alert.get("alert")
+                        or alert.get("text")
+                        or alert.get("description")
+                    )
+                    team_id = parse_int(alert.get("teamId") or alert.get("team_id"))
+                    if team_id is None:
+                        team_id = infer_team_id_from_text(alert_text, game_context)
+
                     alert_rows.append(
                         {
                             "alert_id": build_alert_id(alert, game_id_value),
-                            "game_id": alert.get("gameId") or game_id_value,
-                            "team_id": alert.get("teamId"),
+                            "game_id": str(alert.get("gameId") or game_id_value),
+                            "team_id": team_id,
                             "alert_type": alert.get("alertType") or alert.get("type"),
-                            "alert_text": alert.get("alertText") or alert.get("text") or alert.get("description"),
-                            "alert_priority": alert.get("alertPriority") or alert.get("priority"),
+                            "alert_text": alert_text,
+                            "alert_priority": parse_int(alert.get("alertPriority") or alert.get("priority") or alert.get("_rank")),
                             "alert_json": Json(alert),
                             "created_at": fetched_at,
                             "updated_at": fetched_at,
@@ -590,15 +706,22 @@ def main(
                 )
                 storylines = extract_storylines(story_payload)
                 for idx, storyline in enumerate(storylines, start=1):
-                    team_id = storyline.get("teamId") or storyline.get("team_id")
+                    storyline_text = storyline.get("storylineText") or storyline.get("text") or storyline.get("storyline")
+                    if not storyline_text:
+                        continue
+
+                    team_id = parse_int(storyline.get("teamId") or storyline.get("team_id"))
+                    if team_id is None:
+                        team_id = infer_team_id_from_text(storyline_text, game_context)
                     if team_id is None:
                         continue
+
                     storyline_rows.append(
                         {
-                            "game_id": game_id_value,
+                            "game_id": str(game_id_value),
                             "team_id": team_id,
-                            "storyline_text": storyline.get("storylineText") or storyline.get("text"),
-                            "storyline_order": storyline.get("storylineOrder") or idx,
+                            "storyline_text": storyline_text,
+                            "storyline_order": parse_int(storyline.get("storylineOrder")) or idx,
                             "storyline_json": Json(storyline),
                             "created_at": fetched_at,
                             "updated_at": fetched_at,

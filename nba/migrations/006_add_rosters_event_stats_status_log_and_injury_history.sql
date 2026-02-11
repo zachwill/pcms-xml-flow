@@ -1,8 +1,10 @@
 -- Add missing P0/P1 NBA ingestion tables:
 -- - Team rosters (players/coaches)
--- - Query Tool event-level stats (player/team/league)
 -- - Game data status log history
 -- - Injury history (alongside current nba.injuries snapshot)
+--
+-- NOTE: querytool_event_* tables that were originally here have been removed.
+-- Shot chart data is now in nba.shot_chart (see migration 012).
 
 CREATE TABLE IF NOT EXISTS nba.team_roster_players (
     league_id text NOT NULL,
@@ -58,121 +60,6 @@ CREATE TABLE IF NOT EXISTS nba.team_roster_coaches (
 
 CREATE INDEX IF NOT EXISTS team_roster_coaches_team_id_idx ON nba.team_roster_coaches (team_id);
 CREATE INDEX IF NOT EXISTS team_roster_coaches_season_idx ON nba.team_roster_coaches (season_year, season_label);
-
-CREATE TABLE IF NOT EXISTS nba.querytool_event_player (
-    query_hash text NOT NULL,
-    row_hash text NOT NULL,
-    league_id text,
-    season_year integer,
-    season_label text,
-    season_type text,
-    game_id text,
-    game_date date,
-    nba_id integer,
-    team_id integer,
-    team_name text,
-    team_tricode text,
-    opponent_name text,
-    event_number integer,
-    period integer,
-    game_clock numeric(10,3),
-    x integer,
-    y integer,
-    event_type text,
-    per_mode text,
-    sum_scope text,
-    query_grouping text,
-    team_grouping text,
-    stats_json jsonb,
-    row_json jsonb,
-    query_params_json jsonb,
-    first_seen_at timestamptz,
-    last_seen_at timestamptz,
-    created_at timestamptz,
-    updated_at timestamptz,
-    fetched_at timestamptz,
-    PRIMARY KEY (query_hash, row_hash)
-);
-
-CREATE INDEX IF NOT EXISTS querytool_event_player_game_id_idx ON nba.querytool_event_player (game_id);
-CREATE INDEX IF NOT EXISTS querytool_event_player_nba_id_idx ON nba.querytool_event_player (nba_id);
-CREATE INDEX IF NOT EXISTS querytool_event_player_team_id_idx ON nba.querytool_event_player (team_id);
-CREATE INDEX IF NOT EXISTS querytool_event_player_event_type_idx ON nba.querytool_event_player (event_type);
-CREATE INDEX IF NOT EXISTS querytool_event_player_stats_json_gin ON nba.querytool_event_player USING gin (stats_json);
-
-CREATE TABLE IF NOT EXISTS nba.querytool_event_team (
-    query_hash text NOT NULL,
-    row_hash text NOT NULL,
-    league_id text,
-    season_year integer,
-    season_label text,
-    season_type text,
-    game_id text,
-    game_date date,
-    team_id integer,
-    team_name text,
-    team_tricode text,
-    opponent_name text,
-    event_number integer,
-    period integer,
-    game_clock numeric(10,3),
-    x integer,
-    y integer,
-    event_type text,
-    per_mode text,
-    sum_scope text,
-    query_grouping text,
-    stats_json jsonb,
-    row_json jsonb,
-    query_params_json jsonb,
-    first_seen_at timestamptz,
-    last_seen_at timestamptz,
-    created_at timestamptz,
-    updated_at timestamptz,
-    fetched_at timestamptz,
-    PRIMARY KEY (query_hash, row_hash)
-);
-
-CREATE INDEX IF NOT EXISTS querytool_event_team_game_id_idx ON nba.querytool_event_team (game_id);
-CREATE INDEX IF NOT EXISTS querytool_event_team_team_id_idx ON nba.querytool_event_team (team_id);
-CREATE INDEX IF NOT EXISTS querytool_event_team_event_type_idx ON nba.querytool_event_team (event_type);
-CREATE INDEX IF NOT EXISTS querytool_event_team_stats_json_gin ON nba.querytool_event_team USING gin (stats_json);
-
-CREATE TABLE IF NOT EXISTS nba.querytool_event_league (
-    query_hash text NOT NULL,
-    row_hash text NOT NULL,
-    league_id text,
-    season_year integer,
-    season_label text,
-    season_type text,
-    game_id text,
-    game_date date,
-    visitor_team_name text,
-    home_team_name text,
-    game_score text,
-    event_number integer,
-    period integer,
-    game_clock numeric(10,3),
-    x integer,
-    y integer,
-    event_type text,
-    per_mode text,
-    sum_scope text,
-    query_grouping text,
-    stats_json jsonb,
-    row_json jsonb,
-    query_params_json jsonb,
-    first_seen_at timestamptz,
-    last_seen_at timestamptz,
-    created_at timestamptz,
-    updated_at timestamptz,
-    fetched_at timestamptz,
-    PRIMARY KEY (query_hash, row_hash)
-);
-
-CREATE INDEX IF NOT EXISTS querytool_event_league_game_id_idx ON nba.querytool_event_league (game_id);
-CREATE INDEX IF NOT EXISTS querytool_event_league_event_type_idx ON nba.querytool_event_league (event_type);
-CREATE INDEX IF NOT EXISTS querytool_event_league_stats_json_gin ON nba.querytool_event_league USING gin (stats_json);
 
 CREATE TABLE IF NOT EXISTS nba.game_data_status_log (
     league_id text NOT NULL,

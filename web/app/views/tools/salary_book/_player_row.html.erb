@@ -120,7 +120,7 @@
           <% if cell_tooltip.present? %>title="<%= cell_tooltip %>"<% end %>
         >
           <% if show_two_way_badge %>
-            <span class="inline-flex items-center justify-center text-[10px] px-1.5 py-0.5 rounded font-medium <%= is_trade_restricted_cell ? 'bg-red-200 dark:bg-red-900/50 text-red-700 dark:text-red-300' : 'bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300' %>">
+            <span class="inline-flex items-center justify-center text-[10px] px-1.5 py-0.5 rounded font-medium <%= is_trade_restricted_cell ? 'bg-red-200 dark:bg-red-900/50 text-red-700 dark:text-red-300' : neutral_badge_classes %>">
               Two-Way
             </span>
           <% elsif is_empty %>
@@ -174,7 +174,7 @@
       <% is_trade_restricted_total_badge = trade_restricted_now?(player) %>
       <div class="w-24 shrink-0 <%= show_two_way_total_badge ? 'grid place-items-center h-[40px]' : 'flex flex-col' %>" title="<%= player["contract_type_lookup_value"] %>">
         <% if show_two_way_total_badge %>
-          <span class="inline-flex items-center justify-center text-[10px] px-1.5 py-0.5 rounded font-medium <%= is_trade_restricted_total_badge ? 'bg-red-200 dark:bg-red-900/50 text-red-700 dark:text-red-300' : 'bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300' %>">
+          <span class="inline-flex items-center justify-center text-[10px] px-1.5 py-0.5 rounded font-medium <%= is_trade_restricted_total_badge ? 'bg-red-200 dark:bg-red-900/50 text-red-700 dark:text-red-300' : neutral_badge_classes %>">
             Two-Way
           </span>
         <% else %>

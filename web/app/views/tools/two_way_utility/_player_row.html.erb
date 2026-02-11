@@ -14,8 +14,8 @@
 
 <% restricted_2025_cell_class = trade_restricted_now ? "bg-red-100/60 dark:bg-red-900/30" : "" %>
 <% restricted_2025_text_class = trade_restricted_now ? "text-red-700 dark:text-red-300" : "text-foreground" %>
-<% two_way_badge_2025_class = trade_restricted_now ? "bg-red-200 dark:bg-red-900/50 text-red-700 dark:text-red-300" : "bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300" %>
-<% two_way_badge_2026_class = "bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300" %>
+<% two_way_badge_2025_class = trade_restricted_now ? "bg-red-200 dark:bg-red-900/50 text-red-700 dark:text-red-300" : neutral_badge_classes %>
+<% two_way_badge_2026_class = neutral_badge_classes %>
 
 <% used_ratio = games_used_pct&.to_f %>
 <% used_pct_label = used_ratio ? "#{(used_ratio * 100).round}%" : nil %>

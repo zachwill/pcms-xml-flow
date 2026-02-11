@@ -26,10 +26,10 @@
     displaycapholds: false,
     displaydeadmoney: false,
     displayepm: false,
+    displayctg: false,
     displayplayercapholds: false,
     displaycashvscap: false,
-    displayluxurytax: false,
-    displayincentives: true
+    displayluxurytax: false
   }"
 >
   <div id="flash"></div>
@@ -145,7 +145,7 @@
       <%# Filter Toggles (client-only lenses) %>
       <div class="flex items-start gap-4" role="group" aria-label="Filters">
         <div class="min-w-[5.5rem] space-y-1">
-          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Columns</div>
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Display</div>
           <div class="space-y-1">
             <div class="flex items-center gap-1.5">
               <input
@@ -160,6 +160,16 @@
             <div class="flex items-center gap-1.5">
               <input
                 type="checkbox"
+                id="filter-column-ctg"
+                class="size-3.5 accent-primary"
+                data-bind="displayctg"
+                data-on:change="window.__salaryBookPreserveContext?.()"
+              />
+              <label for="filter-column-ctg" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">CTG</label>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <input
+                type="checkbox"
                 id="filter-column-epm"
                 class="size-3.5 accent-primary"
                 data-bind="displayepm"
@@ -170,9 +180,19 @@
           </div>
         </div>
 
-        <div class="min-w-[6.5rem] space-y-1">
-          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Display</div>
+        <div class="min-w-[7.5rem] space-y-1">
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Financials</div>
           <div class="space-y-1">
+            <div class="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                id="filter-cashvscap"
+                class="size-3.5 accent-primary"
+                data-bind="displaycashvscap"
+                data-on:change="window.__salaryBookPreserveContext?.()"
+              />
+              <label for="filter-cashvscap" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Cash vs Cap</label>
+            </div>
             <div class="flex items-center gap-1.5">
               <input
                 type="checkbox"
@@ -192,32 +212,6 @@
                 data-on:change="window.__salaryBookPreserveContext?.()"
               />
               <label for="filter-capholds" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">FA Cap Holds</label>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                id="filter-incentives"
-                class="size-3.5 accent-primary"
-                data-bind="displayincentives"
-                data-on:change="window.__salaryBookPreserveContext?.()"
-              />
-              <label for="filter-incentives" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Incentives</label>
-            </div>
-          </div>
-        </div>
-
-        <div class="min-w-[6.5rem] space-y-1">
-          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Financials</div>
-          <div class="space-y-1">
-            <div class="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                id="filter-cashvscap"
-                class="size-3.5 accent-primary"
-                data-bind="displaycashvscap"
-                data-on:change="window.__salaryBookPreserveContext?.()"
-              />
-              <label for="filter-cashvscap" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Cash vs Cap</label>
             </div>
             <div class="flex items-center gap-1.5">
               <input

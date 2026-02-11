@@ -10,6 +10,29 @@ module SalaryBookHelper
     "#{start_year}-#{end_year}"
   end
 
+  # EPM seasons are end-year keyed (e.g., 2025 means 24-25).
+  # Normalize to the app's short season label style: "YY-YY".
+  def format_epm_season_label(season)
+    return nil if season.nil?
+
+    s = season.to_s.strip
+    return nil if s.blank?
+
+    if s.match?(/\A\d{4}\z/)
+      end_year = s.to_i
+      start_year = end_year - 1
+      return "#{start_year.to_s[-2..]}-#{end_year.to_s[-2..]}"
+    end
+
+    if (m = s.match(/\A(\d{4})-(\d{2}|\d{4})\z/))
+      start_yy = m[1][-2..]
+      end_yy = m[2].length == 4 ? m[2][-2..] : m[2]
+      return "#{start_yy}-#{end_yy}"
+    end
+
+    s
+  end
+
   # Format salary as compact string (e.g., $25.3M, $4.8M, $500K)
   # Also supports signed values (e.g., -$87.7M) for "room" metrics.
   def format_salary(amount)

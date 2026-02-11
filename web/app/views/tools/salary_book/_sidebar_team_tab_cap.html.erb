@@ -7,6 +7,11 @@
 <% room_a2 = summary["room_under_second_apron"] %>
 <% roster_count = summary["roster_row_count"] %>
 <% two_way_count = summary["two_way_row_count"] %>
+<% cap_total_percentile = summary["cap_total_percentile"] %>
+<% cap_space_percentile = summary["cap_space_percentile"] %>
+<% room_tax_percentile = summary["room_under_tax_percentile"] %>
+<% room_a1_percentile = summary["room_under_first_apron_percentile"] %>
+<% room_a2_percentile = summary["room_under_second_apron_percentile"] %>
 
 <% status = tax_status(summary) %>
 <%
@@ -44,6 +49,22 @@
     nil
   }
 
+  percentile_tag = ->(p) {
+    p01 = normalize_percentile_01(p)
+    p01.nil? ? "P—" : "P#{(p01 * 100).round.clamp(0, 100)}"
+  }
+
+  percentile_color = ->(p) {
+    p01 = normalize_percentile_01(p)
+    return "text-muted-foreground/70" if p01.nil?
+
+    p_int = (p01 * 100).round.clamp(0, 100)
+    return "text-emerald-600 dark:text-emerald-400" if p_int >= 80
+    return "text-red-500" if p_int <= 20
+
+    "text-muted-foreground"
+  }
+
   cap_space_display = cap_space.nil? ? "—" : format_room_amount(cap_space)
   cap_space_color = cap_space.nil? ? nil : (cap_space.to_f >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500")
   projection_years = SalaryBookHelper::SALARY_YEARS
@@ -73,6 +94,39 @@
     "positive"
   end
   tax_metric_title = at_or_above_tax ? "Estimated luxury tax payment" : "Room under luxury tax"
+
+  cap_detail_rows = [
+    {
+      label: "Total Salary",
+      value: (cap_total ? format_compact_currency(cap_total) : "—"),
+      value_class: nil,
+      percentile: cap_total_percentile
+    },
+    {
+      label: "Cap Space",
+      value: cap_space_display,
+      value_class: cap_space_color,
+      percentile: cap_space_percentile
+    },
+    {
+      label: "Room Under Tax",
+      value: (room_tax ? format_room_amount(room_tax) : "—"),
+      value_class: room_under_color.call(room_tax),
+      percentile: room_tax_percentile
+    },
+    {
+      label: "Room Under 1st Apron",
+      value: (room_a1 ? format_room_amount(room_a1) : "—"),
+      value_class: room_under_color.call(room_a1),
+      percentile: room_a1_percentile
+    },
+    {
+      label: "Room Under 2nd Apron",
+      value: (room_a2 ? format_room_amount(room_a2) : "—"),
+      value_class: room_under_color.call(room_a2),
+      percentile: room_a2_percentile
+    }
+  ]
 %>
 
 <div id="sidebar-team-tab-cap" data-show="$sidebartab === 'cap'">
@@ -117,33 +171,34 @@
       </div>
     </div>
 
-    <%# Cap details %>
-    <div>
+    <%# Cap details (hover to reveal league percentiles) %>
+    <div
+      class="select-none"
+      data-on:mouseenter="$_sidebarcappcthover = true"
+      data-on:mouseleave="$_sidebarcappcthover = false"
+    >
       <div class="space-y-0.5">
-        <div class="flex justify-between items-baseline py-1.5">
-          <span class="text-sm text-muted-foreground">Total Salary</span>
-          <span class="tabular-nums text-sm font-medium"><%= cap_total ? format_compact_currency(cap_total) : "—" %></span>
-        </div>
-
-        <div class="flex justify-between items-baseline py-1.5">
-          <span class="text-sm text-muted-foreground">Cap Space</span>
-          <span class="tabular-nums text-sm font-medium <%= cap_space_color %>"><%= cap_space_display %></span>
-        </div>
-
-        <div class="flex justify-between items-baseline py-1.5">
-          <span class="text-sm text-muted-foreground">Room Under Tax</span>
-          <span class="tabular-nums text-sm font-medium <%= room_under_color.call(room_tax) %>"><%= room_tax ? format_room_amount(room_tax) : "—" %></span>
-        </div>
-
-        <div class="flex justify-between items-baseline py-1.5">
-          <span class="text-sm text-muted-foreground">Room Under 1st Apron</span>
-          <span class="tabular-nums text-sm font-medium <%= room_under_color.call(room_a1) %>"><%= room_a1 ? format_room_amount(room_a1) : "—" %></span>
-        </div>
-
-        <div class="flex justify-between items-baseline py-1.5">
-          <span class="text-sm text-muted-foreground">Room Under 2nd Apron</span>
-          <span class="tabular-nums text-sm font-medium <%= room_under_color.call(room_a2) %>"><%= room_a2 ? format_room_amount(room_a2) : "—" %></span>
-        </div>
+        <% cap_detail_rows.each do |row| %>
+          <div class="flex justify-between items-baseline py-1.5">
+            <span class="text-sm text-muted-foreground"><%= row[:label] %></span>
+            <span class="relative inline-flex w-[10rem] justify-end items-baseline overflow-hidden">
+              <span
+                class="tabular-nums text-sm font-medium translate-x-0 transition-transform duration-200 ease-out <%= row[:value_class] %>"
+                data-class="{
+                  'translate-x-0': !$_sidebarcappcthover,
+                  '-translate-x-[3.1rem]': $_sidebarcappcthover
+                }"
+              ><%= row[:value] %></span>
+              <span
+                class="absolute right-0 tabular-nums text-sm font-semibold translate-x-4 opacity-0 transition-[opacity,transform] duration-200 ease-out <%= percentile_color.call(row[:percentile]) %>"
+                data-class="{
+                  'translate-x-0 opacity-100': $_sidebarcappcthover,
+                  'translate-x-4 opacity-0': !$_sidebarcappcthover
+                }"
+              ><%= percentile_tag.call(row[:percentile]) %></span>
+            </span>
+          </div>
+        <% end %>
       </div>
     </div>
 

@@ -144,9 +144,29 @@
   epm_value = player["epm_value"]
   epm_percentile = player["epm_percentile"]
   epm_season = player["epm_season"]
+  epm_season_label = format_epm_season_label(epm_season)
+
+  epm_percentile_int_value = epm_percentile_int(epm_percentile)
+  epm_has_percentile = epm_percentile_int_value.present?
+  epm_badge_class = if epm_percentile_int_value.present? && epm_percentile_int_value >= 80
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+  elsif epm_percentile_int_value.present? && epm_percentile_int_value <= 20
+    "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+  else
+    "bg-muted text-foreground"
+  end
 %>
 
-<div id="rightpanel-overlay" class="h-full" data-signals="{ playertab: 'contract' }">
+<div
+  id="rightpanel-overlay"
+  class="h-full"
+  data-signals="{ playertab: 'contract', _playerepmhover: false }"
+  data-effect="
+    if ($playertab !== 'contract' && $_playerepmhover) {
+      $_playerepmhover = false;
+    }
+  "
+>
   <%# Sticky header %>
   <div class="sticky top-0 z-20 h-10 px-4 flex items-center justify-between border-b border-border bg-background">
     <%= render partial: "tools/salary_book/sidebar_back_button" %>
@@ -258,7 +278,13 @@
     <%# Contract tab %>
     <div data-show="$playertab === 'contract'" class="space-y-4">
       <%# Contract details (dense rows) %>
-      <div class="border-t border-border pt-4 space-y-0.5">
+      <div
+        class="border-t border-border pt-4 space-y-0.5"
+        <% if epm_has_percentile %>
+          data-on:mouseenter="$_playerepmhover = true"
+          data-on:mouseleave="$_playerepmhover = false"
+        <% end %>
+      >
         <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1.5">Contract details</div>
 
         <div class="flex items-center justify-between py-1.5">
@@ -305,16 +331,24 @@
 
         <% if epm_value.present? %>
           <div class="flex items-center justify-between py-1.5 gap-3">
-            <span class="text-sm text-muted-foreground">Latest EPM<% if epm_season.present? %> (<%= epm_season %>)<% end %></span>
-            <span class="text-sm font-medium tabular-nums"><%= number_with_precision(epm_value.to_f, precision: 2) %></span>
-          </div>
-        <% end %>
-
-        <% if epm_percentile.present? %>
-          <div class="flex items-center justify-between py-1.5 gap-3">
-            <span class="text-sm text-muted-foreground">EPM percentile</span>
-            <span class="text-sm font-medium tabular-nums <%= epm_percentile_color_class(epm_percentile) %>">
-              P<%= epm_percentile_int(epm_percentile) %>
+            <span class="text-sm text-muted-foreground">Latest EPM<% if epm_season_label.present? %> (<%= epm_season_label %>)<% end %></span>
+            <span class="relative inline-flex w-[9rem] justify-end items-center overflow-hidden">
+              <span
+                class="inline-flex items-center rounded px-1.5 py-0.5 text-sm font-semibold tabular-nums translate-x-0 transition-transform duration-200 ease-out <%= epm_badge_class %>"
+                data-class="{
+                  'translate-x-0': !$_playerepmhover,
+                  '-translate-x-[3.1rem]': $_playerepmhover
+                }"
+              ><%= format_epm_value(epm_value) %></span>
+              <% if epm_has_percentile %>
+                <span
+                  class="absolute right-0 text-sm font-semibold tabular-nums translate-x-4 opacity-0 transition-[opacity,transform] duration-200 ease-out <%= epm_percentile_color_class(epm_percentile) %>"
+                  data-class="{
+                    'translate-x-0 opacity-100': $_playerepmhover,
+                    'translate-x-4 opacity-0': !$_playerepmhover
+                  }"
+                >P<%= epm_percentile_int_value %></span>
+              <% end %>
             </span>
           </div>
         <% end %>

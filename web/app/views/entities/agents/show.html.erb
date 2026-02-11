@@ -124,7 +124,7 @@
               <span class="inline-flex items-center px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"><%= rookie_scale_count %> Rookie-scale</span>
             <% end %>
             <% if min_contract_count > 0 %>
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300"><%= min_contract_count %> Minimum</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide <%= neutral_badge_classes %>"><%= min_contract_count %> Minimum</span>
             <% end %>
             <% if no_trade_count > 0 %>
               <span class="inline-flex items-center px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"><%= no_trade_count %> No-Trade</span>
@@ -408,13 +408,13 @@
                       # Determine status badges
                       status_chips = []
                       if c["is_two_way"]
-                        status_chips << { label: "2W", classes: "bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300" }
+                        status_chips << { label: "2W", classes: neutral_badge_classes }
                       end
                       if is_rookie
                         status_chips << { label: "Rook", classes: "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300" }
                       end
                       if c["is_min_contract"]
-                        status_chips << { label: "Min", classes: "bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300" }
+                        status_chips << { label: "Min", classes: neutral_badge_classes }
                       end
                       if c["is_no_trade"]
                         status_chips << { label: "NTC", classes: "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300" }

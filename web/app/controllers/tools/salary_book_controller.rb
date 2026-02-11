@@ -461,6 +461,16 @@ module Tools
             chw.team_code,
             chw.player_id,
             chw.player_name,
+            MAX(
+              CASE
+                WHEN p.birth_date IS NULL THEN NULL
+                ELSE ROUND((EXTRACT(EPOCH FROM age(current_date, p.birth_date)) / 31557600.0)::numeric, 1)
+              END
+            ) AS age,
+            MAX(chw.years_of_service)::integer AS years_of_service,
+            MAX(p.agent_id)::integer AS agent_id,
+            MAX(ag.full_name) AS agent_name,
+            MAX(ag.agency_name) AS agency_name,
             'UFA'::text AS amount_type_lk,
             MAX(chw.cap_amount) FILTER (WHERE chw.salary_year = 2025)::numeric AS cap_2025,
             MAX(chw.cap_amount) FILTER (WHERE chw.salary_year = 2026)::numeric AS cap_2026,
@@ -473,6 +483,10 @@ module Tools
               COALESCE(MAX(chw.cap_amount) FILTER (WHERE chw.salary_year = #{next_year_sql}), 0)
             )::numeric AS cap_sort
           FROM pcms.cap_holds_warehouse chw
+          LEFT JOIN pcms.people p
+            ON p.person_id = chw.player_id
+          LEFT JOIN pcms.agents ag
+            ON ag.agent_id = p.agent_id
           WHERE chw.team_code = #{team_sql}
             AND chw.free_agent_status_lk = 'UFA'
             AND chw.salary_year BETWEEN #{base_year_sql} AND #{next_year_sql}
@@ -548,37 +562,51 @@ module Tools
           WHERE team_code = #{team_sql}
             AND draft_year BETWEEN 2025 AND 2030
         ),
-        team_summaries AS (
+        team_summaries_ranked AS (
           SELECT
-            team_code,
-            salary_year,
-            cap_total,
-            cap_total_percentile,
-            cap_total_hold,
-            tax_total,
-            apron_total,
-            roster_row_count,
-            two_way_row_count,
-            salary_cap_amount,
-            tax_level_amount,
-            tax_apron_amount,
-            tax_apron2_amount,
+            tsw.team_code,
+            tsw.salary_year,
+            tsw.cap_total,
+            COALESCE(
+              tsw.cap_total_percentile,
+              PERCENT_RANK() OVER (PARTITION BY tsw.salary_year ORDER BY tsw.cap_total)
+            ) AS cap_total_percentile,
+            tsw.cap_total_hold,
+            tsw.tax_total,
+            tsw.apron_total,
+            tsw.roster_row_count,
+            tsw.two_way_row_count,
+            tsw.salary_cap_amount,
+            tsw.tax_level_amount,
+            tsw.tax_apron_amount,
+            tsw.tax_apron2_amount,
             pcms.fn_luxury_tax_amount(
-              salary_year,
-              GREATEST(COALESCE(tax_total, 0) - COALESCE(tax_level_amount, 0), 0),
-              COALESCE(is_repeater_taxpayer, false)
+              tsw.salary_year,
+              GREATEST(COALESCE(tsw.tax_total, 0) - COALESCE(tsw.tax_level_amount, 0), 0),
+              COALESCE(tsw.is_repeater_taxpayer, false)
             ) AS luxury_tax_owed,
-            (COALESCE(salary_cap_amount, 0) - COALESCE(cap_total_hold, 0))::bigint AS cap_space,
-            room_under_tax,
-            room_under_apron1 AS room_under_first_apron,
-            room_under_apron2 AS room_under_second_apron,
-            is_taxpayer AS is_over_tax,
-            is_subject_to_apron AS is_over_first_apron,
-            apron_level_lk,
-            refreshed_at
-          FROM pcms.team_salary_warehouse
+            (COALESCE(tsw.salary_cap_amount, 0) - COALESCE(tsw.cap_total_hold, 0))::bigint AS cap_space,
+            tsw.room_under_tax,
+            tsw.room_under_apron1 AS room_under_first_apron,
+            tsw.room_under_apron2 AS room_under_second_apron,
+            PERCENT_RANK() OVER (
+              PARTITION BY tsw.salary_year
+              ORDER BY (COALESCE(tsw.salary_cap_amount, 0) - COALESCE(tsw.cap_total_hold, 0))
+            ) AS cap_space_percentile,
+            PERCENT_RANK() OVER (PARTITION BY tsw.salary_year ORDER BY tsw.room_under_tax) AS room_under_tax_percentile,
+            PERCENT_RANK() OVER (PARTITION BY tsw.salary_year ORDER BY tsw.room_under_apron1) AS room_under_first_apron_percentile,
+            PERCENT_RANK() OVER (PARTITION BY tsw.salary_year ORDER BY tsw.room_under_apron2) AS room_under_second_apron_percentile,
+            tsw.is_taxpayer AS is_over_tax,
+            tsw.is_subject_to_apron AS is_over_first_apron,
+            tsw.apron_level_lk,
+            tsw.refreshed_at
+          FROM pcms.team_salary_warehouse tsw
+          WHERE tsw.salary_year BETWEEN 2025 AND 2030
+        ),
+        team_summaries AS (
+          SELECT *
+          FROM team_summaries_ranked
           WHERE team_code = #{team_sql}
-            AND salary_year BETWEEN 2025 AND 2030
         ),
         team_meta AS (
           SELECT
@@ -732,36 +760,50 @@ module Tools
       in_list = team_codes.map { |c| conn.quote(c) }.join(",")
 
       rows = conn.exec_query(<<~SQL).to_a
-        SELECT
-          team_code,
-          salary_year,
-          cap_total,
-          cap_total_percentile,
-          cap_total_hold,
-          tax_total,
-          apron_total,
-          roster_row_count,
-          two_way_row_count,
-          salary_cap_amount,
-          tax_level_amount,
-          tax_apron_amount,
-          tax_apron2_amount,
-          pcms.fn_luxury_tax_amount(
-            salary_year,
-            GREATEST(COALESCE(tax_total, 0) - COALESCE(tax_level_amount, 0), 0),
-            COALESCE(is_repeater_taxpayer, false)
-          ) AS luxury_tax_owed,
-          (COALESCE(salary_cap_amount, 0) - COALESCE(cap_total_hold, 0))::bigint AS cap_space,
-          room_under_tax,
-          room_under_apron1 AS room_under_first_apron,
-          room_under_apron2 AS room_under_second_apron,
-          is_taxpayer AS is_over_tax,
-          is_subject_to_apron AS is_over_first_apron,
-          apron_level_lk,
-          refreshed_at
-        FROM pcms.team_salary_warehouse
+        WITH ranked AS (
+          SELECT
+            tsw.team_code,
+            tsw.salary_year,
+            tsw.cap_total,
+            COALESCE(
+              tsw.cap_total_percentile,
+              PERCENT_RANK() OVER (PARTITION BY tsw.salary_year ORDER BY tsw.cap_total)
+            ) AS cap_total_percentile,
+            tsw.cap_total_hold,
+            tsw.tax_total,
+            tsw.apron_total,
+            tsw.roster_row_count,
+            tsw.two_way_row_count,
+            tsw.salary_cap_amount,
+            tsw.tax_level_amount,
+            tsw.tax_apron_amount,
+            tsw.tax_apron2_amount,
+            pcms.fn_luxury_tax_amount(
+              tsw.salary_year,
+              GREATEST(COALESCE(tsw.tax_total, 0) - COALESCE(tsw.tax_level_amount, 0), 0),
+              COALESCE(tsw.is_repeater_taxpayer, false)
+            ) AS luxury_tax_owed,
+            (COALESCE(tsw.salary_cap_amount, 0) - COALESCE(tsw.cap_total_hold, 0))::bigint AS cap_space,
+            tsw.room_under_tax,
+            tsw.room_under_apron1 AS room_under_first_apron,
+            tsw.room_under_apron2 AS room_under_second_apron,
+            PERCENT_RANK() OVER (
+              PARTITION BY tsw.salary_year
+              ORDER BY (COALESCE(tsw.salary_cap_amount, 0) - COALESCE(tsw.cap_total_hold, 0))
+            ) AS cap_space_percentile,
+            PERCENT_RANK() OVER (PARTITION BY tsw.salary_year ORDER BY tsw.room_under_tax) AS room_under_tax_percentile,
+            PERCENT_RANK() OVER (PARTITION BY tsw.salary_year ORDER BY tsw.room_under_apron1) AS room_under_first_apron_percentile,
+            PERCENT_RANK() OVER (PARTITION BY tsw.salary_year ORDER BY tsw.room_under_apron2) AS room_under_second_apron_percentile,
+            tsw.is_taxpayer AS is_over_tax,
+            tsw.is_subject_to_apron AS is_over_first_apron,
+            tsw.apron_level_lk,
+            tsw.refreshed_at
+          FROM pcms.team_salary_warehouse tsw
+          WHERE tsw.salary_year BETWEEN 2025 AND 2030
+        )
+        SELECT *
+        FROM ranked
         WHERE team_code IN (#{in_list})
-          AND salary_year BETWEEN 2025 AND 2030
         ORDER BY team_code, salary_year
       SQL
 

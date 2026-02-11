@@ -17,9 +17,12 @@
 <div
   id="rightpanel-base"
   class="space-y-4"
-  data-signals="{ sidebartab: 'cap' }"
+  data-signals="{ sidebartab: 'cap', _sidebarcappcthover: false }"
   data-effect="
     const activeyear = ($selectedseason !== '' ? $selectedseason : '<%= year %>');
+    if ($sidebartab !== 'cap' && $_sidebarcappcthover) {
+      $_sidebarcappcthover = false;
+    }
     if ($sidebartab === 'draft' && (!$sidebardraftloaded || String($sidebardraftyearloaded) !== String(activeyear))) {
       $sidebardraftloaded = true;
       $sidebardraftyearloaded = activeyear;

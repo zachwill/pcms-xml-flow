@@ -1,0 +1,35 @@
+### nba.boxscores_advanced_team
+
+- game_id text REFERENCES nba.games(game_id)
+- team_id integer REFERENCES nba.teams(team_id)
+- minutes numeric(8,2)
+- off_rating numeric(6,2)
+- def_rating numeric(6,2)
+- net_rating numeric(6,2)
+- ast_pct numeric(5,4)
+- ast_to_ratio numeric(6,2)
+- ast_ratio numeric(6,2)
+- oreb_pct numeric(5,4)
+- dreb_pct numeric(5,4)
+- reb_pct numeric(5,4)
+- tm_tov_pct numeric(5,4)
+- efg_pct numeric(5,4)
+- ts_pct numeric(5,4)
+- pace numeric(6,2)
+- pace_per40 numeric(6,2)
+- poss integer
+- pie numeric(5,4)
+
+- created_at timestamptz
+- updated_at timestamptz
+- fetched_at timestamptz
+
+#### Constraints & Indexes
+- PRIMARY KEY (game_id, team_id)
+- INDEX ON (team_id)
+- INDEX ON (game_id)
+
+#### Notes
+- Team-level advanced boxscore metrics from `/api/stats/boxscore?measureType=Advanced`.
+- `minutes` is stored as decimal team-minutes (e.g., 240.00 for regulation games).
+- Complements `nba.boxscores_advanced` (player-level advanced stats).

@@ -24,7 +24,7 @@ The `nba.players` table serves as the central directory for all players across t
 - `from_year` integer -- Year of first season
 - `to_year` integer -- Year of last/most recent season
 - `current_team_id` integer -- Current official team ID
-- `current_team_abbreviation` text
+- `current_team_tricode` text
 - `league_id` text -- '00' (NBA), '10' (WNBA), '20' (G-League)
 - `dleague_flag` boolean
 - `nba_flag` boolean
@@ -49,4 +49,4 @@ The `nba.players` table serves as the central directory for all players across t
 - **Identity:** `nba_id` is the authoritative identifier. `ngss_person_id` is stored to facilitate joins with legacy NGSS datasets.
 - **Physicals:** `height` and `weight` are stored as text (e.g., '6-2', '200') as provided by the source API to maintain fidelity, as conversions to numeric formats (inches/lbs) can be lossy or inconsistent across providers.
 - **Slug:** `player_slug` is derived from the source (sometimes called `player_code`) and is essential for UI/linking patterns identified in `nba/inspiration/bref.txt`.
-- **Active Context:** Includes `current_team_id` and `current_team_abbreviation` for the most common "current roster" query patterns, even if these values change frequently.
+- **Active Context:** Includes `current_team_id` and `current_team_tricode` for the most common "current roster" query patterns, even if these values change frequently.

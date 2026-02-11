@@ -7,7 +7,6 @@ CREATE TABLE IF NOT EXISTS nba.teams (
     team_full_name text,
     team_tricode text,
     team_slug text,
-    team_abbreviation text,
     league_id text,
     conference text,
     division text,
@@ -24,7 +23,6 @@ CREATE TABLE IF NOT EXISTS nba.teams (
 );
 
 CREATE INDEX IF NOT EXISTS teams_team_tricode_idx ON nba.teams (team_tricode);
-CREATE INDEX IF NOT EXISTS teams_team_abbreviation_idx ON nba.teams (team_abbreviation);
 CREATE INDEX IF NOT EXISTS teams_league_id_idx ON nba.teams (league_id);
 CREATE INDEX IF NOT EXISTS teams_ngss_team_id_idx ON nba.teams (ngss_team_id);
 
@@ -50,7 +48,7 @@ CREATE TABLE IF NOT EXISTS nba.players (
     from_year integer,
     to_year integer,
     current_team_id integer,
-    current_team_abbreviation text,
+    current_team_tricode text,
     league_id text,
     dleague_flag boolean,
     nba_flag boolean,
@@ -202,7 +200,7 @@ CREATE TABLE IF NOT EXISTS nba.standings (
     team_city text,
     team_name text,
     team_slug text,
-    team_abbreviation text,
+    team_tricode text,
     conference text,
     division text,
     playoff_rank integer,

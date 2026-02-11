@@ -12,7 +12,8 @@ This is separate from:
 
 Environment variables:
 - `POSTGRES_URL` — destination database
-- `NBA_API_KEY` — sent as an `X-NBA-Api-Key` header on every request
+- `NBA_API_KEY` — sent as an `X-NBA-Api-Key` header on official NBA API requests
+- `NGSS_API_KEY` — required for the `ngss.inline_script.py` step
 
 Python dependencies are embedded per-script (via `# /// script` blocks), typically:
 - `httpx`
@@ -34,15 +35,18 @@ All steps are raw Python inline scripts:
 - `supplemental.inline_script.py` → injuries, alerts, pregame storylines, tracking streams
 - `ngss.inline_script.py` → legacy NGSS endpoints (stored as `nba.ngss_*` tables)
 
-Most scripts share the same parameter set (passed through from `flow_input`):
+The flow input is intentionally simple:
+- `save_data` (boolean)
 - `league_id` (default `00`)
-- `season_label` (e.g. `2024-25`)
+- `season_label` (e.g. `2025-26`)
 - `season_type` (e.g. `Regular Season`)
-- `mode`: `refresh` (last N days) or `backfill` (explicit date range)
-- `days_back`, `start_date`, `end_date`, `game_ids`
-- `only_final_games`
+- `run_mode`: `refresh`, `date_backfill`, or `season_backfill`
+- `days_back` (refresh only)
+- `start_date`, `end_date` (date backfill only)
+- `game_ids` (optional advanced override for game-level steps)
+- `only_final_games` (game_data/aggregates/ngss)
 
-The flow is intentionally configured to run the full pipeline (reference + games + game data + aggregates + supplemental + NGSS) each run.
+There are no per-step `include_*` toggles in the flow. It always runs the full pipeline (reference + games + game data + aggregates + supplemental + NGSS).
 
 ---
 
@@ -54,20 +58,23 @@ Use the dedicated local runner:
 # default is dry-run (no DB writes)
 uv run scripts/test-nba-import.py teams
 
-# backfill a small range (writes)
+# date backfill (writes)
 uv run scripts/test-nba-import.py games \
-  --mode backfill \
+  --run-mode date_backfill \
   --start-date 2024-10-01 \
   --end-date 2024-10-02 \
   --write
 
-# run everything (writes)
-uv run scripts/test-nba-import.py all --write
+# season backfill (writes)
+uv run scripts/test-nba-import.py all \
+  --run-mode season_backfill \
+  --season-label 2023-24 \
+  --write
 ```
 
 Notes:
 - The runner defaults to dry-run unless you pass `--write`.
-- `mode=refresh` defaults to `--days-back 2`.
+- `run_mode=refresh` defaults to `--days-back 2`.
 
 ---
 

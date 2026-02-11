@@ -48,7 +48,7 @@ def parse_date(value: str | None):
 def parse_iso_duration(value: str | None):
     if not value:
         return None
-    # Accept ISO 8601 PTmmMss.SS or MM:SS
+    # Accept ISO 8601 PTmmMss.SS or MM:SS and return decimal minutes
     if value.startswith("PT"):
         minutes = 0
         seconds = 0.0
@@ -63,13 +63,13 @@ def parse_iso_duration(value: str | None):
                 seconds = float(rest.replace("S", ""))
         except ValueError:
             return None
-        total_seconds = int(minutes * 60 + seconds)
-        return timedelta(seconds=total_seconds)
+        total_seconds = minutes * 60 + seconds
+        return round(total_seconds / 60.0, 2)
     if ":" in value:
         try:
             minutes_str, seconds_str = value.split(":", 1)
-            total_seconds = int(minutes_str) * 60 + int(float(seconds_str))
-            return timedelta(seconds=total_seconds)
+            total_seconds = int(minutes_str) * 60 + float(seconds_str)
+            return round(total_seconds / 60.0, 2)
         except ValueError:
             return None
     return None
@@ -106,7 +106,7 @@ def parse_minutes_interval(value: str | None):
         minutes = float(value)
     except (ValueError, TypeError):
         return None
-    return timedelta(seconds=int(minutes * 60))
+    return round(minutes, 2)
 
 
 def to_bool(value):
@@ -201,16 +201,69 @@ def upsert(conn: psycopg.Connection, table: str, rows: list[dict], conflict_keys
     return len(rows)
 
 
-def resolve_date_range(mode: str, days_back: int, start_date: str | None, end_date: str | None) -> tuple[date, date]:
-    if start_date and end_date:
-        return parse_date(start_date), parse_date(end_date)
+def resolve_season_date_range(season_label: str | None) -> tuple[date, date]:
+    if not season_label:
+        raise ValueError("season_backfill mode requires season_label")
 
-    if mode == "refresh":
+    text = str(season_label).strip()
+    try:
+        start_year = int(text[:4])
+    except (TypeError, ValueError):
+        raise ValueError("season_label must look like YYYY-YY (e.g. 2024-25)")
+
+    end_year = start_year + 1
+    if "-" in text:
+        suffix = text.split("-", 1)[1].strip()
+        if suffix:
+            if len(suffix) == 2 and suffix.isdigit():
+                century = start_year // 100
+                end_year = century * 100 + int(suffix)
+                if end_year < start_year:
+                    end_year += 100
+            else:
+                try:
+                    end_year = int(suffix)
+                except ValueError:
+                    end_year = start_year + 1
+
+    start = date(start_year, 9, 1)
+    end = date(end_year, 7, 31)
+    today = now_utc().date()
+    if end > today:
+        end = today
+    return start, end
+
+
+def resolve_date_range(
+    mode: str,
+    days_back: int,
+    start_date: str | None,
+    end_date: str | None,
+    season_label: str | None,
+) -> tuple[date, date]:
+    if start_date or end_date:
+        if not (start_date and end_date):
+            raise ValueError("start_date and end_date must both be provided")
+        start = parse_date(start_date)
+        end = parse_date(end_date)
+        if not start or not end:
+            raise ValueError("start_date/end_date must be YYYY-MM-DD")
+        return start, end
+
+    normalized_mode = (mode or "refresh").strip().lower()
+
+    if normalized_mode == "refresh":
         today = now_utc().date()
         start = today - timedelta(days=days_back or 2)
         return start, today
 
-    raise ValueError("backfill mode requires start_date and end_date (or game_ids)")
+    if normalized_mode in {"backfill", "date_backfill"}:
+        raise ValueError("date_backfill mode requires start_date and end_date (or game_ids)")
+
+    if normalized_mode == "season_backfill":
+        return resolve_season_date_range(season_label)
+
+    raise ValueError("mode must be one of: refresh, date_backfill, season_backfill")
 
 
 PLAYER_STAT_MAP = {
@@ -304,6 +357,31 @@ ADVANCED_COLUMNS = {
     "pace_per40",
     "poss",
     "pie",
+}
+
+ADVANCED_TEAM_ALLOWED_COLUMNS = {
+    "game_id",
+    "team_id",
+    "minutes",
+    "off_rating",
+    "def_rating",
+    "net_rating",
+    "ast_pct",
+    "ast_to_ratio",
+    "ast_ratio",
+    "oreb_pct",
+    "dreb_pct",
+    "reb_pct",
+    "tm_tov_pct",
+    "efg_pct",
+    "ts_pct",
+    "pace",
+    "pace_per40",
+    "poss",
+    "pie",
+    "created_at",
+    "updated_at",
+    "fetched_at",
 }
 
 HUSTLE_PLAYER_COLUMNS = [
@@ -701,23 +779,9 @@ def main(
     start_date: str | None = None,
     end_date: str | None = None,
     game_ids: str | None = None,
-    include_reference: bool = True,
-    include_schedule_and_standings: bool = True,
-    include_games: bool = True,
-    include_game_data: bool = True,
-    include_aggregates: bool = False,
-    include_supplemental: bool = False,
     only_final_games: bool = True,
 ) -> dict:
     started_at = now_utc()
-    if not include_game_data:
-        return {
-            "dry_run": dry_run,
-            "started_at": started_at.isoformat(),
-            "finished_at": now_utc().isoformat(),
-            "tables": [],
-            "errors": [],
-        }
 
     try:
         season_label_value = season_label
@@ -736,7 +800,7 @@ def main(
                     status_map = {row[0]: row[1] for row in cur.fetchall()}
                 game_list = [(gid, status_map.get(gid)) for gid in game_id_list]
         else:
-            start_dt, end_dt = resolve_date_range(mode, days_back, start_date, end_date)
+            start_dt, end_dt = resolve_date_range(mode, days_back, start_date, end_date, season_label)
             query = """
                 SELECT game_id, game_status
                 FROM nba.games
@@ -758,6 +822,7 @@ def main(
         player_rows: list[dict] = []
         team_rows: list[dict] = []
         advanced_rows: list[dict] = []
+        advanced_team_rows: list[dict] = []
         pbp_rows: list[dict] = []
         poc_rows: list[dict] = []
         hustle_player_rows: list[dict] = []
@@ -836,6 +901,21 @@ def main(
 
                     for team in [adv_home, adv_away]:
                         team_id = team.get("teamId")
+                        team_stats = team.get("statistics") or {}
+
+                        if team_id is not None:
+                            team_row = {
+                                "game_id": game_id_value,
+                                "team_id": team_id,
+                                "minutes": parse_iso_duration(team_stats.get("minutes")),
+                                "created_at": fetched_at,
+                                "updated_at": fetched_at,
+                                "fetched_at": fetched_at,
+                            }
+                            team_row.update(map_advanced_stats(team_stats))
+                            team_row = {k: v for k, v in team_row.items() if k in ADVANCED_TEAM_ALLOWED_COLUMNS}
+                            advanced_team_rows.append(team_row)
+
                         for player in team.get("players") or []:
                             stats = player.get("statistics") or {}
                             row = {
@@ -933,6 +1013,7 @@ def main(
         inserted_players = 0
         inserted_teams = 0
         inserted_advanced = 0
+        inserted_advanced_team = 0
         inserted_pbp = 0
         inserted_poc = 0
         inserted_hustle_players = 0
@@ -945,6 +1026,8 @@ def main(
             inserted_teams = upsert(conn, "nba.boxscores_traditional_team", team_rows, ["game_id", "team_id"], update_exclude=["created_at"])
             if advanced_rows:
                 inserted_advanced = upsert(conn, "nba.boxscores_advanced", advanced_rows, ["game_id", "nba_id"], update_exclude=["created_at"])
+            if advanced_team_rows:
+                inserted_advanced_team = upsert(conn, "nba.boxscores_advanced_team", advanced_team_rows, ["game_id", "team_id"], update_exclude=["created_at"])
             inserted_pbp = upsert(conn, "nba.play_by_play", pbp_rows, ["game_id"], update_exclude=["created_at"])
             inserted_poc = upsert(conn, "nba.players_on_court", poc_rows, ["game_id"], update_exclude=["created_at"])
             if hustle_player_rows:
@@ -990,6 +1073,7 @@ def main(
                 {"table": "nba.boxscores_traditional", "rows": len(player_rows), "upserted": inserted_players},
                 {"table": "nba.boxscores_traditional_team", "rows": len(team_rows), "upserted": inserted_teams},
                 {"table": "nba.boxscores_advanced", "rows": len(advanced_rows), "upserted": inserted_advanced},
+                {"table": "nba.boxscores_advanced_team", "rows": len(advanced_team_rows), "upserted": inserted_advanced_team},
                 {"table": "nba.play_by_play", "rows": len(pbp_rows), "upserted": inserted_pbp},
                 {"table": "nba.players_on_court", "rows": len(poc_rows), "upserted": inserted_poc},
                 {"table": "nba.hustle_stats", "rows": len(hustle_player_rows), "upserted": inserted_hustle_players},

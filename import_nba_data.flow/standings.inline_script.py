@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 import httpx
 import psycopg
+from psycopg.types.json import Json
 
 BASE_URL = "https://api.nba.com/v0"
 CAMEL_TO_SNAKE_RE = re.compile(r"(?<!^)(?=[A-Z])")
@@ -55,6 +56,27 @@ def to_bool(value):
         return None
 
 
+def parse_int(value):
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        try:
+            return int(float(value))
+        except (ValueError, TypeError):
+            return None
+
+
+def parse_float(value):
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return None
+
+
 def request_json(client: httpx.Client, path: str, params: dict | None = None, retries: int = 3) -> dict:
     headers = {"X-NBA-Api-Key": os.environ["NBA_API_KEY"]}
     url = f"{BASE_URL}{path}"
@@ -66,6 +88,8 @@ def request_json(client: httpx.Client, path: str, params: dict | None = None, re
                 resp.raise_for_status()
             time.sleep(1 + attempt)
             continue
+        if resp.status_code == 404:
+            return {}
         resp.raise_for_status()
         return resp.json()
 
@@ -105,7 +129,7 @@ STANDINGS_COLUMNS = {
     "team_city",
     "team_name",
     "team_slug",
-    "team_abbreviation",
+    "team_tricode",
     "conference",
     "division",
     "playoff_rank",
@@ -240,6 +264,8 @@ BOOL_FIELDS = {
     "is_eliminated_division",
 }
 
+BRACKET_STATES = ["PlayoffPicture", "PlayIn", "PlayoffBracket", "IST"]
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Main
@@ -250,91 +276,189 @@ def main(
     league_id: str = "00",
     season_label: str | None = None,
     season_type: str = "Regular Season",
-    mode: str | None = None,
-    days_back: int | None = None,
-    start_date: str | None = None,
-    end_date: str | None = None,
-    game_ids: str | None = None,
-    include_reference: bool = True,
-    include_schedule_and_standings: bool = True,
-    include_games: bool = True,
-    include_game_data: bool = True,
-    include_aggregates: bool = False,
-    include_supplemental: bool = False,
-    only_final_games: bool = True,
 ) -> dict:
     started_at = now_utc()
-    if not include_schedule_and_standings:
-        return {
-            "dry_run": dry_run,
-            "started_at": started_at.isoformat(),
-            "finished_at": now_utc().isoformat(),
-            "tables": [],
-            "errors": [],
-        }
 
     try:
         params = {"leagueId": league_id, "season": season_label, "seasonType": season_type}
-        with httpx.Client(timeout=30) as client:
-            payload = request_json(client, "/api/standings/league", params)
-
-        meta_time = payload.get("meta", {}).get("time")
-        standing_dt = parse_datetime(meta_time)
-        standing_date = standing_dt.date() if standing_dt else now_utc().date()
-
-        league_standings = payload.get("leagueStandings", {})
-        teams = league_standings.get("teams") or []
-        season_label_value = season_label or league_standings.get("seasonYear")
-        season_year = parse_season_year(season_label_value)
         fetched_at = now_utc()
 
         rows: list[dict] = []
-        for team in teams:
-            team_id = team.get("teamId")
-            if team_id is None:
-                continue
+        bracket_rows: list[dict] = []
+        ist_rows: list[dict] = []
 
-            row = {
-                "league_id": league_id,
-                "season_year": season_year,
-                "season_label": season_label_value,
-                "season_type": season_type,
-                "team_id": team_id,
-                "standing_date": standing_date,
-                "team_city": team.get("teamCity"),
-                "team_name": team.get("teamName"),
-                "team_slug": team.get("teamSlug"),
-                "team_abbreviation": team.get("teamAbbreviation"),
-                "conference": team.get("conference"),
-                "division": team.get("division"),
-                "created_at": fetched_at,
-                "updated_at": fetched_at,
-                "fetched_at": fetched_at,
-            }
+        with httpx.Client(timeout=30) as client:
+            # League standings
+            payload = request_json(client, "/api/standings/league", params)
 
-            for key, value in team.items():
-                if key in {"teamId", "teamCity", "teamName", "teamSlug", "teamAbbreviation", "conference", "division"}:
+            meta_time = payload.get("meta", {}).get("time")
+            standing_dt = parse_datetime(meta_time)
+            standing_date = standing_dt.date() if standing_dt else now_utc().date()
+
+            league_standings = payload.get("leagueStandings", {})
+            teams = league_standings.get("teams") or []
+            season_label_value = season_label or league_standings.get("seasonYear") or ""
+            season_year = parse_season_year(season_label_value)
+
+            for team in teams:
+                team_id = team.get("teamId")
+                if team_id is None:
                     continue
-                column = FIELD_MAP.get(key) or camel_to_snake(key)
-                if column not in STANDINGS_COLUMNS:
-                    continue
-                if column in BOOL_FIELDS:
-                    row[column] = to_bool(value)
-                else:
-                    row[column] = value
 
-            rows.append(row)
+                row = {
+                    "league_id": league_id,
+                    "season_year": season_year,
+                    "season_label": season_label_value,
+                    "season_type": season_type,
+                    "team_id": team_id,
+                    "standing_date": standing_date,
+                    "team_city": team.get("teamCity"),
+                    "team_name": team.get("teamName"),
+                    "team_slug": team.get("teamSlug"),
+                    "team_tricode": team.get("teamTricode") or team.get("teamAbbreviation"),
+                    "conference": team.get("conference"),
+                    "division": team.get("division"),
+                    "created_at": fetched_at,
+                    "updated_at": fetched_at,
+                    "fetched_at": fetched_at,
+                }
+
+                for key, value in team.items():
+                    if key in {"teamId", "teamCity", "teamName", "teamSlug", "teamTricode", "teamAbbreviation", "conference", "division"}:
+                        continue
+                    column = FIELD_MAP.get(key) or camel_to_snake(key)
+                    if column not in STANDINGS_COLUMNS:
+                        continue
+                    if column in BOOL_FIELDS:
+                        row[column] = to_bool(value)
+                    else:
+                        row[column] = value
+
+                rows.append(row)
+
+            # Playoff bracket snapshots by bracket state
+            for bracket_state in BRACKET_STATES:
+                bracket_payload = request_json(
+                    client,
+                    "/api/standings/playoff/bracket",
+                    {
+                        "leagueId": league_id,
+                        "season": season_label_value or season_label,
+                        "bracketState": bracket_state,
+                    },
+                )
+                bracket = bracket_payload.get("bracket") or {}
+                if not bracket:
+                    continue
+
+                bracket_meta_time = (bracket_payload.get("meta") or {}).get("time")
+                bracket_dt = parse_datetime(bracket_meta_time)
+                bracket_date = bracket_dt.date() if bracket_dt else standing_date
+                bracket_season_label = bracket.get("seasonYear") or season_label_value or season_label or ""
+
+                bracket_rows.append(
+                    {
+                        "league_id": bracket.get("leagueId") or league_id,
+                        "season_year": parse_season_year(bracket_season_label),
+                        "season_label": bracket_season_label,
+                        "bracket_state": bracket_state,
+                        "bracket_type": bracket.get("bracketType"),
+                        "standing_date": bracket_date,
+                        "meta_time": bracket_dt,
+                        "playoff_picture_series_count": len(bracket.get("playoffPictureSeries") or []),
+                        "play_in_bracket_series_count": len(bracket.get("playInBracketSeries") or []),
+                        "playoff_bracket_series_count": len(bracket.get("playoffBracketSeries") or []),
+                        "ist_bracket_series_count": len(bracket.get("istBracketSeries") or []),
+                        "bracket_json": Json(bracket),
+                        "created_at": fetched_at,
+                        "updated_at": fetched_at,
+                        "fetched_at": fetched_at,
+                    }
+                )
+
+            # In-season tournament standings snapshot
+            ist_payload = request_json(
+                client,
+                "/api/standings/ist",
+                {
+                    "leagueId": league_id,
+                    "season": season_label_value or season_label,
+                },
+            )
+
+            ist_season_label = ist_payload.get("seasonYear") or season_label_value or season_label or ""
+            ist_season_year = parse_season_year(ist_season_label)
+            ist_standing_date = standing_date
+
+            for team in ist_payload.get("teams") or []:
+                team_id = parse_int(team.get("teamId"))
+                if team_id is None:
+                    continue
+
+                ist_rows.append(
+                    {
+                        "league_id": ist_payload.get("leagueId") or league_id,
+                        "season_year": ist_season_year,
+                        "season_label": ist_season_label,
+                        "team_id": team_id,
+                        "standing_date": ist_standing_date,
+                        "team_city": team.get("teamCity"),
+                        "team_name": team.get("teamName"),
+                        "team_tricode": team.get("teamTricode") or team.get("teamAbbreviation"),
+                        "team_slug": team.get("teamSlug"),
+                        "conference": team.get("conference"),
+                        "ist_group": team.get("istGroup"),
+                        "clinch_indicator": team.get("clinchIndicator"),
+                        "is_clinched_ist_knockout": to_bool(team.get("clinchedIstKnockout")),
+                        "is_clinched_ist_group": to_bool(team.get("clinchedIstGroup")),
+                        "is_clinched_ist_wildcard": to_bool(team.get("clinchedIstWildcard")),
+                        "ist_wildcard_rank": parse_int(team.get("istWildcardRank")),
+                        "ist_group_rank": parse_int(team.get("istGroupRank")),
+                        "ist_knockout_rank": parse_int(team.get("istKnockoutRank")),
+                        "wins": parse_int(team.get("wins")),
+                        "losses": parse_int(team.get("losses")),
+                        "win_pct": parse_float(team.get("pct")),
+                        "ist_group_gb": parse_float(team.get("istGroupGb")),
+                        "ist_wildcard_gb": parse_float(team.get("istWildcardGb")),
+                        "diff": parse_int(team.get("diff")),
+                        "pts": parse_int(team.get("pts")),
+                        "opp_pts": parse_int(team.get("oppPts")),
+                        "games_json": Json(team.get("games") or []),
+                        "created_at": fetched_at,
+                        "updated_at": fetched_at,
+                        "fetched_at": fetched_at,
+                    }
+                )
 
         inserted = 0
-        if not dry_run and rows:
+        inserted_brackets = 0
+        inserted_ist = 0
+        if not dry_run:
             conn = psycopg.connect(os.environ["POSTGRES_URL"])
-            inserted = upsert(
-                conn,
-                "nba.standings",
-                rows,
-                ["league_id", "season_year", "season_type", "team_id", "standing_date"],
-                update_exclude=["created_at"],
-            )
+            if rows:
+                inserted = upsert(
+                    conn,
+                    "nba.standings",
+                    rows,
+                    ["league_id", "season_year", "season_type", "team_id", "standing_date"],
+                    update_exclude=["created_at"],
+                )
+            if bracket_rows:
+                inserted_brackets = upsert(
+                    conn,
+                    "nba.standings_playoff_bracket",
+                    bracket_rows,
+                    ["league_id", "season_label", "bracket_state", "standing_date"],
+                    update_exclude=["created_at"],
+                )
+            if ist_rows:
+                inserted_ist = upsert(
+                    conn,
+                    "nba.standings_ist",
+                    ist_rows,
+                    ["league_id", "season_label", "team_id", "standing_date"],
+                    update_exclude=["created_at"],
+                )
             conn.close()
 
         return {
@@ -346,7 +470,17 @@ def main(
                     "table": "nba.standings",
                     "rows": len(rows),
                     "upserted": inserted,
-                }
+                },
+                {
+                    "table": "nba.standings_playoff_bracket",
+                    "rows": len(bracket_rows),
+                    "upserted": inserted_brackets,
+                },
+                {
+                    "table": "nba.standings_ist",
+                    "rows": len(ist_rows),
+                    "upserted": inserted_ist,
+                },
             ],
             "errors": [],
         }

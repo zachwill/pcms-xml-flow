@@ -69,28 +69,8 @@ def main(
     league_id: str = "00",
     season_label: str | None = None,
     season_type: str | None = None,
-    mode: str | None = None,
-    days_back: int | None = None,
-    start_date: str | None = None,
-    end_date: str | None = None,
-    game_ids: str | None = None,
-    include_reference: bool = True,
-    include_schedule_and_standings: bool = True,
-    include_games: bool = True,
-    include_game_data: bool = True,
-    include_aggregates: bool = False,
-    include_supplemental: bool = False,
-    only_final_games: bool = True,
 ) -> dict:
     started_at = now_utc()
-    if not include_reference:
-        return {
-            "dry_run": dry_run,
-            "started_at": started_at.isoformat(),
-            "finished_at": now_utc().isoformat(),
-            "tables": [],
-            "errors": [],
-        }
 
     try:
         params = {"leagueId": league_id}
@@ -113,7 +93,7 @@ def main(
 
             team_city = team.get("teamCity")
             team_name = team.get("teamName")
-            team_abbreviation = team.get("teamAbbreviation")
+            team_tricode = team.get("teamTricode") or team.get("teamAbbreviation")
 
             rows.append(
                 {
@@ -121,9 +101,8 @@ def main(
                     "team_name": team_name,
                     "team_city": team_city,
                     "team_full_name": f"{team_city} {team_name}" if team_city and team_name else None,
-                    "team_tricode": team_abbreviation,
+                    "team_tricode": team_tricode,
                     "team_slug": team.get("teamSlug"),
-                    "team_abbreviation": team_abbreviation,
                     "league_id": payload.get("leagueId") or league_id,
                     "conference": team.get("conference"),
                     "division": team.get("division"),

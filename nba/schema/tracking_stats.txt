@@ -3,7 +3,7 @@
 - game_id text REFERENCES nba.games(game_id)
 - team_id integer REFERENCES nba.teams(team_id)
 - nba_id integer REFERENCES nba.players(nba_id)
-- minutes interval
+- minutes numeric(8,2)
 - dist_miles numeric(6,2)
 - dist_miles_off numeric(6,2)
 - dist_miles_def numeric(6,2)

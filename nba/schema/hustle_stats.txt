@@ -3,7 +3,7 @@
 - game_id text REFERENCES nba.games(game_id)
 - nba_id integer REFERENCES nba.players(nba_id)
 - team_id integer REFERENCES nba.teams(team_id)
-- minutes interval
+- minutes numeric(8,2)
 - contested_field_goals integer
 - contested_2pt_field_goals integer
 - contested_3pt_field_goals integer
@@ -34,7 +34,7 @@
 #### Notes
 - `game_id` is the official 10-digit NBA game identifier.
 - `nba_id` is the official player identifier.
-- `minutes`: Stored as `interval` for better calculation support.
+- `minutes`: Stored as decimal minutes (`numeric(8,2)`).
 - This table stores player-level hustle stats from the Hustle Stats Box Score (`{gameId}_hustlestats.xml`).
 - Metric abbreviations mapped from the NBA API:
   - `CFG` -> `contested_field_goals`

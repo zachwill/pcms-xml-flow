@@ -12,7 +12,7 @@
 - is_starter boolean
 - is_on_court boolean
 - played boolean
-- minutes interval
+- minutes numeric(8,2)
 - pts integer
 - fgm integer
 - fga integer
@@ -50,7 +50,7 @@
 #### Notes
 - `game_id` is the official 10-digit NBA game identifier.
 - `nba_id` is the official player identifier.
-- `minutes`: Stored as `interval` for better calculation support. Original format in API is "PTmmMss.ccS" (ISO 8601 duration) or "MM:SS".
+- `minutes`: Stored as decimal minutes (`numeric(8,2)`). Original format in API is "PTmmMss.ccS" (ISO 8601 duration) or "MM:SS" and is converted during ingest.
 - `plus_minus`: Stored as numeric to handle decimals if they appear in certain feeds, though usually integers in traditional boxscores.
 - `played`, `is_starter`, `is_on_court`: Converted from API strings ("1"/"0") to boolean.
 - This table stores player-level performance stats. Team-level totals can be aggregated from this table or stored in a separate `boxscores_traditional_team` table if needed for performance (per `AGENTS.md` duplication is acceptable).

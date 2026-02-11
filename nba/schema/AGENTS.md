@@ -26,7 +26,8 @@ This directory contains PostgreSQL table definitions for NBA data ingestion. The
 |-------|-------------|---------|
 | `nba.boxscores_traditional` | `(game_id, nba_id)` | Player traditional stats per game |
 | `nba.boxscores_advanced` | `(game_id, nba_id)` | Player advanced stats per game |
-| `nba.boxscores_traditional_team` | `(game_id, team_id)` | Team-level boxscore (bench pts, paint pts, etc.) |
+| `nba.boxscores_advanced_team` | `(game_id, team_id)` | Team advanced stats per game |
+| `nba.boxscores_traditional_team` | `(game_id, team_id)` | Team-level traditional boxscore (bench pts, paint pts, etc.) |
 | `nba.player_stats_aggregated` | `(nba_id, team_id, season_year, season_type, per_mode, measure_type)` | Season aggregates |
 | `nba.team_stats_aggregated` | `(team_id, season_year, season_type, per_mode, measure_type)` | Team season aggregates |
 
@@ -90,8 +91,7 @@ Following the "PBP Guidance" principle, these are stored as JSONB to prevent pre
 |------|-------|
 | `numeric(5,4)` | Percentages as decimals (e.g., 0.5432) |
 | `numeric(6,2)` | Ratings per 100 possessions (e.g., 115.42) |
-| `numeric(8,2)` | Aggregate stats (totals or per-game averages) |
-| `interval` | Minutes played (supports arithmetic) |
+| `numeric(8,2)` | Aggregate stats and minutes (totals or per-game averages) |
 
 ### League Identifiers
 
@@ -114,7 +114,7 @@ Following the "PBP Guidance" principle, these are stored as JSONB to prevent pre
 ### Get player's current team
 ```sql
 SELECT * FROM nba.players WHERE nba_id = 203081;
--- current_team_id, current_team_abbreviation are denormalized
+-- current_team_id, current_team_tricode are denormalized
 ```
 
 ### Get game with teams
@@ -163,6 +163,7 @@ Each `.txt` file in this directory defines one table:
 | `standings.txt` | `nba.standings` |
 | `boxscores_traditional.txt` | `nba.boxscores_traditional` |
 | `boxscores_advanced.txt` | `nba.boxscores_advanced` |
+| `boxscores_advanced_team.txt` | `nba.boxscores_advanced_team` |
 | `boxscores_traditional_team.txt` | `nba.boxscores_traditional_team` |
 | `play_by_play.txt` | `nba.play_by_play` |
 | `players_on_court.txt` | `nba.players_on_court` |

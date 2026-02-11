@@ -87,29 +87,8 @@ def main(
     dry_run: bool = False,
     league_id: str = "00",
     season_label: str | None = None,
-    season_type: str | None = None,
-    mode: str | None = None,
-    days_back: int | None = None,
-    start_date: str | None = None,
-    end_date: str | None = None,
-    game_ids: str | None = None,
-    include_reference: bool = True,
-    include_schedule_and_standings: bool = True,
-    include_games: bool = True,
-    include_game_data: bool = True,
-    include_aggregates: bool = False,
-    include_supplemental: bool = False,
-    only_final_games: bool = True,
 ) -> dict:
     started_at = now_utc()
-    if not include_reference:
-        return {
-            "dry_run": dry_run,
-            "started_at": started_at.isoformat(),
-            "finished_at": now_utc().isoformat(),
-            "tables": [],
-            "errors": [],
-        }
 
     try:
         params = {"leagueId": league_id}
@@ -155,7 +134,7 @@ def main(
                     "from_year": player.get("fromYear"),
                     "to_year": player.get("toYear"),
                     "current_team_id": player.get("teamId"),
-                    "current_team_abbreviation": player.get("teamAbbreviation"),
+                    "current_team_tricode": player.get("teamTricode") or player.get("teamAbbreviation"),
                     "league_id": payload.get("leagueId") or league_id,
                     "dleague_flag": None,
                     "nba_flag": None,

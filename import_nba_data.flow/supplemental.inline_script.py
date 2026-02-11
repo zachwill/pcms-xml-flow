@@ -42,7 +42,50 @@ def parse_datetime(value: str | None):
     try:
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
+        try:
+            return datetime.strptime(value, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+        except ValueError:
+            return None
+
+
+def parse_season_year(label: str | None) -> int | None:
+    if not label:
         return None
+    try:
+        return int(str(label)[:4])
+    except (ValueError, TypeError):
+        return None
+
+
+def parse_int(value):
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        try:
+            return int(float(value))
+        except (ValueError, TypeError):
+            return None
+
+
+def parse_bool(value):
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(int(value))
+    text = str(value).strip().lower()
+    if text in {"1", "true", "t", "y", "yes"}:
+        return True
+    if text in {"0", "false", "f", "n", "no"}:
+        return False
+    return None
+
+
+def stable_hash(payload: dict) -> str:
+    return hashlib.sha1(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
 
 def request_json(client: httpx.Client, path: str, params: dict | None = None, retries: int = 3, base_url: str = BASE_URL) -> dict:
@@ -87,16 +130,69 @@ def upsert(conn: psycopg.Connection, table: str, rows: list[dict], conflict_keys
     return len(rows)
 
 
-def resolve_date_range(mode: str, days_back: int, start_date: str | None, end_date: str | None) -> tuple[date, date]:
-    if start_date and end_date:
-        return parse_date(start_date), parse_date(end_date)
+def resolve_season_date_range(season_label: str | None) -> tuple[date, date]:
+    if not season_label:
+        raise ValueError("season_backfill mode requires season_label")
 
-    if mode == "refresh":
+    text = str(season_label).strip()
+    try:
+        start_year = int(text[:4])
+    except (TypeError, ValueError):
+        raise ValueError("season_label must look like YYYY-YY (e.g. 2024-25)")
+
+    end_year = start_year + 1
+    if "-" in text:
+        suffix = text.split("-", 1)[1].strip()
+        if suffix:
+            if len(suffix) == 2 and suffix.isdigit():
+                century = start_year // 100
+                end_year = century * 100 + int(suffix)
+                if end_year < start_year:
+                    end_year += 100
+            else:
+                try:
+                    end_year = int(suffix)
+                except ValueError:
+                    end_year = start_year + 1
+
+    start = date(start_year, 9, 1)
+    end = date(end_year, 7, 31)
+    today = now_utc().date()
+    if end > today:
+        end = today
+    return start, end
+
+
+def resolve_date_range(
+    mode: str,
+    days_back: int,
+    start_date: str | None,
+    end_date: str | None,
+    season_label: str | None,
+) -> tuple[date, date]:
+    if start_date or end_date:
+        if not (start_date and end_date):
+            raise ValueError("start_date and end_date must both be provided")
+        start = parse_date(start_date)
+        end = parse_date(end_date)
+        if not start or not end:
+            raise ValueError("start_date/end_date must be YYYY-MM-DD")
+        return start, end
+
+    normalized_mode = (mode or "refresh").strip().lower()
+
+    if normalized_mode == "refresh":
         today = now_utc().date()
         start = today - timedelta(days=days_back or 2)
         return start, today
 
-    raise ValueError("backfill mode requires start_date and end_date (or game_ids)")
+    if normalized_mode in {"backfill", "date_backfill"}:
+        raise ValueError("date_backfill mode requires start_date and end_date (or game_ids)")
+
+    if normalized_mode == "season_backfill":
+        return resolve_season_date_range(season_label)
+
+    raise ValueError("mode must be one of: refresh, date_backfill, season_backfill")
 
 
 def extract_alerts(payload) -> list[dict]:
@@ -139,43 +235,136 @@ def main(
     dry_run: bool = False,
     league_id: str = "00",
     season_label: str | None = None,
-    season_type: str | None = None,
     mode: str = "refresh",
     days_back: int = 2,
     start_date: str | None = None,
     end_date: str | None = None,
     game_ids: str | None = None,
-    include_reference: bool = True,
-    include_schedule_and_standings: bool = True,
-    include_games: bool = True,
-    include_game_data: bool = True,
-    include_aggregates: bool = False,
-    include_supplemental: bool = True,
-    only_final_games: bool = True,
 ) -> dict:
     started_at = now_utc()
-    if not include_supplemental:
-        return {
-            "dry_run": dry_run,
-            "started_at": started_at.isoformat(),
-            "finished_at": now_utc().isoformat(),
-            "tables": [],
-            "errors": [],
-        }
 
     try:
         conn = psycopg.connect(os.environ["POSTGRES_URL"])
         fetched_at = now_utc()
         tables = []
 
-        # Injuries (snapshot table)
+        season_year = parse_season_year(season_label)
+
+        # Team roster snapshots (players + coaches)
+        roster_player_rows: list[dict] = []
+        roster_coach_rows: list[dict] = []
+        team_ids: list[int] = []
+        if season_label:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT team_id
+                    FROM nba.teams
+                    WHERE (%s IS NULL OR league_id = %s)
+                    ORDER BY team_id
+                    """,
+                    (league_id, league_id),
+                )
+                team_ids = [row[0] for row in cur.fetchall()]
+
+            with httpx.Client(timeout=30) as client:
+                for team_id in team_ids:
+                    payload = request_json(
+                        client,
+                        "/api/stats/team/roster",
+                        {
+                            "leagueId": league_id,
+                            "season": season_label,
+                            "teamId": team_id,
+                        },
+                    )
+                    for player in payload.get("players") or []:
+                        nba_id = parse_int(player.get("playerId"))
+                        if nba_id is None:
+                            continue
+                        roster_player_rows.append(
+                            {
+                                "league_id": payload.get("leagueId") or league_id,
+                                "season_year": parse_season_year(payload.get("season") or season_label) or season_year,
+                                "season_label": payload.get("season") or season_label,
+                                "team_id": parse_int(payload.get("teamId")) or team_id,
+                                "team_city": payload.get("teamCity"),
+                                "team_name": payload.get("teamName"),
+                                "team_tricode": payload.get("teamTricode") or payload.get("teamAbbreviation"),
+                                "nba_id": nba_id,
+                                "player_name": player.get("playerName"),
+                                "player_slug": player.get("playerSlug"),
+                                "jersey_num": player.get("jerseyNum"),
+                                "position": player.get("position"),
+                                "height": player.get("height"),
+                                "weight": player.get("weight"),
+                                "birthdate": parse_date(player.get("birthdate")),
+                                "age": parse_int(player.get("age")),
+                                "season_experience": player.get("seasonExperience"),
+                                "school": player.get("school"),
+                                "is_two_way": parse_bool(player.get("isTwoWay")),
+                                "is_ten_day": parse_bool(player.get("isTenDay")),
+                                "roster_json": Json(player),
+                                "created_at": fetched_at,
+                                "updated_at": fetched_at,
+                                "fetched_at": fetched_at,
+                            }
+                        )
+
+                    for coach in payload.get("coaches") or []:
+                        coach_id = parse_int(coach.get("coachId"))
+                        if coach_id is None:
+                            continue
+                        roster_coach_rows.append(
+                            {
+                                "league_id": payload.get("leagueId") or league_id,
+                                "season_year": parse_season_year(payload.get("season") or season_label) or season_year,
+                                "season_label": payload.get("season") or season_label,
+                                "team_id": parse_int(payload.get("teamId")) or team_id,
+                                "team_city": payload.get("teamCity"),
+                                "team_name": payload.get("teamName"),
+                                "team_tricode": payload.get("teamTricode") or payload.get("teamAbbreviation"),
+                                "coach_id": coach_id,
+                                "coach_name": coach.get("coachName"),
+                                "coach_type": coach.get("coachType"),
+                                "is_assistant": parse_int(coach.get("isAssistant")),
+                                "sort_sequence": parse_int(coach.get("sortSequence")),
+                                "coach_json": Json(coach),
+                                "created_at": fetched_at,
+                                "updated_at": fetched_at,
+                                "fetched_at": fetched_at,
+                            }
+                        )
+
+            if not dry_run:
+                if roster_player_rows:
+                    upsert(
+                        conn,
+                        "nba.team_roster_players",
+                        roster_player_rows,
+                        ["league_id", "season_label", "team_id", "nba_id"],
+                        update_exclude=["created_at"],
+                    )
+                if roster_coach_rows:
+                    upsert(
+                        conn,
+                        "nba.team_roster_coaches",
+                        roster_coach_rows,
+                        ["league_id", "season_label", "team_id", "coach_id"],
+                        update_exclude=["created_at"],
+                    )
+
+        tables.append({"table": "nba.team_roster_players", "rows": len(roster_player_rows)})
+        tables.append({"table": "nba.team_roster_coaches", "rows": len(roster_coach_rows)})
+
+        # Injuries: keep current snapshot table + additive status history
         with httpx.Client(timeout=30) as client:
             injury_payload = request_json(client, "/api/stats/injury", {"leagueId": league_id})
         injuries = injury_payload.get("players") or []
         injury_rows = []
         for player in injuries:
-            nba_id = player.get("personId")
-            team_id = player.get("teamId")
+            nba_id = parse_int(player.get("personId"))
+            team_id = parse_int(player.get("teamId"))
             if nba_id is None or team_id is None:
                 continue
             injury_rows.append(
@@ -205,19 +394,127 @@ def main(
             if row["nba_id"] in valid_player_ids and row["team_id"] in valid_team_ids
         ]
 
+        injury_history_rows: list[dict] = []
+        for row in injury_rows:
+            status_payload = {
+                "injury_status": row.get("injury_status"),
+                "injury_type": row.get("injury_type"),
+                "injury_location": row.get("injury_location"),
+                "injury_details": row.get("injury_details"),
+                "injury_side": row.get("injury_side"),
+                "return_date": row.get("return_date"),
+            }
+            injury_history_rows.append(
+                {
+                    "nba_id": row["nba_id"],
+                    "team_id": row["team_id"],
+                    "status_hash": stable_hash(status_payload),
+                    "injury_status": row.get("injury_status"),
+                    "injury_type": row.get("injury_type"),
+                    "injury_location": row.get("injury_location"),
+                    "injury_details": row.get("injury_details"),
+                    "injury_side": row.get("injury_side"),
+                    "return_date": row.get("return_date"),
+                    "first_seen_at": fetched_at,
+                    "last_seen_at": fetched_at,
+                    "created_at": fetched_at,
+                    "updated_at": fetched_at,
+                    "fetched_at": fetched_at,
+                }
+            )
+
         if not dry_run:
             with conn.cursor() as cur:
-                cur.execute("TRUNCATE nba.injuries")
+                cur.execute("CREATE TEMP TABLE _injury_keys (nba_id integer, team_id integer) ON COMMIT DROP")
+                if injury_rows:
+                    cur.executemany(
+                        "INSERT INTO _injury_keys (nba_id, team_id) VALUES (%s, %s)",
+                        [(row["nba_id"], row["team_id"]) for row in injury_rows],
+                    )
+                cur.execute(
+                    """
+                    DELETE FROM nba.injuries i
+                    WHERE NOT EXISTS (
+                        SELECT 1
+                        FROM _injury_keys k
+                        WHERE k.nba_id = i.nba_id
+                          AND k.team_id = i.team_id
+                    )
+                    """
+                )
             conn.commit()
-            upsert(conn, "nba.injuries", injury_rows, ["nba_id", "team_id"], update_exclude=["created_at"])
+
+            if injury_rows:
+                upsert(conn, "nba.injuries", injury_rows, ["nba_id", "team_id"], update_exclude=["created_at"])
+            if injury_history_rows:
+                upsert(
+                    conn,
+                    "nba.injuries_history",
+                    injury_history_rows,
+                    ["nba_id", "team_id", "status_hash"],
+                    update_exclude=["created_at", "first_seen_at"],
+                )
+
         tables.append({"table": "nba.injuries", "rows": len(injury_rows)})
+        tables.append({"table": "nba.injuries_history", "rows": len(injury_history_rows)})
+
+        # Game data status log (incremental freshness + correction tracking)
+        with httpx.Client(timeout=30) as client:
+            status_payload = request_json(client, "/api/stats/gamedatastatuslog", {"leagueId": league_id})
+
+        status_rows: list[dict] = []
+        season_year_status = status_payload.get("seasonYear")
+        for game in status_payload.get("games") or []:
+            game_id_value = game.get("gameId")
+            if not game_id_value:
+                continue
+            status_snapshot = {
+                "last_update_game_schedule": game.get("lastUpdateGameSchedule"),
+                "last_update_game_stats": game.get("lastUpdateGameStats"),
+                "last_update_game_tracking": game.get("lastUpdateGameTracking"),
+            }
+            status_rows.append(
+                {
+                    "league_id": status_payload.get("leagueId") or league_id,
+                    "season_year": season_year_status or "",
+                    "game_id": str(game_id_value),
+                    "status_hash": stable_hash(status_snapshot),
+                    "generated_time": status_payload.get("time"),
+                    "generated_time_utc": parse_datetime(status_payload.get("timeUTC")),
+                    "last_update_season_stats": parse_datetime(status_payload.get("lastUpdateSeasonStats")),
+                    "last_update_season_stats_utc": parse_datetime(status_payload.get("lastUpdateSeasonStatsUTC")),
+                    "home_team_id": parse_int(game.get("homeTeamId")),
+                    "visitor_team_id": parse_int(game.get("visitorTeamId")),
+                    "game_date_est": parse_date(game.get("dateEst")),
+                    "game_time_est": game.get("timeEst"),
+                    "last_update_game_schedule": parse_datetime(game.get("lastUpdateGameSchedule")),
+                    "last_update_game_stats": parse_datetime(game.get("lastUpdateGameStats")),
+                    "last_update_game_tracking": parse_datetime(game.get("lastUpdateGameTracking")),
+                    "first_seen_at": fetched_at,
+                    "last_seen_at": fetched_at,
+                    "created_at": fetched_at,
+                    "updated_at": fetched_at,
+                    "fetched_at": fetched_at,
+                }
+            )
+
+        if not dry_run and status_rows:
+            upsert(
+                conn,
+                "nba.game_data_status_log",
+                status_rows,
+                ["league_id", "season_year", "game_id", "status_hash"],
+                update_exclude=["created_at", "first_seen_at"],
+            )
+
+        tables.append({"table": "nba.game_data_status_log", "rows": len(status_rows)})
 
         # Alerts + Pregame storylines (per game)
         game_list: list[str] = []
         if game_ids:
             game_list = [gid.strip() for gid in game_ids.split(",") if gid.strip()]
         else:
-            start_dt, end_dt = resolve_date_range(mode, days_back, start_date, end_date)
+            start_dt, end_dt = resolve_date_range(mode, days_back, start_date, end_date, season_label)
             query = """
                 SELECT game_id
                 FROM nba.games
@@ -285,7 +582,7 @@ def main(
 
         # Tracking streams
         with httpx.Client(timeout=30) as client:
-            start_dt, end_dt = resolve_date_range(mode, days_back, start_date, end_date)
+            start_dt, end_dt = resolve_date_range(mode, days_back, start_date, end_date, season_label)
             streams_payload = request_json(
                 client,
                 "/game_streams",

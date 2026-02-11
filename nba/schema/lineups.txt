@@ -3,7 +3,7 @@
 - team_id integer REFERENCES nba.teams(team_id)
 - player_ids integer[] -- Array of nba_id
 - gp integer
-- min interval
+- minutes numeric(8,2)
 - off_rating numeric(5,2)
 - def_rating numeric(5,2)
 - net_rating numeric(5,2)

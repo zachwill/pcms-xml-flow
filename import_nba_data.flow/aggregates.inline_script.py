@@ -2,12 +2,15 @@
 # requires-python = ">=3.11"
 # dependencies = ["psycopg[binary]", "httpx", "sniffio", "typing-extensions"]
 # ///
+import hashlib
+import json
 import os
 import time
 from datetime import datetime, timezone, timedelta, date
 
 import httpx
 import psycopg
+from psycopg.types.json import Json
 
 BASE_URL = "https://api.nba.com/v0"
 QUERY_TOOL_URL = "https://api.nba.com/v0/api/querytool"
@@ -22,6 +25,13 @@ LINEUP_GAME_PER_MODE = "Totals"
 LINEUP_QUANTITY = 5
 LINEUP_MAX_ROWS = 5000
 LINEUP_GROUPING = "None"
+
+EVENT_TYPES = ["FieldGoals", "TrackingShots", "TrackingPasses", "DefensiveEvents"]
+EVENT_PER_MODE = "Totals"
+EVENT_SUM_SCOPE = "Event"
+EVENT_GROUPING = "None"
+EVENT_TEAM_GROUPING = "Y"
+EVENT_MAX_ROWS = 5000
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -53,21 +63,69 @@ def parse_date(value: str | None):
             return None
 
 
+def resolve_season_date_range(season_label: str | None) -> tuple[date, date]:
+    if not season_label:
+        raise ValueError("season_backfill mode requires season_label")
+
+    text = str(season_label).strip()
+    try:
+        start_year = int(text[:4])
+    except (TypeError, ValueError):
+        raise ValueError("season_label must look like YYYY-YY (e.g. 2024-25)")
+
+    end_year = start_year + 1
+    if "-" in text:
+        suffix = text.split("-", 1)[1].strip()
+        if suffix:
+            if len(suffix) == 2 and suffix.isdigit():
+                century = start_year // 100
+                end_year = century * 100 + int(suffix)
+                if end_year < start_year:
+                    end_year += 100
+            else:
+                try:
+                    end_year = int(suffix)
+                except ValueError:
+                    end_year = start_year + 1
+
+    start = date(start_year, 9, 1)
+    end = date(end_year, 7, 31)
+    today = now_utc().date()
+    if end > today:
+        end = today
+    return start, end
+
+
 def resolve_date_range(
     mode: str,
     days_back: int | None,
     start_date: str | None,
     end_date: str | None,
+    season_label: str | None,
 ) -> tuple[date, date]:
-    if start_date and end_date:
-        return parse_date(start_date), parse_date(end_date)
+    if start_date or end_date:
+        if not (start_date and end_date):
+            raise ValueError("start_date and end_date must both be provided")
+        start = parse_date(start_date)
+        end = parse_date(end_date)
+        if not start or not end:
+            raise ValueError("start_date/end_date must be YYYY-MM-DD")
+        return start, end
 
-    if mode == "refresh":
+    normalized_mode = (mode or "refresh").strip().lower()
+
+    if normalized_mode == "refresh":
         today = now_utc().date()
         start = today - timedelta(days=days_back or 2)
         return start, today
 
-    raise ValueError("backfill mode requires start_date and end_date (or game_ids)")
+    if normalized_mode in {"backfill", "date_backfill"}:
+        raise ValueError("date_backfill mode requires start_date and end_date (or game_ids)")
+
+    if normalized_mode == "season_backfill":
+        return resolve_season_date_range(season_label)
+
+    raise ValueError("mode must be one of: refresh, date_backfill, season_backfill")
 
 
 def request_json(
@@ -293,7 +351,7 @@ TEAM_COLUMNS = {
 
 LINEUP_STAT_COLUMNS = [
     "gp",
-    "min",
+    "minutes",
     "off_rating",
     "def_rating",
     "net_rating",
@@ -326,8 +384,8 @@ LINEUP_STAT_MAP = {
     "GP": "gp",
     "G": "gp",
     "GAMES_PLAYED": "gp",
-    "MIN": "min",
-    "MINUTES": "min",
+    "MIN": "minutes",
+    "MINUTES": "minutes",
     "OFF_RATING": "off_rating",
     "OFFRTG": "off_rating",
     "DEF_RATING": "def_rating",
@@ -414,6 +472,10 @@ def parse_float(value):
         return None
 
 
+def stable_hash(payload) -> str:
+    return hashlib.sha1(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
+
+
 def parse_minutes_interval(value: str | None):
     if value is None or value == "":
         return None
@@ -432,20 +494,18 @@ def parse_minutes_interval(value: str | None):
                     seconds = float(rest.replace("S", ""))
             except ValueError:
                 return None
-            total_seconds = int(minutes * 60 + seconds)
-            return timedelta(seconds=total_seconds)
+            return round((minutes * 60 + seconds) / 60.0, 2)
         if ":" in value:
             try:
                 minutes_str, seconds_str = value.split(":", 1)
-                total_seconds = int(minutes_str) * 60 + int(float(seconds_str))
-                return timedelta(seconds=total_seconds)
+                return round((int(minutes_str) * 60 + float(seconds_str)) / 60.0, 2)
             except ValueError:
                 return None
     try:
         minutes = float(value)
     except (ValueError, TypeError):
         return None
-    return timedelta(seconds=int(minutes * 60))
+    return round(minutes, 2)
 
 
 def normalize_lineup_stat_key(key: str) -> str:
@@ -481,7 +541,7 @@ def map_lineup_stats(stats: dict) -> dict:
             continue
         if column == "gp":
             parsed = parse_int(value)
-        elif column == "min":
+        elif column == "minutes":
             parsed = parse_minutes_interval(value)
         else:
             parsed = parse_float(value)
@@ -517,28 +577,14 @@ def main(
     league_id: str = "00",
     season_label: str | None = None,
     season_type: str = "Regular Season",
-    mode: str | None = None,
+    mode: str = "refresh",
     days_back: int | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
     game_ids: str | None = None,
-    include_reference: bool = True,
-    include_schedule_and_standings: bool = True,
-    include_games: bool = True,
-    include_game_data: bool = True,
-    include_aggregates: bool = True,
-    include_supplemental: bool = False,
     only_final_games: bool = True,
 ) -> dict:
     started_at = now_utc()
-    if not include_aggregates:
-        return {
-            "dry_run": dry_run,
-            "started_at": started_at.isoformat(),
-            "finished_at": now_utc().isoformat(),
-            "tables": [],
-            "errors": [],
-        }
 
     conn: psycopg.Connection | None = None
     try:
@@ -550,13 +596,16 @@ def main(
         team_rows: list[dict] = []
         lineup_season_rows: list[dict] = []
         lineup_game_rows: list[dict] = []
+        event_player_rows: list[dict] = []
+        event_team_rows: list[dict] = []
+        event_league_rows: list[dict] = []
 
         conn = psycopg.connect(os.environ["POSTGRES_URL"])
         game_list: list[str] = []
         if game_ids:
             game_list = [gid.strip() for gid in game_ids.split(",") if gid.strip()]
-        elif mode:
-            start_dt, end_dt = resolve_date_range(mode, days_back, start_date, end_date)
+        else:
+            start_dt, end_dt = resolve_date_range(mode, days_back, start_date, end_date, season_label)
             query = """
                 SELECT game_id, game_status
                 FROM nba.games
@@ -565,11 +614,11 @@ def main(
             """
             with conn.cursor() as cur:
                 cur.execute(query, (start_dt, end_dt))
-                game_list = cur.fetchall()
+                game_status_rows = cur.fetchall()
             if only_final_games:
-                game_list = [gid for gid, status in game_list if status == 3]
+                game_list = [gid for gid, status in game_status_rows if status == 3]
             else:
-                game_list = [gid for gid, _ in game_list]
+                game_list = [gid for gid, _ in game_status_rows]
 
         with httpx.Client(timeout=60) as client:
             for per_mode in PLAYER_PER_MODES:
@@ -738,10 +787,206 @@ def main(
                             row.update(map_lineup_stats(lineup.get("stats") or {}))
                             lineup_game_rows.append(row)
 
+                    # Query Tool event-level datasets (player/team/league)
+                    for event_type in EVENT_TYPES:
+                        player_params = {
+                            "LeagueId": league_id,
+                            "SeasonYear": season_label_value,
+                            "SeasonType": season_type,
+                            "PerMode": EVENT_PER_MODE,
+                            "SumScope": EVENT_SUM_SCOPE,
+                            "Grouping": EVENT_GROUPING,
+                            "TeamGrouping": EVENT_TEAM_GROUPING,
+                            "EventType": event_type,
+                            "GameId": game_id_value,
+                            "MaxRowsReturned": EVENT_MAX_ROWS,
+                        }
+                        player_payload = request_json(
+                            client,
+                            "/event/player",
+                            player_params,
+                            base_url=QUERY_TOOL_URL,
+                        )
+                        player_query_params = (player_payload.get("meta") or {}).get("queryParams") or player_params
+                        player_query_hash = stable_hash(
+                            {
+                                "path": "/event/player",
+                                "params": player_query_params,
+                            }
+                        )
+                        for player in player_payload.get("players") or []:
+                            season_label_event = player.get("seasonYear") or season_label_value
+                            team_id_event = parse_int(player.get("teamId"))
+                            if team_id_event == 0:
+                                team_id_event = None
+                            row_hash = stable_hash(player)
+                            event_player_rows.append(
+                                {
+                                    "query_hash": player_query_hash,
+                                    "row_hash": row_hash,
+                                    "league_id": player.get("leagueId") or league_id,
+                                    "season_year": parse_season_year(season_label_event),
+                                    "season_label": season_label_event,
+                                    "season_type": player.get("seasonType") or season_type,
+                                    "game_id": player.get("gameId") or game_id_value,
+                                    "game_date": parse_date(player.get("gameDate")),
+                                    "nba_id": parse_int(player.get("playerId")),
+                                    "team_id": team_id_event,
+                                    "team_name": player.get("teamName"),
+                                    "team_tricode": player.get("teamTricode") or player.get("teamAbbreviation"),
+                                    "opponent_name": player.get("opponentName"),
+                                    "event_number": parse_int(player.get("eventNumber")),
+                                    "period": parse_int(player.get("period")),
+                                    "game_clock": parse_float(player.get("gameClock")),
+                                    "x": parse_int(player.get("x")),
+                                    "y": parse_int(player.get("y")),
+                                    "event_type": player_query_params.get("eventType") or event_type,
+                                    "per_mode": player_query_params.get("perMode") or EVENT_PER_MODE,
+                                    "sum_scope": player_query_params.get("sumScope") or EVENT_SUM_SCOPE,
+                                    "query_grouping": player_query_params.get("grouping") or EVENT_GROUPING,
+                                    "team_grouping": player_query_params.get("teamGrouping") or EVENT_TEAM_GROUPING,
+                                    "stats_json": Json(player.get("stats") or {}),
+                                    "row_json": Json(player),
+                                    "query_params_json": Json(player_query_params),
+                                    "first_seen_at": fetched_at,
+                                    "last_seen_at": fetched_at,
+                                    "created_at": fetched_at,
+                                    "updated_at": fetched_at,
+                                    "fetched_at": fetched_at,
+                                }
+                            )
+
+                        team_params = {
+                            "LeagueId": league_id,
+                            "SeasonYear": season_label_value,
+                            "SeasonType": season_type,
+                            "PerMode": EVENT_PER_MODE,
+                            "SumScope": EVENT_SUM_SCOPE,
+                            "Grouping": EVENT_GROUPING,
+                            "EventType": event_type,
+                            "GameId": game_id_value,
+                            "MaxRowsReturned": EVENT_MAX_ROWS,
+                        }
+                        team_payload = request_json(
+                            client,
+                            "/event/team",
+                            team_params,
+                            base_url=QUERY_TOOL_URL,
+                        )
+                        team_query_params = (team_payload.get("meta") or {}).get("queryParams") or team_params
+                        team_query_hash = stable_hash(
+                            {
+                                "path": "/event/team",
+                                "params": team_query_params,
+                            }
+                        )
+                        for team in team_payload.get("teams") or []:
+                            season_label_event = team.get("seasonYear") or season_label_value
+                            team_id_event = parse_int(team.get("teamId"))
+                            if team_id_event == 0:
+                                team_id_event = None
+                            row_hash = stable_hash(team)
+                            event_team_rows.append(
+                                {
+                                    "query_hash": team_query_hash,
+                                    "row_hash": row_hash,
+                                    "league_id": team.get("leagueId") or league_id,
+                                    "season_year": parse_season_year(season_label_event),
+                                    "season_label": season_label_event,
+                                    "season_type": team.get("seasonType") or season_type,
+                                    "game_id": team.get("gameId") or game_id_value,
+                                    "game_date": parse_date(team.get("gameDate")),
+                                    "team_id": team_id_event,
+                                    "team_name": team.get("teamName"),
+                                    "team_tricode": team.get("teamTricode") or team.get("teamAbbreviation"),
+                                    "opponent_name": team.get("opponentName"),
+                                    "event_number": parse_int(team.get("eventNumber")),
+                                    "period": parse_int(team.get("period")),
+                                    "game_clock": parse_float(team.get("gameClock")),
+                                    "x": parse_int(team.get("x")),
+                                    "y": parse_int(team.get("y")),
+                                    "event_type": team_query_params.get("eventType") or event_type,
+                                    "per_mode": team_query_params.get("perMode") or EVENT_PER_MODE,
+                                    "sum_scope": team_query_params.get("sumScope") or EVENT_SUM_SCOPE,
+                                    "query_grouping": team_query_params.get("grouping") or EVENT_GROUPING,
+                                    "stats_json": Json(team.get("stats") or {}),
+                                    "row_json": Json(team),
+                                    "query_params_json": Json(team_query_params),
+                                    "first_seen_at": fetched_at,
+                                    "last_seen_at": fetched_at,
+                                    "created_at": fetched_at,
+                                    "updated_at": fetched_at,
+                                    "fetched_at": fetched_at,
+                                }
+                            )
+
+                        league_params = {
+                            "LeagueId": league_id,
+                            "SeasonYear": season_label_value,
+                            "SeasonType": season_type,
+                            "PerMode": EVENT_PER_MODE,
+                            "SumScope": EVENT_SUM_SCOPE,
+                            "Grouping": EVENT_GROUPING,
+                            "EventType": event_type,
+                            "GameId": game_id_value,
+                            "MaxRowsReturned": EVENT_MAX_ROWS,
+                        }
+                        league_payload = request_json(
+                            client,
+                            "/event/league",
+                            league_params,
+                            base_url=QUERY_TOOL_URL,
+                        )
+                        league_query_params = (league_payload.get("meta") or {}).get("queryParams") or league_params
+                        league_query_hash = stable_hash(
+                            {
+                                "path": "/event/league",
+                                "params": league_query_params,
+                            }
+                        )
+                        for league in league_payload.get("leagues") or []:
+                            season_label_event = league.get("seasonYear") or season_label_value
+                            row_hash = stable_hash(league)
+                            event_league_rows.append(
+                                {
+                                    "query_hash": league_query_hash,
+                                    "row_hash": row_hash,
+                                    "league_id": league.get("leagueId") or league_id,
+                                    "season_year": parse_season_year(season_label_event),
+                                    "season_label": season_label_event,
+                                    "season_type": league.get("seasonType") or season_type,
+                                    "game_id": league.get("gameId") or game_id_value,
+                                    "game_date": parse_date(league.get("gameDate")),
+                                    "visitor_team_name": league.get("visitorTeamName"),
+                                    "home_team_name": league.get("homeTeamName"),
+                                    "game_score": league.get("gameScore"),
+                                    "event_number": parse_int(league.get("eventNumber")),
+                                    "period": parse_int(league.get("period")),
+                                    "game_clock": parse_float(league.get("gameClock")),
+                                    "x": parse_int(league.get("x")),
+                                    "y": parse_int(league.get("y")),
+                                    "event_type": league_query_params.get("eventType") or event_type,
+                                    "per_mode": league_query_params.get("perMode") or EVENT_PER_MODE,
+                                    "sum_scope": league_query_params.get("sumScope") or EVENT_SUM_SCOPE,
+                                    "query_grouping": league_query_params.get("grouping") or EVENT_GROUPING,
+                                    "stats_json": Json(league.get("stats") or {}),
+                                    "row_json": Json(league),
+                                    "query_params_json": Json(league_query_params),
+                                    "first_seen_at": fetched_at,
+                                    "last_seen_at": fetched_at,
+                                    "created_at": fetched_at,
+                                    "updated_at": fetched_at,
+                                    "fetched_at": fetched_at,
+                                }
+                            )
+
         inserted_players = 0
         inserted_teams = 0
         inserted_lineup_season = 0
         inserted_lineup_game = 0
+        inserted_event_players = 0
+        inserted_event_teams = 0
+        inserted_event_league = 0
         if not dry_run:
             inserted_players = upsert(
                 conn,
@@ -781,6 +1026,30 @@ def main(
                     ["game_id", "team_id", "player_ids", "per_mode", "measure_type"],
                     update_exclude=["created_at"],
                 )
+            if event_player_rows:
+                inserted_event_players = upsert(
+                    conn,
+                    "nba.querytool_event_player",
+                    event_player_rows,
+                    ["query_hash", "row_hash"],
+                    update_exclude=["created_at", "first_seen_at"],
+                )
+            if event_team_rows:
+                inserted_event_teams = upsert(
+                    conn,
+                    "nba.querytool_event_team",
+                    event_team_rows,
+                    ["query_hash", "row_hash"],
+                    update_exclude=["created_at", "first_seen_at"],
+                )
+            if event_league_rows:
+                inserted_event_league = upsert(
+                    conn,
+                    "nba.querytool_event_league",
+                    event_league_rows,
+                    ["query_hash", "row_hash"],
+                    update_exclude=["created_at", "first_seen_at"],
+                )
 
         if conn:
             conn.close()
@@ -801,6 +1070,21 @@ def main(
                     "table": "nba.lineup_stats_game",
                     "rows": len(lineup_game_rows),
                     "upserted": inserted_lineup_game,
+                },
+                {
+                    "table": "nba.querytool_event_player",
+                    "rows": len(event_player_rows),
+                    "upserted": inserted_event_players,
+                },
+                {
+                    "table": "nba.querytool_event_team",
+                    "rows": len(event_team_rows),
+                    "upserted": inserted_event_teams,
+                },
+                {
+                    "table": "nba.querytool_event_league",
+                    "rows": len(event_league_rows),
+                    "upserted": inserted_event_league,
                 },
             ],
             "errors": [],

@@ -8,398 +8,319 @@ value:
         type: rawscript
         content: '!inline teams.inline_script.py'
         input_transforms:
-          days_back:
-            type: javascript
-            expr: flow_input.days_back
           dry_run:
             type: javascript
-            expr: flow_input.dry_run
-          end_date:
-            type: javascript
-            expr: flow_input.end_date
-          game_ids:
-            type: javascript
-            expr: flow_input.game_ids
+            expr: '!flow_input.save_data'
           league_id:
             type: javascript
             expr: flow_input.league_id
-          mode:
-            type: javascript
-            expr: flow_input.mode
-          only_final_games:
-            type: javascript
-            expr: flow_input.only_final_games
           season_label:
             type: javascript
             expr: flow_input.season_label
           season_type:
             type: javascript
             expr: flow_input.season_type
-          start_date:
-            type: javascript
-            expr: flow_input.start_date
         lock: '!inline teams.inline_script.lock'
         language: python3
+
     - id: b
       summary: Players
       value:
         type: rawscript
         content: '!inline players.inline_script.py'
         input_transforms:
-          days_back:
-            type: javascript
-            expr: flow_input.days_back
           dry_run:
             type: javascript
-            expr: flow_input.dry_run
-          end_date:
-            type: javascript
-            expr: flow_input.end_date
-          game_ids:
-            type: javascript
-            expr: flow_input.game_ids
+            expr: '!flow_input.save_data'
           league_id:
             type: javascript
             expr: flow_input.league_id
-          mode:
-            type: javascript
-            expr: flow_input.mode
-          only_final_games:
-            type: javascript
-            expr: flow_input.only_final_games
           season_label:
             type: javascript
             expr: flow_input.season_label
-          season_type:
-            type: javascript
-            expr: flow_input.season_type
-          start_date:
-            type: javascript
-            expr: flow_input.start_date
         lock: '!inline players.inline_script.lock'
         language: python3
+
     - id: c
       summary: Schedules
       value:
         type: rawscript
         content: '!inline schedules.inline_script.py'
         input_transforms:
-          days_back:
-            type: javascript
-            expr: flow_input.days_back
           dry_run:
             type: javascript
-            expr: flow_input.dry_run
-          end_date:
-            type: javascript
-            expr: flow_input.end_date
-          game_ids:
-            type: javascript
-            expr: flow_input.game_ids
+            expr: '!flow_input.save_data'
           league_id:
             type: javascript
             expr: flow_input.league_id
-          mode:
-            type: javascript
-            expr: flow_input.mode
-          only_final_games:
-            type: javascript
-            expr: flow_input.only_final_games
           season_label:
             type: javascript
             expr: flow_input.season_label
-          season_type:
-            type: javascript
-            expr: flow_input.season_type
-          start_date:
-            type: javascript
-            expr: flow_input.start_date
         lock: '!inline schedules.inline_script.lock'
         language: python3
+
     - id: d
       summary: Standings
       value:
         type: rawscript
         content: '!inline standings.inline_script.py'
         input_transforms:
-          days_back:
-            type: javascript
-            expr: flow_input.days_back
           dry_run:
             type: javascript
-            expr: flow_input.dry_run
-          end_date:
-            type: javascript
-            expr: flow_input.end_date
-          game_ids:
-            type: javascript
-            expr: flow_input.game_ids
+            expr: '!flow_input.save_data'
           league_id:
             type: javascript
             expr: flow_input.league_id
-          mode:
-            type: javascript
-            expr: flow_input.mode
-          only_final_games:
-            type: javascript
-            expr: flow_input.only_final_games
           season_label:
             type: javascript
             expr: flow_input.season_label
           season_type:
             type: javascript
             expr: flow_input.season_type
-          start_date:
-            type: javascript
-            expr: flow_input.start_date
         lock: '!inline standings.inline_script.lock'
         language: python3
+
     - id: e
       summary: Games
       value:
         type: rawscript
         content: '!inline games.inline_script.py'
         input_transforms:
-          days_back:
-            type: javascript
-            expr: flow_input.days_back
           dry_run:
             type: javascript
-            expr: flow_input.dry_run
-          end_date:
-            type: javascript
-            expr: flow_input.end_date
-          game_ids:
-            type: javascript
-            expr: flow_input.game_ids
+            expr: '!flow_input.save_data'
           league_id:
             type: javascript
             expr: flow_input.league_id
-          mode:
-            type: javascript
-            expr: flow_input.mode
-          only_final_games:
-            type: javascript
-            expr: flow_input.only_final_games
           season_label:
             type: javascript
             expr: flow_input.season_label
           season_type:
             type: javascript
             expr: flow_input.season_type
+          mode:
+            type: javascript
+            expr: flow_input.run_mode
+          days_back:
+            type: javascript
+            expr: flow_input.days_back
           start_date:
             type: javascript
             expr: flow_input.start_date
+          end_date:
+            type: javascript
+            expr: flow_input.end_date
         lock: '!inline games.inline_script.lock'
         language: python3
+
     - id: f
       summary: Game Data
       value:
         type: rawscript
         content: '!inline game_data.inline_script.py'
         input_transforms:
-          days_back:
-            type: javascript
-            expr: flow_input.days_back
           dry_run:
             type: javascript
-            expr: flow_input.dry_run
-          end_date:
-            type: javascript
-            expr: flow_input.end_date
-          game_ids:
-            type: javascript
-            expr: flow_input.game_ids
+            expr: '!flow_input.save_data'
           league_id:
             type: javascript
             expr: flow_input.league_id
-          mode:
-            type: javascript
-            expr: flow_input.mode
-          only_final_games:
-            type: javascript
-            expr: flow_input.only_final_games
           season_label:
             type: javascript
             expr: flow_input.season_label
           season_type:
             type: javascript
             expr: flow_input.season_type
+          mode:
+            type: javascript
+            expr: flow_input.run_mode
+          days_back:
+            type: javascript
+            expr: flow_input.days_back
           start_date:
             type: javascript
             expr: flow_input.start_date
+          end_date:
+            type: javascript
+            expr: flow_input.end_date
+          game_ids:
+            type: javascript
+            expr: flow_input.game_ids
+          only_final_games:
+            type: javascript
+            expr: flow_input.only_final_games
         lock: '!inline game_data.inline_script.lock'
         language: python3
+
     - id: g
       summary: Aggregates
       value:
         type: rawscript
         content: '!inline aggregates.inline_script.py'
         input_transforms:
-          days_back:
-            type: javascript
-            expr: flow_input.days_back
           dry_run:
             type: javascript
-            expr: flow_input.dry_run
-          end_date:
-            type: javascript
-            expr: flow_input.end_date
-          game_ids:
-            type: javascript
-            expr: flow_input.game_ids
+            expr: '!flow_input.save_data'
           league_id:
             type: javascript
             expr: flow_input.league_id
-          mode:
-            type: javascript
-            expr: flow_input.mode
-          only_final_games:
-            type: javascript
-            expr: flow_input.only_final_games
           season_label:
             type: javascript
             expr: flow_input.season_label
           season_type:
             type: javascript
             expr: flow_input.season_type
+          mode:
+            type: javascript
+            expr: flow_input.run_mode
+          days_back:
+            type: javascript
+            expr: flow_input.days_back
           start_date:
             type: javascript
             expr: flow_input.start_date
+          end_date:
+            type: javascript
+            expr: flow_input.end_date
+          game_ids:
+            type: javascript
+            expr: flow_input.game_ids
+          only_final_games:
+            type: javascript
+            expr: flow_input.only_final_games
         lock: '!inline aggregates.inline_script.lock'
         language: python3
+
     - id: h
       summary: Supplemental
       value:
         type: rawscript
         content: '!inline supplemental.inline_script.py'
         input_transforms:
+          dry_run:
+            type: javascript
+            expr: '!flow_input.save_data'
+          league_id:
+            type: javascript
+            expr: flow_input.league_id
+          season_label:
+            type: javascript
+            expr: flow_input.season_label
+          mode:
+            type: javascript
+            expr: flow_input.run_mode
           days_back:
             type: javascript
             expr: flow_input.days_back
-          dry_run:
+          start_date:
             type: javascript
-            expr: flow_input.dry_run
+            expr: flow_input.start_date
           end_date:
             type: javascript
             expr: flow_input.end_date
           game_ids:
             type: javascript
             expr: flow_input.game_ids
-          league_id:
-            type: javascript
-            expr: flow_input.league_id
-          mode:
-            type: javascript
-            expr: flow_input.mode
-          only_final_games:
-            type: javascript
-            expr: flow_input.only_final_games
-          season_label:
-            type: javascript
-            expr: flow_input.season_label
-          season_type:
-            type: javascript
-            expr: flow_input.season_type
-          start_date:
-            type: javascript
-            expr: flow_input.start_date
         lock: '!inline supplemental.inline_script.lock'
         language: python3
+
     - id: i
       summary: NGSS
       value:
         type: rawscript
         content: '!inline ngss.inline_script.py'
         input_transforms:
-          days_back:
-            type: javascript
-            expr: flow_input.days_back
           dry_run:
             type: javascript
-            expr: flow_input.dry_run
-          end_date:
-            type: javascript
-            expr: flow_input.end_date
-          game_ids:
-            type: javascript
-            expr: flow_input.game_ids
+            expr: '!flow_input.save_data'
           league_id:
             type: javascript
             expr: flow_input.league_id
-          mode:
-            type: javascript
-            expr: flow_input.mode
-          only_final_games:
-            type: javascript
-            expr: flow_input.only_final_games
           season_label:
             type: javascript
             expr: flow_input.season_label
           season_type:
             type: javascript
             expr: flow_input.season_type
+          mode:
+            type: javascript
+            expr: flow_input.run_mode
+          days_back:
+            type: javascript
+            expr: flow_input.days_back
           start_date:
             type: javascript
             expr: flow_input.start_date
+          end_date:
+            type: javascript
+            expr: flow_input.end_date
+          game_ids:
+            type: javascript
+            expr: flow_input.game_ids
+          only_final_games:
+            type: javascript
+            expr: flow_input.only_final_games
         lock: '!inline ngss.inline_script.lock'
         language: python3
+
   same_worker: true
+
 schema:
   $schema: 'https://json-schema.org/draft/2020-12/schema'
   type: object
   order:
-    - dry_run
+    - save_data
     - league_id
     - season_label
     - season_type
-    - mode
+    - run_mode
     - days_back
     - start_date
     - end_date
     - game_ids
     - only_final_games
   properties:
-    days_back:
-      type: integer
-      description: Days back for refresh mode
-      default: 2
-    dry_run:
+    save_data:
       type: boolean
-      description: Preview changes without writing to DB
-      default: false
-    end_date:
-      type: string
-      description: YYYY-MM-DD (required for backfill unless game_ids provided)
-      default: ''
-    game_ids:
-      type: string
-      description: Comma-separated game IDs (optional override)
-      default: ''
+      description: Write data to Postgres (set false for preview only)
+      default: true
     league_id:
       type: string
       description: 'League ID (00=NBA, 10=WNBA, 20=G League)'
       default: '00'
-    mode:
-      type: string
-      description: refresh (last N days) or backfill (explicit range)
-      default: refresh
-      enum:
-        - refresh
-        - backfill
-    only_final_games:
-      type: boolean
-      description: Only fetch game_data for games with game_status=3
-      default: true
     season_label:
       type: string
-      description: 'Season label (e.g., 2024-25)'
-      default: 2025-26
+      description: 'Season label (e.g., 2025-26)'
+      default: '2025-26'
     season_type:
       type: string
       description: 'Season type (Regular Season, Playoffs, etc.)'
-      default: Regular Season
+      default: 'Regular Season'
+    run_mode:
+      type: string
+      description: refresh (last N days), date_backfill (explicit dates), or season_backfill (full season)
+      default: refresh
+      enum:
+        - refresh
+        - date_backfill
+        - season_backfill
+    days_back:
+      type: integer
+      description: Days back when run_mode=refresh
+      default: 2
     start_date:
       type: string
-      description: YYYY-MM-DD (required for backfill unless game_ids provided)
+      description: YYYY-MM-DD when run_mode=date_backfill
       default: ''
+    end_date:
+      type: string
+      description: YYYY-MM-DD when run_mode=date_backfill
+      default: ''
+    game_ids:
+      type: string
+      description: Optional comma-separated game IDs (advanced override for game-level steps)
+      default: ''
+    only_final_games:
+      type: boolean
+      description: Only fetch final games for game_data/aggregates/ngss steps
+      default: true

@@ -8,9 +8,10 @@ Test runner for NBA import scripts.
 
 Usage:
     uv run scripts/test-nba-import.py teams
-    uv run scripts/test-nba-import.py game_data --mode backfill --start-date 2024-10-01 --end-date 2024-10-02
-    uv run scripts/test-nba-import.py all --include-aggregates --include-supplemental --include-ngss --write
+    uv run scripts/test-nba-import.py games --run-mode date_backfill --start-date 2024-10-01 --end-date 2024-10-02 --write
+    uv run scripts/test-nba-import.py all --run-mode season_backfill --season-label 2023-24 --write
 """
+
 import argparse
 import importlib.util
 import inspect
@@ -27,18 +28,6 @@ SCRIPTS = {
     "aggregates": "aggregates.inline_script.py",
     "supplemental": "supplemental.inline_script.py",
     "ngss": "ngss.inline_script.py",
-}
-
-SCRIPT_FORCE_FLAGS = {
-    "teams": {"include_reference": True},
-    "players": {"include_reference": True},
-    "schedules": {"include_schedule_and_standings": True},
-    "standings": {"include_schedule_and_standings": True},
-    "games": {"include_games": True},
-    "game_data": {"include_game_data": True},
-    "aggregates": {"include_aggregates": True},
-    "supplemental": {"include_supplemental": True},
-    "ngss": {"include_ngss": True},
 }
 
 SCRIPT_DIR = Path("import_nba_data.flow")
@@ -58,18 +47,11 @@ def build_params(args: argparse.Namespace) -> dict:
         "league_id": args.league_id,
         "season_label": args.season_label,
         "season_type": args.season_type,
-        "mode": args.mode,
+        "mode": args.run_mode,
         "days_back": args.days_back,
         "start_date": args.start_date,
         "end_date": args.end_date,
         "game_ids": args.game_ids,
-        "include_reference": args.include_reference,
-        "include_schedule_and_standings": args.include_schedule_and_standings,
-        "include_games": args.include_games,
-        "include_game_data": args.include_game_data,
-        "include_aggregates": args.include_aggregates,
-        "include_supplemental": args.include_supplemental,
-        "include_ngss": args.include_ngss,
         "only_final_games": args.only_final_games,
     }
 
@@ -83,7 +65,6 @@ def run_script(name: str, dry_run: bool, params: dict):
     main = load_script(name)
     script_params = params.copy()
     script_params["dry_run"] = dry_run
-    script_params.update(SCRIPT_FORCE_FLAGS.get(name, {}))
 
     accepted = set(inspect.signature(main).parameters.keys())
     filtered_params = {k: v for k, v in script_params.items() if k in accepted}
@@ -101,80 +82,67 @@ def main():
         help="Script to run (or 'all')",
     )
     parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        default=True,
-        help="Preview changes without writing to DB (default: True)",
-    )
-    parser.add_argument(
         "--write",
         action="store_true",
         help="Actually write to the database",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Force dry-run preview (overrides --write)",
+    )
+
     parser.add_argument("--league-id", default="00", help="League ID (00=NBA)")
-    parser.add_argument("--season-label", default="2024-25", help="Season label (e.g., 2024-25)")
+    parser.add_argument("--season-label", default="2025-26", help="Season label (e.g., 2025-26)")
     parser.add_argument("--season-type", default="Regular Season", help="Season type")
+
+    parser.add_argument(
+        "--run-mode",
+        choices=["refresh", "date_backfill", "season_backfill"],
+        default="refresh",
+        help="refresh (last N days), date_backfill (explicit dates), or season_backfill (full season)",
+    )
     parser.add_argument(
         "--mode",
-        choices=["refresh", "backfill"],
-        default="refresh",
-        help="refresh (last N days) or backfill (explicit range)",
+        dest="run_mode",
+        choices=["refresh", "date_backfill", "season_backfill", "backfill"],
+        help="Backward-compatible alias for --run-mode",
     )
+
     parser.add_argument("--days-back", type=int, default=2, help="Days back for refresh mode")
-    parser.add_argument("--start-date", default="", help="YYYY-MM-DD (backfill)")
-    parser.add_argument("--end-date", default="", help="YYYY-MM-DD (backfill)")
-    parser.add_argument("--game-ids", default="", help="Comma-separated game IDs (optional)")
+    parser.add_argument("--start-date", default="", help="YYYY-MM-DD (date_backfill)")
+    parser.add_argument("--end-date", default="", help="YYYY-MM-DD (date_backfill)")
+    parser.add_argument("--game-ids", default="", help="Comma-separated game IDs (advanced override)")
     parser.add_argument(
         "--only-final-games",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="Only fetch game_data for finals",
-    )
-    parser.add_argument(
-        "--include-reference",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Fetch + upsert teams/players",
-    )
-    parser.add_argument(
-        "--include-schedule-and-standings",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Fetch + upsert schedules + standings",
-    )
-    parser.add_argument(
-        "--include-games",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Fetch + upsert games (scoreboard)",
-    )
-    parser.add_argument(
-        "--include-game-data",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Fetch + upsert boxscores/pbp/poc/hustle/tracking",
-    )
-    parser.add_argument(
-        "--include-aggregates",
-        action=argparse.BooleanOptionalAction,
-        default=False,
-        help="Fetch + upsert player/team aggregates + lineups",
-    )
-    parser.add_argument(
-        "--include-supplemental",
-        action=argparse.BooleanOptionalAction,
-        default=False,
-        help="Fetch + upsert injuries/alerts/storylines/tracking streams",
-    )
-    parser.add_argument(
-        "--include-ngss",
-        action=argparse.BooleanOptionalAction,
-        default=False,
-        help="Fetch + upsert NGSS data",
+        help="Only fetch final games for game-data style endpoints",
     )
 
     args = parser.parse_args()
-    dry_run = not args.write
+
+    if args.run_mode == "backfill":
+        args.run_mode = "date_backfill"
+
+    if bool(args.start_date) ^ bool(args.end_date):
+        parser.error("--start-date and --end-date must be provided together")
+
+    if args.run_mode == "date_backfill" and not (args.start_date and args.end_date):
+        if args.script == "all":
+            parser.error("date_backfill with script=all requires --start-date and --end-date")
+        if not args.game_ids:
+            parser.error("date_backfill requires --start-date and --end-date (or --game-ids for game-level scripts)")
+
+    if args.run_mode == "season_backfill" and not args.season_label:
+        parser.error("season_backfill requires --season-label")
+
+    dry_run = True
+    if args.write:
+        dry_run = False
+    if args.dry_run:
+        dry_run = True
+
     params = build_params(args)
 
     if args.script == "all":

@@ -3,7 +3,7 @@
 - game_id text REFERENCES nba.games(game_id)
 - nba_id integer REFERENCES nba.players(nba_id)
 - team_id integer REFERENCES nba.teams(team_id)
-- minutes interval
+- minutes numeric(8,2)
 - off_rating numeric(6,2)
 - def_rating numeric(6,2)
 - net_rating numeric(6,2)
@@ -45,7 +45,7 @@
 #### Notes
 - `game_id` is the official 10-digit NBA game identifier.
 - `nba_id` is the official player identifier.
-- `minutes`: Stored as `interval` for better calculation support.
+- `minutes`: Stored as decimal minutes (`numeric(8,2)`).
 - Percentages (e.g., `ast_pct`, `ts_pct`) are stored as `numeric(5,4)` assuming the API provides them as decimals (e.g., 0.5432).
 - Ratings (e.g., `off_rating`, `def_rating`) are stored as `numeric(6,2)` to support standard "per 100 possessions" values (e.g., 115.42).
 - `e_*` columns refer to "Estimated" metrics often found in NBA advanced stats.

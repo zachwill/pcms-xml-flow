@@ -9,7 +9,7 @@
 - team_city text
 - team_name text
 - team_slug text
-- team_abbreviation text
+- team_tricode text
 - conference text
 - division text
 - playoff_rank integer

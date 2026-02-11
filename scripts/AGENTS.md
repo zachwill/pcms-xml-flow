@@ -29,7 +29,8 @@ uv run scripts/test-import.py all --write
 
 ```bash
 uv run scripts/test-nba-import.py teams
-uv run scripts/test-nba-import.py game_data --mode backfill --start-date 2024-10-01 --end-date 2024-10-02 --write
+uv run scripts/test-nba-import.py game_data --run-mode date_backfill --start-date 2024-10-01 --end-date 2024-10-02 --write
+uv run scripts/test-nba-import.py all --run-mode season_backfill --season-label 2023-24 --write
 ```
 
 ### SportRadar → `sr.*`
@@ -68,6 +69,7 @@ These are convenience utilities for poking at nested JSON:
 
 - `POSTGRES_URL` — required for any `--write` mode
 - `NBA_API_KEY` — required for NBA API imports (`import_nba_data.flow/`)
+- `NGSS_API_KEY` — required if running the NBA NGSS step (`import_nba_data.flow/ngss.inline_script.py`)
 - `SPORTRADAR_API_KEY` — required for SportRadar imports (`import_sr_data.flow/`)
 
 ---

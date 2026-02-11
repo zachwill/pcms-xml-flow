@@ -2,7 +2,7 @@
 
 - game_id text REFERENCES nba.games(game_id)
 - team_id integer REFERENCES nba.teams(team_id)
-- minutes interval
+- minutes numeric(8,2)
 - points integer
 - fgm integer
 - fga integer

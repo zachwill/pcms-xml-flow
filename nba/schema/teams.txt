@@ -6,7 +6,6 @@
 - team_full_name text
 - team_tricode text
 - team_slug text
-- team_abbreviation text
 - league_id text
 - conference text
 - division text
@@ -25,7 +24,6 @@
 #### Constraints & Indexes
 - UNIQUE (team_id)
 - INDEX ON (team_tricode)
-- INDEX ON (team_abbreviation)
 - INDEX ON (league_id)
 - INDEX ON (ngss_team_id)
 
@@ -34,7 +32,7 @@
 - `team_name` is the nickname (e.g., "Hawks").
 - `team_city` is the city (e.g., "Atlanta").
 - `team_full_name` is the combination (e.g., "Atlanta Hawks").
-- `team_tricode` and `team_abbreviation` are often the same (e.g., "ATL"), but both are stored as they appear across different endpoints.
+- `team_tricode` stores the three-letter team code (e.g., "ATL"). Source payloads may call this `teamAbbreviation` in some endpoints.
 - `team_slug` is used in NBA.com URLs (e.g., "hawks").
 - `ngss_team_id` stores the legacy Genius Sports identifier if it differs from the NBA ID.
 - `league_id` is typically "00" for the NBA, "10" for WNBA, "20" for G League.

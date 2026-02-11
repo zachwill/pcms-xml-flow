@@ -163,16 +163,69 @@ def normalize_memos(value):
     return [str(value)]
 
 
-def resolve_date_range(mode: str, days_back: int, start_date: str | None, end_date: str | None) -> tuple[date, date]:
-    if start_date and end_date:
-        return parse_date(start_date), parse_date(end_date)
+def resolve_season_date_range(season_label: str | None) -> tuple[date, date]:
+    if not season_label:
+        raise ValueError("season_backfill mode requires season_label")
 
-    if mode == "refresh":
+    text = str(season_label).strip()
+    try:
+        start_year = int(text[:4])
+    except (TypeError, ValueError):
+        raise ValueError("season_label must look like YYYY-YY (e.g. 2024-25)")
+
+    end_year = start_year + 1
+    if "-" in text:
+        suffix = text.split("-", 1)[1].strip()
+        if suffix:
+            if len(suffix) == 2 and suffix.isdigit():
+                century = start_year // 100
+                end_year = century * 100 + int(suffix)
+                if end_year < start_year:
+                    end_year += 100
+            else:
+                try:
+                    end_year = int(suffix)
+                except ValueError:
+                    end_year = start_year + 1
+
+    start = date(start_year, 9, 1)
+    end = date(end_year, 7, 31)
+    today = now_utc().date()
+    if end > today:
+        end = today
+    return start, end
+
+
+def resolve_date_range(
+    mode: str,
+    days_back: int,
+    start_date: str | None,
+    end_date: str | None,
+    season_label: str | None,
+) -> tuple[date, date]:
+    if start_date or end_date:
+        if not (start_date and end_date):
+            raise ValueError("start_date and end_date must both be provided")
+        start = parse_date(start_date)
+        end = parse_date(end_date)
+        if not start or not end:
+            raise ValueError("start_date/end_date must be YYYY-MM-DD")
+        return start, end
+
+    normalized_mode = (mode or "refresh").strip().lower()
+
+    if normalized_mode == "refresh":
         today = now_utc().date()
         start = today - timedelta(days=days_back or 2)
         return start, today
 
-    raise ValueError("backfill mode requires start_date and end_date (or game_ids)")
+    if normalized_mode in {"backfill", "date_backfill"}:
+        raise ValueError("date_backfill mode requires start_date and end_date (or game_ids)")
+
+    if normalized_mode == "season_backfill":
+        return resolve_season_date_range(season_label)
+
+    raise ValueError("mode must be one of: refresh, date_backfill, season_backfill")
 
 
 def request_json(
@@ -372,24 +425,9 @@ def main(
     start_date: str | None = None,
     end_date: str | None = None,
     game_ids: str | None = None,
-    include_reference: bool = True,
-    include_schedule_and_standings: bool = True,
-    include_games: bool = True,
-    include_game_data: bool = True,
-    include_aggregates: bool = False,
-    include_supplemental: bool = False,
-    include_ngss: bool = True,
     only_final_games: bool = True,
 ) -> dict:
     started_at = now_utc()
-    if not include_ngss:
-        return {
-            "dry_run": dry_run,
-            "started_at": started_at.isoformat(),
-            "finished_at": now_utc().isoformat(),
-            "tables": [],
-            "errors": [],
-        }
 
     api_key = os.environ.get("NGSS_API_KEY")
     if not api_key:
@@ -408,7 +446,7 @@ def main(
         if game_ids:
             game_list = [(gid.strip(), None) for gid in game_ids.split(",") if gid.strip()]
         else:
-            start_dt, end_dt = resolve_date_range(mode, days_back, start_date, end_date)
+            start_dt, end_dt = resolve_date_range(mode, days_back, start_date, end_date, season_label)
             query = """
                 SELECT game_id, game_status
                 FROM nba.games

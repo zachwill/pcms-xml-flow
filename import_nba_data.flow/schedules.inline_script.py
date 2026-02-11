@@ -78,29 +78,8 @@ def main(
     dry_run: bool = False,
     league_id: str = "00",
     season_label: str | None = None,
-    season_type: str | None = None,
-    mode: str | None = None,
-    days_back: int | None = None,
-    start_date: str | None = None,
-    end_date: str | None = None,
-    game_ids: str | None = None,
-    include_reference: bool = True,
-    include_schedule_and_standings: bool = True,
-    include_games: bool = True,
-    include_game_data: bool = True,
-    include_aggregates: bool = False,
-    include_supplemental: bool = False,
-    only_final_games: bool = True,
 ) -> dict:
     started_at = now_utc()
-    if not include_schedule_and_standings:
-        return {
-            "dry_run": dry_run,
-            "started_at": started_at.isoformat(),
-            "finished_at": now_utc().isoformat(),
-            "tables": [],
-            "errors": [],
-        }
 
     try:
         today = now_utc().date().isoformat()

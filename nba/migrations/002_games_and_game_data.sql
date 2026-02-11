@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS nba.boxscores_traditional (
     is_starter boolean,
     is_on_court boolean,
     played boolean,
-    minutes interval,
+    minutes numeric(8,2),
     pts integer,
     fgm integer,
     fga integer,
@@ -48,7 +48,7 @@ CREATE INDEX IF NOT EXISTS boxscores_traditional_game_id_idx ON nba.boxscores_tr
 CREATE TABLE IF NOT EXISTS nba.boxscores_traditional_team (
     game_id text REFERENCES nba.games(game_id),
     team_id integer REFERENCES nba.teams(team_id),
-    minutes interval,
+    minutes numeric(8,2),
     points integer,
     fgm integer,
     fga integer,
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS nba.boxscores_advanced (
     game_id text REFERENCES nba.games(game_id),
     nba_id integer REFERENCES nba.players(nba_id),
     team_id integer REFERENCES nba.teams(team_id),
-    minutes interval,
+    minutes numeric(8,2),
     off_rating numeric(6,2),
     def_rating numeric(6,2),
     net_rating numeric(6,2),
@@ -139,6 +139,35 @@ CREATE INDEX IF NOT EXISTS boxscores_advanced_team_id_idx ON nba.boxscores_advan
 CREATE INDEX IF NOT EXISTS boxscores_advanced_nba_id_idx ON nba.boxscores_advanced (nba_id);
 CREATE INDEX IF NOT EXISTS boxscores_advanced_game_id_idx ON nba.boxscores_advanced (game_id);
 
+CREATE TABLE IF NOT EXISTS nba.boxscores_advanced_team (
+    game_id text REFERENCES nba.games(game_id),
+    team_id integer REFERENCES nba.teams(team_id),
+    minutes numeric(8,2),
+    off_rating numeric(6,2),
+    def_rating numeric(6,2),
+    net_rating numeric(6,2),
+    ast_pct numeric(5,4),
+    ast_to_ratio numeric(6,2),
+    ast_ratio numeric(6,2),
+    oreb_pct numeric(5,4),
+    dreb_pct numeric(5,4),
+    reb_pct numeric(5,4),
+    tm_tov_pct numeric(5,4),
+    efg_pct numeric(5,4),
+    ts_pct numeric(5,4),
+    pace numeric(6,2),
+    pace_per40 numeric(6,2),
+    poss integer,
+    pie numeric(5,4),
+    created_at timestamptz,
+    updated_at timestamptz,
+    fetched_at timestamptz,
+    PRIMARY KEY (game_id, team_id)
+);
+
+CREATE INDEX IF NOT EXISTS boxscores_advanced_team_team_id_idx ON nba.boxscores_advanced_team (team_id);
+CREATE INDEX IF NOT EXISTS boxscores_advanced_team_game_id_idx ON nba.boxscores_advanced_team (game_id);
+
 CREATE TABLE IF NOT EXISTS nba.play_by_play (
     game_id text REFERENCES nba.games(game_id),
     pbp_json jsonb,
@@ -167,7 +196,7 @@ CREATE TABLE IF NOT EXISTS nba.hustle_stats (
     game_id text REFERENCES nba.games(game_id),
     nba_id integer REFERENCES nba.players(nba_id),
     team_id integer REFERENCES nba.teams(team_id),
-    minutes interval,
+    minutes numeric(8,2),
     contested_field_goals integer,
     contested_2pt_field_goals integer,
     contested_3pt_field_goals integer,
@@ -237,7 +266,7 @@ CREATE TABLE IF NOT EXISTS nba.tracking_stats (
     game_id text REFERENCES nba.games(game_id),
     team_id integer REFERENCES nba.teams(team_id),
     nba_id integer REFERENCES nba.players(nba_id),
-    minutes interval,
+    minutes numeric(8,2),
     dist_miles numeric(6,2),
     dist_miles_off numeric(6,2),
     dist_miles_def numeric(6,2),

@@ -718,6 +718,14 @@ def map_lineup_stats(stats: dict) -> dict:
                 parsed = parsed / 100
         elif column in LINEUP_RATE_COLUMNS and abs(parsed) > 1:
             parsed = parsed / 100
+
+        # Pace can blow up for 0-minute (or near-0) lineups; keep within
+        # numeric(6,2) bounds to avoid INSERT failures.
+        if column == "pace":
+            parsed = round(parsed, 2)
+            if abs(parsed) >= 10000:
+                continue
+
         row[column] = parsed
     return row
 
@@ -980,6 +988,9 @@ def main(
                                 for column in LINEUP_STAT_COLUMNS:
                                     row[column] = None
                                 row.update(map_lineup_stats(lineup.get("stats") or {}))
+                                minutes = row.get("minutes")
+                                if minutes is None or minutes <= 0:
+                                    continue
                                 lineup_season_rows.append(row)
             except Exception as exc:
                 section_errors.append(f"lineup_season: {exc}")
@@ -1036,6 +1047,9 @@ def main(
                             for column in LINEUP_STAT_COLUMNS:
                                 row[column] = None
                             row.update(map_lineup_stats(lineup.get("stats") or {}))
+                            minutes = row.get("minutes")
+                            if minutes is None or minutes <= 0:
+                                continue
                             lineup_game_rows.append(row)
                     except Exception as exc:
                         section_errors.append(f"game_lineup {measure_type}: {exc}")

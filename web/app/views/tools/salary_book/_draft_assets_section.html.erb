@@ -47,7 +47,7 @@
       data-on:mouseleave="if (!$seasonlocked && $selectedseason !== '') { $selectedseason = ''; }"
       data-on:focusout="if (!$seasonlocked && evt.relatedTarget && !el.contains(evt.relatedTarget) && $selectedseason !== '') { $selectedseason = ''; }"
     >
-      <div class="w-24 h-full shrink-0" data-show="$displayepm"></div>
+      <div class="w-24 h-full shrink-0" data-show="$displayepm" style="display: none;"></div>
 
       <% salary_years.each do |year| %>
         <div
@@ -75,7 +75,7 @@
 
     <%# EPM spacer + year columns %>
     <div class="flex items-stretch">
-      <div class="w-24 shrink-0" data-show="$displayepm"></div>
+      <div class="w-24 shrink-0" data-show="$displayepm" style="display: none;"></div>
 
       <% salary_years.each do |year| %>
         <% year_picks = picks_by_year[year] || [] %>

@@ -63,12 +63,33 @@ module Entities
           sbw.team_code,
           t.team_id,
           t.team_name,
+          sbw.age,
+          p.years_of_service,
+          p.display_first_name,
+          p.display_last_name,
           sbw.cap_2025::numeric AS cap_2025,
+          sbw.cap_2026::numeric AS cap_2026,
+          sbw.cap_2027::numeric AS cap_2027,
+          sbw.cap_2028::numeric AS cap_2028,
+          sbw.cap_2029::numeric AS cap_2029,
+          sbw.cap_2030::numeric AS cap_2030,
           sbw.total_salary_from_2025::numeric AS total_salary_from_2025,
-          sbw.is_two_way,
-          sbw.is_min_contract,
-          sbw.is_trade_restricted_now
+          sbw.pct_cap_2025,
+          COALESCE(sbw.is_two_way, false)::boolean AS is_two_way,
+          COALESCE(sbw.is_min_contract, false)::boolean AS is_min_contract,
+          COALESCE(sbw.is_no_trade, false)::boolean AS is_no_trade,
+          COALESCE(sbw.is_trade_bonus, false)::boolean AS is_trade_bonus,
+          sbw.trade_bonus_percent,
+          COALESCE(sbw.is_trade_restricted_now, false)::boolean AS is_trade_restricted_now,
+          sbw.option_2025,
+          sbw.option_2026,
+          sbw.option_2027,
+          sbw.option_2028,
+          sbw.contract_type_code,
+          sbw.contract_type_lookup_value,
+          sbw.signed_method_lookup_value
         FROM pcms.salary_book_warehouse sbw
+        LEFT JOIN pcms.people p ON sbw.player_id = p.person_id
         LEFT JOIN pcms.teams t
           ON t.team_code = sbw.team_code
          AND t.league_lk = 'NBA'
@@ -78,15 +99,36 @@ module Entities
 
       @client_rollup = conn.exec_query(<<~SQL).first || {}
         SELECT
-          COUNT(*)::integer AS client_count,
-          COUNT(DISTINCT sbw.team_code)::integer AS team_count,
-          COALESCE(SUM(sbw.cap_2025), 0)::bigint AS cap_2025_total,
-          COALESCE(SUM(sbw.total_salary_from_2025), 0)::bigint AS total_salary_from_2025,
-          COUNT(*) FILTER (WHERE sbw.is_two_way)::integer AS two_way_count,
-          COUNT(*) FILTER (WHERE sbw.is_min_contract)::integer AS min_contract_count,
-          COUNT(*) FILTER (WHERE sbw.is_trade_restricted_now)::integer AS restricted_now_count
-        FROM pcms.salary_book_warehouse sbw
-        WHERE sbw.agent_id = #{id_sql}
+          client_count,
+          team_count,
+          cap_2025_total,
+          total_salary_from_2025,
+          two_way_count,
+          min_contract_count,
+          trade_restricted_count AS restricted_now_count,
+
+          standard_count,
+          rookie_scale_count,
+          max_contract_count,
+          no_trade_count,
+          trade_kicker_count,
+
+          expiring_2025,
+          expiring_2026,
+          expiring_2027,
+
+          player_option_count,
+          team_option_count,
+          prior_year_nba_now_free_agent_count,
+
+          cap_2025_total_percentile,
+          cap_2026_total_percentile,
+          cap_2027_total_percentile,
+          client_count_percentile,
+          max_contract_count_percentile
+        FROM pcms.agents_warehouse
+        WHERE agent_id = #{id_sql}
+        LIMIT 1
       SQL
 
       @team_distribution = conn.exec_query(<<~SQL).to_a
@@ -95,7 +137,8 @@ module Entities
           t.team_id,
           t.team_name,
           COUNT(*)::integer AS client_count,
-          COALESCE(SUM(sbw.cap_2025), 0)::bigint AS cap_2025_total
+          COALESCE(SUM(sbw.cap_2025), 0)::bigint AS cap_2025_total,
+          COALESCE(SUM(sbw.cap_2026), 0)::bigint AS cap_2026_total
         FROM pcms.salary_book_warehouse sbw
         LEFT JOIN pcms.teams t
           ON t.team_code = sbw.team_code
@@ -103,7 +146,7 @@ module Entities
         WHERE sbw.agent_id = #{id_sql}
         GROUP BY sbw.team_code, t.team_id, t.team_name
         ORDER BY cap_2025_total DESC NULLS LAST, sbw.team_code
-        LIMIT 12
+        LIMIT 30
       SQL
 
       @book_by_year = conn.exec_query(<<~SQL).to_a
@@ -219,28 +262,53 @@ module Entities
     def load_directory_rows!
       conn = ActiveRecord::Base.connection
       q_sql = @query.present? ? conn.quote("%#{@query}%") : nil
-      active_only_sql = @active_only ? "AND COALESCE(is_active, true) = true" : ""
+      active_only_sql = @active_only ? "AND COALESCE(a.is_active, true) = true" : ""
 
       if @directory_kind == "agencies"
-        query_sql = q_sql.present? ? "AND agency_name ILIKE #{q_sql}" : ""
+        query_sql = q_sql.present? ? "AND a.agency_name ILIKE #{q_sql}" : ""
         @agencies = conn.exec_query(<<~SQL).to_a
-          SELECT agency_id, agency_name, is_active
-          FROM pcms.agencies
+          SELECT
+            a.agency_id,
+            a.agency_name,
+            a.is_active,
+            COALESCE(w.agent_count, 0)::integer AS agent_count,
+            COALESCE(w.client_count, 0)::integer AS client_count,
+            COALESCE(w.cap_2025_total, 0)::bigint AS cap_2025_total,
+            w.agent_count_percentile,
+            w.client_count_percentile,
+            w.cap_2025_total_percentile
+          FROM pcms.agencies a
+          LEFT JOIN pcms.agencies_warehouse w
+            ON w.agency_id = a.agency_id
           WHERE 1 = 1
             #{active_only_sql}
             #{query_sql}
-          ORDER BY agency_name
+          ORDER BY w.cap_2025_total DESC NULLS LAST, a.agency_name
         SQL
         @agents = []
       else
-        query_sql = q_sql.present? ? "AND (full_name ILIKE #{q_sql} OR agency_name ILIKE #{q_sql})" : ""
+        query_sql = q_sql.present? ? "AND (a.full_name ILIKE #{q_sql} OR a.agency_name ILIKE #{q_sql})" : ""
         @agents = conn.exec_query(<<~SQL).to_a
-          SELECT agent_id, full_name, agency_id, agency_name, is_active
-          FROM pcms.agents
+          SELECT
+            a.agent_id,
+            a.full_name,
+            a.agency_id,
+            a.agency_name,
+            a.is_active,
+            COALESCE(w.client_count, 0)::integer AS client_count,
+            COALESCE(w.team_count, 0)::integer AS team_count,
+            COALESCE(w.cap_2025_total, 0)::bigint AS cap_2025_total,
+            COALESCE(w.standard_count, 0)::integer AS standard_count,
+            COALESCE(w.two_way_count, 0)::integer AS two_way_count,
+            w.cap_2025_total_percentile,
+            w.client_count_percentile
+          FROM pcms.agents a
+          LEFT JOIN pcms.agents_warehouse w
+            ON w.agent_id = a.agent_id
           WHERE 1 = 1
             #{active_only_sql}
             #{query_sql}
-          ORDER BY full_name
+          ORDER BY w.cap_2025_total DESC NULLS LAST, a.full_name
         SQL
         @agencies = []
       end

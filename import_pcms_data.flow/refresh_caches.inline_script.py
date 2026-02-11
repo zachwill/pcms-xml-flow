@@ -10,6 +10,8 @@ Sync + caches refreshed:
 - pcms.refresh_people_team_from_transactions (sync people.team_id/team_code/status from transactions)
 - pcms.salary_book_warehouse
 - pcms.team_salary_warehouse
+- pcms.agents_warehouse
+- pcms.agencies_warehouse
 - pcms.exceptions_warehouse
 - pcms.dead_money_warehouse
 - pcms.cap_holds_warehouse
@@ -55,6 +57,21 @@ def main(dry_run: bool = False):
 
             cur.execute("SELECT pcms.refresh_team_salary_warehouse();")
             refreshed.append("pcms.refresh_team_salary_warehouse")
+
+            cur.execute("SELECT pcms.refresh_team_salary_percentiles();")
+            refreshed.append("pcms.refresh_team_salary_percentiles")
+
+            cur.execute("SELECT pcms.refresh_agents_warehouse();")
+            refreshed.append("pcms.refresh_agents_warehouse")
+
+            cur.execute("SELECT pcms.refresh_agents_warehouse_percentiles();")
+            refreshed.append("pcms.refresh_agents_warehouse_percentiles")
+
+            cur.execute("SELECT pcms.refresh_agencies_warehouse();")
+            refreshed.append("pcms.refresh_agencies_warehouse")
+
+            cur.execute("SELECT pcms.refresh_agencies_warehouse_percentiles();")
+            refreshed.append("pcms.refresh_agencies_warehouse_percentiles")
 
             cur.execute("SELECT pcms.refresh_exceptions_warehouse();")
             refreshed.append("pcms.refresh_exceptions_warehouse")

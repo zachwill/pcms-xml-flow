@@ -14,7 +14,7 @@ module Tools
       with_sse_stream do |sse|
         begin
           players = fetch_team_players(team_code)
-          payload = fetch_team_support_payload(team_code)
+          payload = fetch_team_support_payload(team_code, base_year: year)
           cap_holds = payload[:cap_holds]
           exceptions = payload[:exceptions]
           dead_money = payload[:dead_money]

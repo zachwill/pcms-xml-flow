@@ -233,7 +233,7 @@
           <% if cap_holds.any? %>
             <%= render partial: "tools/salary_book/cap_holds_section", locals: { cap_holds: cap_holds, salary_years: salary_years } %>
           <% else %>
-            <%= render partial: "tools/salary_book/placeholder_section_row", locals: { label: "Cap Holds", salary_years: salary_years } %>
+            <%= render partial: "tools/salary_book/placeholder_section_row", locals: { label: "Cap Hold UFA", salary_years: salary_years } %>
           <% end %>
         </div>
 

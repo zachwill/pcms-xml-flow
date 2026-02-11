@@ -8,7 +8,9 @@
 <% end %>
 
 <section id="entity-directory-results" class="space-y-3">
-  <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Results</h2>
+  <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <%= directory_kind == "agents" ? "#{@agents.size} agents" : "#{@agencies.size} agencies" %>
+  </h2>
 
   <% if directory_kind == "agents" %>
     <% if @agents.empty? %>
@@ -20,11 +22,24 @@
             <tr>
               <th class="text-left px-3 py-2 font-medium">Agent</th>
               <th class="text-left px-3 py-2 font-medium">Agency</th>
-              <th class="text-right px-3 py-2 font-medium">agent_id</th>
+              <th class="text-right px-3 py-2 font-medium">Clients</th>
+              <th class="text-right px-3 py-2 font-medium">Teams</th>
+              <th class="text-right px-3 py-2 font-medium">Book '25</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
             <% @agents.each do |a| %>
+              <%
+                client_count = a["client_count"].to_i
+                standard_count = a["standard_count"].to_i
+                two_way_count = a["two_way_count"].to_i
+                team_count = a["team_count"].to_i
+                cap_total = a["cap_2025_total"].to_i
+                client_count_percentile = a["client_count_percentile"]
+                client_count_percentile_int = representation_percentile_int(client_count_percentile)
+                book_percentile = a["cap_2025_total_percentile"]
+                book_percentile_int = representation_percentile_int(book_percentile)
+              %>
               <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2">
                   <div class="entity-cell-two-line">
@@ -34,27 +49,52 @@
                     <div class="entity-cell-secondary">
                       <% if a["is_active"] == false %>
                         <span class="entity-chip entity-chip--muted">inactive</span>
-                      <% else %>
-                        active
                       <% end %>
                     </div>
                   </div>
                 </td>
                 <td class="px-3 py-2">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary">
-                      <% if a["agency_id"].present? && a["agency_name"].present? %>
-                        <a href="<%= agency_href(a['agency_id']) %>" class="font-medium truncate hover:underline"><%= a["agency_name"] %></a>
-                      <% elsif a["agency_name"].present? %>
-                        <span class="font-medium truncate"><%= a["agency_name"] %></span>
-                      <% else %>
-                        <span class="text-muted-foreground">—</span>
+                  <% if a["agency_id"].present? && a["agency_name"].present? %>
+                    <a href="<%= agency_href(a['agency_id']) %>" class="font-medium truncate hover:underline"><%= a["agency_name"] %></a>
+                  <% elsif a["agency_name"].present? %>
+                    <span class="font-medium truncate"><%= a["agency_name"] %></span>
+                  <% else %>
+                    <span class="text-muted-foreground">—</span>
+                  <% end %>
+                </td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums">
+                  <% if client_count > 0 %>
+                    <div class="space-y-0.5">
+                      <div>
+                        <span class="font-medium"><%= standard_count %></span><% if two_way_count > 0 %><span class="text-muted-foreground/70 ml-0.5">+<%= two_way_count %></span><% end %>
+                      </div>
+                      <% if client_count_percentile_int.present? %>
+                        <div class="text-[10px] leading-none font-mono tabular-nums <%= representation_percentile_color_class(client_count_percentile) %>">P<%= client_count_percentile_int %></div>
                       <% end %>
                     </div>
-                    <div class="entity-cell-secondary">agency_id: <%= a["agency_id"] || "—" %></div>
-                  </div>
+                  <% else %>
+                    <span class="text-muted-foreground">—</span>
+                  <% end %>
                 </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums text-muted-foreground"><%= a["agent_id"] %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums">
+                  <% if team_count > 0 %>
+                    <%= team_count %>
+                  <% else %>
+                    <span class="text-muted-foreground">—</span>
+                  <% end %>
+                </td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums">
+                  <% if cap_total > 0 %>
+                    <div class="space-y-0.5">
+                      <div class="font-medium"><%= format_salary(cap_total) %></div>
+                      <% if book_percentile_int.present? %>
+                        <div class="text-[10px] leading-none font-mono tabular-nums <%= representation_percentile_color_class(book_percentile) %>">P<%= book_percentile_int %></div>
+                      <% end %>
+                    </div>
+                  <% else %>
+                    <span class="text-muted-foreground">—</span>
+                  <% end %>
+                </td>
               </tr>
             <% end %>
           </tbody>
@@ -70,11 +110,21 @@
           <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Agency</th>
-              <th class="text-right px-3 py-2 font-medium">agency_id</th>
+              <th class="text-right px-3 py-2 font-medium">Agents</th>
+              <th class="text-right px-3 py-2 font-medium">Clients</th>
+              <th class="text-right px-3 py-2 font-medium">Book '25</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
             <% @agencies.each do |a| %>
+              <%
+                agent_count_percentile = a["agent_count_percentile"]
+                agent_count_percentile_int = representation_percentile_int(agent_count_percentile)
+                client_count_percentile = a["client_count_percentile"]
+                client_count_percentile_int = representation_percentile_int(client_count_percentile)
+                book_percentile = a["cap_2025_total_percentile"]
+                book_percentile_int = representation_percentile_int(book_percentile)
+              %>
               <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                 <td class="px-3 py-2">
                   <div class="entity-cell-two-line">
@@ -84,13 +134,46 @@
                     <div class="entity-cell-secondary">
                       <% if a["is_active"] == false %>
                         <span class="entity-chip entity-chip--muted">inactive</span>
-                      <% else %>
-                        active
                       <% end %>
                     </div>
                   </div>
                 </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums text-muted-foreground"><%= a["agency_id"] %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums">
+                  <% if a["agent_count"].to_i > 0 %>
+                    <div class="space-y-0.5">
+                      <div><%= a["agent_count"] %></div>
+                      <% if agent_count_percentile_int.present? %>
+                        <div class="text-[10px] leading-none <%= representation_percentile_color_class(agent_count_percentile) %>">P<%= agent_count_percentile_int %></div>
+                      <% end %>
+                    </div>
+                  <% else %>
+                    <span class="text-muted-foreground">—</span>
+                  <% end %>
+                </td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums">
+                  <% if a["client_count"].to_i > 0 %>
+                    <div class="space-y-0.5">
+                      <div><%= a["client_count"] %></div>
+                      <% if client_count_percentile_int.present? %>
+                        <div class="text-[10px] leading-none <%= representation_percentile_color_class(client_count_percentile) %>">P<%= client_count_percentile_int %></div>
+                      <% end %>
+                    </div>
+                  <% else %>
+                    <span class="text-muted-foreground">—</span>
+                  <% end %>
+                </td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums">
+                  <% if a["cap_2025_total"].to_i > 0 %>
+                    <div class="space-y-0.5">
+                      <div class="font-medium"><%= format_salary(a["cap_2025_total"]) %></div>
+                      <% if book_percentile_int.present? %>
+                        <div class="text-[10px] leading-none <%= representation_percentile_color_class(book_percentile) %>">P<%= book_percentile_int %></div>
+                      <% end %>
+                    </div>
+                  <% else %>
+                    <span class="text-muted-foreground">—</span>
+                  <% end %>
+                </td>
               </tr>
             <% end %>
           </tbody>
@@ -98,8 +181,4 @@
       </div>
     <% end %>
   <% end %>
-
-  <p class="text-xs text-muted-foreground">
-    Links prefer canonical slugs when known; otherwise they use the numeric fallback and create/promote canonical slugs on demand.
-  </p>
 </section>

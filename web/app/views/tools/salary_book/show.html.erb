@@ -28,6 +28,7 @@
     displaydraftpicks: true,
     displaydeadmoney: false,
     displayepm: false,
+    displayplayercapholds: false,
     displaytaxaprons: true,
     displaycashvscap: false,
     displayluxurytax: false,
@@ -148,6 +149,32 @@
 
       <%# Filter Toggles (client-only lenses) %>
       <div class="flex items-start gap-4" role="group" aria-label="Filters">
+        <div class="min-w-[5.5rem] space-y-1">
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Columns</div>
+          <div class="space-y-1">
+            <div class="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                id="filter-column-capholds"
+                class="size-3.5 accent-primary"
+                data-bind="displayplayercapholds"
+                data-on:change="window.__salaryBookPreserveContext?.()"
+              />
+              <label for="filter-column-capholds" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Cap Holds</label>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                id="filter-column-epm"
+                class="size-3.5 accent-primary"
+                data-bind="displayepm"
+                data-on:change="window.__salaryBookPreserveContext?.()"
+              />
+              <label for="filter-column-epm" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">EPM</label>
+            </div>
+          </div>
+        </div>
+
         <div class="min-w-[5.75rem] space-y-1">
           <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Display</div>
           <div class="space-y-1">
@@ -180,16 +207,6 @@
                 data-on:change="window.__salaryBookPreserveContext?.()"
               />
               <label for="filter-exceptions" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Exceptions</label>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                id="filter-epm"
-                class="size-3.5 accent-primary"
-                data-bind="displayepm"
-                data-on:change="window.__salaryBookPreserveContext?.()"
-              />
-              <label for="filter-epm" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">EPM</label>
             </div>
           </div>
         </div>
@@ -241,7 +258,7 @@
                 data-bind="displaycapholds"
                 data-on:change="window.__salaryBookPreserveContext?.()"
               />
-              <label for="filter-capholds" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Cap Holds</label>
+              <label for="filter-capholds" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Cap Hold UFA</label>
             </div>
             <div class="flex items-center gap-1.5">
               <input

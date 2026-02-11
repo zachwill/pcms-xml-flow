@@ -16,6 +16,7 @@ import argparse
 import importlib.util
 import inspect
 import json
+import sys
 from pathlib import Path
 
 SCRIPTS = {
@@ -121,6 +122,15 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # Ensure progress output is visible immediately even when piped (e.g. to `tee`).
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(line_buffering=True)
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(line_buffering=True)
+    except Exception:
+        pass
 
     if args.run_mode == "backfill":
         args.run_mode = "date_backfill"

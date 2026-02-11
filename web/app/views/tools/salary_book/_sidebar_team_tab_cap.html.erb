@@ -1,6 +1,7 @@
 <% summary ||= summaries_by_year[year] || {} %>
 
 <% cap_total = summary["cap_total"] %>
+<% cap_total_percentile = summary["cap_total_percentile"] %>
 <% cap_space = summary["cap_space"] %>
 <% room_tax = summary["room_under_tax"] %>
 <% room_a1 = summary["room_under_first_apron"] %>
@@ -101,6 +102,8 @@
         <%= render partial: "tools/salary_book/kpi_cell", locals: {
           label: "#{format_year_label(year)} CAP",
           value: status[:label],
+          subvalue: (representation_percentile_int(cap_total_percentile).present? ? "P#{representation_percentile_int(cap_total_percentile)}" : nil),
+          subvalue_class_name: representation_percentile_color_class(cap_total_percentile),
           variant: status[:variant],
           class_name: cap_outlook_kpi_class,
           title: "#{format_year_label(year)} outlook: #{status[:label]} (#{status[:value]})"

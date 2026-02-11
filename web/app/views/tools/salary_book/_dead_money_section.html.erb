@@ -23,7 +23,7 @@
         </div>
       </div>
 
-      <div class="w-24 shrink-0" data-show="$displayepm"></div>
+      <div class="w-24 shrink-0" data-show="$displayepm" style="display: none;"></div>
 
       <% salary_years.each do |year| %>
         <div
@@ -61,7 +61,7 @@
         </div>
 
         <%# EPM spacer + year columns %>
-        <div class="w-24 shrink-0" data-show="$displayepm"></div>
+        <div class="w-24 shrink-0" data-show="$displayepm" style="display: none;"></div>
 
         <% salary_years.each do |year| %>
           <% amt = dead_money_amount(row, year) %>

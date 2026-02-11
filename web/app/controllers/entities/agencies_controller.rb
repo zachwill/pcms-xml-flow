@@ -45,30 +45,42 @@ module Entities
           ag.agent_id,
           ag.full_name,
           ag.is_active,
-          COUNT(sbw.player_id)::integer AS client_count,
-          COALESCE(SUM(sbw.cap_2025), 0)::bigint AS cap_2025_total,
-          COALESCE(SUM(sbw.total_salary_from_2025), 0)::bigint AS total_salary_from_2025
+          COALESCE(w.client_count, 0)::integer AS client_count,
+          COALESCE(w.cap_2025_total, 0)::bigint AS cap_2025_total,
+          COALESCE(w.total_salary_from_2025, 0)::bigint AS total_salary_from_2025
         FROM pcms.agents ag
-        LEFT JOIN pcms.salary_book_warehouse sbw
-          ON sbw.agent_id = ag.agent_id
+        LEFT JOIN pcms.agents_warehouse w
+          ON w.agent_id = ag.agent_id
         WHERE ag.agency_id = #{id_sql}
-        GROUP BY ag.agent_id, ag.full_name, ag.is_active
-        ORDER BY cap_2025_total DESC NULLS LAST, ag.full_name
+        ORDER BY w.cap_2025_total DESC NULLS LAST, ag.full_name
       SQL
 
       @agency_rollup = conn.exec_query(<<~SQL).first || {}
         SELECT
-          COUNT(DISTINCT ag.agent_id)::integer AS agent_count,
-          COUNT(sbw.player_id)::integer AS client_count,
-          COUNT(DISTINCT sbw.team_code)::integer AS team_count,
-          COALESCE(SUM(sbw.cap_2025), 0)::bigint AS cap_2025_total,
-          COALESCE(SUM(sbw.total_salary_from_2025), 0)::bigint AS total_salary_from_2025,
-          COUNT(sbw.player_id) FILTER (WHERE sbw.is_two_way)::integer AS two_way_count,
-          COUNT(sbw.player_id) FILTER (WHERE sbw.is_min_contract)::integer AS min_contract_count
-        FROM pcms.agents ag
-        LEFT JOIN pcms.salary_book_warehouse sbw
-          ON sbw.agent_id = ag.agent_id
-        WHERE ag.agency_id = #{id_sql}
+          agent_count,
+          client_count,
+          team_count,
+          cap_2025_total,
+          total_salary_from_2025,
+          two_way_count,
+          min_contract_count,
+          max_contract_count,
+          rookie_scale_count,
+          no_trade_count,
+          trade_kicker_count,
+          trade_restricted_count,
+          expiring_2025,
+          expiring_2026,
+          expiring_2027,
+          player_option_count,
+          team_option_count,
+          prior_year_nba_now_free_agent_count,
+          agent_count_percentile,
+          client_count_percentile,
+          cap_2025_total_percentile
+        FROM pcms.agencies_warehouse
+        WHERE agency_id = #{id_sql}
+        LIMIT 1
       SQL
 
       @team_distribution = conn.exec_query(<<~SQL).to_a

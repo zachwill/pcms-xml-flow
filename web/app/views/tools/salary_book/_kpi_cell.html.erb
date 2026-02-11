@@ -10,16 +10,20 @@
   - class_name: extra classes for the outer box
   - label_class_name: extra classes for the label
   - value_class_name: extra classes for the value
+  - subvalue: optional tiny 2nd line (e.g. percentile tag)
+  - subvalue_class_name: extra classes for subvalue
 %>
 
 <% label = local_assigns.fetch(:label, nil) %>
 <% value = local_assigns.fetch(:value, nil) %>
+<% subvalue = local_assigns.fetch(:subvalue, nil) %>
 <% title = local_assigns.fetch(:title, nil) %>
 <% variant = local_assigns.fetch(:variant, "default") %>
 <% dark = local_assigns.fetch(:dark, false) %>
 <% class_name = local_assigns.fetch(:class_name, "") %>
 <% label_class_name = local_assigns.fetch(:label_class_name, "") %>
 <% value_class_name = local_assigns.fetch(:value_class_name, "") %>
+<% subvalue_class_name = local_assigns.fetch(:subvalue_class_name, "") %>
 
 <%
   value_color = {
@@ -37,15 +41,18 @@
   }[variant] || "text-zinc-100 dark:text-foreground"
 
   has_label = label.present?
+  has_subvalue = subvalue.present?
 
   # Determine if class_name overrides background (contains 'bg-')
   has_custom_bg = class_name.to_s.include?("bg-")
   default_bg = has_custom_bg ? "" : (dark ? "bg-zinc-700 dark:bg-zinc-700/80" : "bg-zinc-200/80 dark:bg-zinc-700/80")
   label_color = dark ? "text-zinc-400 dark:text-muted-foreground" : "text-muted-foreground"
+  subvalue_color = dark ? "text-zinc-400/90 dark:text-zinc-300/80" : "text-muted-foreground/80"
+  height_class = has_subvalue ? "h-12" : "h-10"
 %>
 
 <div
-  class="w-20 h-10 rounded flex flex-col items-center justify-center text-center px-1 <%= default_bg %> <%= class_name %>"
+  class="w-20 <%= height_class %> rounded flex flex-col items-center justify-center text-center px-1 <%= default_bg %> <%= class_name %>"
   <% if title.present? %>title="<%= title %>"<% end %>
 >
   <% if has_label %>
@@ -57,6 +64,12 @@
   <% if value != nil %>
     <span class="text-xs tabular-nums font-semibold leading-tight <%= has_label ? 'mt-0.5' : '' %> <%= dark ? dark_value_color : value_color %> <%= value_class_name %>">
       <%= value %>
+    </span>
+  <% end %>
+
+  <% if has_subvalue %>
+    <span class="mt-0.5 text-[9px] leading-none tabular-nums <%= subvalue_color %> <%= subvalue_class_name %>">
+      <%= subvalue %>
     </span>
   <% end %>
 </div>

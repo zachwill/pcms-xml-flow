@@ -38,6 +38,11 @@ module SalaryBookHelper
     player["cap_#{year}"]
   end
 
+  # Get cap hold for a specific year (parallel to salary columns)
+  def player_cap_hold(player, year)
+    player["cap_hold_#{year}"]
+  end
+
   # Normalize option values coming from `pcms.salary_book_warehouse`.
   #
   # Observed values:
@@ -370,7 +375,55 @@ module SalaryBookHelper
     return "text-green-700 dark:text-green-300" if p_int >= 80
     return "text-red-700 dark:text-red-300" if p_int <= 20
 
-    "text-muted-foreground/90"
+    "text-zinc-700 dark:text-zinc-300"
+  end
+
+  # -------------------------------------------------------------------------
+  # Representation KPI percentile helpers (agents/agencies)
+  # -------------------------------------------------------------------------
+
+  def representation_percentile_int(percentile)
+    p01 = normalize_percentile_01(percentile)
+    return nil if p01.nil?
+
+    (p01 * 100).round.clamp(0, 100)
+  end
+
+  def representation_percentile_blocks(percentile, bucket_count: 5)
+    p01 = normalize_percentile_01(percentile)
+    return "" if p01.nil?
+
+    filled = "▰"
+    empty = "▱"
+    filled_count = (p01 * bucket_count).round.clamp(0, bucket_count)
+
+    (filled * filled_count) + (empty * (bucket_count - filled_count))
+  end
+
+  def representation_percentile_label(percentile)
+    p_int = representation_percentile_int(percentile)
+    return nil if p_int.nil?
+
+    if p_int >= 50
+      top = [100 - p_int, 1].max
+      "P#{p_int} · Top #{top}%"
+    else
+      bottom = [p_int, 1].max
+      "P#{p_int} · Bottom #{bottom}%"
+    end
+  end
+
+  def representation_percentile_color_class(percentile)
+    p_int = representation_percentile_int(percentile)
+    return "text-muted-foreground/70" if p_int.nil?
+
+    return "text-violet-700 dark:text-violet-300" if p_int >= 95
+    return "text-violet-600 dark:text-violet-400" if p_int >= 80
+    return "text-violet-500 dark:text-violet-500" if p_int >= 60
+    return "text-muted-foreground/90" if p_int >= 40
+    return "text-muted-foreground/80" if p_int >= 20
+
+    "text-muted-foreground/70"
   end
 
   # Calculate total salary across years

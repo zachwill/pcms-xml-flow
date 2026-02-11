@@ -962,6 +962,41 @@ def map_advanced_stats(stats: dict) -> dict:
     return result
 
 
+def fill_missing_advanced_team_pace(team_rows: list[dict]) -> None:
+    """Fill pace fields when /api/stats/boxscore Advanced omits team pace."""
+    if not team_rows:
+        return
+
+    # Preferred derivation uses both teams' possessions to mirror NBA pace.
+    # pace = ((team_poss + opp_poss) / 2) * (240 / team_minutes)
+    if len(team_rows) == 2:
+        poss_values = [parse_float(row.get("poss")) for row in team_rows]
+        if poss_values[0] is not None and poss_values[1] is not None:
+            for idx, row in enumerate(team_rows):
+                minutes = parse_float(row.get("minutes"))
+                if minutes is None or minutes <= 0:
+                    continue
+
+                pace_value = ((poss_values[idx] + poss_values[1 - idx]) / 2.0) * (240.0 / minutes)
+                if row.get("pace") is None:
+                    row["pace"] = round(pace_value, 2)
+                if row.get("pace_per40") is None:
+                    row["pace_per40"] = round(pace_value * (40.0 / 48.0), 2)
+
+    # Fallback (if only one side is available): possessions scaled to 48 minutes.
+    for row in team_rows:
+        if row.get("pace") is None:
+            poss = parse_float(row.get("poss"))
+            minutes = parse_float(row.get("minutes"))
+            if poss is not None and minutes is not None and minutes > 0:
+                row["pace"] = round(poss * (240.0 / minutes), 2)
+
+        if row.get("pace_per40") is None:
+            pace_value = parse_float(row.get("pace"))
+            if pace_value is not None:
+                row["pace_per40"] = round(pace_value * (40.0 / 48.0), 2)
+
+
 def normalize_tracking_key(key: str) -> str:
     if not key:
         return ""
@@ -1445,6 +1480,7 @@ def main(
                     )
                     adv_home = advanced.get("homeTeam") or {}
                     adv_away = advanced.get("awayTeam") or {}
+                    advanced_team_rows_for_game: list[dict] = []
 
                     for team in [adv_home, adv_away]:
                         team_id = team.get("teamId")
@@ -1461,7 +1497,7 @@ def main(
                             }
                             team_row.update(map_advanced_stats(team_stats))
                             team_row = {k: v for k, v in team_row.items() if k in ADVANCED_TEAM_ALLOWED_COLUMNS}
-                            advanced_team_rows.append(team_row)
+                            advanced_team_rows_for_game.append(team_row)
 
                         for player in team.get("players") or []:
                             stats = player.get("statistics") or {}
@@ -1476,6 +1512,9 @@ def main(
                             }
                             row.update(map_advanced_stats(stats))
                             advanced_rows.append(row)
+
+                    fill_missing_advanced_team_pace(advanced_team_rows_for_game)
+                    advanced_team_rows.extend(advanced_team_rows_for_game)
 
                 # Play-by-play
                 pbp = request_json(client, "/api/stats/pbp", {"gameId": game_id_value})

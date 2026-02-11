@@ -74,8 +74,9 @@
     <%# Non-sticky columns (EPM + Years + Total + Agent) %>
     <div class="min-w-0 flex">
       <div
-        class="w-24 shrink-0 bg-muted/40 <%= epm_has_value ? 'flex flex-col' : 'grid place-items-center h-[40px]' %>"
+        class="w-24 shrink-0 bg-zinc-100/60 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300 <%= epm_has_value ? 'flex flex-col' : 'grid place-items-center h-[40px]' %>"
         data-show="$displayepm"
+        style="display: none;"
         title="<%= epm_percentile_label.present? ? "Latest regular-season EPM (#{epm_percentile_label})" : "Latest regular-season EPM" %>"
       >
         <% if epm_has_value %>
@@ -84,7 +85,7 @@
           </div>
           <div class="h-[16px] -mt-px flex items-start justify-center">
             <% if epm_percentile.present? %>
-              <span class="text-[10px] leading-none font-mono tabular-nums whitespace-nowrap <%= epm_color_class || 'text-muted-foreground/80' %>"><%= epm_percentile_blocks(epm_percentile) %></span>
+              <span class="text-[10px] leading-none font-mono tabular-nums whitespace-nowrap <%= epm_color_class || 'text-zinc-700 dark:text-zinc-300' %>"><%= epm_percentile_blocks(epm_percentile) %></span>
             <% else %>
               <span class="text-[10px] leading-none tabular-nums whitespace-nowrap text-gray-400/50">—</span>
             <% end %>
@@ -98,27 +99,52 @@
 
       <% salary_years.each do |year| %>
         <% salary = player_salary(player, year) %>
-        <% cell_classes = salary_cell_classes(player, year) %>
-        <% tooltip = salary_cell_tooltip(player, year) %>
-        <% pct = format_pct_cap_with_blocks(player, year) %>
+        <% cap_hold = player_cap_hold(player, year) %>
+        <% cap_hold_present = cap_hold.present? && cap_hold.to_f > 0 %>
         <% is_empty = salary.nil? %>
+        <% cell_classes = salary_cell_classes(player, year) %>
+        <% effective_cell_classes = cell_classes %>
+        <% tooltip = salary_cell_tooltip(player, year) %>
+        <% cell_tooltip = tooltip.presence || (cap_hold_present ? "Cap Hold: #{format_compact_currency(cap_hold)}" : nil) %>
+        <% pct = format_pct_cap_with_blocks(player, year) %>
         <% show_two_way_badge = player["is_two_way"] && salary.present? && salary.to_f == 0 %>
         <% is_trade_restricted_cell = current_season?(year) && (player["is_trade_consent_required_now"] || player["is_trade_restricted_now"] || poison_pill_now?(player, year)) %>
-        <% has_special_bg = cell_classes.include?("bg-") %>
+        <% has_special_bg = effective_cell_classes.include?("bg-") %>
+        <% data_class_expr = if is_empty && cap_hold_present
+          "{ 'bg-zinc-100/60 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300': $displayplayercapholds, 'bg-yellow-50/70 dark:bg-yellow-900/10': $selectedseason === '#{year}' && !$displayplayercapholds }"
+        elsif !has_special_bg
+          "{ 'bg-yellow-50/70 dark:bg-yellow-900/10': $selectedseason === '#{year}' }"
+        end %>
 
         <div
-          class="w-24 shrink-0 <%= (show_two_way_badge || is_empty) ? 'grid place-items-center h-[40px]' : 'flex flex-col' %> <%= cell_classes %>"
-          <% unless has_special_bg %>data-class="{ 'bg-yellow-50/70 dark:bg-yellow-900/10': $selectedseason === '<%= year %>' }"<% end %>
-          <% if tooltip.present? %>title="<%= tooltip %>"<% end %>
+          class="w-24 shrink-0 <%= (show_two_way_badge || is_empty) ? 'grid place-items-center h-[40px]' : 'flex flex-col' %> <%= effective_cell_classes %>"
+          <% if data_class_expr.present? %>data-class="<%= data_class_expr %>"<% end %>
+          <% if cell_tooltip.present? %>title="<%= cell_tooltip %>"<% end %>
         >
           <% if show_two_way_badge %>
-            <span class="inline-flex items-center justify-center text-[10px] px-1.5 py-0.5 rounded font-medium <%= is_trade_restricted_cell ? 'bg-red-200 dark:bg-red-900/50 text-red-700 dark:text-red-300' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300' %>">
+            <span class="inline-flex items-center justify-center text-[10px] px-1.5 py-0.5 rounded font-medium <%= is_trade_restricted_cell ? 'bg-red-200 dark:bg-red-900/50 text-red-700 dark:text-red-300' : 'bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300' %>">
               Two-Way
             </span>
           <% elsif is_empty %>
-            <span class="grid place-items-center w-full">
-              <span class="inline-block font-mono tabular-nums text-center text-gray-400/50" style="width: 6ch">—</span>
-            </span>
+            <% if cap_hold_present %>
+              <span class="grid place-items-center w-full" data-show="!$displayplayercapholds">
+                <span class="inline-block font-mono tabular-nums text-center text-gray-400/50" style="width: 6ch">—</span>
+              </span>
+              <div class="h-[40px] w-full flex flex-col" data-show="$displayplayercapholds">
+                <div class="h-[24px] flex items-end justify-center text-sm">
+                  <span class="grid place-items-center w-full">
+                    <span class="inline-block font-mono tabular-nums text-right" style="width: 6ch"><%= format_compact_currency(cap_hold) %></span>
+                  </span>
+                </div>
+                <div class="h-[16px] -mt-px flex items-start justify-center">
+                  <span class="text-[10px] leading-none tabular-nums whitespace-nowrap uppercase tracking-wide">HOLD</span>
+                </div>
+              </div>
+            <% else %>
+              <span class="grid place-items-center w-full">
+                <span class="inline-block font-mono tabular-nums text-center text-gray-400/50" style="width: 6ch">—</span>
+              </span>
+            <% end %>
           <% else %>
             <%# Salary row (A) %>
             <div class="h-[24px] flex items-end justify-center text-sm">
@@ -146,19 +172,27 @@
 
       <%# Total salary column %>
       <% total = player["total_salary_from_2025"] %>
-      <div class="w-24 shrink-0 flex flex-col" title="<%= player["contract_type_lookup_value"] %>">
-        <div class="h-[24px] flex items-end justify-center text-sm">
-          <span class="grid place-items-center w-full">
-            <span class="inline-block font-mono tabular-nums text-right font-semibold" style="width: 7ch"><%= format_salary(total) %></span>
+      <% show_two_way_total_badge = player["is_two_way"] %>
+      <% is_trade_restricted_now = player["is_trade_consent_required_now"] || player["is_trade_restricted_now"] || poison_pill_now?(player, SalaryBookHelper::SALARY_YEARS.first) %>
+      <div class="w-24 shrink-0 <%= show_two_way_total_badge ? 'grid place-items-center h-[40px]' : 'flex flex-col' %>" title="<%= player["contract_type_lookup_value"] %>">
+        <% if show_two_way_total_badge %>
+          <span class="inline-flex items-center justify-center text-[10px] px-1.5 py-0.5 rounded font-medium <%= is_trade_restricted_now ? 'bg-red-200 dark:bg-red-900/50 text-red-700 dark:text-red-300' : 'bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300' %>">
+            Two-Way
           </span>
-        </div>
-        <div class="h-[16px] -mt-px flex items-start justify-center">
-          <% if player["contract_type_code"].present? %>
-            <span class="text-[10px] leading-none tabular-nums whitespace-nowrap text-gray-400 dark:text-gray-500"><%= player["contract_type_code"] %></span>
-          <% else %>
-            <span class="text-[10px] leading-none tabular-nums whitespace-nowrap text-gray-400/50 dark:text-gray-500/50">—</span>
-          <% end %>
-        </div>
+        <% else %>
+          <div class="h-[24px] flex items-end justify-center text-sm">
+            <span class="grid place-items-center w-full">
+              <span class="inline-block font-mono tabular-nums text-right font-semibold" style="width: 7ch"><%= format_salary(total) %></span>
+            </span>
+          </div>
+          <div class="h-[16px] -mt-px flex items-start justify-center">
+            <% if player["contract_type_code"].present? %>
+              <span class="text-[10px] leading-none tabular-nums whitespace-nowrap text-gray-400 dark:text-gray-500"><%= player["contract_type_code"] %></span>
+            <% else %>
+              <span class="text-[10px] leading-none tabular-nums whitespace-nowrap text-gray-400/50 dark:text-gray-500/50">—</span>
+            <% end %>
+          </div>
+        <% end %>
       </div>
 
       <%# Agent + Agency column %>

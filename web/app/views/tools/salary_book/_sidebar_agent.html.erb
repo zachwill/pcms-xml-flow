@@ -1,5 +1,8 @@
 <%#
-  Agent overlay (RightPanel entity) — Tailwind port of the React prototype (AgentDetail)
+  Agent overlay (RightPanel entity) — Salary Book sidebar
+
+  Rich summary of an agent's book: headline KPIs, roster composition,
+  upcoming free agents, trade restrictions, then the full client roster.
 
   NOTE: Root id must remain stable for Datastar morphing.
 %>
@@ -10,18 +13,43 @@
 <% agent_id = agent["agent_id"] %>
 <% agent_name = agent["name"] %>
 <% agency_name = agent["agency_name"] %>
+<% rollup ||= {} %>
 
 <%
-  initials = agent_name
-    .to_s
-    .split(" ")
-    .map { |n| n[0] }
-    .join("")
-    .upcase
-    .slice(0, 2)
+  initials = agent_initials(agent_name)
 
-  client_count = clients.size
-  total_book = clients.sum { |c| c["cap_2025"].to_f }
+  total_count = rollup["total_count"].to_i
+  standard_count = rollup["standard_count"].to_i
+  two_way_count = rollup["two_way_count"].to_i
+  team_count = rollup["team_count"].to_i
+
+  book_2025 = rollup["book_2025"].to_i
+  book_2026 = rollup["book_2026"].to_i
+  book_2027 = rollup["book_2027"].to_i
+
+  rookie_scale_count = rollup["rookie_scale_count"].to_i
+  min_contract_count = rollup["min_contract_count"].to_i
+  max_contract_count = rollup["max_contract_count"].to_i
+  no_trade_count = rollup["no_trade_count"].to_i
+  trade_kicker_count = rollup["trade_kicker_count"].to_i
+  trade_restricted_count = rollup["trade_restricted_count"].to_i
+
+  expiring_2025 = rollup["expiring_2025"].to_i
+  expiring_2026 = rollup["expiring_2026"].to_i
+  expiring_2027 = rollup["expiring_2027"].to_i
+  total_expiring = expiring_2025 + expiring_2026 + expiring_2027
+
+  player_option_count = rollup["player_option_count"].to_i
+  team_option_count = rollup["team_option_count"].to_i
+  prior_year_nba_now_free_agent_count = rollup["prior_year_nba_now_free_agent_count"].to_i
+
+  book_2025_percentile = rollup["cap_2025_total_percentile"]
+  book_2026_percentile = rollup["cap_2026_total_percentile"]
+  book_2027_percentile = rollup["cap_2027_total_percentile"]
+  client_count_percentile = rollup["client_count_percentile"]
+  team_count_percentile = rollup["team_count_percentile"]
+  standard_count_percentile = rollup["standard_count_percentile"]
+  two_way_count_percentile = rollup["two_way_count_percentile"]
 
   client_row_name = ->(c) {
     last = c["display_last_name"].to_s.strip
@@ -32,6 +60,34 @@
     return first if first.present?
 
     c["player_name"].to_s
+  }
+
+  # Determine the "next FA year" for each client
+  next_fa_label = ->(c) {
+    return nil if c["is_two_way"]
+    if c["cap_2025"].to_f > 0 && c["cap_2026"].to_f == 0
+      "FA '25"
+    elsif c["cap_2026"].to_f > 0 && c["cap_2027"].to_f == 0
+      "FA '26"
+    elsif c["cap_2027"].to_f > 0 && c["cap_2028"].to_f == 0
+      "FA '27"
+    end
+  }
+
+  # Active option on next decision year
+  next_option_badge = ->(c) {
+    return nil if c["is_two_way"]
+    # Check nearest option year
+    [2026, 2027, 2028].each do |y|
+      opt = c["option_#{y}"]
+      next unless opt.present?
+      case opt
+      when "PLYR", "PLYTF" then return { label: "PO #{format_year_label(y)}", color: "blue" }
+      when "TEAM" then return { label: "TO #{format_year_label(y)}", color: "purple" }
+      when "ETO" then return { label: "ETO #{format_year_label(y)}", color: "orange" }
+      end
+    end
+    nil
   }
 %>
 
@@ -46,33 +102,188 @@
     >Open agent page</a>
   </div>
 
-  <div class="px-4 pb-4 pt-4 space-y-6">
-    <%# Agent header %>
-    <div class="flex flex-col items-center text-center space-y-3">
+  <div class="px-4 pb-4 pt-4 space-y-5">
+    <%# ── Agent header ── %>
+    <div class="flex items-center gap-3">
       <div
-        class="w-16 h-16 rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-600/30 flex items-center justify-center
-               text-xl font-bold text-violet-600 dark:text-violet-400 ring-2 ring-violet-200 dark:ring-violet-800/50"
+        class="w-12 h-12 rounded-lg bg-gradient-to-br from-violet-500/20 to-violet-600/30 flex items-center justify-center
+               text-base font-bold text-violet-600 dark:text-violet-400 ring-1 ring-violet-200 dark:ring-violet-800/50 shrink-0"
       >
         <%= initials %>
       </div>
 
-      <div class="space-y-1">
-        <h2 class="text-xl font-semibold text-foreground"><%= agent_name %></h2>
+      <div class="min-w-0 space-y-0.5">
+        <h2 class="text-lg font-semibold text-foreground truncate"><%= agent_name %></h2>
         <% if agency_name.present? %>
-          <div class="text-sm text-muted-foreground"><%= agency_name %></div>
+          <div class="text-sm text-muted-foreground truncate"><%= agency_name %></div>
         <% end %>
-        <div class="text-xs text-muted-foreground/80">
-          <%= client_count %> NBA client<%= client_count != 1 ? "s" : "" %>
+      </div>
+    </div>
+
+    <%# ── Snapshot KPIs (match team sidebar treatment) ── %>
+    <div class="border-t border-border pt-4 space-y-2.5">
+      <div class="grid grid-cols-4 gap-1.5">
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: "Clients",
+          value: total_count.to_s,
+          subvalue: (representation_percentile_int(client_count_percentile).present? ? "P#{representation_percentile_int(client_count_percentile)}" : nil),
+          subvalue_class_name: representation_percentile_color_class(client_count_percentile),
+          class_name: "w-full"
+        } %>
+
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: "Teams",
+          value: team_count.to_s,
+          subvalue: (representation_percentile_int(team_count_percentile).present? ? "P#{representation_percentile_int(team_count_percentile)}" : nil),
+          subvalue_class_name: representation_percentile_color_class(team_count_percentile),
+          class_name: "w-full"
+        } %>
+
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: "Std",
+          value: standard_count.to_s,
+          subvalue: (representation_percentile_int(standard_count_percentile).present? ? "P#{representation_percentile_int(standard_count_percentile)}" : nil),
+          subvalue_class_name: representation_percentile_color_class(standard_count_percentile),
+          class_name: "w-full"
+        } %>
+
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: "2W",
+          value: two_way_count.to_s,
+          subvalue: (representation_percentile_int(two_way_count_percentile).present? ? "P#{representation_percentile_int(two_way_count_percentile)}" : nil),
+          subvalue_class_name: representation_percentile_color_class(two_way_count_percentile),
+          variant: (two_way_count > 0 ? "default" : "muted"),
+          class_name: "w-full"
+        } %>
+      </div>
+
+      <div class="grid grid-cols-3 gap-1.5">
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: format_year_label(2025),
+          value: compact.call(book_2025),
+          subvalue: (representation_percentile_int(book_2025_percentile).present? ? "P#{representation_percentile_int(book_2025_percentile)}" : nil),
+          subvalue_class_name: representation_percentile_color_class(book_2025_percentile),
+          class_name: "w-full",
+          value_class_name: "text-[11px]"
+        } %>
+
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: format_year_label(2026),
+          value: compact.call(book_2026),
+          subvalue: (representation_percentile_int(book_2026_percentile).present? ? "P#{representation_percentile_int(book_2026_percentile)}" : nil),
+          subvalue_class_name: representation_percentile_color_class(book_2026_percentile),
+          class_name: "w-full",
+          value_class_name: "text-[11px]"
+        } %>
+
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: format_year_label(2027),
+          value: compact.call(book_2027),
+          subvalue: (representation_percentile_int(book_2027_percentile).present? ? "P#{representation_percentile_int(book_2027_percentile)}" : nil),
+          subvalue_class_name: representation_percentile_color_class(book_2027_percentile),
+          class_name: "w-full",
+          value_class_name: "text-[11px]"
+        } %>
+      </div>
+
+    </div>
+
+    <%# ── Contract mix ── %>
+    <div class="border-t border-border pt-4 space-y-2">
+      <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contract mix</div>
+
+      <div class="space-y-0.5">
+        <div class="flex items-center justify-between py-1.5">
+          <span class="text-sm text-muted-foreground">Max-level (≥25% cap)</span>
+          <span class="tabular-nums text-sm font-medium"><%= max_contract_count %></span>
+        </div>
+
+        <div class="flex items-center justify-between py-1.5">
+          <span class="text-sm text-muted-foreground">Rookie-scale</span>
+          <span class="tabular-nums text-sm font-medium"><%= rookie_scale_count %></span>
+        </div>
+
+        <div class="flex items-center justify-between py-1.5">
+          <span class="text-sm text-muted-foreground">Minimum</span>
+          <span class="tabular-nums text-sm font-medium"><%= min_contract_count %></span>
         </div>
       </div>
     </div>
 
-    <%# Client roster %>
-    <div class="space-y-3">
+    <%# ── Upcoming events + flags ── %>
+    <% has_options = player_option_count > 0 || team_option_count > 0 %>
+    <% has_restrictions = no_trade_count > 0 || trade_kicker_count > 0 || trade_restricted_count > 0 %>
+    <% has_prior_year_now_fa = prior_year_nba_now_free_agent_count > 0 %>
+    <% if total_expiring > 0 || has_options || has_restrictions || has_prior_year_now_fa %>
+      <div class="border-t border-border pt-4 space-y-2">
+        <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Upcoming</div>
+
+        <div class="space-y-0.5">
+          <% if expiring_2025 > 0 %>
+            <div class="flex items-center justify-between py-1.5">
+              <span class="text-sm text-muted-foreground">FA after <%= format_year_label(2025) %></span>
+              <span class="tabular-nums text-sm font-medium text-orange-600 dark:text-orange-400"><%= expiring_2025 %></span>
+            </div>
+          <% end %>
+
+          <% if expiring_2026 > 0 %>
+            <div class="flex items-center justify-between py-1.5">
+              <span class="text-sm text-muted-foreground">FA after <%= format_year_label(2026) %></span>
+              <span class="tabular-nums text-sm font-medium text-orange-600 dark:text-orange-400"><%= expiring_2026 %></span>
+            </div>
+          <% end %>
+
+          <% if expiring_2027 > 0 %>
+            <div class="flex items-center justify-between py-1.5">
+              <span class="text-sm text-muted-foreground">FA after <%= format_year_label(2027) %></span>
+              <span class="tabular-nums text-sm font-medium text-orange-600 dark:text-orange-400"><%= expiring_2027 %></span>
+            </div>
+          <% end %>
+
+          <% if has_prior_year_now_fa %>
+            <div class="flex items-center justify-between py-1.5">
+              <span class="text-sm text-muted-foreground">Last year NBA, now FA</span>
+              <span class="tabular-nums text-sm font-medium"><%= prior_year_nba_now_free_agent_count %></span>
+            </div>
+          <% end %>
+
+          <% if player_option_count > 0 %>
+            <div class="flex items-center justify-between py-1.5">
+              <span class="text-sm text-muted-foreground">Player option decisions</span>
+              <span class="tabular-nums text-sm font-medium"><%= player_option_count %></span>
+            </div>
+          <% end %>
+
+          <% if team_option_count > 0 %>
+            <div class="flex items-center justify-between py-1.5">
+              <span class="text-sm text-muted-foreground">Team option decisions</span>
+              <span class="tabular-nums text-sm font-medium"><%= team_option_count %></span>
+            </div>
+          <% end %>
+        </div>
+
+        <% if has_restrictions %>
+          <div class="pt-1 flex flex-wrap gap-1.5">
+            <% if no_trade_count > 0 %>
+              <span class="entity-chip entity-chip--danger"><%= no_trade_count %> No-Trade</span>
+            <% end %>
+            <% if trade_kicker_count > 0 %>
+              <span class="entity-chip entity-chip--warning"><%= trade_kicker_count %> Trade Kicker</span>
+            <% end %>
+            <% if trade_restricted_count > 0 %>
+              <span class="entity-chip entity-chip--danger"><%= trade_restricted_count %> Restricted</span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%# ── Client roster ── %>
+    <div class="border-t border-border pt-4 space-y-2">
       <div class="flex items-center justify-between">
-        <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Client Roster</div>
-        <div class="text-xs text-muted-foreground">
-          Book: <span class="tabular-nums font-medium"><%= compact.call(total_book) %></span>
+        <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Clients</div>
+        <div class="text-[10px] text-muted-foreground tabular-nums">
+          <%= total_count %> player<%= total_count != 1 ? "s" : "" %>
         </div>
       </div>
 
@@ -92,9 +303,12 @@
               detail_line = player_age_yos_display(client).presence || team_name
 
               current_salary = client["cap_2025"].to_f
-              total_value = salary_years.sum { |y| client["cap_#{y}"].to_f }
 
               logo_url = team_logo_url(team_id)
+
+              fa_label = next_fa_label.call(client)
+              option_info = next_option_badge.call(client)
+              is_rookie = client["years_of_service"].to_i <= 3 && !client["is_two_way"]
             %>
 
             <button
@@ -139,11 +353,16 @@
 
               <%# Player info %>
               <div class="flex-1 min-w-0">
-                <div class="h-[26px] flex items-end min-w-0">
+                <div class="h-[26px] flex items-end gap-1 min-w-0">
                   <div class="font-medium text-[14px] truncate"><%= row_name %></div>
                 </div>
-                <div class="h-[18px] -mt-px flex items-start min-w-0 leading-none text-[10px] text-muted-foreground/80 tabular-nums">
+                <div class="h-[18px] -mt-px flex items-start gap-1.5 min-w-0 leading-none text-[10px] text-muted-foreground/80 tabular-nums">
                   <span class="truncate"><%= detail_line %></span>
+                  <% if fa_label %>
+                    <span class="shrink-0 text-orange-600 dark:text-orange-400 font-medium"><%= fa_label %></span>
+                  <% elsif is_rookie %>
+                    <span class="shrink-0 text-emerald-600 dark:text-emerald-400 font-medium">Rook</span>
+                  <% end %>
                 </div>
               </div>
 
@@ -151,14 +370,23 @@
               <div class="flex-shrink-0 text-right">
                 <% if client["is_two_way"] %>
                   <div class="grid place-items-center h-[44px]">
-                    <span class="inline-flex items-center justify-center text-[10px] px-1.5 py-0.5 rounded font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">Two-Way</span>
+                    <span class="inline-flex items-center justify-center text-[10px] px-1.5 py-0.5 rounded font-medium bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300">Two-Way</span>
                   </div>
                 <% elsif current_salary > 0 %>
                   <div class="h-[26px] flex items-end justify-end">
                     <div class="tabular-nums text-sm font-medium whitespace-nowrap"><%= compact.call(current_salary) %></div>
                   </div>
                   <div class="h-[18px] -mt-px flex items-start justify-end">
-                    <div class="text-[10px] leading-none tabular-nums whitespace-nowrap text-gray-400 dark:text-gray-500"><%= compact.call(total_value) %> total</div>
+                    <% if option_info %>
+                      <span class="text-[9px] font-medium whitespace-nowrap <%= case option_info[:color]; when 'blue' then 'text-blue-600 dark:text-blue-400'; when 'purple' then 'text-purple-600 dark:text-purple-400'; else 'text-orange-600 dark:text-orange-400'; end %>">
+                        <%= option_info[:label] %>
+                      </span>
+                    <% else %>
+                      <%
+                        total_value = salary_years.sum { |y| client["cap_#{y}"].to_f }
+                      %>
+                      <div class="text-[10px] leading-none tabular-nums whitespace-nowrap text-gray-400 dark:text-gray-500"><%= compact.call(total_value) %> total</div>
+                    <% end %>
                   </div>
                 <% else %>
                   <div class="grid place-items-center h-[44px]">

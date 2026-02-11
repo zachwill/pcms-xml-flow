@@ -29,6 +29,8 @@ We have **near-complete parity** with Sean's Excel workbook for the core analyst
 | **Draft Picks** | `pcms.draft_pick_summary_assets` | ✅ Complete |
 | **Dead Money** (waiver charges) | `pcms.dead_money_warehouse` | ✅ Complete |
 | **Cap Holds** (FA holds) | `pcms.cap_holds_warehouse` | ✅ Complete |
+| **Agent Rollups + Percentiles** | `pcms.agents_warehouse` | ✅ Complete |
+| **Agency Rollups + Percentiles** | `pcms.agencies_warehouse` | ✅ Complete |
 | **Repeater Tax Status** | `pcms.team_salary_warehouse.is_repeater_taxpayer` | ✅ Complete |
 | **Apron Status** | `pcms.team_salary_warehouse.apron_level_lk` | ✅ Complete |
 | **Contract Protections** | `pcms.contract_protections` | ✅ Complete |
@@ -77,7 +79,7 @@ Sean’s mental model distinguishes **what exists** from **what counts**.
 
 - **Authoritative team-year amounts that count** toward cap/tax/aprons: `pcms.team_budget_snapshots` → exposed via `pcms.team_salary_warehouse`.
 - **Tool-facing drilldowns** should prefer the `*_warehouse` tables first.
-  - `pcms.cap_holds_warehouse` is already filtered to only holds that actually count (it’s scoped to the FA buckets in `team_budget_snapshots`).
+  - `pcms.cap_holds_warehouse` is filtered to holds that actually count (rows in FA/QO/DRFPK/PR10D budget groups, plus rows flagged `is_fa_amount = true` in `team_budget_snapshots`).
   - `pcms.dead_money_warehouse` is the drilldown for termination / waiver charges.
 
 ### Player-Level: `pcms.salary_book_warehouse`
@@ -86,11 +88,13 @@ One row per player with an **active contract** (`APPR`/`FUTR`) and a resolved `t
 
 - Amounts are stored in **dollars** (`bigint`).
 - 2025 is the current “base” year in the warehouse (2025–2030 columns).
+- `cap_hold_20xx` columns expose upcoming FA hold amounts for the player/team row (same eligibility filter as `cap_holds_warehouse`; parallel metadata, do not add on top of `cap_20xx`).
 - If a player has multiple overlapping contracts (rookie + extension), we pick the **most recently signed** `APPR/FUTR` contract as the “primary” contract identity.
 
 ```sql
 SELECT player_name, team_code,
        cap_2025, cap_2026, cap_2027,
+       cap_hold_2025, cap_hold_2026, cap_hold_2027,
        option_2025, option_2026,
        trade_kicker_display, agent_name
 FROM pcms.salary_book_warehouse
@@ -332,6 +336,11 @@ These are run automatically in Windmill step H (`import_pcms_data.flow/refresh_c
 ```sql
 SELECT pcms.refresh_salary_book_warehouse();
 SELECT pcms.refresh_team_salary_warehouse();
+SELECT pcms.refresh_team_salary_percentiles();
+SELECT pcms.refresh_agents_warehouse();
+SELECT pcms.refresh_agents_warehouse_percentiles();
+SELECT pcms.refresh_agencies_warehouse();
+SELECT pcms.refresh_agencies_warehouse_percentiles();
 SELECT pcms.refresh_exceptions_warehouse();
 SELECT pcms.refresh_dead_money_warehouse();
 SELECT pcms.refresh_cap_holds_warehouse();

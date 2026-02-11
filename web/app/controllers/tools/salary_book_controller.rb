@@ -38,7 +38,7 @@ module Tools
       if @initial_team.present?
         @initial_players = fetch_team_players(@initial_team)
 
-        payload = fetch_team_support_payload(@initial_team)
+        payload = fetch_team_support_payload(@initial_team, base_year: @salary_year)
         @initial_cap_holds = payload[:cap_holds]
         @initial_exceptions = payload[:exceptions]
         @initial_dead_money = payload[:dead_money]
@@ -160,8 +160,9 @@ module Tools
       raise ActiveRecord::RecordNotFound unless agent
 
       clients = fetch_agent_clients(agent_id)
+      rollup = fetch_agent_rollup(agent_id)
 
-      render partial: "tools/salary_book/sidebar_agent", locals: { agent:, clients: }, layout: false
+      render partial: "tools/salary_book/sidebar_agent", locals: { agent:, clients:, rollup: }, layout: false
     rescue ArgumentError
       raise ActiveRecord::RecordNotFound
     end
@@ -279,6 +280,7 @@ module Tools
           epm_latest.epm AS epm_value,
           epm_latest.epm_pctl AS epm_percentile,
           sbw.cap_2025, sbw.cap_2026, sbw.cap_2027, sbw.cap_2028, sbw.cap_2029, sbw.cap_2030,
+          sbw.cap_hold_2025, sbw.cap_hold_2026, sbw.cap_hold_2027, sbw.cap_hold_2028, sbw.cap_hold_2029, sbw.cap_hold_2030,
           sbw.pct_cap_2025, sbw.pct_cap_2026, sbw.pct_cap_2027, sbw.pct_cap_2028, sbw.pct_cap_2029, sbw.pct_cap_2030,
           sbw.total_salary_from_2025,
           sbw.option_2025, sbw.option_2026, sbw.option_2027, sbw.option_2028, sbw.option_2029, sbw.option_2030,
@@ -345,6 +347,12 @@ module Tools
             sbw.cap_2028,
             sbw.cap_2029,
             sbw.cap_2030,
+            sbw.cap_hold_2025,
+            sbw.cap_hold_2026,
+            sbw.cap_hold_2027,
+            sbw.cap_hold_2028,
+            sbw.cap_hold_2029,
+            sbw.cap_hold_2030,
             sbw.total_salary_from_2025,
             sbw.option_2025,
             sbw.option_2026,
@@ -438,28 +446,43 @@ module Tools
     #   team_summaries: { 2025 => {...}, ... },
     #   team_meta: {...}
     # }
-    def fetch_team_support_payload(team_code)
+    def fetch_team_support_payload(team_code, base_year: CURRENT_SALARY_YEAR)
       team_sql = conn.quote(team_code)
+      base_year_int = base_year.to_i
+      next_year_int = [base_year_int + 1, SALARY_YEARS.last].min
+      base_year_sql = conn.quote(base_year_int)
+      next_year_sql = conn.quote(next_year_int)
 
       row = conn.exec_query(<<~SQL).first || {}
         WITH
         cap_holds AS (
           SELECT
-            non_contract_amount_id AS id,
-            team_code,
-            player_id,
-            player_name,
-            amount_type_lk,
-            MAX(cap_amount) FILTER (WHERE salary_year = 2025)::numeric AS cap_2025,
-            MAX(cap_amount) FILTER (WHERE salary_year = 2026)::numeric AS cap_2026,
-            MAX(cap_amount) FILTER (WHERE salary_year = 2027)::numeric AS cap_2027,
-            MAX(cap_amount) FILTER (WHERE salary_year = 2028)::numeric AS cap_2028,
-            MAX(cap_amount) FILTER (WHERE salary_year = 2029)::numeric AS cap_2029,
-            MAX(cap_amount) FILTER (WHERE salary_year = 2030)::numeric AS cap_2030
-          FROM pcms.cap_holds_warehouse
-          WHERE team_code = #{team_sql}
-            AND salary_year BETWEEN 2025 AND 2030
-          GROUP BY non_contract_amount_id, team_code, player_id, player_name, amount_type_lk
+            MIN(chw.non_contract_amount_id) AS id,
+            chw.team_code,
+            chw.player_id,
+            chw.player_name,
+            'UFA'::text AS amount_type_lk,
+            MAX(chw.cap_amount) FILTER (WHERE chw.salary_year = 2025)::numeric AS cap_2025,
+            MAX(chw.cap_amount) FILTER (WHERE chw.salary_year = 2026)::numeric AS cap_2026,
+            MAX(chw.cap_amount) FILTER (WHERE chw.salary_year = 2027)::numeric AS cap_2027,
+            MAX(chw.cap_amount) FILTER (WHERE chw.salary_year = 2028)::numeric AS cap_2028,
+            MAX(chw.cap_amount) FILTER (WHERE chw.salary_year = 2029)::numeric AS cap_2029,
+            MAX(chw.cap_amount) FILTER (WHERE chw.salary_year = 2030)::numeric AS cap_2030,
+            GREATEST(
+              COALESCE(MAX(chw.cap_amount) FILTER (WHERE chw.salary_year = #{base_year_sql}), 0),
+              COALESCE(MAX(chw.cap_amount) FILTER (WHERE chw.salary_year = #{next_year_sql}), 0)
+            )::numeric AS cap_sort
+          FROM pcms.cap_holds_warehouse chw
+          WHERE chw.team_code = #{team_sql}
+            AND chw.free_agent_status_lk = 'UFA'
+            AND chw.salary_year BETWEEN #{base_year_sql} AND #{next_year_sql}
+            AND NOT EXISTS (
+              SELECT 1
+              FROM pcms.salary_book_warehouse sbw
+              WHERE sbw.team_code = chw.team_code
+                AND sbw.player_id = chw.player_id
+            )
+          GROUP BY chw.team_code, chw.player_id, chw.player_name
         ),
         exceptions AS (
           SELECT
@@ -530,6 +553,7 @@ module Tools
             team_code,
             salary_year,
             cap_total,
+            cap_total_percentile,
             cap_total_hold,
             tax_total,
             apron_total,
@@ -569,7 +593,7 @@ module Tools
         )
         SELECT
           COALESCE(
-            (SELECT jsonb_agg(to_jsonb(ch) ORDER BY ch.cap_2025 DESC NULLS LAST, ch.player_name ASC NULLS LAST) FROM cap_holds ch),
+            (SELECT jsonb_agg(to_jsonb(ch) ORDER BY ch.cap_sort DESC NULLS LAST, ch.player_name ASC NULLS LAST) FROM cap_holds ch),
             '[]'::jsonb
           ) AS cap_holds,
           COALESCE(
@@ -712,6 +736,7 @@ module Tools
           team_code,
           salary_year,
           cap_total,
+          cap_total_percentile,
           cap_total_hold,
           tax_total,
           apron_total,
@@ -808,6 +833,15 @@ module Tools
           s.cap_2029::numeric,
           s.cap_2030::numeric,
           COALESCE(s.is_two_way, false)::boolean AS is_two_way,
+          COALESCE(s.is_no_trade, false)::boolean AS is_no_trade,
+          COALESCE(s.is_trade_bonus, false)::boolean AS is_trade_bonus,
+          COALESCE(s.is_min_contract, false)::boolean AS is_min_contract,
+          COALESCE(s.is_trade_restricted_now, false)::boolean AS is_trade_restricted_now,
+          s.option_2025,
+          s.option_2026,
+          s.option_2027,
+          s.option_2028,
+          s.contract_type_code,
           t.team_id,
           t.team_name
         FROM pcms.salary_book_warehouse s
@@ -815,6 +849,61 @@ module Tools
         LEFT JOIN pcms.teams t ON s.team_code = t.team_code AND t.league_lk = 'NBA'
         WHERE s.agent_id = #{id_sql}
         ORDER BY s.cap_2025 DESC NULLS LAST, player_name
+      SQL
+    end
+
+    def fetch_agent_rollup(agent_id)
+      id_sql = conn.quote(agent_id)
+
+      conn.exec_query(<<~SQL).first || {}
+        WITH ranked AS (
+          SELECT
+            agent_id,
+            PERCENT_RANK() OVER (ORDER BY team_count) AS team_count_percentile,
+            PERCENT_RANK() OVER (ORDER BY standard_count) AS standard_count_percentile,
+            PERCENT_RANK() OVER (ORDER BY two_way_count) AS two_way_count_percentile
+          FROM pcms.agents_warehouse
+        )
+        SELECT
+          w.standard_count,
+          w.two_way_count,
+          w.client_count AS total_count,
+          w.team_count,
+
+          w.cap_2025_total AS book_2025,
+          w.cap_2026_total AS book_2026,
+          w.cap_2027_total AS book_2027,
+
+          w.rookie_scale_count,
+          w.min_contract_count,
+          w.no_trade_count,
+          w.trade_kicker_count,
+          w.trade_restricted_count,
+
+          w.expiring_2025,
+          w.expiring_2026,
+          w.expiring_2027,
+
+          w.player_option_count,
+          w.team_option_count,
+
+          w.max_contract_count,
+          w.prior_year_nba_now_free_agent_count,
+
+          w.cap_2025_total_percentile,
+          w.cap_2026_total_percentile,
+          w.cap_2027_total_percentile,
+          w.client_count_percentile,
+          w.max_contract_count_percentile,
+
+          r.team_count_percentile,
+          r.standard_count_percentile,
+          r.two_way_count_percentile
+        FROM pcms.agents_warehouse w
+        LEFT JOIN ranked r
+          ON r.agent_id = w.agent_id
+        WHERE w.agent_id = #{id_sql}
+        LIMIT 1
       SQL
     end
 

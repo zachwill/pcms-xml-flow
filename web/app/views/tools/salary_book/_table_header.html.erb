@@ -26,8 +26,9 @@
       data-on:focusout="if (!$seasonlocked && evt.relatedTarget && !el.contains(evt.relatedTarget) && $selectedseason !== '') { $selectedseason = ''; }"
     >
       <div
-        class="w-24 h-full shrink-0 flex items-center justify-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+        class="w-24 h-full shrink-0 flex items-center justify-center text-[10px] font-semibold uppercase tracking-wide bg-zinc-100/60 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300"
         data-show="$displayepm"
+        style="display: none;"
       >EPM</div>
       <% salary_years.each do |year| %>
         <div

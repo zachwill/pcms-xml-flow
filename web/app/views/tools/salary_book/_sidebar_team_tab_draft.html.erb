@@ -47,7 +47,7 @@
               <button
                 type="button"
                 class="cursor-pointer w-full text-left px-3 py-2 hover:bg-muted/20 transition-colors duration-75"
-                data-on:click="evt.stopPropagation(); @get('<%= tools_salary_book_sidebar_pick_path(team: team_code, year: pick['year'], round: pick['round']) %>')"
+                data-on:click="evt.stopPropagation(); @get('<%= tools_salary_book_sidebar_pick_path(team: team_code, year: pick['year'], round: pick['round']) %>&salary_year=<%= year %>')"
                 title="Open <%= pick['year'] %> round <%= pick['round'] %> detail"
               >
                 <div class="flex items-start justify-between gap-3">

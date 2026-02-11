@@ -172,6 +172,11 @@ module Tools
       team_code = normalize_team_code(params[:team])
       year = Integer(params[:year])
       round = Integer(params[:round])
+      salary_year = begin
+        Integer(params[:salary_year])
+      rescue ArgumentError, TypeError
+        CURRENT_SALARY_YEAR
+      end
 
       picks = fetch_pick_assets(team_code, year, round)
       raise ActiveRecord::RecordNotFound if picks.empty?
@@ -179,12 +184,18 @@ module Tools
       # Get team metadata for display
       team_meta = fetch_team_meta(team_code)
 
+      related_team_codes = extract_pick_related_team_codes(picks)
+      related_team_codes << team_code
+      team_meta_by_code = fetch_team_meta_by_codes(related_team_codes)
+
       render partial: "tools/salary_book/sidebar_pick", locals: {
         team_code:,
         year:,
         round:,
+        salary_year:,
         picks:,
-        team_meta:
+        team_meta:,
+        team_meta_by_code:
       }, layout: false
     rescue ArgumentError
       raise ActiveRecord::RecordNotFound
@@ -452,6 +463,8 @@ module Tools
       next_year_int = [base_year_int + 1, SALARY_YEARS.last].min
       base_year_sql = conn.quote(base_year_int)
       next_year_sql = conn.quote(next_year_int)
+      draft_from_year_sql = conn.quote(SALARY_YEARS.first + 1)
+      draft_to_year_sql = conn.quote(SALARY_YEARS.last + 1)
 
       row = conn.exec_query(<<~SQL).first || {}
         WITH
@@ -560,7 +573,7 @@ module Tools
             raw_part AS description
           FROM pcms.draft_pick_summary_assets
           WHERE team_code = #{team_sql}
-            AND draft_year BETWEEN 2025 AND 2030
+            AND draft_year BETWEEN #{draft_from_year_sql} AND #{draft_to_year_sql}
         ),
         team_summaries_ranked AS (
           SELECT
@@ -832,6 +845,50 @@ module Tools
           AND league_lk = 'NBA'
         LIMIT 1
       SQL
+    end
+
+    # Fetch team metadata keyed by code (for compact inline logo+code displays).
+    def fetch_team_meta_by_codes(team_codes)
+      codes = Array(team_codes).map { |c| c.to_s.strip.upcase }.reject(&:blank?).uniq
+      return {} if codes.empty?
+
+      in_list = codes.map { |c| conn.quote(c) }.join(",")
+
+      rows = conn.exec_query(<<~SQL).to_a
+        SELECT
+          team_code,
+          team_name,
+          conference_name,
+          team_id
+        FROM pcms.teams
+        WHERE league_lk = 'NBA'
+          AND team_code IN (#{in_list})
+      SQL
+
+      rows.each_with_object({}) { |row, h| h[row["team_code"]] = row }
+    end
+
+    def parse_pg_text_array(value)
+      return [] if value.nil?
+      return value.map { |v| v.to_s.strip.upcase }.reject(&:blank?) if value.is_a?(Array)
+
+      s = value.to_s
+      return [] if s.blank? || s == "{}"
+
+      s.gsub(/[{}\"]/, "")
+        .split(",")
+        .map { |v| v.to_s.strip.upcase }
+        .reject(&:blank?)
+    end
+
+    def extract_pick_related_team_codes(picks)
+      rows = Array(picks)
+
+      direct_codes = rows.map { |row| row["origin_team_code"].to_s.strip.upcase.presence }.compact
+      counterparty_codes = rows.flat_map { |row| parse_pg_text_array(row["counterparty_team_codes"]) }
+      via_codes = rows.flat_map { |row| parse_pg_text_array(row["via_team_codes"]) }
+
+      (direct_codes + counterparty_codes + via_codes).uniq
     end
 
     # -------------------------------------------------------------------------

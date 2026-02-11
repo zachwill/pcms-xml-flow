@@ -2,12 +2,15 @@
 
 <% picks ||= [] %>
 <% salary_years ||= SalaryBookHelper::SALARY_YEARS %>
+<% salary_year = local_assigns.fetch(:salary_year, SalaryBookHelper::SALARY_YEARS.first).to_i %>
 <% return if picks.empty? %>
 
-<% picks_by_year = picks.group_by { |p| p["year"].to_i } %>
+<%# Draft year is calendar year (e.g., 2026 draft happens after the 25-26 season). %>
+<%# Salary Book columns are season-start years (e.g., 2025 => 25-26), so shift by -1. %>
+<% picks_by_season_year = picks.group_by { |p| p["year"].to_i - 1 } %>
 
 <%# Sort picks within each year (round asc, then origin team code) %>
-<% picks_by_year.each_value do |rows| %>
+<% picks_by_season_year.each_value do |rows| %>
   <% rows.sort_by! { |p| [p["round"].to_i, p["origin_team_code"].to_s] } %>
 <% end %>
 
@@ -78,7 +81,7 @@
       <div class="w-24 shrink-0" data-show="$displayepm" style="display: none;"></div>
 
       <% salary_years.each do |year| %>
-        <% year_picks = picks_by_year[year] || [] %>
+        <% year_picks = picks_by_season_year[year] || [] %>
 
         <div
           class="w-24 shrink-0 flex flex-col items-center gap-1"
@@ -100,7 +103,7 @@
               end %>
 
               <% label = if ["FRP", "SRP"].include?(status)
-                "#{pick['year'].to_i + 1} #{status}"
+                "#{pick['year'].to_i} #{status}"
               else
                 status
               end %>
@@ -122,7 +125,7 @@
               <button
                 type="button"
                 class="cursor-pointer rounded focus-visible:outline-none focus-visible:ring-0 focus-visible:border-foreground dark:focus-visible:border-foreground"
-                data-on:click="evt.stopPropagation(); @get('<%= tools_salary_book_sidebar_pick_path(team: pick['team_code'], year: pick['year'], round: pick['round']) %>')"
+                data-on:click="evt.stopPropagation(); @get('<%= tools_salary_book_sidebar_pick_path(team: pick['team_code'], year: pick['year'], round: pick['round']) %>&salary_year=<%= salary_year %>')"
               >
                 <%= render partial: "tools/salary_book/kpi_cell", locals: {
                   label:,

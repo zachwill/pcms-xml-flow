@@ -244,7 +244,7 @@
         </div>
 
         <% if picks.any? %>
-          <%= render partial: "tools/salary_book/draft_assets_section", locals: { picks: picks, salary_years: salary_years } %>
+          <%= render partial: "tools/salary_book/draft_assets_section", locals: { picks: picks, salary_years: salary_years, salary_year: year } %>
         <% else %>
           <%= render partial: "tools/salary_book/placeholder_section_row", locals: { label: "Draft Assets", salary_years: salary_years } %>
         <% end %>

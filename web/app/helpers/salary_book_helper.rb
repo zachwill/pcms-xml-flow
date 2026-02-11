@@ -583,7 +583,7 @@ module SalaryBookHelper
   def pick_label(pick)
     status = pick_status(pick)
     if status == "FRP" || status == "SRP"
-      "#{(pick['year'].to_i + 1) % 100} #{status}"
+      "#{pick['year'].to_i % 100} #{status}"
     else
       status
     end

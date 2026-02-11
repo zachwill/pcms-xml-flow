@@ -128,6 +128,28 @@ def parse_int(value):
             return None
 
 
+def unwrap_data(payload):
+    if isinstance(payload, dict) and "data" in payload:
+        data = payload.get("data")
+        if data is not None:
+            return data
+    return payload
+
+
+def get_field(payload: dict | None, *keys: str):
+    if not isinstance(payload, dict):
+        return None
+    for key in keys:
+        value = payload.get(key)
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def normalize_enum_token(value: str) -> str:
+    return "".join(ch for ch in str(value) if ch.isalnum()).lower()
+
+
 def parse_enum_int(value, mapping: dict[str, int]):
     if value is None or value == "":
         return None
@@ -136,9 +158,12 @@ def parse_enum_int(value, mapping: dict[str, int]):
     if isinstance(value, str):
         if value.isdigit():
             return int(value)
-        mapped = mapping.get(value)
-        if mapped is not None:
-            return mapped
+
+        token = normalize_enum_token(value)
+        for key, mapped in mapping.items():
+            if normalize_enum_token(key) == token:
+                return mapped
+
     return None
 
 
@@ -316,9 +341,9 @@ def load_nba_id_lookup(conn: psycopg.Connection) -> dict[str, int]:
 
 
 def extract_person_name(person: dict) -> tuple[str | None, str | None, str | None]:
-    full_name = person.get("Name") or person.get("name")
-    first_name = person.get("FirstName") or person.get("firstName")
-    family_name = person.get("FamilyName") or person.get("lastName")
+    full_name = get_field(person, "name", "Name", "fullName", "FullName")
+    first_name = get_field(person, "firstName", "FirstName")
+    family_name = get_field(person, "familyName", "FamilyName", "lastName", "LastName")
     if not full_name and (first_name or family_name):
         full_name = " ".join(part for part in [first_name, family_name] if part)
     return full_name, first_name, family_name
@@ -332,12 +357,13 @@ def build_roster_rows(
     fetched_at: datetime,
 ) -> list[dict]:
     rows: list[dict] = []
-    team_id = parse_int(team.get("TeamId"))
-    ngss_team_id = team.get("TeamId")
-    ngss_team_id_str = str(ngss_team_id) if ngss_team_id is not None else None
+    team_id_raw = get_field(team, "teamId", "TeamId")
+    team_id = parse_int(team_id_raw)
+    ngss_team_id_str = str(team_id_raw) if team_id_raw is not None else None
 
-    for player in team.get("PlayersList") or []:
-        person_id = player.get("PersonId")
+    players = get_field(team, "players", "PlayersList") or []
+    for player in players:
+        person_id = get_field(player, "personId", "PersonId")
         if person_id is None:
             continue
         ngss_person_id = str(person_id)
@@ -346,30 +372,31 @@ def build_roster_rows(
         row = {
             "game_id": game_id,
             "ngss_game_id": ngss_game_id,
-            "team_id": parse_int(player.get("TeamId")) or team_id,
+            "team_id": parse_int(get_field(player, "teamId", "TeamId")) or team_id,
             "ngss_team_id": ngss_team_id_str,
             "nba_id": nba_id,
             "ngss_person_id": ngss_person_id,
             "full_name": full_name,
             "first_name": first_name,
             "family_name": family_name,
-            "jersey_number": player.get("JerseyNumber"),
-            "position": player.get("Position"),
+            "jersey_number": get_field(player, "jerseyNum", "JerseyNumber"),
+            "position": get_field(player, "position", "Position"),
             "is_player": True,
             "is_official": False,
             "is_team_staff": False,
             "team_role": None,
-            "player_status": player.get("Status"),
-            "not_playing_reason": player.get("NotPlayingReason"),
-            "not_playing_description": player.get("NotPlayingDescription"),
+            "player_status": get_field(player, "status", "Status"),
+            "not_playing_reason": get_field(player, "notPlayingReason", "NotPlayingReason"),
+            "not_playing_description": get_field(player, "notPlayingDescription", "NotPlayingDescription"),
             "created_at": fetched_at,
             "updated_at": fetched_at,
             "fetched_at": fetched_at,
         }
         rows.append(row)
 
-    for staff in team.get("StaffList") or []:
-        person_id = staff.get("PersonId")
+    staff_members = get_field(team, "staff", "StaffList") or []
+    for staff in staff_members:
+        person_id = get_field(staff, "personId", "PersonId")
         if person_id is None:
             continue
         ngss_person_id = str(person_id)
@@ -390,7 +417,7 @@ def build_roster_rows(
             "is_player": False,
             "is_official": False,
             "is_team_staff": True,
-            "team_role": staff.get("Role"),
+            "team_role": get_field(staff, "role", "Role", "position", "Position"),
             "player_status": None,
             "not_playing_reason": None,
             "not_playing_description": None,
@@ -410,18 +437,18 @@ def build_official_rows(
 ) -> list[dict]:
     rows: list[dict] = []
     for official in officials:
-        person_id = official.get("PersonId")
+        person_id = get_field(official, "personId", "PersonId")
         if person_id is None:
             continue
         rows.append(
             {
                 "game_id": game_id,
                 "ngss_official_id": str(person_id),
-                "first_name": official.get("FirstName"),
-                "last_name": official.get("FamilyName"),
-                "jersey_num": official.get("JerseyNumber"),
-                "official_type": official.get("Type"),
-                "assignment": official.get("Assignment"),
+                "first_name": get_field(official, "firstName", "FirstName"),
+                "last_name": get_field(official, "familyName", "FamilyName", "lastName", "LastName"),
+                "jersey_num": get_field(official, "jerseyNum", "JerseyNumber"),
+                "official_type": get_field(official, "type", "Type"),
+                "assignment": get_field(official, "assignment", "Assignment"),
                 "created_at": fetched_at,
                 "updated_at": fetched_at,
                 "fetched_at": fetched_at,
@@ -503,53 +530,55 @@ def main(
 
         with httpx.Client(timeout=30) as client:
             for game_id_value, status in game_list:
-                game_payload = request_json(client, f"/Games/{game_id_value}", api_key=api_key)
+                game_response = request_json(client, f"/Games/{game_id_value}", api_key=api_key)
+                game_payload = unwrap_data(game_response)
                 if not isinstance(game_payload, dict) or not game_payload:
                     continue
 
-                ngss_game_id = game_payload.get("GameId") or game_id_value
-                ruleset_payload = request_json(
+                ngss_game_id = get_field(game_payload, "gameId", "GameId") or game_id_value
+                ruleset_response = request_json(
                     client,
                     f"/Games/{game_id_value}/ruleset",
                     api_key=api_key,
                 )
-                arena = game_payload.get("Arena") or {}
+                ruleset_payload = unwrap_data(ruleset_response)
+                arena = get_field(game_payload, "arena", "Arena") or {}
 
                 game_rows.append(
                     {
                         "game_id": game_id_value,
                         "ngss_game_id": ngss_game_id,
-                        "league_code": game_payload.get("LeagueCode"),
-                        "league_name": game_payload.get("LeagueName"),
-                        "season_id": game_payload.get("SeasonId"),
-                        "season_name": game_payload.get("SeasonName"),
-                        "season_type": parse_enum_int(game_payload.get("SeasonType"), SEASON_TYPE_MAP),
-                        "game_status": parse_enum_int(game_payload.get("GameStatus"), GAME_STATUS_MAP),
-                        "winner_type": parse_enum_int(game_payload.get("Winner"), WINNER_MAP),
-                        "game_date_local": parse_date(game_payload.get("GameDateTimeLocal")),
-                        "game_time_local": parse_time(game_payload.get("GameTimeLocal")),
-                        "game_date_time_local": parse_datetime(game_payload.get("GameDateTimeLocal")),
-                        "game_date_time_utc": parse_datetime(game_payload.get("GameDateTimeUtc")),
-                        "game_time_home": parse_time(game_payload.get("GameTimeHome")),
-                        "game_time_away": parse_time(game_payload.get("GameTimeAway")),
-                        "game_time_et": parse_time(game_payload.get("GameEt")),
-                        "time_actual": parse_datetime(game_payload.get("TimeActual")),
-                        "time_end_actual": parse_datetime(game_payload.get("TimeEndActual")),
-                        "attendance": parse_int(game_payload.get("Attendance")),
-                        "duration_minutes": parse_int(game_payload.get("Duration")),
-                        "home_team_id": parse_int(game_payload.get("HomeId")),
-                        "home_score": parse_int(game_payload.get("HomeScore")),
-                        "away_team_id": parse_int(game_payload.get("AwayId")),
-                        "away_score": parse_int(game_payload.get("AwayScore")),
-                        "arena_id": parse_int(arena.get("ArenaId")),
-                        "arena_name": arena.get("ArenaName"),
-                        "last_game_data_update": parse_datetime(game_payload.get("LastGameDataUpdate")),
-                        "needs_reprocessing": parse_datetime(game_payload.get("NeedsReprocessing")),
-                        "is_sold_out": parse_yes_no(game_payload.get("IsSoldOut")),
-                        "memos": normalize_memos(game_payload.get("Memos")),
-                        "is_target_score_ending": to_bool(game_payload.get("TargetScoreEnding")),
-                        "target_score_period": parse_int(game_payload.get("TargetScorePeriod")),
-                        "ruleset_id": parse_int(ruleset_payload.get("RulesetId")) if isinstance(ruleset_payload, dict) else None,
+                        "league_code": get_field(game_payload, "leagueCode", "LeagueCode"),
+                        "league_name": get_field(game_payload, "leagueName", "LeagueName"),
+                        "season_id": get_field(game_payload, "seasonId", "SeasonId"),
+                        "season_name": get_field(game_payload, "seasonName", "SeasonName"),
+                        "season_type": parse_enum_int(get_field(game_payload, "seasonType", "SeasonType"), SEASON_TYPE_MAP),
+                        "game_status": parse_enum_int(get_field(game_payload, "gameStatus", "GameStatus"), GAME_STATUS_MAP),
+                        "winner_type": parse_enum_int(get_field(game_payload, "winner", "Winner"), WINNER_MAP),
+                        "game_date_local": parse_date(get_field(game_payload, "gameTimeLocal", "GameDateTimeLocal", "GameTimeLocal")),
+                        "game_time_local": parse_time(get_field(game_payload, "gameTimeLocal", "GameTimeLocal")),
+                        "game_date_time_local": parse_datetime(get_field(game_payload, "gameTimeLocal", "GameDateTimeLocal", "GameTimeHome")),
+                        "game_date_time_utc": parse_datetime(get_field(game_payload, "gameTimeUTC", "GameDateTimeUtc", "GameTimeUTC")),
+                        "game_time_home": parse_time(get_field(game_payload, "gameTimeHome", "GameTimeHome")),
+                        "game_time_away": parse_time(get_field(game_payload, "gameTimeAway", "GameTimeAway")),
+                        "game_time_et": parse_time(get_field(game_payload, "gameEt", "GameEt")),
+                        "time_actual": parse_datetime(get_field(game_payload, "timeActual", "TimeActual")),
+                        "time_end_actual": parse_datetime(get_field(game_payload, "timeEndActual", "TimeEndActual")),
+                        "attendance": parse_int(get_field(game_payload, "attendance", "Attendance")),
+                        "duration_minutes": parse_int(get_field(game_payload, "duration", "Duration")),
+                        "home_team_id": parse_int(get_field(game_payload, "homeId", "HomeId")),
+                        "home_score": parse_int(get_field(game_payload, "homeScore", "HomeScore")),
+                        "away_team_id": parse_int(get_field(game_payload, "awayId", "AwayId")),
+                        "away_score": parse_int(get_field(game_payload, "awayScore", "AwayScore")),
+                        "arena_id": parse_int(get_field(arena, "arenaId", "ArenaId")),
+                        "arena_name": get_field(arena, "arenaName", "ArenaName"),
+                        "last_game_data_update": parse_datetime(get_field(game_payload, "lastGameDataUpdate", "LastGameDataUpdate")),
+                        "needs_reprocessing": parse_datetime(get_field(game_payload, "needsReprocessing", "NeedsReprocessing")),
+                        "is_sold_out": parse_yes_no(get_field(game_payload, "isSoldOut", "IsSoldOut")),
+                        "memos": normalize_memos(get_field(game_payload, "memos", "Memos")),
+                        "is_target_score_ending": to_bool(get_field(game_payload, "targetScoreEnding", "TargetScoreEnding")),
+                        "target_score_period": parse_int(get_field(game_payload, "targetScorePeriod", "TargetScorePeriod")),
+                        "ruleset_id": parse_int(get_field(ruleset_payload, "rulesetId", "RulesetId")) if isinstance(ruleset_payload, dict) else None,
                         "ruleset_json": Json(ruleset_payload) if ruleset_payload else None,
                         "game_json": Json(game_payload),
                         "created_at": fetched_at,
@@ -558,15 +587,16 @@ def main(
                     }
                 )
 
-                roster_payload = request_json(
+                roster_response = request_json(
                     client,
                     f"/Games/{game_id_value}/rosters",
                     api_key=api_key,
                 )
+                roster_payload = unwrap_data(roster_response)
                 if isinstance(roster_payload, dict):
                     roster_rows.extend(
                         build_roster_rows(
-                            roster_payload.get("HomeTeam") or {},
+                            get_field(roster_payload, "homeTeam", "HomeTeam") or {},
                             game_id_value,
                             ngss_game_id,
                             nba_id_lookup,
@@ -575,7 +605,7 @@ def main(
                     )
                     roster_rows.extend(
                         build_roster_rows(
-                            roster_payload.get("AwayTeam") or {},
+                            get_field(roster_payload, "awayTeam", "AwayTeam") or {},
                             game_id_value,
                             ngss_game_id,
                             nba_id_lookup,
@@ -583,20 +613,22 @@ def main(
                         )
                     )
 
-                officials_payload = request_json(
+                officials_response = request_json(
                     client,
                     f"/Games/{game_id_value}/officials",
                     api_key=api_key,
                 )
+                officials_payload = unwrap_data(officials_response)
                 if isinstance(officials_payload, dict):
-                    officials_list = officials_payload.get("OfficialsList") or []
+                    officials_list = get_field(officials_payload, "officials", "OfficialsList") or []
                     official_rows.extend(build_official_rows(officials_list, game_id_value, fetched_at))
 
-                boxscore_payload = request_json(
+                boxscore_response = request_json(
                     client,
                     f"/games/{game_id_value}/boxscore",
                     api_key=api_key,
                 )
+                boxscore_payload = unwrap_data(boxscore_response)
                 if boxscore_payload:
                     boxscore_rows.append(
                         {
@@ -609,11 +641,12 @@ def main(
                         }
                     )
 
-                pbp_payload = request_json(
+                pbp_response = request_json(
                     client,
                     f"/games/{game_id_value}/playbyplay",
                     api_key=api_key,
                 )
+                pbp_payload = unwrap_data(pbp_response)
                 if pbp_payload:
                     pbp_rows.append(
                         {

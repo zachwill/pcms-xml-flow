@@ -139,13 +139,17 @@
               <% salary_years.each do |kpi_year| %>
                 <% summary = team_summaries[kpi_year] || {} %>
                 <% room_tax = summary["room_under_tax"] %>
+                <% is_repeater = warehouse_bool(summary["is_repeater_taxpayer"]) %>
                 <% variant = room_tax.nil? ? "muted" : (room_tax.to_f < 0 ? "negative" : "default") %>
                 <div data-show="<%= "#{selected_header_year_expr} === '#{kpi_year}'" %>" style="display: none;">
                   <%= render partial: "tools/salary_book/kpi_cell", locals: {
                     label: "Tax Room",
                     value: room_tax ? format_room_amount(room_tax) : "—",
                     title: "Room under luxury tax",
-                    variant:
+                    variant:,
+                    corner_badge_icon: (is_repeater ? "repeat" : nil),
+                    corner_badge_title: (is_repeater ? "Repeater taxpayer" : nil),
+                    corner_badge_class_name: "size-4 rounded-full bg-purple-600 text-white border border-zinc-200 dark:border-zinc-700"
                   } %>
                 </div>
               <% end %>
@@ -170,14 +174,24 @@
             <div class="w-24 shrink-0 flex justify-center">
               <% salary_years.each do |kpi_year| %>
                 <% summary = team_summaries[kpi_year] || {} %>
-                <% room_a2 = summary["room_under_second_apron"] %>
-                <% variant = room_a2.nil? ? "muted" : (room_a2.to_f < 0 ? "negative" : "default") %>
+                <% hard_cap = hard_cap_label(summary) %>
+                <% hard_cap_room_value = hard_cap_room(summary) %>
+                <% hard_cap_display = (hard_cap == "None" ? "N/A" : hard_cap) %>
+                <% hard_cap_title = if hard_cap == "—"
+                  "Hard cap status unavailable"
+                elsif hard_cap == "None"
+                  "No hard cap currently in effect"
+                elsif hard_cap_room_value.nil?
+                  "Subject to #{hard_cap}"
+                else
+                  "Subject to #{hard_cap} (room: #{format_room_amount(hard_cap_room_value)})"
+                end %>
                 <div data-show="<%= "#{selected_header_year_expr} === '#{kpi_year}'" %>" style="display: none;">
                   <%= render partial: "tools/salary_book/kpi_cell", locals: {
-                    label: "Apron 2",
-                    value: room_a2 ? format_room_amount(room_a2) : "—",
-                    title: "Room under second apron",
-                    variant:
+                    label: "Hard Cap",
+                    value: hard_cap_display,
+                    title: hard_cap_title,
+                    variant: (["—", "None"].include?(hard_cap) ? "muted" : "default")
                   } %>
                 </div>
               <% end %>

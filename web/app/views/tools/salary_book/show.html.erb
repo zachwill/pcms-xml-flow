@@ -2,7 +2,7 @@
 
 <%# Build team_id lookup for back button logos %>
 <% team_id_map = @team_meta_by_code.transform_values { |meta| meta["team_id"] }.to_json %>
-<% salary_book_base_path = root_path %>
+<% salary_book_base_path = tools_salary_book_path %>
 
 <%# Season column state machine:
     - Hover/focus year header => preview (selectedseason)
@@ -31,6 +31,29 @@
     displaycashvscap: false,
     displayluxurytax: false
   }"
+  data-on:salarybook-switch-team="
+    const rawteam = (evt.detail && evt.detail.team) ? String(evt.detail.team) : '';
+    const teamcode = rawteam.trim().toUpperCase();
+    if (!teamcode.match(/^[A-Z]{3}$/)) { return; }
+
+    const rawyear = (evt.detail && evt.detail.year) ? String(evt.detail.year) : '';
+    const requestedyear = rawyear.trim();
+    const effectiveyear = requestedyear.match(/^\d{4}$/) ? requestedyear : '<%= @salary_year %>';
+
+    if ($activeteam === teamcode) { return; }
+
+    $activeteam = teamcode;
+    $seasonlocked = false;
+    $selectedseason = '';
+    $sidebarteamloaded = teamcode;
+    $sidebarcapyearloaded = effectiveyear;
+    $sidebardraftloaded = false;
+    $sidebardraftyearloaded = '';
+    $sidebarrightsloaded = false;
+
+    @get('/tools/salary-book/sse/switch-team?team=' + teamcode + '&year=' + encodeURIComponent(effectiveyear));
+    window.history.replaceState({}, '', '<%= salary_book_base_path %>?team=' + teamcode + '&year=' + encodeURIComponent(effectiveyear));
+  "
 >
   <div id="flash"></div>
 
@@ -64,22 +87,7 @@
                 <button
                   type="button"
                   class="cursor-pointer relative h-7 px-2 rounded text-xs font-medium transition-all duration-150 border outline-none inline-flex items-center justify-center"
-                  data-on:click="
-                    const teamcode = '<%= team[:code] %>';
-                    if ($activeteam !== teamcode) {
-                      $activeteam = teamcode;
-                      $seasonlocked = false;
-                      $selectedseason = '';
-                      $sidebarteamloaded = teamcode;
-                      $sidebarcapyearloaded = '<%= @salary_year %>';
-                      $sidebardraftloaded = false;
-                      $sidebardraftyearloaded = '';
-                      $sidebarrightsloaded = false;
-
-                      @get('/tools/salary-book/sse/switch-team?team=' + teamcode + '&year=<%= @salary_year %>');
-                      window.history.replaceState({}, '', '<%= salary_book_base_path %>?team=' + teamcode + '&year=<%= @salary_year %>');
-                    }
-                  "
+                  data-on:click="el.dispatchEvent(new CustomEvent('salarybook-switch-team', { bubbles: true, detail: { team: '<%= team[:code] %>', year: '<%= @salary_year %>' } }));"
                   data-class="{
                     'bg-primary text-primary-foreground border-primary shadow-sm': $activeteam === '<%= team[:code] %>',
                     'bg-muted/50 hover:bg-muted': $activeteam !== '<%= team[:code] %>',

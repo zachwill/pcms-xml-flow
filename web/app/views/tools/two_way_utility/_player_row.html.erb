@@ -201,11 +201,11 @@ end %>
         <span class="text-[10px] leading-none tabular-nums whitespace-nowrap <%= usage_warning_sub_text_class %>">
           <%= used_pct_label %>
           <% if used_blocks.present? %>
-            <span class="ml-0.5 opacity-70"><%= used_blocks %></span>
+            <span class="ml-0.5 opacity-70 font-mono"><%= used_blocks %></span>
           <% end %>
         </span>
       <% else %>
-        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap opacity-0">00% ▪︎▪︎▫︎▫︎</span>
+        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap font-mono opacity-0">00% ▰▰▱▱</span>
       <% end %>
     </div>
   </div>
@@ -227,11 +227,11 @@ end %>
             <%= limit_pct_label %>
           <% end %>
           <% if limit_blocks.present? %>
-            <span class="ml-0.5 opacity-70"><%= limit_blocks %></span>
+            <span class="ml-0.5 opacity-70 font-mono"><%= limit_blocks %></span>
           <% end %>
         </span>
       <% else %>
-        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap opacity-0">00% ▪︎▪︎▫︎▫︎</span>
+        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap font-mono opacity-0">00% ▰▰▱▱</span>
       <% end %>
     </div>
   </div>
@@ -245,11 +245,11 @@ end %>
         <span class="text-[10px] leading-none tabular-nums whitespace-nowrap <%= usage_warning_sub_text_class %>">
           <%= remain_pct_label %>
           <% if remain_blocks.present? %>
-            <span class="ml-0.5 opacity-70"><%= remain_blocks %></span>
+            <span class="ml-0.5 opacity-70 font-mono"><%= remain_blocks %></span>
           <% end %>
         </span>
       <% else %>
-        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap opacity-0">00% ▪︎▪︎▫︎▫︎</span>
+        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap font-mono opacity-0">00% ▰▰▱▱</span>
       <% end %>
     </div>
   </div>

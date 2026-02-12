@@ -97,18 +97,7 @@
   }
 
   switch_team_onclick = ->(code) {
-    "const teamcode = '#{code}'; if ($activeteam !== teamcode) { " \
-      "$activeteam = teamcode; " \
-      "$seasonlocked = false; " \
-      "$selectedseason = ''; " \
-      "$sidebarteamloaded = teamcode; " \
-      "$sidebarcapyearloaded = '#{salary_book_year}'; " \
-      "$sidebardraftloaded = false; " \
-      "$sidebardraftyearloaded = ''; " \
-      "$sidebarrightsloaded = false; " \
-      "@get('/tools/salary-book/sse/switch-team?team=' + teamcode + '&year=#{salary_book_year}'); " \
-      "window.history.replaceState({}, '', '#{root_path}?team=' + teamcode + '&year=#{salary_book_year}'); " \
-    "}"
+    "el.dispatchEvent(new CustomEvent('salarybook-switch-team', { bubbles: true, detail: { team: '#{code}', year: '#{salary_book_year}' } }));"
   }
 
   team_combo_chip_classes = "cursor-pointer inline-flex items-center gap-0.5 px-1.5 rounded border border-border bg-background hover:border-foreground/20"

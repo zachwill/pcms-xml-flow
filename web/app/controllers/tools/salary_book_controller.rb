@@ -728,6 +728,8 @@ module Tools
             PERCENT_RANK() OVER (PARTITION BY tsw.salary_year ORDER BY tsw.room_under_apron1) AS room_under_first_apron_percentile,
             PERCENT_RANK() OVER (PARTITION BY tsw.salary_year ORDER BY tsw.room_under_apron2) AS room_under_second_apron_percentile,
             tsw.is_taxpayer AS is_over_tax,
+            COALESCE(tsw.is_repeater_taxpayer, false) AS is_repeater_taxpayer,
+            COALESCE(tsw.is_subject_to_apron, false) AS is_subject_to_apron,
             tsw.is_subject_to_apron AS is_over_first_apron,
             tsw.apron_level_lk,
             tsw.refreshed_at
@@ -941,6 +943,8 @@ module Tools
             PERCENT_RANK() OVER (PARTITION BY tsw.salary_year ORDER BY tsw.room_under_apron1) AS room_under_first_apron_percentile,
             PERCENT_RANK() OVER (PARTITION BY tsw.salary_year ORDER BY tsw.room_under_apron2) AS room_under_second_apron_percentile,
             tsw.is_taxpayer AS is_over_tax,
+            COALESCE(tsw.is_repeater_taxpayer, false) AS is_repeater_taxpayer,
+            COALESCE(tsw.is_subject_to_apron, false) AS is_subject_to_apron,
             tsw.is_subject_to_apron AS is_over_first_apron,
             tsw.apron_level_lk,
             tsw.refreshed_at

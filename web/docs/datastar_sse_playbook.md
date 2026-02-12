@@ -21,6 +21,39 @@ If one interaction must update two or more of:
 
 Do **not** do multiple fetches or client-side stitching.
 
+## Frontend orchestration rule (custom events)
+
+When multiple UI leaves trigger the **same** backend interaction, prefer a bubbling `CustomEvent` + one root handler over duplicated inline `@get(...)` blocks.
+
+Salary Book reference pattern:
+
+- Event name: `salarybook-switch-team`
+- Emitters: command-bar team grid, player overlay team chip, pick overlay team chips
+- Root handler: `#salarybook` (`show.html.erb`)
+- Root side effects:
+  - validate/sanitize payload (`evt.detail.team`, optional `evt.detail.year`)
+  - no-op if team is already active
+  - update switch-related signals in one place
+  - perform one SSE call (`/tools/salary-book/sse/switch-team?...`)
+  - update URL with `history.replaceState`
+
+Payload contract:
+
+```js
+new CustomEvent('salarybook-switch-team', {
+  bubbles: true,
+  detail: {
+    team: 'BOS',
+    year: '2025' // optional
+  }
+})
+```
+
+Notes:
+- Keep event names kebab-case.
+- Keep payloads minimal and explicit.
+- For Salary Book, **team switch does not force-clear `#rightpanel-overlay`**; explicit overlay close is handled by `/tools/salary-book/sidebar/clear`.
+
 ## Using the `Datastar` concern
 
 The repo provides `app/controllers/concerns/datastar.rb` with all the SSE boilerplate.
@@ -99,6 +132,7 @@ data: elements </div>
 
 - Concern: `web/app/controllers/concerns/datastar.rb`
 - SSE usage (Salary Book team switch): `web/app/controllers/tools/salary_book_sse_controller.rb`
+- Team switch event-bus contract: `web/docs/contracts/salary_book_team_switch_events.md`
 - HTML bootstrap (entities): `web/app/controllers/entities/players_sse_controller.rb`, `teams_sse_controller.rb`
 - Routes:
   - `GET /tools/salary-book/sse/switch-team` (multi-region SSE: patches `#salarybook-team-frame` + `#rightpanel-base`)

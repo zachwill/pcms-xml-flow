@@ -249,6 +249,16 @@ module SalaryBookHelper
     "#{bg_class} #{text_class}".strip
   end
 
+  # Text color classes used by the salary value (e.g. option/restriction states).
+  def salary_cell_text_class(player, year)
+    salary_cell_classes(player, year)
+      .to_s
+      .split
+      .select { |token| token.start_with?("text-", "dark:text-") }
+      .join(" ")
+      .presence
+  end
+
   # Build tooltip text for salary cell
   def salary_cell_tooltip(player, year)
     return nil if player_salary(player, year).nil?
@@ -322,14 +332,15 @@ module SalaryBookHelper
   def pct_cap_blocks(percentile)
     return "" if percentile.nil?
 
-    filled = "▪︎"
-    empty = "▫︎"
+    # Use parallelograms (easier to scan on iPad than small square glyphs).
+    filled = "▰"
+    empty = "▱"
     bucket = pct_cap_percentile_bucket(percentile)
 
     (filled * bucket) + (empty * (4 - bucket))
   end
 
-  # Returns a hash: { label: "30%", blocks: "▪︎▪︎▫︎▫︎" }
+  # Returns a hash: { label: "30%", blocks: "▰▰▱▱" }
   def format_pct_cap_with_blocks(player, year)
     return nil if player["is_min_contract"]
 
@@ -373,7 +384,7 @@ module SalaryBookHelper
     p.clamp(0.0, 1.0)
   end
 
-  def epm_percentile_blocks(percentile, bucket_count: 5)
+  def epm_percentile_blocks(percentile, bucket_count: 4)
     p01 = normalize_percentile_01(percentile)
     return "" if p01.nil?
 
@@ -676,6 +687,50 @@ module SalaryBookHelper
     return "muted" if value.nil?
 
     value.to_f >= 0 ? "positive" : "negative"
+  end
+
+  # Coerce warehouse booleans (true/false, t/f, 1/0) into a Ruby boolean.
+  def warehouse_bool(value)
+    case value
+    when true, 1, "1", "t", "T", "true", "TRUE", "yes", "YES", "y", "Y"
+      true
+    else
+      false
+    end
+  end
+
+  # Human label for hard-cap status in team header KPIs.
+  # Returns: "Apron 1", "Apron 2", "None", or "—" (no snapshot)
+  def hard_cap_label(summary)
+    return "—" if summary.blank?
+
+    raw_level = (summary["apron_level_lk"] || summary[:apron_level_lk]).to_s.strip
+    normalized_level = raw_level.upcase
+    is_subject_to_apron = warehouse_bool(summary["is_subject_to_apron"] || summary[:is_subject_to_apron] || summary["is_over_first_apron"] || summary[:is_over_first_apron])
+
+    return "Apron 2" if normalized_level.include?("2") || normalized_level.include?("SECOND")
+    return "Apron 1" if normalized_level.include?("1") || normalized_level.include?("FIRST")
+    return "Apron 1" if is_subject_to_apron
+    return "None" if normalized_level.blank? || normalized_level == "NONE"
+
+    raw_level
+  end
+
+  # Returns the active hard-cap room metric for the team/year snapshot.
+  # Apron 1 hard-cap -> room_under_first_apron
+  # Apron 2 hard-cap -> room_under_second_apron
+  # None/unknown -> nil
+  def hard_cap_room(summary)
+    return nil if summary.blank?
+
+    case hard_cap_label(summary)
+    when "Apron 1"
+      summary["room_under_first_apron"] || summary[:room_under_first_apron]
+    when "Apron 2"
+      summary["room_under_second_apron"] || summary[:room_under_second_apron]
+    else
+      nil
+    end
   end
 
   # Get tax/apron status for a year

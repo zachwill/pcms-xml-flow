@@ -27,21 +27,8 @@
   team_combo_code_classes = "flex-1 text-xs font-semibold tabular-nums leading-none text-center"
 
   team_row_onclick = if team_switchable
-    "const teamcode = '#{team_code}'; " \
-      "const effectiveyear = String($sidebarcapyearloaded || '#{salary_years.first}'); " \
-      "const overlay = document.getElementById('rightpanel-overlay'); if (overlay) { overlay.innerHTML = ''; } " \
-      "if ($activeteam !== teamcode) { " \
-        "$activeteam = teamcode; " \
-        "$seasonlocked = false; " \
-        "$selectedseason = ''; " \
-        "$sidebarteamloaded = teamcode; " \
-        "$sidebarcapyearloaded = effectiveyear; " \
-        "$sidebardraftloaded = false; " \
-        "$sidebardraftyearloaded = ''; " \
-        "$sidebarrightsloaded = false; " \
-        "@get('#{tools_salary_book_sse_switch_team_path}?team=' + teamcode + '&year=' + encodeURIComponent(effectiveyear)); " \
-        "window.history.replaceState({}, '', '#{root_path}?team=' + teamcode + '&year=' + encodeURIComponent(effectiveyear)); " \
-      "}"
+    "const effectiveyear = String($sidebarcapyearloaded || '#{salary_years.first}'); " \
+      "el.dispatchEvent(new CustomEvent('salarybook-switch-team', { bubbles: true, detail: { team: '#{team_code}', year: effectiveyear } }));"
   end
 
   years_data = salary_years.map do |y|

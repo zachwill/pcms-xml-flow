@@ -12,6 +12,10 @@
   - value_class_name: extra classes for the value
   - subvalue: optional tiny 2nd line (e.g. percentile tag)
   - subvalue_class_name: extra classes for subvalue
+  - corner_badge_text: optional tiny badge text
+  - corner_badge_icon: optional icon key (currently supports "repeat")
+  - corner_badge_title: optional tooltip for corner badge
+  - corner_badge_class_name: optional classes for corner badge
 %>
 
 <% label = local_assigns.fetch(:label, nil) %>
@@ -24,6 +28,10 @@
 <% label_class_name = local_assigns.fetch(:label_class_name, "") %>
 <% value_class_name = local_assigns.fetch(:value_class_name, "") %>
 <% subvalue_class_name = local_assigns.fetch(:subvalue_class_name, "") %>
+<% corner_badge_text = local_assigns.fetch(:corner_badge_text, nil) %>
+<% corner_badge_icon = local_assigns.fetch(:corner_badge_icon, nil) %>
+<% corner_badge_title = local_assigns.fetch(:corner_badge_title, nil) %>
+<% corner_badge_class_name = local_assigns.fetch(:corner_badge_class_name, "") %>
 
 <%
   value_color = {
@@ -60,6 +68,7 @@
 
   has_label = label.present?
   has_subvalue = subvalue.present?
+  has_corner_badge = corner_badge_text.present? || corner_badge_icon.present?
 
   # Determine if class_name overrides background (contains 'bg-')
   has_custom_bg = class_name.to_s.include?("bg-")
@@ -76,9 +85,26 @@
 %>
 
 <div
-  class="w-20 <%= height_class %> rounded flex flex-col items-center justify-center text-center px-1 <%= default_bg %> <%= class_name %>"
+  class="relative w-20 <%= height_class %> rounded flex flex-col items-center justify-center text-center px-1 <%= default_bg %> <%= class_name %>"
   <% if title.present? %>title="<%= title %>"<% end %>
 >
+  <% if has_corner_badge %>
+    <span
+      class="absolute -right-1.5 -bottom-1.5 inline-flex items-center justify-center leading-none pointer-events-auto cursor-help <%= corner_badge_class_name.presence || 'size-4 rounded-full bg-purple-600 text-white border border-zinc-200 dark:border-zinc-700' %>"
+      <% if corner_badge_title.present? %>title="<%= corner_badge_title %>"<% end %>
+    >
+      <% if corner_badge_icon == "repeat" %>
+        <svg viewBox="0 0 20 20" class="size-2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 7h8"></path>
+          <path d="m10 4 3 3-3 3"></path>
+          <path d="M16 13H8"></path>
+          <path d="m10 10-3 3 3 3"></path>
+        </svg>
+      <% else %>
+        <span class="text-[8px] font-semibold"><%= corner_badge_text %></span>
+      <% end %>
+    </span>
+  <% end %>
   <% if has_label %>
     <span class="text-[9px] uppercase tracking-wide font-medium leading-none <%= label_color %> <%= label_class_name %>">
       <%= label %>

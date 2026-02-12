@@ -10,6 +10,7 @@
 <% salary_years ||= SalaryBookHelper::SALARY_YEARS %>
 <% epm_value = player["epm_value"] %>
 <% epm_percentile = player["epm_percentile"] %>
+<% epm_percentile_int_value = epm_percentile_int(epm_percentile) %>
 <% epm_percentile_label = format_percentile_label(epm_percentile) %>
 <% epm_color_class = epm_percentile_color_class(epm_percentile) %>
 <% epm_has_value = !epm_value.nil? %>
@@ -119,8 +120,11 @@
             <span class="font-mono tabular-nums <%= epm_color_class %>"><%= format_epm_value(epm_value) %></span>
           </div>
           <div class="h-[16px] -mt-px flex items-start justify-center">
-            <% if epm_percentile.present? %>
-              <span class="text-[10px] leading-none font-mono tabular-nums whitespace-nowrap <%= epm_color_class || 'text-zinc-700 dark:text-zinc-300' %>"><%= epm_percentile_blocks(epm_percentile) %></span>
+            <% if epm_percentile_int_value.present? %>
+              <span class="text-[10px] leading-none font-mono tabular-nums whitespace-nowrap <%= epm_color_class || 'text-zinc-700 dark:text-zinc-300' %>">
+                <span class="inline-block text-right" style="width: 4ch">P<%= epm_percentile_int_value %></span>
+                <span class="ml-px opacity-70 font-mono"><%= epm_percentile_blocks(epm_percentile) %></span>
+              </span>
             <% else %>
               <span class="text-[10px] leading-none tabular-nums whitespace-nowrap text-muted-foreground/50">—</span>
             <% end %>
@@ -138,6 +142,7 @@
         <% cap_hold_present = cap_hold.present? && cap_hold.to_f > 0 %>
         <% is_empty = salary.nil? %>
         <% cell_classes = salary_cell_classes(player, year) %>
+        <% salary_text_class = salary_cell_text_class(player, year) %>
         <% effective_cell_classes = cell_classes %>
         <% tooltip = salary_cell_tooltip(player, year) %>
         <% cell_tooltip = tooltip.presence || (cap_hold_present ? "Cap Hold: #{format_compact_currency(cap_hold)}" : nil) %>
@@ -193,10 +198,10 @@
               <% if player["is_min_contract"] %>
                 <span class="text-[10px] leading-none tabular-nums whitespace-nowrap text-muted-foreground/80">MINIMUM</span>
               <% elsif pct %>
-                <span class="text-[10px] leading-none tabular-nums whitespace-nowrap text-muted-foreground/80">
+                <span class="text-[10px] leading-none tabular-nums whitespace-nowrap <%= salary_text_class || 'text-zinc-700 dark:text-zinc-300' %>">
                   <%= pct[:label] %>
                   <% if pct[:blocks].present? %>
-                    <span class="ml-0.5 opacity-70"><%= pct[:blocks] %></span>
+                    <span class="ml-0.5 opacity-70 font-mono"><%= pct[:blocks] %></span>
                   <% end %>
                 </span>
               <% end %>

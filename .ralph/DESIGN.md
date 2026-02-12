@@ -11,11 +11,32 @@ Raise the overall design quality of non-Salary-Book surfaces in `web/` by improv
 - density/readability balance
 - navigation/pivot clarity
 
+Strategic split:
+- **Primary convergence:** entity index pages should behave like explorer workbenches (Salary Book interaction grammar: knobs/filters + dense rows + sidebar drill-ins).
+- **Parallel evolution:** tools (`team_summary`, `system_values`, `two_way_utility`) should be substantially improved as planning workbenches.
+
 Salary Book is the reference quality bar and is **read-only** for this loop.
 
 ## Hard guardrail
 
 Do not modify Salary Book files while running `agents/design.ts`.
+
+## Focus surfaces
+
+Entity index convergence targets:
+- `web/app/views/entities/players/index.html.erb`
+- `web/app/views/entities/teams/index.html.erb`
+- `web/app/views/entities/agents/index.html.erb`
+- `web/app/views/entities/agencies/index.html.erb`
+- `web/app/views/entities/drafts/index.html.erb`
+- `web/app/views/entities/transactions/index.html.erb`
+- `web/app/views/entities/trades/index.html.erb`
+- `web/app/views/entities/draft_selections/index.html.erb`
+
+Parallel tool evolution targets:
+- `web/app/views/tools/team_summary/show.html.erb`
+- `web/app/views/tools/system_values/show.html.erb`
+- `web/app/views/tools/two_way_utility/show.html.erb`
 
 ## What counts as a good task
 

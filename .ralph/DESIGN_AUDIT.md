@@ -107,7 +107,7 @@
 
 ## entities/agents/ (index + show + directory)
 
-- [ ] `web/app/views/entities/agents/show.html.erb` (601 lines): large file — audit for consistent table headers (`bg-muted/40 text-[10px] uppercase`), row hover on all `<tr>` elements, `font-mono tabular-nums` on all financial values, and dark mode variants
+- [x] `web/app/views/entities/agents/show.html.erb` (601 lines): audit for consistent table headers (`bg-muted/40 text-[10px] uppercase`), row hover on all `<tr>` elements, `font-mono tabular-nums` on all financial values, and dark mode variants — ✅ **Mostly clean.** All 4 `<thead>` elements already use `bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90`. All 4 `<tr>` elements in `<tbody>` already use `hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75`. All `format_salary` calls already wrapped in `font-mono tabular-nums`. All color classes have `dark:` variants. **Fixed:** Historical footprint date values (L542, L546) — `format_plain_date` for first/last signing dates were missing `font-mono tabular-nums`; added.
 - [ ] `web/app/views/entities/agents/_workspace_main.html.erb`: audit for design consistency
 - [ ] `web/app/views/entities/agents/_rightpanel_overlay_agent.html.erb`: audit for consistent sidebar patterns matching Salary Book's `_sidebar_agent.html.erb`
 - [ ] `web/app/views/entities/agents/_rightpanel_overlay_agency.html.erb`: audit for sidebar consistency

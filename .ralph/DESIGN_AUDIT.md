@@ -45,7 +45,7 @@
 
 ## entities/transactions/show.html.erb
 
-- [ ] `web/app/views/entities/transactions/show.html.erb` vitals section: the Vitals KPI cards are consistent, but the "Player" card value doesn't use `font-medium` on the link text when a player exists (it inherits `text-sm font-medium` from the wrapper, so this is actually fine — verify)
+- [x] `web/app/views/entities/transactions/show.html.erb` vitals section: the Vitals KPI cards are consistent, but the "Player" card value doesn't use `font-medium` on the link text when a player exists (it inherits `text-sm font-medium` from the wrapper, so this is actually fine — verify) ✅ Verified: `font-weight` is inherited from the parent `div.text-sm.font-medium` wrapper — no change needed
 
 ## entities/drafts/_results.html.erb
 

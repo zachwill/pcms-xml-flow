@@ -29,7 +29,15 @@
 - Team summary table cells (entity-cell-two-line in `<div>` rows) follow the table-row context → `text-red-600 dark:text-red-400` is correct.
 - `design_guide.md` currently says bare `text-red-500` — this is a simplification. Future cleanup: update the guide to document both contexts.
 
-**Next priority items:** rookie_scale_amounts audit (done ✅), then sticky-column opacity fix (lower-priority), then players/teams/agents entity page audits.
+**Next priority items:** draft_picks + draft_selections entity audits, then cross-cutting grep audits.
+
+**Agent/agency sidebar overlay rewrites (supervisor-approved batch 9b28e4f..HEAD):**
+- Both `_rightpanel_overlay_agent` and `_rightpanel_overlay_agency` correctly refactored from card-wrapped (`rounded-lg border`) layouts to flat `border-t` section patterns matching Salary Book `_sidebar_agent.html.erb`.
+- Root div correctly changed from `absolute inset-0 bg-background overflow-y-auto border-l border-border` → `h-full`.
+- All new color classes have dark mode variants. ERB/HTML tags balanced. Helpers verified (all exist in SalaryBookHelper/ApplicationHelper).
+- `next_contract_marker` lambda is missing `is_non_guaranteed` (NG) priority-2 marker vs Salary Book — accepted because agents controller doesn't query `is_non_guaranteed_*` columns. If the sidebar SQL query is extended in the future, add the NG marker.
+- `hover:bg-muted/50` (sidebar list hover) vs `hover:bg-yellow-50/70` (table row hover) correctly differentiated per Salary Book patterns.
+- `transition-colors` without `duration-75` in sidebar list context matches Salary Book reference (duration-75 is for `<tr>` table rows only).
 
 **Sticky column `group-hover` opacity rule (from Salary Book):**
 - Outer row: `hover:bg-yellow-50/70` (with opacity — transparent rows blend with table bg)

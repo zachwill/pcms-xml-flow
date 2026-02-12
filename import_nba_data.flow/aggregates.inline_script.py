@@ -26,7 +26,9 @@ LINEUP_GAME_BATCH_SIZE = {
     "Base": 150,
     "Advanced": 120,
 }
-LINEUP_SEASON_TEAM_BATCH_SIZE = 10
+# Query Tool /season/lineups currently times out for TeamId lists with >1 id.
+# Keep this at 1 (per-team requests) for reliability.
+LINEUP_SEASON_TEAM_BATCH_SIZE = 1
 
 QUERY_TOOL_TRUNCATION_THRESHOLD = 9900
 
@@ -556,10 +558,19 @@ def fetch_querytool_batched_rows(
             )
         except httpx.HTTPStatusError as exc:
             status = exc.response.status_code if exc.response is not None else None
-            if status == 414 and len(batch) > 1:
+            splittable_statuses = {414, 429, 500, 502, 503, 504}
+
+            if status in splittable_statuses and len(batch) > 1:
                 left, right = split_batch(batch)
                 pending_batches = [left, right, *pending_batches]
                 continue
+
+            if status in splittable_statuses:
+                warnings.append(
+                    f"{path} batch ({batch_param}={batch[0]}...{batch[-1]}) failed with HTTP {status}; skipping"
+                )
+                continue
+
             raise
 
         rows = payload.get(row_key) or []

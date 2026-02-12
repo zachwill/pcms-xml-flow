@@ -1,14 +1,27 @@
 <% players = Array(local_assigns[:players]) %>
 <% query = local_assigns[:query].to_s %>
 <% seq = local_assigns.fetch(:seq, 0).to_i %>
+<% team_code = local_assigns[:team_code].to_s.strip.upcase.presence %>
 <% error_message = local_assigns[:error_message].to_s.strip.presence %>
 <%
+  error_label = "Unable to load players"
+
   empty_message = if error_message.present?
-    "Search unavailable"
+    error_label
   elsif query.present?
     "No players found"
+  elsif team_code.present?
+    "No players on #{team_code}"
   else
     "Type to search players"
+  end
+
+  scope_label = if query.present?
+    "query: #{query.first(24)}"
+  elsif team_code.present?
+    "team: #{team_code}"
+  else
+    "all players"
   end
 %>
 
@@ -18,16 +31,6 @@
   data-show="$_sbplayercbopen"
   style="display: none;"
   data-seq="<%= seq %>"
-  data-effect="
-    $_sbplayercbloading = false;
-    $_sbplayercbechoseq = <%= seq %>;
-    $_sbplayercbresultscount = <%= players.length %>;
-    if ($_sbplayercbresultscount <= 0) {
-      $_sbplayercbactiveindex = -1;
-    } else if ($_sbplayercbactiveindex < 0 || $_sbplayercbactiveindex >= $_sbplayercbresultscount) {
-      $_sbplayercbactiveindex = 0;
-    }
-  "
 >
   <div
     id="sbplayercb-status"
@@ -35,19 +38,17 @@
     role="status"
     aria-live="polite"
   >
-    <span data-show="$_sbplayercbloading" style="display: none;">Searching…</span>
-
     <% if error_message.present? %>
-      <span data-show="!$_sbplayercbloading" style="display: none;">Search unavailable</span>
+      <span><%= error_label %></span>
     <% elsif players.any? %>
-      <span data-show="!$_sbplayercbloading" style="display: none;"><%= pluralize(players.length, "result") %></span>
+      <span><%= pluralize(players.length, "result") %></span>
     <% else %>
-      <span data-show="!$_sbplayercbloading" style="display: none;"><%= empty_message %></span>
+      <span><%= empty_message %></span>
     <% end %>
 
-    <span class="font-mono tabular-nums text-[10px] text-muted-foreground/70" data-show="!$_sbplayercbloading && <%= players.any? %>" style="display: none;">
-      <%= query.present? ? "query: #{query.first(24)}" : "all players" %>
-    </span>
+    <% if players.any? %>
+      <span class="font-mono tabular-nums text-[10px] text-muted-foreground/70"><%= scope_label %></span>
+    <% end %>
   </div>
 
   <div id="sbplayercb-list" role="listbox" class="max-h-72 overflow-y-auto overscroll-contain py-1">

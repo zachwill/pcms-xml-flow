@@ -2,7 +2,11 @@
 
 Status: implemented
 
-Scope: global player search (across `pcms.salary_book_warehouse`) opened via `Cmd/Ctrl + K`.
+Scope: `Cmd/Ctrl + K` player command palette in Salary Book.
+
+Behavioral scope:
+- Blank query defaults to the active team's roster.
+- Non-blank query searches players by name across `pcms.salary_book_warehouse`.
 
 ## Patch + DOM contract
 
@@ -10,7 +14,6 @@ Stable IDs:
 
 - `#sbplayercmdk` (palette root/backdrop)
 - `#sbplayercb-input`
-- `#sbplayercb-loader`
 - `#sbplayercb-popup`
 - `#sbplayercb-list`
 - `#sbplayercb-status`
@@ -25,16 +28,11 @@ Local-only signals on `#sbplayercmdk`:
 - `$_sbplayercbopen`
 - `$_sbplayercbquery`
 - `$_sbplayercbactiveindex`
-- `$_sbplayercbloading`
 - `$_sbplayercbcomposing`
-- `$_sbplayercbrequestseq`
-- `$_sbplayercblastdispatchedseq`
-- `$_sbplayercbechoseq`
-- `$_sbplayercbresultscount`
 
 Global signal dependency:
 
-- none
+- `$activeteam` (used as default roster scope for blank queries)
 
 ## Endpoint contract
 
@@ -44,7 +42,7 @@ Global signal dependency:
 
 Params:
 
-- `team` (optional, NBA team code; supported but not used by default palette wiring)
+- `team` (optional, NBA team code; palette wiring passes current `$activeteam`)
 - `q` (query string)
 - `limit` (max 50; defaults to 12)
 - `seq` (client request sequence echo)
@@ -54,18 +52,24 @@ Response:
 - `text/html`
 - renders `tools/salary_book/_combobox_players_popup`
 
-Ranking:
+Ranking (non-blank query):
 
 1. prefix match (`player_name` starts with query)
 2. token prefix match (`" <query>"`)
 3. infix contains
 4. tie-break: `cap_2025 DESC`, then `player_name ASC`, `player_id ASC`
 
+Blank-query behavior:
+- with `team`: returns that team's roster (same tie-break ordering)
+- without `team`: returns empty set
+
 ## Interaction contract (v1)
 
 - `Cmd/Ctrl + K` opens command palette with backdrop and focuses input.
+- Opening dispatches a blank-query request (default roster list for `$activeteam`).
 - Typing dispatches debounced search (120ms).
 - IME composition suppresses mid-composition dispatch.
+- First result is auto-selected whenever result set is non-empty.
 - ArrowUp/ArrowDown moves active option.
 - Enter commits active option (or first option if no explicit active index yet).
 - Escape closes palette.
@@ -76,5 +80,5 @@ Ranking:
 
 ## Cancellation guardrail
 
-Search dispatches from dedicated `#sbplayercb-loader` element.
-Datastar cancellation remains per-element, so palette search does not collide with team switch SSE requests.
+Search dispatches directly from palette open/input events (`@get` on the palette/input element).
+Datastar cancellation remains per-element, and this flow does not interfere with team switch SSE requests.

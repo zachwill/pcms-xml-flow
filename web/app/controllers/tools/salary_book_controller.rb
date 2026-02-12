@@ -176,6 +176,7 @@ module Tools
         players:,
         query:,
         seq:,
+        team_code:,
         error_message: nil
       }, layout: false
     rescue ActiveRecord::StatementInvalid => e
@@ -183,6 +184,7 @@ module Tools
         players: [],
         query:,
         seq:,
+        team_code:,
         error_message: e.message
       }, layout: false
     end
@@ -308,17 +310,26 @@ module Tools
       q = query.to_s.strip
       limit_i = [[limit.to_i, 1].max, 50].min
 
+      # Blank query defaults to active-team roster. If no team context is provided,
+      # return no rows (avoid expensive unscoped blank searches).
       where_clauses = []
-      where_clauses << "sbw.team_code = #{conn.quote(team_code)}" if team_code.present?
+      q_prefix = nil
+      q_token_prefix = nil
 
-      order_rank_sql = "0"
-      if q.present?
+      if q.blank?
+        return [] if team_code.blank?
+
+        where_clauses << "sbw.team_code = #{conn.quote(team_code)}"
+      else
         q_like = conn.quote("%#{q}%")
         q_prefix = conn.quote("#{q.downcase}%")
         q_token_prefix = conn.quote("% #{q.downcase}%")
 
         where_clauses << "sbw.player_name ILIKE #{q_like}"
-        order_rank_sql = <<~SQL.squish
+      end
+
+      order_rank_sql = if q.present?
+        <<~SQL.squish
           CASE
             WHEN LOWER(sbw.player_name) LIKE #{q_prefix} THEN 0
             WHEN LOWER(sbw.player_name) LIKE #{q_token_prefix} THEN 1
@@ -327,7 +338,14 @@ module Tools
         SQL
       end
 
-      where_sql = where_clauses.any? ? where_clauses.join(" AND ") : "TRUE"
+      where_sql = where_clauses.join(" AND ")
+
+      order_parts = []
+      order_parts << order_rank_sql if order_rank_sql.present?
+      order_parts << "sbw.cap_2025 DESC NULLS LAST"
+      order_parts << "sbw.player_name ASC"
+      order_parts << "sbw.player_id ASC"
+      order_sql = order_parts.join(",\n          ")
 
       conn.exec_query(<<~SQL).to_a
         SELECT
@@ -348,10 +366,7 @@ module Tools
          AND t.league_lk = 'NBA'
         WHERE #{where_sql}
         ORDER BY
-          #{order_rank_sql},
-          sbw.cap_2025 DESC NULLS LAST,
-          sbw.player_name ASC,
-          sbw.player_id ASC
+          #{order_sql}
         LIMIT #{limit_i}
       SQL
     end

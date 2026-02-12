@@ -61,6 +61,38 @@ class SalaryBookComboboxTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "blank query defaults to active team roster" do
+    with_fake_connection do
+      get "/tools/salary-book/combobox/players/search", params: {
+        team: "POR",
+        q: "",
+        limit: "12",
+        seq: "3"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, 'id="sbplayercb-popup"'
+      assert_includes response.body, 'id="sbplayercb-option-0"'
+      assert_includes response.body, "team: POR"
+      assert_includes response.body, "Anfernee Simons"
+    end
+  end
+
+  test "blank query without team returns prompt state" do
+    with_fake_connection do
+      get "/tools/salary-book/combobox/players/search", params: {
+        q: "",
+        limit: "12",
+        seq: "5"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, 'id="sbplayercb-popup"'
+      assert_includes response.body, "Type to search players"
+      assert_not_includes response.body, 'id="sbplayercb-option-0"'
+    end
+  end
+
   test "player combobox search returns empty state" do
     with_fake_connection do
       get "/tools/salary-book/combobox/players/search", params: {
@@ -82,6 +114,7 @@ class SalaryBookComboboxTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, 'id="sbplayercmdk"'
     assert_includes response.body, 'data-combobox-cmdk'
+    assert_includes response.body, "?team=' + encodeURIComponent($activeteam || '') + '&q='"
   end
 
   private

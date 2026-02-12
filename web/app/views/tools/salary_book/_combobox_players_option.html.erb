@@ -12,23 +12,29 @@
   data-combobox-option
   data-option-index="<%= index %>"
   data-player-id="<%= player_id %>"
-  class="w-full px-2 py-1 text-left border-b border-border/40 last:border-b-0 transition-colors"
-  data-attr:aria-selected="$_sbplayercbactiveindex === <%= index %> ? 'true' : 'false'"
+  class="relative w-full px-2 py-1 text-left border-b border-border/40 last:border-b-0 transition-colors"
+  data-attr:aria-selected="Number($_sbplayercbactiveindex) === <%= index %> ? 'true' : 'false'"
   data-class="{
-    'bg-yellow-50/70 dark:bg-yellow-900/25': $_sbplayercbactiveindex === <%= index %>,
-    'hover:bg-muted/40': $_sbplayercbactiveindex !== <%= index %>
+    'bg-yellow-200 dark:bg-yellow-900/45 ring-1 ring-inset ring-yellow-400/80 dark:ring-yellow-600/80': Number($_sbplayercbactiveindex) === <%= index %>,
+    'hover:bg-muted/40': Number($_sbplayercbactiveindex) !== <%= index %>
   }"
+  data-attr:style="Number($_sbplayercbactiveindex) === <%= index %> ? 'background-color: rgba(250, 204, 21, 0.28); box-shadow: inset 0 0 0 1px rgba(202, 138, 4, 0.55);' : ''"
   data-on:mouseenter="$_sbplayercbactiveindex = <%= index %>"
-  data-on:mousedown="evt.preventDefault()"
   data-on:click="
+    @get('<%= tools_salary_book_sidebar_player_path(id: player_id) %>');
     $_sbplayercmdkopen = false;
     $_sbplayercbopen = false;
     $_sbplayercbquery = '';
     $_sbplayercbactiveindex = -1;
-    $_sbplayercbresultscount = 0;
-    @get('<%= tools_salary_book_sidebar_player_path(id: player_id) %>');
   "
 >
+  <span
+    class="absolute left-0 top-0 bottom-0 w-1.5 bg-yellow-500 dark:bg-yellow-400"
+    data-show="Number($_sbplayercbactiveindex) === <%= index %>"
+    style="display: none;"
+    aria-hidden="true"
+  ></span>
+
   <div class="grid grid-cols-[24px_1fr] grid-rows-[20px_14px] min-w-0">
     <div class="row-span-2 flex items-center justify-start">
       <div class="w-5 h-5 rounded border border-border bg-background overflow-hidden">

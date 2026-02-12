@@ -57,7 +57,9 @@
 
 ## tools/two_way_utility/_player_row.html.erb
 
-- [ ] `web/app/views/tools/two_way_utility/_player_row.html.erb`: overall very well matched to Salary Book patterns — verify that the `h-10` fixed height doesn't clip the double-row grid content (24px + 16px = 40px = h-10, so it's correct)
+- [x] `web/app/views/tools/two_way_utility/_player_row.html.erb`: overall very well matched to Salary Book patterns — verify that the `h-10` fixed height doesn't clip the double-row grid content (24px + 16px = 40px = h-10, so it's correct) ✅ Verified: math checks out, no clipping
+- [ ] `web/app/views/tools/two_way_utility/_player_row.html.erb` L118: outer row div uses `border-border/40` but Salary Book uses `border-border/50`; hover dark variant is `dark:hover:bg-yellow-900/10` vs Salary Book's `dark:hover:bg-yellow-900/25`; missing `transition-colors duration-75` on outer div
+- [ ] `web/app/views/tools/two_way_utility/_player_row.html.erb` L119-121: sticky column has extra `before:` gradient shadow pseudo-element (`before:w-[6px] before:bg-gradient-to-r before:from-[rgba(0,0,0,0.08)]`) that Salary Book's `_player_row` does not use — may be intentional for this tool's wider scroll area but should be verified for consistency
 
 ## tools/two_way_utility/_team_section.html.erb
 

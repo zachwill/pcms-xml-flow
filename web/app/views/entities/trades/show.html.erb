@@ -142,7 +142,7 @@
                 </thead>
                 <tbody class="divide-y divide-border/60">
                   <% rows.each do |r| %>
-                    <tr>
+                    <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                       <td class="px-2 py-1 text-xs">
                         <% if r["team_id"].present? %>
                           <a href="<%= safe_team_href(team_code: r['team_code'], team_id: r['team_id']) %>" class="hover:underline"><%= r["team_code"] || r["team_id"] %></a>

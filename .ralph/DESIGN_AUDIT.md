@@ -13,7 +13,7 @@
 ## entities/trades/show.html.erb
 
 - [x] `web/app/views/entities/trades/show.html.erb` L136-145: trade-group inner `<thead>` uses bare `text-xs text-muted-foreground` instead of `bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium`
-- [ ] `web/app/views/entities/trades/show.html.erb` L148: trade-group inner `<tr>` rows have no hover class; add `hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75`
+- [x] `web/app/views/entities/trades/show.html.erb` L148: trade-group inner `<tr>` rows have no hover class; add `hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75`
 - [ ] `web/app/views/entities/trades/show.html.erb` L326-335: pick details inner `<thead>` uses bare `text-muted-foreground` instead of the standard header treatment; pick detail `<tr>` rows have no hover class
 - [ ] `web/app/views/entities/trades/show.html.erb` L363-371: cash details inner `<thead>` uses bare `text-muted-foreground` instead of the standard header treatment; cash detail `<tr>` rows have no hover class
 - [ ] `web/app/views/entities/trades/show.html.erb` L339: pick year/round column uses `font-mono` but not `tabular-nums`

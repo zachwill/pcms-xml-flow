@@ -37,7 +37,7 @@
                         <%= txn["transaction_date"].present? ? Date.parse(txn["transaction_date"].to_s).strftime("%b %d") : "—" %>
                       </a>
                     </div>
-                    <div class="entity-cell-secondary">id: <code><%= txn["transaction_id"] %></code></div>
+                    <div class="entity-cell-secondary">id: <code class="font-mono tabular-nums"><%= txn["transaction_id"] %></code></div>
                   </div>
                 </td>
                 <td class="px-3 py-2">

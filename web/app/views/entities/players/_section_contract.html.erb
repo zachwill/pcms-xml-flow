@@ -34,7 +34,7 @@
               <% elsif is_non_gtd %>
                 <div class="mt-1 text-[10px] text-yellow-700 dark:text-yellow-400">Non-GTD</div>
               <% elsif is_partial && gtd_amount.present? && gtd_amount > 0 %>
-                <div class="mt-1 text-[10px] text-muted-foreground">GTD <%= format_salary(gtd_amount) %></div>
+                <div class="mt-1 text-[10px] text-muted-foreground font-mono tabular-nums">GTD <%= format_salary(gtd_amount) %></div>
               <% end %>
             <% else %>
               <div class="mt-1 text-sm text-muted-foreground/50">—</div>

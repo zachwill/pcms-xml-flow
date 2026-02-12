@@ -43,7 +43,7 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div class="rounded-lg border border-border bg-background p-3">
             <div class="text-xs text-muted-foreground">Trade date</div>
-            <div class="mt-1 text-sm font-medium"><%= format_plain_date(tr["trade_date"]) %></div>
+            <div class="mt-1 text-sm font-medium font-mono tabular-nums"><%= format_plain_date(tr["trade_date"]) %></div>
           </div>
           <div class="rounded-lg border border-border bg-background p-3">
             <div class="text-xs text-muted-foreground">Teams involved</div>
@@ -289,7 +289,7 @@
                         <span class="text-muted-foreground truncate">—</span>
                       <% end %>
                     </div>
-                    <div class="entity-cell-secondary">player_id: <%= row["player_id"] || "—" %></div>
+                    <div class="entity-cell-secondary font-mono tabular-nums">player_id: <%= row["player_id"] || "—" %></div>
                   </div>
                 </td>
                 <td class="px-3 py-2 text-xs text-muted-foreground">
@@ -458,7 +458,7 @@
                         <span class="text-muted-foreground truncate">—</span>
                       <% end %>
                     </div>
-                    <div class="entity-cell-secondary">player_id: <%= row["player_id"] || "—" %></div>
+                    <div class="entity-cell-secondary font-mono tabular-nums">player_id: <%= row["player_id"] || "—" %></div>
                   </div>
                 </td>
                 <td class="px-3 py-2 text-xs text-muted-foreground"><%= [row['from_team_code'], row['to_team_code']].compact.reject(&:blank?).join(' → ').presence || '—' %></td>

@@ -34,18 +34,18 @@
   "
 >
   <div
-    class="absolute inset-0 bg-zinc-950/45 dark:bg-black/70 backdrop-blur-[1px]"
+    class="absolute inset-0 bg-zinc-950/35 dark:bg-black/60"
     aria-hidden="true"
     data-on:click="const root = document.getElementById('sbplayercmdk'); if (root) { root.dispatchEvent(new CustomEvent('salarybook-cmdk-close', { bubbles: true })); }"
   ></div>
 
   <div
-    class="relative z-10 w-full max-w-2xl overflow-hidden rounded-xl border border-border bg-background shadow-2xl"
+    class="relative z-10 w-full max-w-2xl overflow-hidden rounded-lg border border-border bg-background shadow-lg"
     role="dialog"
     aria-modal="true"
     aria-label="Player command palette"
   >
-    <div class="px-3 py-2 border-b border-border bg-muted/20 flex items-center justify-between text-[10px] uppercase tracking-wide text-muted-foreground/90">
+    <div class="px-3 py-2 border-b border-border bg-muted/10 flex items-center justify-between text-[10px] uppercase tracking-wide text-muted-foreground/90">
       <span>Player Command Palette</span>
       <span class="font-mono tabular-nums text-[10px] text-muted-foreground/80">↑↓: move · Enter: open · Esc: close</span>
     </div>
@@ -55,7 +55,7 @@
         <input
           id="sbplayercb-input"
           type="text"
-          class="h-10 w-full rounded border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-foreground/25"
+          class="h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-foreground/25"
           placeholder="Search players…"
           role="combobox"
           aria-controls="sbplayercb-list"

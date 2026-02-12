@@ -2,51 +2,55 @@
 <% selected_year ||= nil %>
 
 <section data-show="$showrookiescales">
-  <div class="sticky top-0 z-30 bg-background will-change-transform shadow-[0_1px_3px_0_rgb(0_0_0/0.08),0_1px_2px_-1px_rgb(0_0_0/0.08)]">
-    <div class="h-9 flex items-center border-b border-border bg-muted px-4">
-      <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">Rookie Scale Amounts</div>
-      <div class="ml-auto text-[10px] text-muted-foreground/70 tabular-nums"><%= rows.length %> picks</div>
-    </div>
+  <div class="overflow-x-auto">
+    <div class="min-w-[800px]">
+      <div class="sticky top-0 z-30 bg-background will-change-transform shadow-[0_1px_3px_0_rgb(0_0_0/0.08),0_1px_2px_-1px_rgb(0_0_0/0.08)]">
+        <div class="h-9 flex items-center border-b border-border bg-muted px-4">
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">Rookie Scale Amounts</div>
+          <div class="ml-auto text-[10px] text-muted-foreground/70 tabular-nums"><%= rows.length %> picks</div>
+        </div>
 
-    <div class="h-8 flex items-center border-b border-border bg-background text-[10px] uppercase tracking-wide font-medium text-muted-foreground/90 select-none cursor-default">
-      <div class="w-36 shrink-0 pl-4 sticky left-0 z-[2] bg-background relative before:absolute before:right-0 before:top-0 before:bottom-0 before:w-[6px] before:bg-gradient-to-r before:from-[rgba(0,0,0,0.08)] before:to-transparent after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/60">Season</div>
-      <div class="w-20 shrink-0 text-right pr-3">Pick</div>
-      <div class="w-24 shrink-0 text-right pr-3">Year 1</div>
-      <div class="w-24 shrink-0 text-right pr-3">Year 2</div>
-      <div class="w-24 shrink-0 text-right pr-3">Option Y3</div>
-      <div class="w-24 shrink-0 text-right pr-3">Option Y4</div>
-      <div class="w-24 shrink-0 text-right pr-3">Y3 %</div>
-      <div class="w-24 shrink-0 text-right pr-3">Y4 %</div>
-    </div>
-  </div>
+        <div class="h-8 flex items-center border-b border-border bg-background text-[10px] uppercase tracking-wide font-medium text-muted-foreground/90 select-none cursor-default">
+          <div class="w-36 shrink-0 pl-4 sticky left-0 z-[2] bg-background relative before:absolute before:right-0 before:top-0 before:bottom-0 before:w-[6px] before:bg-gradient-to-r before:from-[rgba(0,0,0,0.08)] before:to-transparent after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/60">Season</div>
+          <div class="w-20 shrink-0 text-right pr-3">Pick</div>
+          <div class="w-24 shrink-0 text-right pr-3">Year 1</div>
+          <div class="w-24 shrink-0 text-right pr-3">Year 2</div>
+          <div class="w-24 shrink-0 text-right pr-3">Option Y3</div>
+          <div class="w-24 shrink-0 text-right pr-3">Option Y4</div>
+          <div class="w-24 shrink-0 text-right pr-3">Y3 %</div>
+          <div class="w-24 shrink-0 text-right pr-3">Y4 %</div>
+        </div>
+      </div>
 
-  <% if rows.empty? %>
-    <div class="h-10 px-4 flex items-center text-xs text-muted-foreground border-b border-border/50 italic">No rows in selected range.</div>
-  <% else %>
-    <div class="divide-y divide-border">
-      <% rows.each do |row| %>
-        <% highlighted = row["salary_year"].to_i == selected_year.to_i %>
-        <% row_bg = highlighted ? "bg-yellow-100/70 dark:bg-yellow-900/20" : "" %>
-        <% sticky_bg = highlighted ? "bg-yellow-100/70 dark:bg-yellow-900/20 group-hover:bg-yellow-100/70 dark:group-hover:bg-yellow-900/20" : "bg-background group-hover:bg-yellow-50/70 dark:group-hover:bg-yellow-900/10" %>
-        <% active_label = row["is_active"] ? "active" : "historic" %>
+      <% if rows.empty? %>
+        <div class="h-10 px-4 flex items-center text-xs text-muted-foreground border-b border-border/50 italic">No rows in selected range.</div>
+      <% else %>
+        <div class="divide-y divide-border">
+          <% rows.each do |row| %>
+            <% highlighted = row["salary_year"].to_i == selected_year.to_i %>
+            <% row_bg = highlighted ? "bg-yellow-100/70 dark:bg-yellow-900/20" : "" %>
+            <% sticky_bg = highlighted ? "bg-yellow-100/70 dark:bg-yellow-900/20 group-hover:bg-yellow-100/70 dark:group-hover:bg-yellow-900/20" : "bg-background group-hover:bg-yellow-50/70 dark:group-hover:bg-yellow-900/10" %>
+            <% active_label = row["is_active"] ? "active" : "historic" %>
 
-        <div class="group flex items-stretch text-xs transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 <%= row_bg %>">
-          <div class="w-36 shrink-0 px-4 py-1.5 sticky left-0 z-20 relative transition-colors duration-75 <%= sticky_bg %> before:absolute before:right-0 before:top-0 before:bottom-0 before:w-[6px] before:bg-gradient-to-r before:from-[rgba(0,0,0,0.08)] before:to-transparent after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/50">
-            <div class="entity-cell-two-line">
-              <div class="entity-cell-primary font-mono tabular-nums"><%= format_year_label(row["salary_year"].to_i) %></div>
-              <div class="entity-cell-secondary"><%= active_label %> rookie scale</div>
+            <div class="group flex items-stretch text-xs transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 <%= row_bg %>">
+              <div class="w-36 shrink-0 px-4 py-1.5 sticky left-0 z-20 relative transition-colors duration-75 <%= sticky_bg %> before:absolute before:right-0 before:top-0 before:bottom-0 before:w-[6px] before:bg-gradient-to-r before:from-[rgba(0,0,0,0.08)] before:to-transparent after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/50">
+                <div class="entity-cell-two-line">
+                  <div class="entity-cell-primary font-mono tabular-nums"><%= format_year_label(row["salary_year"].to_i) %></div>
+                  <div class="entity-cell-secondary"><%= active_label %> rookie scale</div>
+                </div>
+              </div>
+
+              <div class="w-20 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= row["pick_number"] %></div>
+              <div class="w-24 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= format_compact_currency(row["salary_year_1"]) %></div>
+              <div class="w-24 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= format_compact_currency(row["salary_year_2"]) %></div>
+              <div class="w-24 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= format_compact_currency(row["option_amount_year_3"]) %></div>
+              <div class="w-24 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= format_compact_currency(row["option_amount_year_4"]) %></div>
+              <div class="w-24 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= row["option_pct_year_3"].present? ? format("%.3f", row["option_pct_year_3"].to_f) : "—" %></div>
+              <div class="w-24 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= row["option_pct_year_4"].present? ? format("%.3f", row["option_pct_year_4"].to_f) : "—" %></div>
             </div>
-          </div>
-
-          <div class="w-20 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= row["pick_number"] %></div>
-          <div class="w-24 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= format_compact_currency(row["salary_year_1"]) %></div>
-          <div class="w-24 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= format_compact_currency(row["salary_year_2"]) %></div>
-          <div class="w-24 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= format_compact_currency(row["option_amount_year_3"]) %></div>
-          <div class="w-24 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= format_compact_currency(row["option_amount_year_4"]) %></div>
-          <div class="w-24 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= row["option_pct_year_3"].present? ? format("%.3f", row["option_pct_year_3"].to_f) : "—" %></div>
-          <div class="w-24 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= row["option_pct_year_4"].present? ? format("%.3f", row["option_pct_year_4"].to_f) : "—" %></div>
+          <% end %>
         </div>
       <% end %>
     </div>
-  <% end %>
+  </div>
 </section>

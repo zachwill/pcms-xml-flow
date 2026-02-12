@@ -82,7 +82,7 @@
 
 ## tools/system_values/
 
-- [ ] `web/app/views/tools/system_values/_league_system_values_table.html.erb`: well-polished (uses Salary Book-style sticky column, shadow, group-hover, entity-cell-two-line) — confirm other system values partials match
+- [x] `web/app/views/tools/system_values/_league_system_values_table.html.erb`: well-polished (uses Salary Book-style sticky column, shadow, group-hover, entity-cell-two-line) — confirmed other system values partials now match (added missing `overflow-x-auto` + `min-w-[X]` wrapper to `_league_salary_scales_table` and `_rookie_scale_amounts_table`; `_league_tax_rates_table` already matched)
 - [ ] `web/app/views/tools/system_values/_league_tax_rates_table.html.erb`: audit for consistent header treatment and hover patterns matching `_league_system_values_table.html.erb`
 - [ ] `web/app/views/tools/system_values/_league_salary_scales_table.html.erb`: same audit
 - [ ] `web/app/views/tools/system_values/_rookie_scale_amounts_table.html.erb`: same audit

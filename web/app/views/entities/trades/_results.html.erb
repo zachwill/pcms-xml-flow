@@ -32,11 +32,11 @@
                 <td class="px-3 py-2">
                   <div class="entity-cell-two-line">
                     <div class="entity-cell-primary">
-                      <a href="<%= trade_path(trade['trade_id']) %>" class="font-medium hover:underline">
+                      <a href="<%= trade_path(trade['trade_id']) %>" class="font-medium font-mono tabular-nums hover:underline">
                         <%= trade["trade_date"].present? ? Date.parse(trade["trade_date"].to_s).strftime("%b %d, %Y") : "—" %>
                       </a>
                     </div>
-                    <div class="entity-cell-secondary">id: <code><%= trade["trade_id"] %></code></div>
+                    <div class="entity-cell-secondary">id: <code class="font-mono tabular-nums"><%= trade["trade_id"] %></code></div>
                   </div>
                 </td>
                 <td class="px-3 py-2">

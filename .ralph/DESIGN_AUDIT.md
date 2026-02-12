@@ -35,7 +35,7 @@
 
 ## entities/trades/_results.html.erb
 
-- [ ] `web/app/views/entities/trades/_results.html.erb` L31: rows have correct hover, but the `<td>` cells for trade date and team codes don't use `font-mono tabular-nums` for the date or numeric trade ID values
+- [x] `web/app/views/entities/trades/_results.html.erb` L31: rows have correct hover, but the `<td>` cells for trade date and team codes don't use `font-mono tabular-nums` for the date or numeric trade ID values
 
 ## entities/transactions/_results.html.erb
 

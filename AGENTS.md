@@ -1,21 +1,41 @@
 # pcms-xml-flow — Agent Handoff (repo root)
 
-This repo imports multiple basketball datasets into Postgres, and includes SQL primitives/warehouses for salary-cap tooling.
-
-This root `AGENTS.md` is intentionally a **directory map** — most detailed context now lives in per-folder `AGENTS.md` files.
+This file is a **routing guide**.
+Detailed implementation rules live in per-folder `AGENTS.md` files.
 
 ---
 
-## Start here (pick the lane)
+## First decision: which camp are you in?
 
-### PCMS XML → `pcms.*` (Windmill)
-- Flow code: `import_pcms_data.flow/AGENTS.md`
-- Local runner + XML→JSON: `scripts/AGENTS.md`
+Most work in this repo falls into one of these two camps:
+
+### 1) Windmill + database work
+You are likely touching one or more of:
+- `*.flow/` (ingest/import scripts)
+- `migrations/` (SQL schema/functions/warehouses)
+- `queries/` (SQL assertions)
+- `scripts/test-*-import.py` (local runners)
+
+Start here:
+- PCMS XML ingest flow code: `import_pcms_data.flow/` (see `flow.yaml` + inline scripts)
+- Local runners + XML→JSON: `scripts/AGENTS.md`
 - DB schema/warehouses/primitives: `migrations/AGENTS.md`
 - SQL assertions: `queries/AGENTS.md`
 
+### 2) Rails web app work (**most likely scenario**)
+If you are working on UI, interactions, controllers/views, Datastar patching, or tool UX:
+- **Go directly to `web/AGENTS.md` first.**
+
+That file contains hard rules, response/SSE decision trees, and patch-boundary conventions.
+
+> If unsure, default to **`web/AGENTS.md`**.
+
+---
+
+## Additional lanes
+
 ### Sean-style salary-cap / trade tooling
-- Mental models + workbook design blueprints: `reference/blueprints/README.md`
+- Mental models + workbook blueprints: `reference/blueprints/README.md`
 - High-level doc (data + primitives): `SALARY_BOOK.md`
 - Evidence/specs (current workbook): `reference/warehouse/AGENTS.md`
 - PCMS mental models (frontend-derived): `reference/pcms/MENTAL_MODELS.md`
@@ -24,14 +44,11 @@ This root `AGENTS.md` is intentionally a **directory map** — most detailed con
 
 ### Official NBA API → `nba.*`
 - Windmill flow: `import_nba_data.flow/AGENTS.md`
-- Schema design docs/specs: `nba/AGENTS.md`
+- Schema docs/specs: `nba/AGENTS.md`
 
 ### SportRadar → `sr.*`
 - Windmill flow: `import_sr_data.flow/AGENTS.md`
-- Schema design docs/specs: `sr/AGENTS.md`
-
-### Rails web app (UI + tools)
-- `web/AGENTS.md`
+- Schema docs/specs: `sr/AGENTS.md`
 
 ### React prototype (reference implementation)
 - `prototypes/salary-book-react/AGENTS.md`

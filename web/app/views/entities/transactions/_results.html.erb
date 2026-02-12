@@ -33,7 +33,7 @@
                 <td class="px-3 py-2">
                   <div class="entity-cell-two-line">
                     <div class="entity-cell-primary">
-                      <a href="<%= transaction_path(txn['transaction_id']) %>" class="font-medium hover:underline">
+                      <a href="<%= transaction_path(txn['transaction_id']) %>" class="font-medium font-mono tabular-nums hover:underline">
                         <%= txn["transaction_date"].present? ? Date.parse(txn["transaction_date"].to_s).strftime("%b %d") : "—" %>
                       </a>
                     </div>

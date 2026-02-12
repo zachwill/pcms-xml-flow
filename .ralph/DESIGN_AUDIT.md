@@ -59,11 +59,12 @@
 
 - [x] `web/app/views/tools/two_way_utility/_player_row.html.erb`: overall very well matched to Salary Book patterns — verify that the `h-10` fixed height doesn't clip the double-row grid content (24px + 16px = 40px = h-10, so it's correct) ✅ Verified: math checks out, no clipping
 - [x] `web/app/views/tools/two_way_utility/_player_row.html.erb` L118: outer row div uses `border-border/40` but Salary Book uses `border-border/50`; hover dark variant is `dark:hover:bg-yellow-900/10` vs Salary Book's `dark:hover:bg-yellow-900/25`; missing `transition-colors duration-75` on outer div
-- [ ] `web/app/views/tools/two_way_utility/_player_row.html.erb` L119-121: sticky column has extra `before:` gradient shadow pseudo-element (`before:w-[6px] before:bg-gradient-to-r before:from-[rgba(0,0,0,0.08)]`) that Salary Book's `_player_row` does not use — may be intentional for this tool's wider scroll area but should be verified for consistency
+- [x] `web/app/views/tools/two_way_utility/_player_row.html.erb` L119-121: sticky column has extra `before:` gradient shadow pseudo-element (`before:w-[6px] before:bg-gradient-to-r before:from-[rgba(0,0,0,0.08)]`) that Salary Book's `_player_row` does not use — may be intentional for this tool's wider scroll area but should be verified for consistency ✅ Removed: Salary Book uses only `after:` border line, no gradient shadow
 
 ## tools/two_way_utility/_team_section.html.erb
 
 - [ ] `web/app/views/tools/two_way_utility/_team_section.html.erb`: verify that the team header section has the same sticky header shadow treatment as Salary Book (`shadow-[0_1px_3px_0_rgb(0_0_0/0.08),0_1px_2px_-1px_rgb(0_0_0/0.08)]` — confirmed present)
+- [ ] `web/app/views/tools/two_way_utility/_team_section.html.erb` L99: column header sticky cell has same extra `before:` gradient shadow pseudo-element (`before:w-[6px] before:bg-gradient-to-r before:from-[rgba(0,0,0,0.08)]`) that was removed from `_player_row.html.erb` — should be removed for consistency with Salary Book
 
 ## tools/team_summary/show.html.erb
 

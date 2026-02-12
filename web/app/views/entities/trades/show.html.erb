@@ -42,20 +42,28 @@
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div class="rounded-lg border border-border bg-background p-3">
-            <div class="text-xs text-muted-foreground">Trade date</div>
-            <div class="mt-1 text-sm font-medium"><%= format_plain_date(tr["trade_date"]) %></div>
+            <div class="entity-cell-two-line">
+              <div class="entity-cell-primary font-medium"><%= format_plain_date(tr["trade_date"]) %></div>
+              <div class="entity-cell-secondary">Trade date</div>
+            </div>
           </div>
           <div class="rounded-lg border border-border bg-background p-3">
-            <div class="text-xs text-muted-foreground">Teams involved</div>
-            <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= team_count %></div>
+            <div class="entity-cell-two-line">
+              <div class="entity-cell-primary font-semibold font-mono tabular-nums"><%= team_count %></div>
+              <div class="entity-cell-secondary">Teams involved</div>
+            </div>
           </div>
           <div class="rounded-lg border border-border bg-background p-3">
-            <div class="text-xs text-muted-foreground">Player line items</div>
-            <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= player_line_item_count %></div>
+            <div class="entity-cell-two-line">
+              <div class="entity-cell-primary font-semibold font-mono tabular-nums"><%= player_line_item_count %></div>
+              <div class="entity-cell-secondary">Player line items</div>
+            </div>
           </div>
           <div class="rounded-lg border border-border bg-background p-3">
-            <div class="text-xs text-muted-foreground">Transactions</div>
-            <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= transaction_count %></div>
+            <div class="entity-cell-two-line">
+              <div class="entity-cell-primary font-semibold font-mono tabular-nums"><%= transaction_count %></div>
+              <div class="entity-cell-secondary">Transactions</div>
+            </div>
           </div>
         </div>
 

@@ -60,6 +60,7 @@
               %>
               <tr
                 class="group cursor-pointer hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+                data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'agent' && $overlayid === '<%= row_agent_id %>' }"
                 data-on:click="$overlaytype = 'agent'; $overlayid = '<%= row_agent_id %>'; @get('/agents/sidebar/agent/<%= row_agent_id %>')"
               >
                 <td class="px-3 py-2">
@@ -173,6 +174,7 @@
               %>
               <tr
                 class="group cursor-pointer hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+                data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'agency' && $overlayid === '<%= row_agency_id %>' }"
                 data-on:click="$overlaytype = 'agency'; $overlayid = '<%= row_agency_id %>'; @get('/agents/sidebar/agency/<%= row_agency_id %>')"
               >
                 <td class="px-3 py-2">

@@ -12,7 +12,9 @@
     '&sort=' + $sortkey +
     '&dir=' + $sortdir"
 
-  sse_get_expr = "@get('/agents/sse/refresh?' + (#{pane_query_expr}))"
+  selected_overlay_query_expr = "'selected_type=' + encodeURIComponent($overlaytype) + '&selected_id=' + encodeURIComponent($overlayid)"
+
+  sse_get_expr = "@get('/agents/sse/refresh?' + (#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr}))"
   update_url_expr = "window.history.replaceState({}, '', '/agents?' + (#{pane_query_expr}))"
   refresh_expr = "#{sse_get_expr}; #{update_url_expr}"
 %>

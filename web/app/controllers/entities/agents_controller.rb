@@ -3,6 +3,7 @@ module Entities
     BOOK_YEARS = [2025, 2026, 2027].freeze
     AGENT_SORT_KEYS = %w[book clients teams max expirings options name].freeze
     AGENCY_SORT_KEYS = %w[book clients agents teams max expirings options name].freeze
+    OVERLAY_TYPES = %w[agent agency].freeze
 
     # GET /agents
     def index
@@ -35,86 +36,7 @@ module Entities
     # GET /agents/sidebar/agent/:id
     def sidebar_agent
       agent_id = Integer(params[:id])
-      conn = ActiveRecord::Base.connection
-      id_sql = conn.quote(agent_id)
-
-      agent = conn.exec_query(<<~SQL).first
-        SELECT
-          w.agent_id,
-          w.full_name,
-          w.agency_id,
-          w.agency_name,
-          w.is_active,
-          w.is_certified,
-          w.client_count,
-          w.standard_count,
-          w.two_way_count,
-          w.team_count,
-          w.cap_2025_total,
-          w.cap_2026_total,
-          w.cap_2027_total,
-          w.total_salary_from_2025,
-          w.max_contract_count,
-          w.rookie_scale_count,
-          w.min_contract_count,
-          w.no_trade_count,
-          w.trade_kicker_count,
-          w.trade_restricted_count,
-          w.expiring_2025,
-          w.expiring_2026,
-          w.expiring_2027,
-          w.player_option_count,
-          w.team_option_count,
-          w.prior_year_nba_now_free_agent_count,
-          w.cap_2025_total_percentile,
-          w.cap_2026_total_percentile,
-          w.cap_2027_total_percentile,
-          w.client_count_percentile,
-          w.max_contract_count_percentile,
-          w.team_count_percentile,
-          w.standard_count_percentile,
-          w.two_way_count_percentile
-        FROM pcms.agents_warehouse w
-        WHERE w.agent_id = #{id_sql}
-        LIMIT 1
-      SQL
-      raise ActiveRecord::RecordNotFound unless agent
-
-      clients = conn.exec_query(<<~SQL).to_a
-        SELECT
-          sbw.player_id,
-          sbw.player_name,
-          sbw.team_code,
-          t.team_id,
-          t.team_name,
-          sbw.cap_2025::numeric AS cap_2025,
-          sbw.cap_2026::numeric AS cap_2026,
-          sbw.cap_2027::numeric AS cap_2027,
-          sbw.total_salary_from_2025::numeric AS total_salary_from_2025,
-          COALESCE(sbw.is_two_way, false)::boolean AS is_two_way,
-          COALESCE(sbw.is_trade_restricted_now, false)::boolean AS is_trade_restricted_now,
-          COALESCE(sbw.is_no_trade, false)::boolean AS is_no_trade,
-          COALESCE(sbw.is_trade_bonus, false)::boolean AS is_trade_bonus,
-          COALESCE(sbw.is_min_contract, false)::boolean AS is_min_contract,
-          sbw.option_2026,
-          sbw.option_2027,
-          sbw.option_2028,
-          p.years_of_service
-        FROM pcms.salary_book_warehouse sbw
-        LEFT JOIN pcms.teams t
-          ON t.team_code = sbw.team_code
-         AND t.league_lk = 'NBA'
-        LEFT JOIN pcms.people p
-          ON p.person_id = sbw.player_id
-        WHERE sbw.agent_id = #{id_sql}
-        ORDER BY sbw.cap_2025 DESC NULLS LAST, sbw.player_name
-        LIMIT 120
-      SQL
-
-      render partial: "entities/agents/rightpanel_overlay_agent", locals: {
-        agent:,
-        clients:
-      }
+      render partial: "entities/agents/rightpanel_overlay_agent", locals: load_sidebar_agent_payload(agent_id)
     rescue ArgumentError
       raise ActiveRecord::RecordNotFound
     end
@@ -122,92 +44,7 @@ module Entities
     # GET /agents/sidebar/agency/:id
     def sidebar_agency
       agency_id = Integer(params[:id])
-      conn = ActiveRecord::Base.connection
-      id_sql = conn.quote(agency_id)
-
-      agency = conn.exec_query(<<~SQL).first
-        SELECT
-          w.agency_id,
-          w.agency_name,
-          w.is_active,
-          w.agent_count,
-          w.client_count,
-          w.standard_count,
-          w.two_way_count,
-          w.team_count,
-          w.cap_2025_total,
-          w.cap_2026_total,
-          w.cap_2027_total,
-          w.total_salary_from_2025,
-          w.max_contract_count,
-          w.rookie_scale_count,
-          w.min_contract_count,
-          w.no_trade_count,
-          w.trade_kicker_count,
-          w.trade_restricted_count,
-          w.expiring_2025,
-          w.expiring_2026,
-          w.expiring_2027,
-          w.player_option_count,
-          w.team_option_count,
-          w.prior_year_nba_now_free_agent_count,
-          w.cap_2025_total_percentile,
-          w.cap_2026_total_percentile,
-          w.cap_2027_total_percentile,
-          w.client_count_percentile,
-          w.max_contract_count_percentile,
-          w.agent_count_percentile
-        FROM pcms.agencies_warehouse w
-        WHERE w.agency_id = #{id_sql}
-        LIMIT 1
-      SQL
-      raise ActiveRecord::RecordNotFound unless agency
-
-      top_agents = conn.exec_query(<<~SQL).to_a
-        SELECT
-          w.agent_id,
-          w.full_name,
-          w.client_count,
-          w.team_count,
-          w.cap_2025_total,
-          w.cap_2025_total_percentile,
-          w.client_count_percentile,
-          w.max_contract_count,
-          w.expiring_2025
-        FROM pcms.agents_warehouse w
-        WHERE w.agency_id = #{id_sql}
-        ORDER BY w.cap_2025_total DESC NULLS LAST, w.full_name
-        LIMIT 60
-      SQL
-
-      top_clients = conn.exec_query(<<~SQL).to_a
-        SELECT
-          sbw.player_id,
-          sbw.player_name,
-          sbw.team_code,
-          t.team_id,
-          t.team_name,
-          sbw.agent_id,
-          a.full_name AS agent_name,
-          sbw.cap_2025::numeric AS cap_2025,
-          sbw.total_salary_from_2025::numeric AS total_salary_from_2025,
-          COALESCE(sbw.is_two_way, false)::boolean AS is_two_way
-        FROM pcms.agents a
-        JOIN pcms.salary_book_warehouse sbw
-          ON sbw.agent_id = a.agent_id
-        LEFT JOIN pcms.teams t
-          ON t.team_code = sbw.team_code
-         AND t.league_lk = 'NBA'
-        WHERE a.agency_id = #{id_sql}
-        ORDER BY sbw.cap_2025 DESC NULLS LAST, sbw.player_name
-        LIMIT 80
-      SQL
-
-      render partial: "entities/agents/rightpanel_overlay_agency", locals: {
-        agency:,
-        top_agents:,
-        top_clients:
-      }
+      render partial: "entities/agents/rightpanel_overlay_agency", locals: load_sidebar_agency_payload(agency_id)
     rescue ArgumentError
       raise ActiveRecord::RecordNotFound
     end
@@ -656,6 +493,195 @@ module Entities
       labels << "With restrictions" if @with_restrictions
       labels << "With expirings" if @with_expiring
       labels
+    end
+
+    def selected_overlay_visible?(overlay_type:, overlay_id:)
+      normalized_type = overlay_type.to_s
+      return false unless OVERLAY_TYPES.include?(normalized_type)
+
+      normalized_id = overlay_id.to_i
+      return false if normalized_id <= 0
+
+      case normalized_type
+      when "agent"
+        @directory_kind == "agents" && @agents.any? { |row| row["agent_id"].to_i == normalized_id }
+      when "agency"
+        @directory_kind == "agencies" && @agencies.any? { |row| row["agency_id"].to_i == normalized_id }
+      else
+        false
+      end
+    end
+
+    def load_sidebar_agent_payload(agent_id)
+      conn = ActiveRecord::Base.connection
+      id_sql = conn.quote(agent_id)
+
+      agent = conn.exec_query(<<~SQL).first
+        SELECT
+          w.agent_id,
+          w.full_name,
+          w.agency_id,
+          w.agency_name,
+          w.is_active,
+          w.is_certified,
+          w.client_count,
+          w.standard_count,
+          w.two_way_count,
+          w.team_count,
+          w.cap_2025_total,
+          w.cap_2026_total,
+          w.cap_2027_total,
+          w.total_salary_from_2025,
+          w.max_contract_count,
+          w.rookie_scale_count,
+          w.min_contract_count,
+          w.no_trade_count,
+          w.trade_kicker_count,
+          w.trade_restricted_count,
+          w.expiring_2025,
+          w.expiring_2026,
+          w.expiring_2027,
+          w.player_option_count,
+          w.team_option_count,
+          w.prior_year_nba_now_free_agent_count,
+          w.cap_2025_total_percentile,
+          w.cap_2026_total_percentile,
+          w.cap_2027_total_percentile,
+          w.client_count_percentile,
+          w.max_contract_count_percentile,
+          w.team_count_percentile,
+          w.standard_count_percentile,
+          w.two_way_count_percentile
+        FROM pcms.agents_warehouse w
+        WHERE w.agent_id = #{id_sql}
+        LIMIT 1
+      SQL
+      raise ActiveRecord::RecordNotFound unless agent
+
+      clients = conn.exec_query(<<~SQL).to_a
+        SELECT
+          sbw.player_id,
+          sbw.player_name,
+          sbw.team_code,
+          t.team_id,
+          t.team_name,
+          sbw.cap_2025::numeric AS cap_2025,
+          sbw.cap_2026::numeric AS cap_2026,
+          sbw.cap_2027::numeric AS cap_2027,
+          sbw.total_salary_from_2025::numeric AS total_salary_from_2025,
+          COALESCE(sbw.is_two_way, false)::boolean AS is_two_way,
+          COALESCE(sbw.is_trade_restricted_now, false)::boolean AS is_trade_restricted_now,
+          COALESCE(sbw.is_no_trade, false)::boolean AS is_no_trade,
+          COALESCE(sbw.is_trade_bonus, false)::boolean AS is_trade_bonus,
+          COALESCE(sbw.is_min_contract, false)::boolean AS is_min_contract,
+          sbw.option_2026,
+          sbw.option_2027,
+          sbw.option_2028,
+          p.years_of_service
+        FROM pcms.salary_book_warehouse sbw
+        LEFT JOIN pcms.teams t
+          ON t.team_code = sbw.team_code
+         AND t.league_lk = 'NBA'
+        LEFT JOIN pcms.people p
+          ON p.person_id = sbw.player_id
+        WHERE sbw.agent_id = #{id_sql}
+        ORDER BY sbw.cap_2025 DESC NULLS LAST, sbw.player_name
+        LIMIT 120
+      SQL
+
+      {
+        agent:,
+        clients:
+      }
+    end
+
+    def load_sidebar_agency_payload(agency_id)
+      conn = ActiveRecord::Base.connection
+      id_sql = conn.quote(agency_id)
+
+      agency = conn.exec_query(<<~SQL).first
+        SELECT
+          w.agency_id,
+          w.agency_name,
+          w.is_active,
+          w.agent_count,
+          w.client_count,
+          w.standard_count,
+          w.two_way_count,
+          w.team_count,
+          w.cap_2025_total,
+          w.cap_2026_total,
+          w.cap_2027_total,
+          w.total_salary_from_2025,
+          w.max_contract_count,
+          w.rookie_scale_count,
+          w.min_contract_count,
+          w.no_trade_count,
+          w.trade_kicker_count,
+          w.trade_restricted_count,
+          w.expiring_2025,
+          w.expiring_2026,
+          w.expiring_2027,
+          w.player_option_count,
+          w.team_option_count,
+          w.prior_year_nba_now_free_agent_count,
+          w.cap_2025_total_percentile,
+          w.cap_2026_total_percentile,
+          w.cap_2027_total_percentile,
+          w.client_count_percentile,
+          w.max_contract_count_percentile,
+          w.agent_count_percentile
+        FROM pcms.agencies_warehouse w
+        WHERE w.agency_id = #{id_sql}
+        LIMIT 1
+      SQL
+      raise ActiveRecord::RecordNotFound unless agency
+
+      top_agents = conn.exec_query(<<~SQL).to_a
+        SELECT
+          w.agent_id,
+          w.full_name,
+          w.client_count,
+          w.team_count,
+          w.cap_2025_total,
+          w.cap_2025_total_percentile,
+          w.client_count_percentile,
+          w.max_contract_count,
+          w.expiring_2025
+        FROM pcms.agents_warehouse w
+        WHERE w.agency_id = #{id_sql}
+        ORDER BY w.cap_2025_total DESC NULLS LAST, w.full_name
+        LIMIT 60
+      SQL
+
+      top_clients = conn.exec_query(<<~SQL).to_a
+        SELECT
+          sbw.player_id,
+          sbw.player_name,
+          sbw.team_code,
+          t.team_id,
+          t.team_name,
+          sbw.agent_id,
+          a.full_name AS agent_name,
+          sbw.cap_2025::numeric AS cap_2025,
+          sbw.total_salary_from_2025::numeric AS total_salary_from_2025,
+          COALESCE(sbw.is_two_way, false)::boolean AS is_two_way
+        FROM pcms.agents a
+        JOIN pcms.salary_book_warehouse sbw
+          ON sbw.agent_id = a.agent_id
+        LEFT JOIN pcms.teams t
+          ON t.team_code = sbw.team_code
+         AND t.league_lk = 'NBA'
+        WHERE a.agency_id = #{id_sql}
+        ORDER BY sbw.cap_2025 DESC NULLS LAST, sbw.player_name
+        LIMIT 80
+      SQL
+
+      {
+        agency:,
+        top_agents:,
+        top_clients:
+      }
     end
 
     def cast_bool(value)

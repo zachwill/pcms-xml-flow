@@ -138,7 +138,7 @@ A bad task is broad cosmetic churn (for example, repo-wide class sweeps) with no
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P1] [INDEX] /agents (`web/app/views/entities/agents/index.html.erb`) — keep drill-in context stable while filtering/sorting
+- [x] [P1] [INDEX] /agents (`web/app/views/entities/agents/index.html.erb`) — keep drill-in context stable while filtering/sorting
   - Problem: Refresh interactions can clear overlay context aggressively, causing users to lose selected entity focus during iterative filter/sort work.
   - Hypothesis: Preserving selected overlay when possible (and explicit fallback behavior when not) will improve predictability and comparison workflows.
   - Scope (files):
@@ -152,12 +152,27 @@ A bad task is broad cosmetic churn (for example, repo-wide class sweeps) with no
     - If selected entity is filtered out, overlay closes with explicit, predictable state reset.
     - Selected row is visually identifiable after refresh to preserve user orientation.
     - URL state, Datastar signals, and rendered knob states remain synchronized.
-  - Rubric (before → target):
-    - Scan speed: 4 → 5
-    - Information hierarchy: 4 → 5
-    - Interaction predictability: 2 → 4
-    - Density/readability: 4 → 5
-    - Navigation/pivots: 4 → 5
+  - Completion notes:
+    - What changed:
+      - Extended the Agents refresh request contract to send current overlay selection (`selected_type` + `selected_id`) while keeping URL filter state clean/same as before.
+      - Added selected-row visual treatment in `entities/agents/_workspace_main.html.erb` for both agent and agency modes using overlay-aware row state (`$overlaytype` + `$overlayid`).
+      - Refactored `AgentsController` sidebar data queries into reusable payload loaders (`load_sidebar_agent_payload`, `load_sidebar_agency_payload`) and added `selected_overlay_visible?` to validate selection against current filtered rows.
+      - Updated `AgentsSseController#refresh` to preserve overlay when selected row remains visible, otherwise clear overlay explicitly; refresh now also patches canonical Datastar signals (filters/sort/year + overlay state) in the same SSE response.
+      - Added focused integration coverage in `entities_agents_index_test.rb` for commandbar/row-state render, overlay-preserving refresh, and explicit reset when selection is filtered out.
+    - Why this improves the flow:
+      - Users can keep an open drill-in while iterating filters/sorts, so comparison loops stay in-context.
+      - When a selected entity disappears from the result set, reset behavior is explicit and deterministic rather than feeling random.
+      - Row-level selected-state styling keeps orientation anchored after refresh and reduces "where am I" scanning.
+      - Signal patching keeps server-normalized filter/sort state synchronized with Datastar client state.
+    - Rubric (before → after):
+      - Scan speed: 4 → 5
+      - Information hierarchy: 4 → 5
+      - Interaction predictability: 2 → 4
+      - Density/readability: 4 → 5
+      - Navigation/pivots: 4 → 5
+    - Follow-up tasks discovered:
+      - Add explicit selected-state styling to rightpanel "Top rows" buttons so sidebar list + main table share the same active marker.
+      - Add agency-mode overlay-preservation integration coverage (agent mode is covered now; agency mode relies on the same path).
   - Guardrails:
     - Do not modify Salary Book files.
 

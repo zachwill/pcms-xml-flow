@@ -98,7 +98,7 @@
   cap_detail_rows = [
     {
       label: "Total Salary",
-      value: (cap_total ? format_compact_currency(cap_total) : "—"),
+      value: (salary_amount_present_for_display?(cap_total) ? format_compact_currency(cap_total) : "—"),
       value_class: nil,
       percentile: cap_total_percentile
     },
@@ -223,6 +223,7 @@
             <% projection_years.each do |ledger_year| %>
               <% ledger = summaries_by_year[ledger_year] || {} %>
               <% ledger_cap_total = ledger["cap_total"] %>
+              <% has_ledger_cap_total = salary_amount_present_for_display?(ledger_cap_total) %>
               <% ledger_cap_space = ledger["cap_space"] %>
               <% ledger_status = ledger.empty? ? { label: "—", value: "—", variant: "muted" } : tax_status(ledger) %>
               <% ledger_status_label = ledger_status[:label] == "Under Tax" ? "Under" : ledger_status[:label] %>
@@ -230,7 +231,7 @@
               <% highlight = ledger_year.to_i == year.to_i %>
               <tr class="<%= highlight ? 'bg-yellow-50/70 dark:bg-yellow-900/25' : '' %>">
                 <td class="px-2 py-1.5 tabular-nums"><%= format_year_label(ledger_year) %></td>
-                <td class="px-2 py-1.5 text-right tabular-nums"><%= ledger_cap_total ? format_compact_currency(ledger_cap_total) : "—" %></td>
+                <td class="px-2 py-1.5 text-right tabular-nums"><%= has_ledger_cap_total ? format_compact_currency(ledger_cap_total) : "—" %></td>
                 <td class="px-2 py-1.5 text-right tabular-nums <%= ledger_cap_space_class %>"><%= ledger_cap_space ? format_room_amount(ledger_cap_space) : "—" %></td>
                 <td class="px-2 py-1.5 text-right">
                   <div class="flex flex-col items-end leading-tight">

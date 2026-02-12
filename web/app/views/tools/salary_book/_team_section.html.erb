@@ -109,10 +109,11 @@
               <% salary_years.each do |kpi_year| %>
                 <% summary = team_summaries[kpi_year] || {} %>
                 <% cap_total = summary["cap_total"] %>
+                <% has_cap_total = salary_amount_present_for_display?(cap_total) %>
                 <div data-show="<%= "#{selected_header_year_expr} === '#{kpi_year}'" %>" style="display: none;">
                   <%= render partial: "tools/salary_book/kpi_cell", locals: {
                     label: "Total",
-                    value: cap_total ? format_compact_currency(cap_total) : "—",
+                    value: has_cap_total ? format_compact_currency(cap_total) : "—",
                     title: "Total salary"
                   } %>
                 </div>
@@ -249,22 +250,18 @@
           <%= render partial: "tools/salary_book/placeholder_section_row", locals: { label: "Exceptions", salary_years: salary_years } %>
         <% end %>
 
-        <div data-show="$displaydeadmoney">
-          <% if dead_money.any? %>
-            <%= render partial: "tools/salary_book/dead_money_section", locals: { dead_money: dead_money, salary_years: salary_years } %>
-          <% else %>
-            <%= render partial: "tools/salary_book/placeholder_section_row", locals: { label: "Dead Money", salary_years: salary_years } %>
-          <% end %>
-        </div>
-
         <% if picks.any? %>
           <%= render partial: "tools/salary_book/draft_assets_section", locals: { picks: picks, salary_years: salary_years, salary_year: year } %>
         <% else %>
           <%= render partial: "tools/salary_book/placeholder_section_row", locals: { label: "Draft Assets", salary_years: salary_years } %>
         <% end %>
 
-        <div data-show="$displaycapholds">
+        <div data-show="$displayfreeagentholds">
           <%= render partial: "tools/salary_book/cap_holds_section", locals: { cap_holds: cap_holds, salary_years: salary_years } %>
+        </div>
+
+        <div data-show="$displaydeadmoney">
+          <%= render partial: "tools/salary_book/dead_money_section", locals: { dead_money: dead_money, salary_years: salary_years } %>
         </div>
 
         <%= render partial: "tools/salary_book/totals_footer", locals: {

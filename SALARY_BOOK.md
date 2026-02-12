@@ -168,7 +168,11 @@ ORDER BY remaining_amount DESC;
 
 ### Dead Money: `pcms.dead_money_warehouse`
 
-Waiver/buyout termination charges by team.
+Waiver/buyout termination charges by team **that currently count** in team totals.
+
+- Warehouse semantics are aligned to `team_budget_snapshots` `budget_group_lk = 'TERM'`.
+- Superseded waiver transaction streams are excluded (latest contract stream only).
+- Historical/raw waiver rows remain available in `pcms.transaction_waiver_amounts`.
 
 ```sql
 SELECT team_code, player_name, waive_date,

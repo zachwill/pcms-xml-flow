@@ -66,7 +66,7 @@
     <% salary_years.each do |y| %>
       <% summary = team_summaries[y] %>
       <% cap_total = summary && summary["cap_total"] %>
-      <% has_roster_cost = cap_total.present? && cap_total.to_f != 0 %>
+      <% has_roster_cost = salary_amount_present_for_display?(cap_total) %>
       <div
         class="w-24 shrink-0 flex justify-center"
         data-class="{ 'bg-yellow-900/20': $selectedseason === '<%= y %>' }"

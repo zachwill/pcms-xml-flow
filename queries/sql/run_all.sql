@@ -12,6 +12,7 @@
 \ir 066_agents_and_agencies_warehouse_assertions.sql
 \ir 071_representation_nonzero_percentiles_assertions.sql
 \ir 067_team_salary_percentiles_assertions.sql
+\ir 072_dead_money_warehouse_assertions.sql
 \ir 020_exceptions_warehouse_assertions.sql
 \ir 054_exceptions_warehouse_proration_assertions.sql
 

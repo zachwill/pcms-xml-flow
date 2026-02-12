@@ -3,6 +3,12 @@ module SalaryBookHelper
   # If you change this, also update the SQL warehouse pivots in the controller.
   SALARY_YEARS = (2025..2030).to_a.freeze
 
+  # Commandbar "Display → Cap Holds" default.
+  # NOTE: This is the player-row cap-hold lens, not the FA Cap Holds section toggle.
+  def salary_book_default_display_player_cap_holds?
+    true
+  end
+
   # Format year as "YY-YY" label (e.g., 2025 → "25-26")
   def format_year_label(year)
     start_year = year.to_s[-2..]
@@ -54,6 +60,14 @@ module SalaryBookHelper
   # Compact currency formatter (prototype parity; keeps the "$" prefix).
   def format_compact_currency(amount)
     format_salary(amount)
+  end
+
+  # Salary values that compact-format to "$0K" should usually be rendered as em-dash
+  # in roster/total contexts ("no salary to be had").
+  def salary_amount_present_for_display?(amount)
+    return false if amount.nil?
+
+    amount.to_f.abs >= 500
   end
 
   # Get salary for a specific year

@@ -290,20 +290,21 @@ module Entities
 
       @dead_money = conn.exec_query(<<~SQL).to_a
         SELECT
-          transaction_waiver_amount_id AS id,
+          MIN(transaction_waiver_amount_id) AS id,
           player_id,
-          player_name,
-          waive_date,
-          MAX(cap_value) FILTER (WHERE salary_year = 2025)::numeric AS cap_2025,
-          MAX(cap_value) FILTER (WHERE salary_year = 2026)::numeric AS cap_2026,
-          MAX(cap_value) FILTER (WHERE salary_year = 2027)::numeric AS cap_2027,
-          MAX(cap_value) FILTER (WHERE salary_year = 2028)::numeric AS cap_2028,
-          MAX(cap_value) FILTER (WHERE salary_year = 2029)::numeric AS cap_2029,
-          MAX(cap_value) FILTER (WHERE salary_year = 2030)::numeric AS cap_2030
+          MAX(player_name) AS player_name,
+          MAX(waive_date) AS waive_date,
+          SUM(cap_value) FILTER (WHERE salary_year = 2025)::numeric AS cap_2025,
+          SUM(cap_value) FILTER (WHERE salary_year = 2026)::numeric AS cap_2026,
+          SUM(cap_value) FILTER (WHERE salary_year = 2027)::numeric AS cap_2027,
+          SUM(cap_value) FILTER (WHERE salary_year = 2028)::numeric AS cap_2028,
+          SUM(cap_value) FILTER (WHERE salary_year = 2029)::numeric AS cap_2029,
+          SUM(cap_value) FILTER (WHERE salary_year = 2030)::numeric AS cap_2030
         FROM pcms.dead_money_warehouse
         WHERE team_code = #{code_sql}
           AND salary_year BETWEEN 2025 AND 2030
-        GROUP BY transaction_waiver_amount_id, player_id, player_name, waive_date
+        GROUP BY player_id
+        HAVING BOOL_OR(COALESCE(cap_value, 0) <> 0)
         ORDER BY cap_2025 DESC NULLS LAST, player_name ASC NULLS LAST
       SQL
 

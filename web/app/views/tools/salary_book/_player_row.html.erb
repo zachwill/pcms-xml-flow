@@ -14,6 +14,7 @@
 <% epm_percentile_label = format_percentile_label(epm_percentile) %>
 <% epm_color_class = epm_percentile_color_class(epm_percentile) %>
 <% epm_has_value = !epm_value.nil? %>
+<% show_player_cap_holds_by_default = salary_book_default_display_player_cap_holds? %>
 
 <div
   id="player-<%= player_id %>"
@@ -144,6 +145,9 @@
         <% cell_classes = salary_cell_classes(player, year) %>
         <% salary_text_class = salary_cell_text_class(player, year) %>
         <% effective_cell_classes = cell_classes %>
+        <% if is_empty && cap_hold_present && show_player_cap_holds_by_default %>
+          <% effective_cell_classes = [effective_cell_classes, "bg-zinc-100/60 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300"].join(" ").strip %>
+        <% end %>
         <% tooltip = salary_cell_tooltip(player, year) %>
         <% cell_tooltip = tooltip.presence || (cap_hold_present ? "Cap Hold: #{format_compact_currency(cap_hold)}" : nil) %>
         <% pct = format_pct_cap_with_blocks(player, year) %>
@@ -167,10 +171,10 @@
             </span>
           <% elsif is_empty %>
             <% if cap_hold_present %>
-              <span class="grid place-items-center w-full" data-show="!$displayplayercapholds">
+              <span class="grid place-items-center w-full" data-show="!$displayplayercapholds"<% if show_player_cap_holds_by_default %> style="display: none;"<% end %>>
                 <span class="inline-block font-mono tabular-nums text-center text-muted-foreground/50" style="width: 6ch">—</span>
               </span>
-              <div class="h-[40px] w-full flex flex-col italic" data-show="$displayplayercapholds" style="display: none;">
+              <div class="h-[40px] w-full flex flex-col italic" data-show="$displayplayercapholds"<% unless show_player_cap_holds_by_default %> style="display: none;"<% end %>>
                 <div class="h-[24px] flex items-end justify-center text-sm">
                   <span class="grid place-items-center w-full">
                     <span class="inline-block font-mono tabular-nums text-right" style="width: 6ch"><%= format_compact_currency(cap_hold) %></span>

@@ -23,11 +23,11 @@
     sidebardraftloaded: false,
     sidebardraftyearloaded: '',
     sidebarrightsloaded: false,
-    displaycapholds: false,
+    displayfreeagentholds: false,
     displaydeadmoney: false,
     displayepm: false,
     displayctg: false,
-    displayplayercapholds: false,
+    displayplayercapholds: <%= salary_book_default_display_player_cap_holds? %>,
     displaycashvscap: false,
     displayluxurytax: false
   }"
@@ -162,6 +162,7 @@
                 class="size-3.5 accent-primary"
                 data-bind="displayplayercapholds"
                 data-on:change="window.__salaryBookPreserveContext?.()"
+                <%= "checked" if salary_book_default_display_player_cap_holds? %>
               />
               <label for="filter-column-capholds" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Cap Holds</label>
             </div>
@@ -216,10 +217,10 @@
                 type="checkbox"
                 id="filter-capholds"
                 class="size-3.5 accent-primary"
-                data-bind="displaycapholds"
+                data-bind="displayfreeagentholds"
                 data-on:change="window.__salaryBookPreserveContext?.()"
               />
-              <label for="filter-capholds" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">FA Cap Holds</label>
+              <label for="filter-capholds" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Free Agent Holds</label>
             </div>
             <div class="flex items-center gap-1.5">
               <input

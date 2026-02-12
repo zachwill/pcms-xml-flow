@@ -241,25 +241,31 @@ module Entities
 
       @cap_dead_money_rows = conn.exec_query(<<~SQL).to_a
         SELECT
-          dm.transaction_waiver_amount_id,
-          dm.salary_year,
-          dm.team_id,
-          COALESCE(team.team_code, dm.team_code) AS team_code,
+          twa.transaction_waiver_amount_id,
+          twa.salary_year,
+          twa.team_id,
+          COALESCE(team.team_code, twa.team_code) AS team_code,
           team.team_name,
-          dm.player_id,
-          dm.player_name,
-          dm.contract_id,
-          dm.version_number,
-          dm.waive_date,
-          dm.cap_value,
-          dm.tax_value,
-          dm.apron_value,
-          dm.mts_value
-        FROM pcms.dead_money_warehouse dm
+          twa.player_id,
+          COALESCE(
+            NULLIF(TRIM(CONCAT_WS(' ', p.display_first_name, p.display_last_name)), ''),
+            NULLIF(TRIM(CONCAT_WS(' ', p.first_name, p.last_name)), ''),
+            twa.player_id::text
+          ) AS player_name,
+          twa.contract_id,
+          twa.version_number,
+          twa.waive_date,
+          twa.cap_value,
+          twa.tax_value,
+          twa.apron_value,
+          twa.mts_value
+        FROM pcms.transaction_waiver_amounts twa
         LEFT JOIN pcms.teams team
-          ON team.team_id = dm.team_id
-        WHERE dm.transaction_id = #{id_sql}
-        ORDER BY dm.salary_year, COALESCE(team.team_code, dm.team_code), dm.player_name
+          ON team.team_id = twa.team_id
+        LEFT JOIN pcms.people p
+          ON p.person_id = twa.player_id
+        WHERE twa.transaction_id = #{id_sql}
+        ORDER BY twa.salary_year, COALESCE(team.team_code, twa.team_code), player_name
       SQL
 
       @cap_budget_snapshot_rows = conn.exec_query(<<~SQL).to_a

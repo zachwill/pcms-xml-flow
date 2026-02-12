@@ -649,21 +649,29 @@ module Tools
         ),
         dead_money AS (
           SELECT
-            transaction_waiver_amount_id AS id,
-            team_code,
-            player_id,
-            player_name,
-            waive_date,
-            MAX(cap_value) FILTER (WHERE salary_year = 2025)::numeric AS cap_2025,
-            MAX(cap_value) FILTER (WHERE salary_year = 2026)::numeric AS cap_2026,
-            MAX(cap_value) FILTER (WHERE salary_year = 2027)::numeric AS cap_2027,
-            MAX(cap_value) FILTER (WHERE salary_year = 2028)::numeric AS cap_2028,
-            MAX(cap_value) FILTER (WHERE salary_year = 2029)::numeric AS cap_2029,
-            MAX(cap_value) FILTER (WHERE salary_year = 2030)::numeric AS cap_2030
-          FROM pcms.dead_money_warehouse
-          WHERE team_code = #{team_sql}
-            AND salary_year BETWEEN 2025 AND 2030
-          GROUP BY transaction_waiver_amount_id, team_code, player_id, player_name, waive_date
+            MIN(dm.transaction_waiver_amount_id) AS id,
+            dm.team_code,
+            dm.player_id,
+            MAX(dm.player_name) AS player_name,
+            MAX(dm.waive_date) AS waive_date,
+            MAX(p.agent_id)::integer AS agent_id,
+            MAX(ag.full_name) AS agent_name,
+            MAX(ag.agency_name) AS agency_name,
+            SUM(dm.cap_value) FILTER (WHERE dm.salary_year = 2025)::numeric AS cap_2025,
+            SUM(dm.cap_value) FILTER (WHERE dm.salary_year = 2026)::numeric AS cap_2026,
+            SUM(dm.cap_value) FILTER (WHERE dm.salary_year = 2027)::numeric AS cap_2027,
+            SUM(dm.cap_value) FILTER (WHERE dm.salary_year = 2028)::numeric AS cap_2028,
+            SUM(dm.cap_value) FILTER (WHERE dm.salary_year = 2029)::numeric AS cap_2029,
+            SUM(dm.cap_value) FILTER (WHERE dm.salary_year = 2030)::numeric AS cap_2030
+          FROM pcms.dead_money_warehouse dm
+          LEFT JOIN pcms.people p
+            ON p.person_id = dm.player_id
+          LEFT JOIN pcms.agents ag
+            ON ag.agent_id = p.agent_id
+          WHERE dm.team_code = #{team_sql}
+            AND dm.salary_year BETWEEN 2025 AND 2030
+          GROUP BY dm.team_code, dm.player_id
+          HAVING BOOL_OR(COALESCE(dm.cap_value, 0) <> 0)
         ),
         picks AS (
           SELECT

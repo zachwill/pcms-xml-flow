@@ -127,7 +127,7 @@
 ## entities/draft_picks/ and entities/draft_selections/
 
 - [x] `web/app/views/entities/draft_picks/`: audit all files for design consistency — ✅ **Fixed:** (1) Trade chain date column (L194) was missing `font-mono tabular-nums` — added. (2) Endnote ID (L246) had `font-mono` but missing `tabular-nums` — added. (3) Endnote trade ID link (L250) was missing `font-mono tabular-nums` — added. (4) Endnote trade date (L253) was rendered as plain text — wrapped in `<span class="font-mono tabular-nums">`. All other patterns (shell C, section headings, `<thead>` treatment, row hover, KPI cards, empty states, dark mode via theme tokens) already matched design guide — no further changes needed.
-- [ ] `web/app/views/entities/draft_selections/`: audit all files for design consistency
+- [x] `web/app/views/entities/draft_selections/`: audit all files for design consistency — ✅ **Fixed:** (1) `index.html.erb` L63: `entity-cell-secondary` for transaction ID was missing `font-mono tabular-nums` — added. (2) `index.html.erb` L71: `entity-cell-secondary` for player_id was missing `font-mono tabular-nums` — added. (3) `show.html.erb` L113: provenance table trade_date column was missing `font-mono tabular-nums` — added (matches sibling `draft_picks/show.html.erb` pattern). (4) `show.html.erb` L132-134: transaction/trade ID links in footer were missing `font-mono tabular-nums` — added. All other patterns (shell C, `<thead>` treatment, row hover, KPI cards, empty states, dark mode via theme tokens) already matched design guide — no further changes needed.
 
 ## Cross-cutting concerns
 

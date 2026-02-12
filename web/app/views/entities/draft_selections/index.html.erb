@@ -60,7 +60,7 @@
                         <div class="entity-cell-primary font-mono">
                           <a href="<%= draft_selection_href(r['transaction_id']) %>" class="font-medium hover:underline"><%= r["draft_year"] %>-R<%= r["draft_round"] %>-P<%= r["pick_number"] %></a>
                         </div>
-                        <div class="entity-cell-secondary">tx: #<%= r["transaction_id"] %></div>
+                        <div class="entity-cell-secondary font-mono tabular-nums">tx: #<%= r["transaction_id"] %></div>
                       </div>
                     </td>
                     <td class="px-3 py-2">
@@ -68,7 +68,7 @@
                         <div class="entity-cell-primary">
                           <a href="<%= player_href(r['player_id']) %>" class="font-medium truncate hover:underline"><%= r["player_name"] %></a>
                         </div>
-                        <div class="entity-cell-secondary">player_id: <%= r["player_id"] %></div>
+                        <div class="entity-cell-secondary font-mono tabular-nums">player_id: <%= r["player_id"] %></div>
                       </div>
                     </td>
                     <td class="px-3 py-2">

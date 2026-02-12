@@ -110,7 +110,7 @@
                         —
                       <% end %>
                     </td>
-                    <td class="px-3 py-2 text-muted-foreground"><%= row["trade_date"] || "—" %></td>
+                    <td class="px-3 py-2 font-mono tabular-nums text-muted-foreground"><%= row["trade_date"] || "—" %></td>
                     <td class="px-3 py-2 text-muted-foreground"><%= row["from_team_code"] || "—" %></td>
                     <td class="px-3 py-2 text-muted-foreground"><%= row["to_team_code"] || "—" %></td>
                     <td class="px-3 py-2 text-muted-foreground">
@@ -129,9 +129,9 @@
         <% end %>
 
         <div class="rounded-lg border border-border bg-background p-3 text-xs text-muted-foreground">
-          Transaction: <a href="<%= transaction_href(ds['transaction_id']) %>" class="hover:underline">#<%= ds["transaction_id"] %></a>
+          Transaction: <a href="<%= transaction_href(ds['transaction_id']) %>" class="hover:underline font-mono tabular-nums">#<%= ds["transaction_id"] %></a>
           <% if ds["trade_id"].present? %>
-            · linked trade: <a href="<%= trade_href(ds['trade_id']) %>" class="hover:underline">#<%= ds["trade_id"] %></a>
+            · linked trade: <a href="<%= trade_href(ds['trade_id']) %>" class="hover:underline font-mono tabular-nums">#<%= ds["trade_id"] %></a>
           <% end %>
         </div>
       </section>

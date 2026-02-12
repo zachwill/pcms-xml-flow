@@ -83,7 +83,7 @@
                           <a href="<%= agent_href(a['agent_id']) %>" class="font-medium truncate hover:underline"><%= a["full_name"] %></a>
                         </div>
                         <div class="entity-cell-secondary">
-                          agent_id: <%= a["agent_id"] %>
+                          agent_id: <span class="font-mono tabular-nums"><%= a["agent_id"] %></span>
                           <% if a["is_active"] == false %>
                             <span class="ml-1 entity-chip entity-chip--muted">inactive</span>
                           <% end %>

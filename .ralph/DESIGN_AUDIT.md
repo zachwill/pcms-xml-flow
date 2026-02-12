@@ -114,7 +114,7 @@
 
 ## entities/agencies/
 
-- [ ] `web/app/views/entities/agencies/`: audit all files for design consistency (hover, headers, dark mode, font-mono)
+- [x] `web/app/views/entities/agencies/`: audit all files for design consistency (hover, headers, dark mode, font-mono) — ✅ **Mostly clean.** Both `index.html.erb` and `show.html.erb` already had correct table headers (`bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90`), row hover (`hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75`), `font-mono tabular-nums` on all financial/numeric `<td>` cells, KPI card patterns, entity-chip tokens, and dark mode coverage (all colors use theme tokens or `representation_percentile_color_class()` which has dark variants). **Fixed:** `show.html.erb` L86 — `agent_id` value in agent roster `entity-cell-secondary` was rendered as plain text; wrapped in `<span class="font-mono tabular-nums">` to match numeric ID convention.
 
 ## entities/draft_picks/ and entities/draft_selections/
 

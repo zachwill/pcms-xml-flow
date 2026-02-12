@@ -1,0 +1,164 @@
+<main id="maincanvas" class="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-background">
+  <div id="players-maincanvas" class="px-4 py-4 space-y-4">
+    <div class="flex items-end justify-between gap-4">
+      <div>
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Players workspace</div>
+        <h2 class="text-sm font-semibold text-foreground">
+          Player directory
+          <span class="text-muted-foreground font-medium">· <%= @players.size %> rows</span>
+        </h2>
+      </div>
+
+      <div class="text-[11px] text-muted-foreground tabular-nums">
+        <span>Cap '<%= format_year_label(2025).split("-").first %> total: <%= format_compact_currency(@sidebar_summary[:total_cap]) %></span>
+      </div>
+    </div>
+
+    <% if @players.empty? %>
+      <div class="p-6 rounded-lg border border-border bg-muted/20 text-sm text-muted-foreground italic text-center">
+        No players match these filters.
+      </div>
+    <% else %>
+      <div class="rounded-lg border border-border overflow-hidden">
+        <div class="sticky top-0 z-10 bg-muted/70 backdrop-blur-sm border-b border-border">
+          <div class="flex items-center px-4 h-8 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
+            <div class="w-64 shrink-0">Player</div>
+            <div class="w-32 shrink-0">Team</div>
+            <div class="w-32 shrink-0">Status</div>
+            <div class="w-44 shrink-0">Agent</div>
+            <div class="w-24 shrink-0 text-right font-mono">Cap 2025</div>
+            <div class="w-24 shrink-0 text-right font-mono">Total</div>
+          </div>
+        </div>
+
+        <div class="divide-y divide-border/50">
+          <% @players.each do |player| %>
+            <% player_id = player["player_id"] %>
+            <% team_code = player["team_code"].to_s.upcase.presence %>
+            <% team_name = player["team_name"].presence || "Free Agent" %>
+            <% player_path_value = "/players/#{player_id}" %>
+            <% agent_id = player["agent_id"] %>
+            <% agent_path_value = agent_id.present? ? "/agents/#{agent_id}" : nil %>
+
+            <% status_tokens = [] %>
+            <% status_tokens << "2W" if player["is_two_way"] %>
+            <% status_tokens << "Restricted" if player["is_trade_restricted_now"] %>
+            <% status_tokens << "No-Trade" if player["is_no_trade"] %>
+
+            <% row_click_expr = "$selectedplayerid = '#{player_id}'; $overlaytype = 'player'; @get('/players/sidebar/#{player_id}')" %>
+
+            <div
+              class="group cursor-pointer transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10"
+              role="button"
+              tabindex="0"
+              data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $selectedplayerid === '<%= player_id %>' }"
+              data-on:click="<%= row_click_expr %>"
+              data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); <%= row_click_expr %>; }"
+            >
+              <div class="flex items-center px-4 min-h-[48px]">
+                <div class="w-64 shrink-0">
+                  <div class="grid grid-cols-[36px_1fr] grid-rows-[24px_16px]">
+                    <div class="row-span-2 flex items-center justify-start">
+                      <div class="w-8 h-8 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
+                        <img
+                          src="<%= player_headshot_url(player_id) %>"
+                          alt="<%= player['player_name'] %>"
+                          class="w-full h-full object-cover object-top bg-muted"
+                          loading="lazy"
+                          decoding="async"
+                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        />
+                        <span class="hidden text-[9px] font-semibold text-muted-foreground">NBA</span>
+                      </div>
+                    </div>
+
+                    <div class="h-[24px] flex items-end min-w-0 pl-2">
+                      <a href="<%= player_path_value %>" class="truncate font-medium text-[14px] group-hover:text-primary transition-colors" onclick="event.stopPropagation()"><%= player["player_name"] %></a>
+                    </div>
+
+                    <div class="h-[16px] -mt-px flex items-start gap-2 min-w-0 pl-2 leading-none text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden">
+                      <span>id: <%= player_id %></span>
+                      <% if player["years_of_service"].present? %><span><%= player["years_of_service"].to_i %> YOS</span><% end %>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="w-32 shrink-0">
+                  <% if team_code.present? %>
+                    <div class="grid grid-cols-[28px_1fr] grid-rows-[24px_16px]">
+                      <div class="row-span-2 flex items-center justify-start">
+                        <div class="w-6 h-6 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
+                          <% if player["team_id"].present? %>
+                            <img
+                              src="<%= team_logo_url(player['team_id']) %>"
+                              alt="<%= team_code %>"
+                              class="w-full h-full object-contain"
+                              loading="lazy"
+                              decoding="async"
+                              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                            />
+                            <span class="hidden text-[9px] font-mono text-muted-foreground"><%= team_code %></span>
+                          <% else %>
+                            <span class="text-[9px] font-mono text-muted-foreground"><%= team_code %></span>
+                          <% end %>
+                        </div>
+                      </div>
+
+                      <div class="h-[24px] flex items-end min-w-0 pl-1">
+                        <a href="<%= team_href(team_code: team_code, team_id: player['team_id']) %>" class="font-medium text-[13px] hover:underline" onclick="event.stopPropagation()"><%= team_code %></a>
+                      </div>
+
+                      <div class="h-[16px] -mt-px flex items-start min-w-0 pl-1 leading-none text-[10px] text-muted-foreground/80 truncate"><%= team_name %></div>
+                    </div>
+                  <% else %>
+                    <span class="text-[11px] text-muted-foreground">Free Agent</span>
+                  <% end %>
+                </div>
+
+                <div class="w-32 shrink-0">
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary text-[11px]">
+                      <%= player["player_status_name"].presence || player["player_status_lk"].presence || "—" %>
+                    </div>
+                    <div class="entity-cell-secondary gap-1">
+                      <% if status_tokens.any? %>
+                        <% status_tokens.each do |token| %>
+                          <span class="entity-chip entity-chip--muted"><%= token %></span>
+                        <% end %>
+                      <% else %>
+                        <span>—</span>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="w-44 shrink-0">
+                  <% if player["agent_name"].present? && agent_path_value.present? %>
+                    <div class="grid grid-rows-[24px_16px]">
+                      <div class="h-[24px] flex items-end min-w-0">
+                        <a href="<%= agent_path_value %>" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline truncate" onclick="event.stopPropagation()"><%= player["agent_name"] %></a>
+                      </div>
+                      <div class="h-[16px] -mt-px flex items-start min-w-0 leading-none text-[10px] text-muted-foreground/60 truncate font-mono tabular-nums">id: <%= agent_id %></div>
+                    </div>
+                  <% elsif player["agent_name"].present? %>
+                    <span class="text-[13px] text-muted-foreground truncate"><%= player["agent_name"] %></span>
+                  <% else %>
+                    <span class="text-[11px] text-muted-foreground/60">—</span>
+                  <% end %>
+                </div>
+
+                <div class="w-24 shrink-0 flex items-center justify-end">
+                  <span class="font-mono tabular-nums text-sm"><%= player["cap_2025"].present? ? format_salary(player["cap_2025"]) : "—" %></span>
+                </div>
+
+                <div class="w-24 shrink-0 flex items-center justify-end">
+                  <span class="font-mono tabular-nums text-sm text-muted-foreground"><%= player["total_salary_from_2025"].present? ? format_salary(player["total_salary_from_2025"]) : "—" %></span>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</main>

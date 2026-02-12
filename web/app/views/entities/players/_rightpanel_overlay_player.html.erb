@@ -1,0 +1,135 @@
+<%
+  player ||= {}
+
+  player_id = player["player_id"]
+  player_name = player["player_name"].to_s
+  team_code = player["team_code"].to_s.upcase.presence
+  team_name = player["team_name"].presence || (team_code.present? ? team_code : "Free Agent")
+  agent_id = player["agent_id"]
+  agent_name = player["agent_name"].presence
+
+  status_chips = []
+  status_chips << { label: "2W", classes: "entity-chip entity-chip--muted" } if player["is_two_way"]
+  status_chips << { label: "Restricted", classes: "entity-chip entity-chip--danger" } if player["is_trade_restricted_now"]
+  status_chips << { label: "No-Trade", classes: "entity-chip entity-chip--danger" } if player["is_no_trade"]
+
+  status_label = player["player_status_name"].presence || player["player_status_lk"].presence || "—"
+  yos_label = player["years_of_service"].present? ? "#{player['years_of_service'].to_i} YOS" : nil
+
+  player_path_value = "/players/#{player_id}"
+  agent_path_value = agent_id.present? ? "/agents/#{agent_id}" : nil
+%>
+
+<div id="rightpanel-overlay" class="h-full">
+  <div class="sticky top-0 z-20 h-10 px-4 flex items-center justify-between border-b border-border bg-background">
+    <button
+      type="button"
+      class="cursor-pointer flex items-center gap-1.5 text-sm transition-colors text-muted-foreground hover:text-foreground"
+      data-on:click="$overlaytype = 'none'; $selectedplayerid = ''; @get('/players/sidebar/clear')"
+    >
+      <%= lucide_icon("arrow-left", class: "w-4 h-4", "aria-hidden": true) %>
+      <span class="font-medium">Back</span>
+    </button>
+
+    <a href="<%= player_path_value %>" class="text-xs text-muted-foreground hover:text-foreground hover:underline">Open player page</a>
+  </div>
+
+  <div class="px-4 pb-4 pt-4 space-y-5">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded border border-border bg-background overflow-hidden">
+        <img
+          src="<%= player_headshot_url(player_id) %>"
+          alt="<%= player_name %>"
+          class="w-full h-full object-cover object-top bg-muted"
+          loading="lazy"
+          decoding="async"
+          onerror="if (this.src !== '<%= fallback_headshot_data_uri %>') { this.src = '<%= fallback_headshot_data_uri %>'; }"
+        />
+      </div>
+
+      <div class="min-w-0 space-y-0.5">
+        <h2 class="text-lg font-semibold text-foreground truncate"><%= player_name %></h2>
+        <div class="text-xs text-muted-foreground/80 tabular-nums flex items-center gap-1">
+          <span><%= status_label %></span>
+          <% if yos_label.present? %>
+            <span class="text-muted-foreground/50">·</span>
+            <span><%= yos_label %></span>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-1.5 border-t border-border pt-4">
+      <%= render partial: "tools/salary_book/kpi_cell", locals: {
+        label: "Cap '25",
+        value: player["cap_2025"].present? ? format_salary(player["cap_2025"]) : "—",
+        class_name: "w-full",
+        value_class_name: "text-[11px]"
+      } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: {
+        label: "Cap '26",
+        value: player["cap_2026"].present? ? format_salary(player["cap_2026"]) : "—",
+        class_name: "w-full",
+        value_class_name: "text-[11px]"
+      } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: {
+        label: "Cap '27",
+        value: player["cap_2027"].present? ? format_salary(player["cap_2027"]) : "—",
+        class_name: "w-full",
+        value_class_name: "text-[11px]"
+      } %>
+    </div>
+
+    <div class="border-t border-border pt-4 space-y-2">
+      <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Current context</div>
+
+      <div class="space-y-0.5">
+        <div class="flex items-center justify-between py-1.5 gap-2">
+          <span class="text-sm text-muted-foreground">Team</span>
+          <% if team_code.present? %>
+            <a href="<%= team_href(team_code: team_code, team_id: player['team_id']) %>" class="text-sm font-medium hover:underline"><%= team_code %> · <%= team_name %></a>
+          <% else %>
+            <span class="text-sm font-medium">Free Agent</span>
+          <% end %>
+        </div>
+
+        <div class="flex items-center justify-between py-1.5 gap-2">
+          <span class="text-sm text-muted-foreground">Agent</span>
+          <% if agent_name.present? && agent_path_value.present? %>
+            <a href="<%= agent_path_value %>" class="text-sm font-medium hover:underline"><%= agent_name %></a>
+          <% elsif agent_name.present? %>
+            <span class="text-sm font-medium"><%= agent_name %></span>
+          <% else %>
+            <span class="text-sm text-muted-foreground">—</span>
+          <% end %>
+        </div>
+
+        <div class="flex items-center justify-between py-1.5 gap-2">
+          <span class="text-sm text-muted-foreground">Total from 2025</span>
+          <span class="text-sm font-medium font-mono tabular-nums"><%= player["total_salary_from_2025"].present? ? format_salary(player["total_salary_from_2025"]) : "—" %></span>
+        </div>
+      </div>
+
+      <% if status_chips.any? %>
+        <div class="pt-1 flex flex-wrap gap-1.5">
+          <% status_chips.each do |chip| %>
+            <span class="<%= chip[:classes] %>"><%= chip[:label] %></span>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="border-t border-border pt-4 space-y-2">
+      <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pivots</div>
+      <div class="flex flex-col gap-1.5 text-sm">
+        <a href="<%= player_path_value %>" class="text-muted-foreground hover:text-foreground hover:underline">Open canonical player page</a>
+        <% if team_code.present? %>
+          <a href="<%= team_href(team_code: team_code, team_id: player['team_id']) %>" class="text-muted-foreground hover:text-foreground hover:underline">Open team page</a>
+        <% end %>
+        <% if agent_name.present? && agent_path_value.present? %>
+          <a href="<%= agent_path_value %>" class="text-muted-foreground hover:text-foreground hover:underline">Open agent page</a>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

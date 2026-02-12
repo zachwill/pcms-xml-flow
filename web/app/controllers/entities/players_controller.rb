@@ -1,99 +1,72 @@
 module Entities
   class PlayersController < ApplicationController
+    PLAYER_STATUS_LENSES = %w[all two_way restricted no_trade].freeze
+    PLAYER_SORT_LENSES = {
+      "cap_desc" => "sbw.cap_2025 DESC NULLS LAST, sbw.player_name ASC",
+      "cap_asc" => "sbw.cap_2025 ASC NULLS LAST, sbw.player_name ASC",
+      "name_asc" => "sbw.player_name ASC",
+      "name_desc" => "sbw.player_name DESC"
+    }.freeze
+
     # GET /players
     def index
-      conn = ActiveRecord::Base.connection
-
-      q = params[:q].to_s.strip
-      @query = q
-
-      if q.present?
-        if q.match?(/\A\d+\z/)
-          id_sql = conn.quote(q.to_i)
-          @players = conn.exec_query(<<~SQL).to_a
-            SELECT
-              sbw.player_id,
-              sbw.player_name,
-              sbw.team_code,
-              t.team_id,
-              t.team_name,
-              sbw.agent_id,
-              sbw.agent_name,
-              sbw.is_two_way,
-              p.years_of_service,
-              sbw.cap_2025::numeric AS cap_2025
-            FROM pcms.salary_book_warehouse sbw
-            LEFT JOIN pcms.teams t
-              ON t.team_code = sbw.team_code
-             AND t.league_lk = 'NBA'
-            LEFT JOIN pcms.people p
-              ON p.person_id = sbw.player_id
-            WHERE sbw.player_id = #{id_sql}
-            ORDER BY sbw.cap_2025 DESC NULLS LAST
-            LIMIT 50
-          SQL
-        else
-          q_sql = conn.quote("%#{q}%")
-          @players = conn.exec_query(<<~SQL).to_a
-            SELECT
-              sbw.player_id,
-              sbw.player_name,
-              sbw.team_code,
-              t.team_id,
-              t.team_name,
-              sbw.agent_id,
-              sbw.agent_name,
-              sbw.is_two_way,
-              p.years_of_service,
-              sbw.cap_2025::numeric AS cap_2025
-            FROM pcms.salary_book_warehouse sbw
-            LEFT JOIN pcms.teams t
-              ON t.team_code = sbw.team_code
-             AND t.league_lk = 'NBA'
-            LEFT JOIN pcms.people p
-              ON p.person_id = sbw.player_id
-            WHERE sbw.player_name ILIKE #{q_sql}
-            ORDER BY sbw.cap_2025 DESC NULLS LAST, sbw.player_name
-            LIMIT 200
-          SQL
-        end
-      else
-        @players = conn.exec_query(<<~SQL).to_a
-          SELECT
-            sbw.player_id,
-            sbw.player_name,
-            sbw.team_code,
-            t.team_id,
-            t.team_name,
-            sbw.agent_id,
-            sbw.agent_name,
-            sbw.is_two_way,
-            p.years_of_service,
-            sbw.cap_2025::numeric AS cap_2025
-          FROM pcms.salary_book_warehouse sbw
-          LEFT JOIN pcms.teams t
-            ON t.team_code = sbw.team_code
-           AND t.league_lk = 'NBA'
-          LEFT JOIN pcms.people p
-            ON p.person_id = sbw.player_id
-          ORDER BY sbw.cap_2025 DESC NULLS LAST
-          LIMIT 50
-        SQL
-      end
-
+      load_index_workspace_state!
       render :index
     end
 
     # GET /players/pane
-    # Reserved for Datastar index-pane updates (phase 4).
     def pane
-      head :not_implemented
+      load_index_workspace_state!
+      render partial: "entities/players/workspace_main"
     end
 
     # GET /players/sidebar/:id
-    # Reserved for rightpanel overlay patches (phase 5).
     def sidebar
-      head :not_implemented
+      player_id = Integer(params[:id])
+      conn = ActiveRecord::Base.connection
+      id_sql = conn.quote(player_id)
+
+      player = conn.exec_query(<<~SQL).first
+        SELECT
+          sbw.player_id,
+          sbw.player_name,
+          sbw.team_code,
+          t.team_id,
+          t.team_name,
+          sbw.agent_id,
+          sbw.agent_name,
+          sbw.is_two_way,
+          sbw.is_trade_restricted_now,
+          sbw.is_no_trade,
+          sbw.cap_2025::numeric AS cap_2025,
+          sbw.cap_2026::numeric AS cap_2026,
+          sbw.cap_2027::numeric AS cap_2027,
+          sbw.total_salary_from_2025::numeric AS total_salary_from_2025,
+          p.years_of_service,
+          p.player_status_lk,
+          status_lk.short_description AS player_status_name
+        FROM pcms.salary_book_warehouse sbw
+        LEFT JOIN pcms.teams t
+          ON t.team_code = sbw.team_code
+         AND t.league_lk = 'NBA'
+        LEFT JOIN pcms.people p
+          ON p.person_id = sbw.player_id
+        LEFT JOIN pcms.lookups status_lk
+          ON status_lk.lookup_type = 'lk_player_statuses'
+         AND status_lk.lookup_code = p.player_status_lk
+        WHERE sbw.player_id = #{id_sql}
+        LIMIT 1
+      SQL
+      raise ActiveRecord::RecordNotFound unless player
+
+      render partial: "entities/players/rightpanel_overlay_player", locals: { player: player }
+    rescue ArgumentError
+      raise ActiveRecord::RecordNotFound
+    end
+
+    # GET /players/sidebar/clear
+    def sidebar_clear
+      render partial: "entities/players/rightpanel_clear"
     end
 
     # GET /players/:slug
@@ -152,6 +125,157 @@ module Entities
     end
 
     private
+
+    def load_index_workspace_state!
+      setup_index_filters!
+      load_player_team_lenses!
+      load_index_players!
+      build_player_sidebar_summary!
+    end
+
+    def setup_index_filters!
+      @query = params[:q].to_s.strip
+
+      requested_team = params[:team].to_s.strip.upcase
+      @team_lens = if requested_team.blank? || requested_team == "ALL"
+        "ALL"
+      elsif requested_team == "FA"
+        "FA"
+      elsif requested_team.match?(/\A[A-Z]{3}\z/)
+        requested_team
+      else
+        "ALL"
+      end
+
+      requested_status = params[:status].to_s.strip
+      @status_lens = PLAYER_STATUS_LENSES.include?(requested_status) ? requested_status : "all"
+
+      requested_sort = params[:sort].to_s.strip
+      @sort_lens = PLAYER_SORT_LENSES.key?(requested_sort) ? requested_sort : "cap_desc"
+    end
+
+    def load_player_team_lenses!
+      conn = ActiveRecord::Base.connection
+
+      @team_options = conn.exec_query(<<~SQL).to_a
+        SELECT team_code, team_name
+        FROM pcms.teams
+        WHERE league_lk = 'NBA'
+          AND team_name NOT LIKE 'Non-NBA%'
+        ORDER BY team_code
+      SQL
+    end
+
+    def load_index_players!
+      conn = ActiveRecord::Base.connection
+      where_clauses = []
+
+      if @query.present?
+        if @query.match?(/\A\d+\z/)
+          where_clauses << "sbw.player_id = #{conn.quote(@query.to_i)}"
+        else
+          where_clauses << "sbw.player_name ILIKE #{conn.quote("%#{@query}%")}" 
+        end
+      end
+
+      case @team_lens
+      when "FA"
+        where_clauses << "NULLIF(TRIM(COALESCE(sbw.team_code, '')), '') IS NULL"
+      when /\A[A-Z]{3}\z/
+        where_clauses << "sbw.team_code = #{conn.quote(@team_lens)}"
+      end
+
+      case @status_lens
+      when "two_way"
+        where_clauses << "COALESCE(sbw.is_two_way, false) = true"
+      when "restricted"
+        where_clauses << "COALESCE(sbw.is_trade_restricted_now, false) = true"
+      when "no_trade"
+        where_clauses << "COALESCE(sbw.is_no_trade, false) = true"
+      end
+
+      where_sql = where_clauses.any? ? where_clauses.join(" AND ") : "1 = 1"
+      sort_sql = PLAYER_SORT_LENSES.fetch(@sort_lens)
+      limit = @query.present? ? 240 : 140
+
+      @players = conn.exec_query(<<~SQL).to_a
+        SELECT
+          sbw.player_id,
+          sbw.player_name,
+          sbw.team_code,
+          t.team_id,
+          t.team_name,
+          sbw.agent_id,
+          sbw.agent_name,
+          sbw.is_two_way,
+          sbw.is_trade_restricted_now,
+          sbw.is_no_trade,
+          sbw.cap_2025::numeric AS cap_2025,
+          sbw.total_salary_from_2025::numeric AS total_salary_from_2025,
+          p.years_of_service,
+          p.player_status_lk,
+          status_lk.short_description AS player_status_name
+        FROM pcms.salary_book_warehouse sbw
+        LEFT JOIN pcms.teams t
+          ON t.team_code = sbw.team_code
+         AND t.league_lk = 'NBA'
+        LEFT JOIN pcms.people p
+          ON p.person_id = sbw.player_id
+        LEFT JOIN pcms.lookups status_lk
+          ON status_lk.lookup_type = 'lk_player_statuses'
+         AND status_lk.lookup_code = p.player_status_lk
+        WHERE #{where_sql}
+        ORDER BY #{sort_sql}
+        LIMIT #{limit}
+      SQL
+    end
+
+    def build_player_sidebar_summary!
+      rows = Array(@players)
+      active_filters = []
+      active_filters << %(Search: "#{@query}") if @query.present?
+      active_filters << "Team: #{team_lens_label(@team_lens)}" unless @team_lens == "ALL"
+      active_filters << "Status: #{status_lens_label(@status_lens)}" unless @status_lens == "all"
+      active_filters << "Sort: #{sort_lens_label(@sort_lens)}" unless @sort_lens == "cap_desc"
+
+      @sidebar_summary = {
+        row_count: rows.size,
+        team_count: rows.map { |row| row["team_code"].presence }.compact.uniq.size,
+        two_way_count: rows.count { |row| row["is_two_way"] },
+        restricted_count: rows.count { |row| row["is_trade_restricted_now"] },
+        no_trade_count: rows.count { |row| row["is_no_trade"] },
+        total_cap: rows.sum { |row| row["cap_2025"].to_f },
+        filters: active_filters,
+        top_rows: rows.first(14)
+      }
+    end
+
+    def team_lens_label(team_lens)
+      return "Free agents" if team_lens == "FA"
+
+      team = Array(@team_options).find { |row| row["team_code"].to_s.upcase == team_lens.to_s.upcase }
+      return team_lens if team.blank?
+
+      "#{team['team_code']} · #{team['team_name']}"
+    end
+
+    def status_lens_label(status_lens)
+      case status_lens
+      when "two_way" then "Two-Way"
+      when "restricted" then "Trade restricted"
+      when "no_trade" then "No-trade"
+      else "All"
+      end
+    end
+
+    def sort_lens_label(sort_lens)
+      case sort_lens
+      when "cap_asc" then "Cap ascending"
+      when "name_asc" then "Name A→Z"
+      when "name_desc" then "Name Z→A"
+      else "Cap descending"
+      end
+    end
 
     def resolve_player_from_slug!(raw_slug, redirect_on_canonical_miss: true)
       slug = raw_slug.to_s.strip.downcase

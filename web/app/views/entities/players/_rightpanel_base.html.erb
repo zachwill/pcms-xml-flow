@@ -1,7 +1,115 @@
-<div id="rightpanel-base" class="space-y-4">
-  <%= render partial: "entities/shared/known_slugs", locals: {
-    entity_type: "player",
-    entity_id: @player_id,
-    path_prefix: "players"
-  } %>
-</div>
+<% if @sidebar_summary.present? %>
+  <% summary = @sidebar_summary %>
+
+  <div id="rightpanel-base" class="space-y-4">
+    <div class="rounded-lg border border-border bg-background p-3 space-y-3">
+      <div>
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Workspace snapshot</div>
+        <div class="text-sm font-semibold text-foreground">
+          Players
+          <span class="text-muted-foreground font-medium">· <%= summary[:row_count].to_i %> rows</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-1.5">
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: "Rows",
+          value: summary[:row_count].to_i.to_s,
+          class_name: "w-full"
+        } %>
+
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: "Teams",
+          value: summary[:team_count].to_i.to_s,
+          class_name: "w-full"
+        } %>
+
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: "2W",
+          value: summary[:two_way_count].to_i.to_s,
+          class_name: "w-full"
+        } %>
+
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: "Restricted",
+          value: summary[:restricted_count].to_i.to_s,
+          class_name: "w-full"
+        } %>
+      </div>
+
+      <div class="grid grid-cols-2 gap-1.5">
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: "No-Trade",
+          value: summary[:no_trade_count].to_i.to_s,
+          class_name: "w-full"
+        } %>
+
+        <%= render partial: "tools/salary_book/kpi_cell", locals: {
+          label: "Cap '25",
+          value: format_compact_currency(summary[:total_cap]),
+          value_class_name: "text-[11px]",
+          class_name: "w-full"
+        } %>
+      </div>
+
+      <% if Array(summary[:filters]).any? %>
+        <div class="pt-1 flex flex-wrap gap-1">
+          <% Array(summary[:filters]).each do |label| %>
+            <span class="entity-chip entity-chip--muted"><%= label %></span>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="rounded-lg border border-border bg-background">
+      <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">
+        Top cap hits
+      </div>
+
+      <% top_rows = Array(summary[:top_rows]) %>
+      <% if top_rows.empty? %>
+        <div class="p-3 text-sm text-muted-foreground italic">No rows.</div>
+      <% else %>
+        <div class="divide-y divide-border">
+          <% top_rows.each do |row| %>
+            <% player_id = row["player_id"] %>
+            <% open_expr = "$selectedplayerid = '#{player_id}'; $overlaytype = 'player'; @get('/players/sidebar/#{player_id}')" %>
+
+            <button
+              type="button"
+              class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+              data-on:click="<%= open_expr %>"
+            >
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-between gap-2">
+                  <a href="/players/<%= player_id %>" class="truncate font-medium hover:underline" onclick="event.stopPropagation()"><%= row["player_name"] %></a>
+                  <span class="font-mono tabular-nums text-[11px] shrink-0"><%= row["cap_2025"].present? ? format_compact_currency(row["cap_2025"]) : "—" %></span>
+                </div>
+                <div class="entity-cell-secondary justify-between gap-2">
+                  <span class="truncate"><%= row["team_code"].presence || "Free Agent" %> · <%= row["agent_name"].presence || "No agent" %></span>
+                  <% if row["is_two_way"] %>
+                    <span class="entity-chip entity-chip--muted">2W</span>
+                  <% end %>
+                </div>
+              </div>
+            </button>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% elsif @player_id.present? %>
+  <div id="rightpanel-base" class="space-y-4">
+    <%= render partial: "entities/shared/known_slugs", locals: {
+      entity_type: "player",
+      entity_id: @player_id,
+      path_prefix: "players"
+    } %>
+  </div>
+<% else %>
+  <div id="rightpanel-base" class="space-y-4">
+    <div class="p-4 rounded-lg border border-border bg-muted/20 text-sm text-muted-foreground">
+      Select a player row to inspect snapshot details.
+    </div>
+  </div>
+<% end %>

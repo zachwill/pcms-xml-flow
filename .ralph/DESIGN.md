@@ -54,26 +54,45 @@ A bad task is broad cosmetic churn (for example, repo-wide class sweeps) with no
 
 ## Backlog
 
-- [ ] [P1] [INDEX] /players (`web/app/views/entities/players/index.html.erb`) — find and triage players in-list without losing context
+- [x] [P1] [INDEX] /players (`web/app/views/entities/players/index.html.erb`) — find and triage players in-list without losing context
   - Problem: Search/filters are not discoverable in the workspace shell, and there is no sidebar drill-in for quick context; users bounce between full pages to inspect details.
   - Hypothesis: Converting Players index to a true explorer workbench (knobs + dense interactive rows + sidebar drill-ins) will materially reduce navigation churn.
   - Scope (files):
     - `web/app/views/entities/players/index.html.erb`
-    - `web/app/controllers/entities/players_controller.rb`
-    - `web/config/routes.rb`
+    - `web/app/views/entities/players/_workspace_main.html.erb`
     - `web/app/views/entities/players/_rightpanel_base.html.erb`
+    - `web/app/views/entities/players/_rightpanel_overlay_player.html.erb`
+    - `web/app/views/entities/players/_rightpanel_clear.html.erb`
+    - `web/app/controllers/entities/players_controller.rb`
+    - `web/app/controllers/entities/players_sse_controller.rb`
+    - `web/config/routes.rb`
     - `web/test/integration/entities_players_index_test.rb`
   - Acceptance criteria:
     - Commandbar exposes discoverable player-specific knobs (at minimum: search query + team/status lens) with visible active-state feedback.
     - Rows remain dense and fully interactive; row click opens `#rightpanel-overlay` with player snapshot and canonical pivots (player/team/agent).
     - Filter/sort interactions that update both `#maincanvas` and sidebar targets use one ordered SSE response.
     - Closing overlay preserves list scroll/context and does not force full-page navigation.
-  - Rubric (before → target):
-    - Scan speed: 2 → 4
-    - Information hierarchy: 2 → 4
-    - Interaction predictability: 3 → 4
-    - Density/readability: 3 → 4
-    - Navigation/pivots: 3 → 4
+  - Completion notes:
+    - What changed:
+      - Reworked `/players` into a full workbench shell (`commandbar + maincanvas + rightpanel base/overlay`) with explicit search/team/status/sort knobs and URL-synced Datastar signals.
+      - Implemented dense, interactive row rendering in `entities/players/_workspace_main.html.erb`; row selection now opens sidebar overlay instead of forcing full-page navigation.
+      - Added sidebar summary/home context in `entities/players/_rightpanel_base.html.erb` and a dedicated player snapshot overlay with canonical pivots in `entities/players/_rightpanel_overlay_player.html.erb`.
+      - Implemented ordered multi-region SSE refresh (`/players/sse/refresh`) in `PlayersSseController`, patching `#maincanvas`, `#rightpanel-base`, and clearing `#rightpanel-overlay` in one response.
+      - Implemented sidebar endpoints (`/players/sidebar/:id`, `/players/sidebar/clear`) and added focused integration coverage in `entities_players_index_test.rb`.
+    - Why this improves the flow:
+      - Users can now tune player discovery directly in the commandbar and triage details in-panel, preserving list position and reducing navigation churn.
+      - Sidebar drill-ins provide immediate player/team/agent pivots without losing context.
+      - Filter/sort refresh behavior is predictable (single SSE transaction across all relevant regions).
+    - Rubric (before → after):
+      - Scan speed: 2 → 4
+      - Information hierarchy: 2 → 4
+      - Interaction predictability: 3 → 4
+      - Density/readability: 3 → 4
+      - Navigation/pivots: 3 → 4
+    - Follow-up tasks discovered:
+      - Add commandbar patching on refresh if we want filter-summary chips rendered in-header from server state (currently control states themselves are the active feedback).
+      - Preserve selected overlay across refresh when selected player remains in result set (current behavior intentionally clears overlay on lens change).
+      - Expand status lenses (e.g., min-contract, expiring window) once warehouse-backed definitions are finalized.
   - Guardrails:
     - Do not modify Salary Book files.
 

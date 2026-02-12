@@ -41,7 +41,9 @@ Rails.application.routes.draw do
     # ---------------------------------------------------------------------
     get "players", to: "players#index"
     get "players/pane", to: "players#pane"
+    get "players/sidebar/clear", to: "players#sidebar_clear", as: :players_sidebar_clear
     get "players/sidebar/:id", to: "players#sidebar", constraints: { id: /\d+/ }
+    get "players/sse/refresh", to: "players_sse#refresh", as: :players_sse_refresh
     get "players/:slug/sse/bootstrap", to: "players_sse#bootstrap"
 
     # Numeric fallback (NBA/PCMS shared id) → redirects to canonical slug.

@@ -40,7 +40,7 @@
 ## entities/transactions/_results.html.erb
 
 - [x] `web/app/views/entities/transactions/_results.html.erb`: the Date column renders dates but the `entity-cell-primary` div doesn't use `font-mono tabular-nums` for the date text
-- [ ] `web/app/views/entities/transactions/_results.html.erb`: transaction type badges use bespoke per-type color classes (`bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300`) instead of `entity-chip` tokens — consider migrating to `entity-chip--success` / `entity-chip--danger` / `entity-chip--accent`
+- [x] `web/app/views/entities/transactions/_results.html.erb`: transaction type badges use bespoke per-type color classes (`bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300`) instead of `entity-chip` tokens — consider migrating to `entity-chip--success` / `entity-chip--danger` / `entity-chip--accent`
 - [ ] `web/app/views/entities/transactions/_results.html.erb`: the `signed_method_lk` column uses `text-[11px]` instead of `text-[10px]` (minor inconsistency with secondary text convention)
 
 ## entities/transactions/show.html.erb

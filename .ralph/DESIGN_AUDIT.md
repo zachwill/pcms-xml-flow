@@ -20,7 +20,10 @@
 **Scope of `entity-chip` migration:**
 - When replacing bespoke badge colors with `entity-chip` tokens, verify the existing chip variants (`entity-chip--muted`, `--warning`, `--danger`, `--success`, `--accent`) cover the semantic need. If a new variant is needed, add it to `application.css` first.
 
-**Next priority items:** trades/_results (font-mono), transactions/_results (font-mono + chip migration + text size), then team_summary dark mode audit.
+**EXTSN chip color note (accepted):**
+- EXTSN transaction type was originally `bg-blue-100 text-blue-700` (blue). Mapped to `entity-chip--accent` (purple) because no `entity-chip--info` (blue) variant exists. Acceptable for now — if blue chips are needed across 3+ surfaces, add `entity-chip--info` to `application.css` first.
+
+**Next priority items:** drafts/_results (hover-on-colored-bg verification + tabular-nums), two_way_utility (h-10 clipping verification), team_summary dark mode audit, then system_values table consistency.
 
 ---
 

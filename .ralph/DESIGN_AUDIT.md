@@ -10,6 +10,20 @@
 
 ---
 
+## ⚠️ Supervisor notes (pattern guardrails)
+
+**KPI cards vs table cells — do NOT conflate:**
+- `entity-cell-two-line` / `entity-cell-primary` / `entity-cell-secondary` are **table-cell components** (fixed grid-rows, text-[13px]). Use them ONLY inside `<td>` or dense table-row contexts.
+- **KPI/vitals cards** (standalone `rounded-lg border p-3` cards in grid layouts) use the simpler pattern: `text-xs text-muted-foreground` label on top → `text-sm/text-lg font-medium/font-semibold` value below. See `entities/transactions/show.html.erb` vitals section as the reference.
+- Do not "upgrade" KPI cards to `entity-cell-two-line` — it shrinks the value text, inverts the label/value order, and breaks visual weight.
+
+**Scope of `entity-chip` migration:**
+- When replacing bespoke badge colors with `entity-chip` tokens, verify the existing chip variants (`entity-chip--muted`, `--warning`, `--danger`, `--success`, `--accent`) cover the semantic need. If a new variant is needed, add it to `application.css` first.
+
+**Next priority items:** trades/_results (font-mono), transactions/_results (font-mono + chip migration + text size), then team_summary dark mode audit.
+
+---
+
 ## entities/trades/show.html.erb
 
 - [x] `web/app/views/entities/trades/show.html.erb` L136-145: trade-group inner `<thead>` uses bare `text-xs text-muted-foreground` instead of `bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium`
@@ -17,7 +31,7 @@
 - [x] `web/app/views/entities/trades/show.html.erb` L326-335: pick details inner `<thead>` uses bare `text-muted-foreground` instead of the standard header treatment; pick detail `<tr>` rows have no hover class
 - [x] `web/app/views/entities/trades/show.html.erb` L363-371: cash details inner `<thead>` uses bare `text-muted-foreground` instead of the standard header treatment; cash detail `<tr>` rows have no hover class
 - [x] `web/app/views/entities/trades/show.html.erb` L339: pick year/round column uses `font-mono` but not `tabular-nums`
-- [x] `web/app/views/entities/trades/show.html.erb` vitals KPI cards: `text-xs text-muted-foreground` label + `text-sm font-medium` value is fine, but the pattern could use `entity-cell-two-line` for consistency (low priority)
+- ~~[x]~~ **REVERTED** `web/app/views/entities/trades/show.html.erb` vitals KPI cards: `entity-cell-two-line` is a table-cell component (grid-rows-[20px_14px], text-[13px]) — it does NOT belong in standalone KPI cards. The standard KPI card pattern across all entity pages is `text-xs text-muted-foreground` label on top → `text-sm/text-lg font-medium/font-semibold` value below (see transactions/show). Reverted to original pattern. **Do not use `entity-cell-two-line` outside of `<table>` / `<tr>` contexts.**
 
 ## entities/trades/_results.html.erb
 

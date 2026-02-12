@@ -335,7 +335,7 @@
                   <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                     <td class="py-1 pr-2"><%= row["team_code"] || '—' %></td>
                     <td class="py-1 pr-2"><%= row["is_sent"] ? 'Sent' : 'Recv' %></td>
-                    <td class="py-1 pr-2 font-mono"><%= [row['draft_pick_year'], "R#{row['draft_pick_round']}"] .compact.join(' ') %></td>
+                    <td class="py-1 pr-2 font-mono tabular-nums"><%= [row['draft_pick_year'], "R#{row['draft_pick_round']}"] .compact.join(' ') %></td>
                     <td class="py-1 text-muted-foreground">
                       <% flags = [] %>
                       <% flags << 'swap' if row['is_draft_pick_swap'] %>

@@ -16,7 +16,7 @@
 - [x] `web/app/views/entities/trades/show.html.erb` L148: trade-group inner `<tr>` rows have no hover class; add `hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75`
 - [x] `web/app/views/entities/trades/show.html.erb` L326-335: pick details inner `<thead>` uses bare `text-muted-foreground` instead of the standard header treatment; pick detail `<tr>` rows have no hover class
 - [x] `web/app/views/entities/trades/show.html.erb` L363-371: cash details inner `<thead>` uses bare `text-muted-foreground` instead of the standard header treatment; cash detail `<tr>` rows have no hover class
-- [ ] `web/app/views/entities/trades/show.html.erb` L339: pick year/round column uses `font-mono` but not `tabular-nums`
+- [x] `web/app/views/entities/trades/show.html.erb` L339: pick year/round column uses `font-mono` but not `tabular-nums`
 - [ ] `web/app/views/entities/trades/show.html.erb` vitals KPI cards: `text-xs text-muted-foreground` label + `text-sm font-medium` value is fine, but the pattern could use `entity-cell-two-line` for consistency (low priority)
 
 ## entities/trades/_results.html.erb

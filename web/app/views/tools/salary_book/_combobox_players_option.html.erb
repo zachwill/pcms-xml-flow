@@ -12,11 +12,11 @@
   data-combobox-option
   data-option-index="<%= index %>"
   data-player-id="<%= player_id %>"
-  class="w-full cursor-pointer px-2 py-1 text-left border-b border-border/40 last:border-b-0 transition-colors duration-75"
+  class="w-full cursor-pointer px-2 py-1.5 text-left border-b border-border/35 last:border-b-0 transition-colors duration-75"
   data-attr:aria-selected="Number($_sbplayercbactiveindex) === <%= index %> ? 'true' : 'false'"
   data-class="{
-    'bg-zinc-100/80 dark:bg-zinc-800/60': Number($_sbplayercbactiveindex) === <%= index %>,
-    'hover:bg-yellow-50/70 dark:hover:bg-yellow-900/20': Number($_sbplayercbactiveindex) !== <%= index %>
+    'bg-yellow-100/70 dark:bg-yellow-900/35': Number($_sbplayercbactiveindex) === <%= index %>,
+    'hover:bg-yellow-50/70 dark:hover:bg-yellow-900/25': Number($_sbplayercbactiveindex) !== <%= index %>
   }"
   data-on:mouseenter="$_sbplayercbactiveindex = <%= index %>"
   data-on:click="
@@ -28,7 +28,7 @@
   "
 >
 
-  <div class="grid grid-cols-[24px_1fr] grid-rows-[20px_14px] min-w-0">
+  <div class="grid grid-cols-[24px_1fr] grid-rows-[22px_14px] min-w-0">
     <div class="row-span-2 flex items-center justify-start">
       <div class="w-5 h-5 rounded border border-border bg-background overflow-hidden">
         <% if team_logo.present? %>
@@ -39,8 +39,8 @@
       </div>
     </div>
 
-    <div class="h-[20px] flex items-end min-w-0 pl-1 pr-1.5">
-      <span class="truncate text-[12px] font-medium text-foreground"><%= player["player_name"] %></span>
+    <div class="h-[22px] flex items-end min-w-0 pl-1 pr-1.5">
+      <span class="truncate text-[13px] font-medium text-foreground"><%= player["player_name"] %></span>
       <% if player["is_two_way"] %>
         <span class="ml-1.5 inline-flex items-center rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide bg-zinc-100 text-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300">2W</span>
       <% end %>

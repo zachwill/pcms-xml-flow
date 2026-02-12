@@ -7,7 +7,12 @@
     _sbplayercbopen: false,
     _sbplayercbquery: '',
     _sbplayercbactiveindex: -1,
-    _sbplayercbcomposing: false
+    _sbplayercbcomposing: false,
+    _sbplayercbloading: false,
+    _sbplayercbrequestq: '',
+    _sbplayercbrequestseq: 0,
+    _sbplayercblastdispatchedseq: 0,
+    _sbplayercbresultscount: 0
   }"
   data-show="$_sbplayercmdkopen"
   style="display: none;"
@@ -18,7 +23,10 @@
     $_sbplayercbopen = true;
     $_sbplayercbquery = '';
     $_sbplayercbactiveindex = 0;
-    @get('<%= tools_salary_book_combobox_players_search_path %>?team=' + encodeURIComponent($activeteam || '') + '&q=&limit=12');
+    $_sbplayercbrequestq = '';
+    $_sbplayercbresultscount = 0;
+    $_sbplayercbloading = true;
+    $_sbplayercbrequestseq = Number($_sbplayercbrequestseq) + 1;
     requestAnimationFrame(() => {
       const input = document.getElementById('sbplayercb-input');
       if (input) {
@@ -31,22 +39,37 @@
     $_sbplayercmdkopen = false;
     $_sbplayercbopen = false;
     $_sbplayercbactiveindex = -1;
+    $_sbplayercbloading = false;
   "
 >
   <div
-    class="absolute inset-0 bg-zinc-950/35 dark:bg-black/60"
+    id="sbplayercb-loader"
+    class="hidden"
+    aria-hidden="true"
+    data-effect="
+      const nextseq = Number($_sbplayercbrequestseq);
+      if (nextseq > Number($_sbplayercblastdispatchedseq)) {
+        $_sbplayercblastdispatchedseq = nextseq;
+        $_sbplayercbloading = true;
+        @get('<%= tools_salary_book_combobox_players_search_path %>?team=' + encodeURIComponent($activeteam || '') + '&q=' + encodeURIComponent($_sbplayercbrequestq || '') + '&limit=12&seq=' + nextseq);
+      }
+    "
+  ></div>
+
+  <div
+    class="absolute inset-0 bg-zinc-950/25 dark:bg-black/55"
     aria-hidden="true"
     data-on:click="const root = document.getElementById('sbplayercmdk'); if (root) { root.dispatchEvent(new CustomEvent('salarybook-cmdk-close', { bubbles: true })); }"
   ></div>
 
   <div
-    class="relative z-10 w-full max-w-2xl overflow-hidden rounded-lg border border-border bg-background shadow-lg"
+    class="relative z-10 w-full max-w-2xl overflow-hidden rounded-xl border border-border/80 bg-background shadow-xl shadow-black/10 dark:shadow-black/35"
     role="dialog"
     aria-modal="true"
     aria-label="Player command palette"
   >
-    <div class="px-3 py-2 border-b border-border bg-muted/10 flex items-center justify-between text-[10px] uppercase tracking-wide text-muted-foreground/90">
-      <span>Player Command Palette</span>
+    <div class="h-8 px-3 border-b border-border/60 bg-muted/5 flex items-center justify-between text-[10px] uppercase tracking-wide text-muted-foreground/85">
+      <span>Players</span>
       <span class="font-mono tabular-nums text-[10px] text-muted-foreground/80">↑↓: move · Enter: open · Esc: close</span>
     </div>
 
@@ -55,7 +78,7 @@
         <input
           id="sbplayercb-input"
           type="text"
-          class="h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-foreground/25"
+          class="h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-foreground/30"
           placeholder="Search players…"
           role="combobox"
           aria-controls="sbplayercb-list"
@@ -65,8 +88,23 @@
           data-attr:aria-activedescendant="Number($_sbplayercbactiveindex) >= 0 ? ('sbplayercb-option-' + Number($_sbplayercbactiveindex)) : ''"
           data-on:focus="$_sbplayercbopen = true"
           data-on:compositionstart="$_sbplayercbcomposing = true"
-          data-on:compositionend="$_sbplayercbcomposing = false; $_sbplayercbopen = true; $_sbplayercbactiveindex = 0; @get('<%= tools_salary_book_combobox_players_search_path %>?team=' + encodeURIComponent($activeteam || '') + '&q=' + encodeURIComponent($_sbplayercbquery) + '&limit=12')"
-          data-on:input__debounce.120ms="if (!$_sbplayercbcomposing) { $_sbplayercbopen = true; $_sbplayercbactiveindex = 0; @get('<%= tools_salary_book_combobox_players_search_path %>?team=' + encodeURIComponent($activeteam || '') + '&q=' + encodeURIComponent($_sbplayercbquery) + '&limit=12'); }"
+          data-on:compositionend="
+            $_sbplayercbcomposing = false;
+            $_sbplayercbopen = true;
+            $_sbplayercbactiveindex = 0;
+            $_sbplayercbrequestq = $_sbplayercbquery;
+            $_sbplayercbloading = true;
+            $_sbplayercbrequestseq = Number($_sbplayercbrequestseq) + 1;
+          "
+          data-on:input__debounce.120ms="
+            if (!$_sbplayercbcomposing) {
+              $_sbplayercbopen = true;
+              $_sbplayercbactiveindex = 0;
+              $_sbplayercbrequestq = $_sbplayercbquery;
+              $_sbplayercbloading = true;
+              $_sbplayercbrequestseq = Number($_sbplayercbrequestseq) + 1;
+            }
+          "
           data-on:keydown="
             const root = el.closest('#sbplayercmdk');
             const options = root ? Array.from(root.querySelectorAll('[data-combobox-option]')) : [];
@@ -76,17 +114,16 @@
               $_sbplayercbopen = true;
               if (options.length > 0) {
                 const activeindex = Number($_sbplayercbactiveindex);
-                const base = activeindex < 0 ? -1 : activeindex;
-                const next = Math.min(base + 1, options.length - 1);
+                const next = activeindex < 0 ? 0 : ((activeindex + 1) % options.length);
                 $_sbplayercbactiveindex = next;
                 options[next].scrollIntoView({ block: 'nearest' });
               }
             } else if (evt.key === 'ArrowUp') {
               evt.preventDefault();
+              $_sbplayercbopen = true;
               if (options.length > 0) {
                 const activeindex = Number($_sbplayercbactiveindex);
-                const base = activeindex < 0 ? 0 : activeindex;
-                const next = Math.max(base - 1, 0);
+                const next = activeindex < 0 ? (options.length - 1) : ((activeindex - 1 + options.length) % options.length);
                 $_sbplayercbactiveindex = next;
                 options[next].scrollIntoView({ block: 'nearest' });
               }
@@ -104,6 +141,7 @@
                   $_sbplayercbopen = false;
                   $_sbplayercbquery = '';
                   $_sbplayercbactiveindex = -1;
+                  $_sbplayercbloading = false;
                 }
               }
             } else if (evt.key === 'Escape') {
@@ -125,7 +163,14 @@
           data-show="$_sbplayercbquery !== ''"
           style="display: none;"
           data-on:mousedown="evt.preventDefault()"
-          data-on:click="$_sbplayercbquery = ''; $_sbplayercbactiveindex = 0; $_sbplayercbopen = true; @get('<%= tools_salary_book_combobox_players_search_path %>?team=' + encodeURIComponent($activeteam || '') + '&q=&limit=12')"
+          data-on:click="
+            $_sbplayercbquery = '';
+            $_sbplayercbactiveindex = 0;
+            $_sbplayercbopen = true;
+            $_sbplayercbrequestq = '';
+            $_sbplayercbloading = true;
+            $_sbplayercbrequestseq = Number($_sbplayercbrequestseq) + 1;
+          "
         >
           Clear
         </button>

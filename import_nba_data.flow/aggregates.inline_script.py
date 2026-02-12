@@ -31,6 +31,7 @@ LINEUP_GAME_BATCH_SIZE = {
 LINEUP_SEASON_TEAM_BATCH_SIZE = 1
 
 QUERY_TOOL_TRUNCATION_THRESHOLD = 9900
+QUERY_TOOL_SINGLE_BATCH_MAX_ATTEMPTS = 4
 
 SHOT_CHART_PER_MODE = "Totals"
 SHOT_CHART_SUM_SCOPE = "Event"
@@ -172,7 +173,8 @@ def request_json(
             time.sleep(1 + attempt)
             continue
 
-        if resp.status_code in {429, 500, 502, 503, 504}:
+        retryable_400 = resp.status_code == 400 and "Database Error" in resp.text
+        if resp.status_code in {429, 500, 502, 503, 504} or retryable_400:
             if attempt == retries - 1:
                 resp.raise_for_status()
             time.sleep(1 + attempt)
@@ -537,6 +539,7 @@ def fetch_querytool_batched_rows(
     batch_param: str = "GameId",
 ) -> tuple[list[dict], list[str]]:
     pending_batches = chunked(game_ids, batch_size)
+    single_batch_attempts: dict[str, int] = {}
     all_rows: list[dict] = []
     warnings: list[str] = []
 
@@ -548,6 +551,8 @@ def fetch_querytool_batched_rows(
         params = dict(base_params)
         params[batch_param] = ",".join(batch)
         params["MaxRowsReturned"] = max_rows_returned
+
+        batch_key = ",".join(batch)
 
         try:
             payload = request_json(
@@ -566,12 +571,38 @@ def fetch_querytool_batched_rows(
                 continue
 
             if status in splittable_statuses:
+                attempts = single_batch_attempts.get(batch_key, 0) + 1
+                single_batch_attempts[batch_key] = attempts
+                if attempts < QUERY_TOOL_SINGLE_BATCH_MAX_ATTEMPTS:
+                    time.sleep(min(5, attempts))
+                    pending_batches.append(batch)
+                    continue
+
                 warnings.append(
-                    f"{path} batch ({batch_param}={batch[0]}...{batch[-1]}) failed with HTTP {status}; skipping"
+                    f"{path} batch ({batch_param}={batch[0]}...{batch[-1]}) failed with HTTP {status} "
+                    f"after {attempts} attempts; skipping"
                 )
                 continue
 
             raise
+        except httpx.HTTPError as exc:
+            if len(batch) > 1:
+                left, right = split_batch(batch)
+                pending_batches = [left, right, *pending_batches]
+                continue
+
+            attempts = single_batch_attempts.get(batch_key, 0) + 1
+            single_batch_attempts[batch_key] = attempts
+            if attempts < QUERY_TOOL_SINGLE_BATCH_MAX_ATTEMPTS:
+                time.sleep(min(5, attempts))
+                pending_batches.append(batch)
+                continue
+
+            warnings.append(
+                f"{path} batch ({batch_param}={batch[0]}...{batch[-1]}) transport error ({exc}) "
+                f"after {attempts} attempts; skipping"
+            )
+            continue
 
         rows = payload.get(row_key) or []
         meta = payload.get("meta") or {}
@@ -816,9 +847,9 @@ def main(
 
         with httpx.Client(timeout=60) as client:
             # --- Player aggregates ---
-            try:
-                for per_mode in PLAYER_PER_MODES:
-                    for measure_type in PLAYER_MEASURE_TYPES:
+            for per_mode in PLAYER_PER_MODES:
+                for measure_type in PLAYER_MEASURE_TYPES:
+                    try:
                         payload = request_json(
                             client,
                             "/api/stats/player",
@@ -830,37 +861,41 @@ def main(
                                 "measureType": measure_type,
                             },
                         )
-                        players = payload.get("players") or []
-                        for player in players:
-                            stats = player.get("stats") or {}
-                            nba_id = player.get("personId")
-                            if nba_id is None:
-                                continue
-                            player_stats = map_stats(stats, PLAYER_STAT_MAP, PLAYER_COLUMNS)
-                            compute_fg2(player_stats)
+                    except Exception as exc:
+                        section_errors.append(
+                            f"player_aggregates per_mode={per_mode} measure={measure_type}: {exc}"
+                        )
+                        continue
 
-                            team_id = stats.get("teamId")
-                            row_season_type = stats.get("seasonType") or season_type
-                            key = (nba_id, team_id, season_year, row_season_type, per_mode)
-                            base_row = {
-                                "nba_id": nba_id,
-                                "team_id": team_id,
-                                "season_year": season_year,
-                                "season_label": stats.get("season") or season_label_value,
-                                "season_type": row_season_type,
-                                "per_mode": per_mode,
-                                "created_at": fetched_at,
-                                "updated_at": fetched_at,
-                                "fetched_at": fetched_at,
-                            }
-                            merge_aggregate_row(player_rows_by_key, key, base_row, player_stats)
-            except Exception as exc:
-                section_errors.append(f"player_aggregates: {exc}")
+                    players = payload.get("players") or []
+                    for player in players:
+                        stats = player.get("stats") or {}
+                        nba_id = player.get("personId")
+                        if nba_id is None:
+                            continue
+                        player_stats = map_stats(stats, PLAYER_STAT_MAP, PLAYER_COLUMNS)
+                        compute_fg2(player_stats)
+
+                        team_id = stats.get("teamId")
+                        row_season_type = stats.get("seasonType") or season_type
+                        key = (nba_id, team_id, season_year, row_season_type, per_mode)
+                        base_row = {
+                            "nba_id": nba_id,
+                            "team_id": team_id,
+                            "season_year": season_year,
+                            "season_label": stats.get("season") or season_label_value,
+                            "season_type": row_season_type,
+                            "per_mode": per_mode,
+                            "created_at": fetched_at,
+                            "updated_at": fetched_at,
+                            "fetched_at": fetched_at,
+                        }
+                        merge_aggregate_row(player_rows_by_key, key, base_row, player_stats)
 
             # --- Team aggregates ---
-            try:
-                for per_mode in TEAM_PER_MODES:
-                    for measure_type in TEAM_MEASURE_TYPES:
+            for per_mode in TEAM_PER_MODES:
+                for measure_type in TEAM_MEASURE_TYPES:
+                    try:
                         payload = request_json(
                             client,
                             "/api/stats/team",
@@ -872,30 +907,34 @@ def main(
                                 "measureType": measure_type,
                             },
                         )
-                        teams = payload.get("teams") or []
-                        for team in teams:
-                            stats = team.get("stats") or {}
-                            team_id = team.get("teamId")
-                            if team_id is None:
-                                continue
-                            team_stats = map_stats(stats, TEAM_STAT_MAP, TEAM_COLUMNS)
-                            compute_fg2(team_stats)
+                    except Exception as exc:
+                        section_errors.append(
+                            f"team_aggregates per_mode={per_mode} measure={measure_type}: {exc}"
+                        )
+                        continue
 
-                            row_season_type = stats.get("seasonType") or season_type
-                            key = (team_id, season_year, row_season_type, per_mode)
-                            base_row = {
-                                "team_id": team_id,
-                                "season_year": season_year,
-                                "season_label": stats.get("season") or season_label_value,
-                                "season_type": row_season_type,
-                                "per_mode": per_mode,
-                                "created_at": fetched_at,
-                                "updated_at": fetched_at,
-                                "fetched_at": fetched_at,
-                            }
-                            merge_aggregate_row(team_rows_by_key, key, base_row, team_stats)
-            except Exception as exc:
-                section_errors.append(f"team_aggregates: {exc}")
+                    teams = payload.get("teams") or []
+                    for team in teams:
+                        stats = team.get("stats") or {}
+                        team_id = team.get("teamId")
+                        if team_id is None:
+                            continue
+                        team_stats = map_stats(stats, TEAM_STAT_MAP, TEAM_COLUMNS)
+                        compute_fg2(team_stats)
+
+                        row_season_type = stats.get("seasonType") or season_type
+                        key = (team_id, season_year, row_season_type, per_mode)
+                        base_row = {
+                            "team_id": team_id,
+                            "season_year": season_year,
+                            "season_label": stats.get("season") or season_label_value,
+                            "season_type": row_season_type,
+                            "per_mode": per_mode,
+                            "created_at": fetched_at,
+                            "updated_at": fetched_at,
+                            "fetched_at": fetched_at,
+                        }
+                        merge_aggregate_row(team_rows_by_key, key, base_row, team_stats)
 
             # --- Season lineups ---
             try:

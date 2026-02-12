@@ -14,6 +14,7 @@ Stable IDs:
 
 - `#sbplayercmdk` (palette root/backdrop)
 - `#sbplayercb-input`
+- `#sbplayercb-loader`
 - `#sbplayercb-popup`
 - `#sbplayercb-list`
 - `#sbplayercb-status`
@@ -29,6 +30,11 @@ Local-only signals on `#sbplayercmdk`:
 - `$_sbplayercbquery`
 - `$_sbplayercbactiveindex`
 - `$_sbplayercbcomposing`
+- `$_sbplayercbloading`
+- `$_sbplayercbrequestq`
+- `$_sbplayercbrequestseq`
+- `$_sbplayercblastdispatchedseq`
+- `$_sbplayercbresultscount`
 
 Global signal dependency:
 
@@ -69,8 +75,9 @@ Blank-query behavior:
 - Opening dispatches a blank-query request (default roster list for `$activeteam`).
 - Typing dispatches debounced search (120ms).
 - IME composition suppresses mid-composition dispatch.
+- Status row shows `Searching players…` while a search request is in flight.
 - First result is auto-selected whenever result set is non-empty.
-- ArrowUp/ArrowDown moves active option.
+- ArrowUp/ArrowDown moves active option and wraps at list boundaries.
 - Enter commits active option (or first option if no explicit active index yet).
 - Escape closes palette.
 - Backdrop click closes palette.
@@ -80,5 +87,6 @@ Blank-query behavior:
 
 ## Cancellation guardrail
 
-Search dispatches directly from palette open/input events (`@get` on the palette/input element).
-Datastar cancellation remains per-element, and this flow does not interfere with team switch SSE requests.
+All search requests dispatch from a dedicated loader element (`#sbplayercb-loader`).
+That keeps request cancellation scoped to one element for this combobox and avoids cross-element stale result races.
+Team switch SSE remains isolated on its own Salary Book elements.

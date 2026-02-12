@@ -322,7 +322,7 @@
         <% else %>
           <div class="overflow-x-auto">
             <table class="entity-table min-w-full text-xs">
-              <thead class="text-muted-foreground">
+              <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
                 <tr>
                   <th class="text-left py-1">Team</th>
                   <th class="text-left py-1">Dir</th>
@@ -332,7 +332,7 @@
               </thead>
               <tbody class="divide-y divide-border/60">
                 <% @pick_details.each do |row| %>
-                  <tr>
+                  <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
                     <td class="py-1 pr-2"><%= row["team_code"] || '—' %></td>
                     <td class="py-1 pr-2"><%= row["is_sent"] ? 'Sent' : 'Recv' %></td>
                     <td class="py-1 pr-2 font-mono"><%= [row['draft_pick_year'], "R#{row['draft_pick_round']}"] .compact.join(' ') %></td>

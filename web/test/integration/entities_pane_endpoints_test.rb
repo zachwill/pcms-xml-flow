@@ -149,6 +149,18 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
           [ "trade_id", "trade_date", "trade_comments", "teams_involved", "team_count", "player_count", "pick_count", "cash_line_count", "tpe_line_count" ],
           [ [ 88001, "2025-02-07", "Deadline consolidation", "BOS, POR, ATL", 3, 2, 1, 1, 1 ] ]
         )
+      elsif sql.include?("FROM pcms.trade_teams tt") && sql.include?("AS players_out") && sql.include?("WHERE tt.trade_id IN (")
+        ActiveRecord::Result.new(
+          [ "trade_id", "team_id", "team_code", "team_name", "seqno", "players_out", "players_in", "picks_out", "picks_in", "cash_out", "cash_in", "tpe_out", "tpe_in" ],
+          [
+            [ 88001, 1610612738, "BOS", "Boston Celtics", 1, 1, 1, 1, 0, 2500000, 0, 0, 1 ],
+            [ 88001, 1610612757, "POR", "Portland Trail Blazers", 2, 1, 1, 0, 1, 0, 2500000, 0, 0 ],
+            [ 88001, 1610612737, "ATL", "Atlanta Hawks", 3, 0, 0, 0, 0, 0, 0, 1, 0 ],
+            [ 88002, 1610612747, "LAL", "Los Angeles Lakers", 1, 1, 0, 1, 2, 0, 0, 0, 0 ],
+            [ 88002, 1610612742, "DAL", "Dallas Mavericks", 2, 0, 1, 1, 0, 0, 0, 0, 0 ],
+            [ 88002, 1610612745, "HOU", "Houston Rockets", 3, 0, 0, 0, 0, 0, 0, 0, 0 ]
+          ]
+        )
       elsif sql.include?("FROM pcms.trade_teams tt") && sql.include?("AS players_out")
         ActiveRecord::Result.new(
           [ "team_id", "team_code", "team_name", "seqno", "players_out", "players_in", "picks_out", "picks_in", "cash_out", "cash_in", "tpe_out", "tpe_in" ],
@@ -400,17 +412,22 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "trades pane responds successfully without double render" do
+  test "trades pane responds successfully with flex rows and team impact grammar" do
     with_fake_connection do
       get "/trades/pane", params: { daterange: "season", team: "" }, headers: modern_headers
 
       assert_response :success
       assert_includes response.body, 'id="trades-results"'
+      assert_includes response.body, 'id="trades-flex-header"'
+      assert_includes response.body, "Team impact (OUT / IN)"
+      assert_includes response.body, "Net out"
+      assert_includes response.body, "OUT 1P + 1K"
+      assert_not_includes response.body, "<table"
       assert_not_includes response.body, "DoubleRenderError"
     end
   end
 
-  test "trades index exposes team, complexity, and composition controls plus sidebar surfaces" do
+  test "trades index exposes team, complexity, and composition controls plus impact-aware workspace" do
     with_fake_connection do
       get "/trades", params: { daterange: "season", team: "" }, headers: modern_headers
 
@@ -419,12 +436,15 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="trades-sort-select"'
       assert_includes response.body, 'id="trades-lens-select"'
       assert_includes response.body, 'id="trades-composition-select"'
+      assert_includes response.body, 'id="trades-flex-header"'
+      assert_includes response.body, "Team impact (OUT / IN)"
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, 'id="rightpanel-overlay"'
+      assert_not_includes response.body, "<table"
     end
   end
 
-  test "trades refresh preserves selected overlay and patches sort/lens/composition signals" do
+  test "trades refresh preserves selected overlay and patches impact-aware rows/sidebar" do
     with_fake_connection do
       get "/trades/sse/refresh", params: {
         daterange: "season",
@@ -439,13 +459,18 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_includes response.media_type, "text/event-stream"
       assert_includes response.body, 'id="trades-results"'
+      assert_includes response.body, 'id="trades-flex-header"'
       assert_includes response.body, 'id="rightpanel-base"'
+      assert_includes response.body, "Quick deals"
+      assert_includes response.body, "Net out"
+      assert_includes response.body, "OUT 1P + 1K"
       assert_includes response.body, "Trade #88001"
       assert_includes response.body, '"tradesort":"most_assets"'
       assert_includes response.body, '"tradelens":"complex"'
       assert_includes response.body, '"tradecomposition":"player_heavy"'
       assert_includes response.body, '"overlaytype":"trade"'
       assert_includes response.body, '"overlayid":"88001"'
+      assert_not_includes response.body, "<table"
     end
   end
 

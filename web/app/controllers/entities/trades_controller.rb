@@ -485,6 +485,7 @@ module Entities
       SQL
 
       annotate_trade_rows!(@trades)
+      attach_trade_team_impacts!(@trades)
       build_sidebar_summary!
     end
 
@@ -534,6 +535,65 @@ module Entities
       row["is_pick_heavy"] = is_pick_heavy
       row["is_cash_tpe_involved"] = is_cash_tpe_involved
       row["composition_labels"] = labels
+    end
+
+    def attach_trade_team_impacts!(rows)
+      trade_rows = Array(rows)
+      trade_ids = trade_rows.map { |row| row["trade_id"].to_i }.select(&:positive?).uniq
+      return if trade_ids.empty?
+
+      conn = ActiveRecord::Base.connection
+      ids_sql = trade_ids.join(",")
+
+      impact_rows = conn.exec_query(<<~SQL).to_a
+        SELECT
+          tt.trade_id,
+          tt.team_id,
+          tt.team_code,
+          team.team_name,
+          tt.seqno,
+          COUNT(ttd.trade_team_detail_id) FILTER (WHERE ttd.player_id IS NOT NULL AND ttd.is_sent = TRUE)::integer AS players_out,
+          COUNT(ttd.trade_team_detail_id) FILTER (WHERE ttd.player_id IS NOT NULL AND ttd.is_sent = FALSE)::integer AS players_in,
+          COUNT(ttd.trade_team_detail_id) FILTER (WHERE ttd.draft_pick_year IS NOT NULL AND ttd.is_sent = TRUE)::integer AS picks_out,
+          COUNT(ttd.trade_team_detail_id) FILTER (WHERE ttd.draft_pick_year IS NOT NULL AND ttd.is_sent = FALSE)::integer AS picks_in,
+          SUM(COALESCE(ttd.cash_amount, 0)) FILTER (WHERE COALESCE(ttd.cash_amount, 0) <> 0 AND ttd.is_sent = TRUE) AS cash_out,
+          SUM(COALESCE(ttd.cash_amount, 0)) FILTER (WHERE COALESCE(ttd.cash_amount, 0) <> 0 AND ttd.is_sent = FALSE) AS cash_in,
+          COUNT(ttd.trade_team_detail_id) FILTER (WHERE ttd.trade_entry_lk = 'TREX' AND ttd.is_sent = TRUE)::integer AS tpe_out,
+          COUNT(ttd.trade_team_detail_id) FILTER (WHERE ttd.trade_entry_lk = 'TREX' AND ttd.is_sent = FALSE)::integer AS tpe_in
+        FROM pcms.trade_teams tt
+        LEFT JOIN pcms.trade_team_details ttd
+          ON ttd.trade_id = tt.trade_id
+         AND ttd.team_id = tt.team_id
+        LEFT JOIN pcms.teams team
+          ON team.team_id = tt.team_id
+        WHERE tt.trade_id IN (#{ids_sql})
+        GROUP BY tt.trade_id, tt.team_id, tt.team_code, team.team_name, tt.seqno
+        ORDER BY tt.trade_id, tt.seqno, tt.team_code
+      SQL
+
+      grouped = impact_rows.group_by { |row| row["trade_id"].to_i }
+
+      trade_rows.each do |trade_row|
+        impacts = Array(grouped[trade_row["trade_id"].to_i]).map do |impact_row|
+          {
+            "team_id" => impact_row["team_id"],
+            "team_code" => impact_row["team_code"],
+            "team_name" => impact_row["team_name"],
+            "players_out" => impact_row["players_out"].to_i,
+            "players_in" => impact_row["players_in"].to_i,
+            "picks_out" => impact_row["picks_out"].to_i,
+            "picks_in" => impact_row["picks_in"].to_i,
+            "cash_out" => impact_row["cash_out"],
+            "cash_in" => impact_row["cash_in"],
+            "tpe_out" => impact_row["tpe_out"].to_i,
+            "tpe_in" => impact_row["tpe_in"].to_i
+          }
+        end
+
+        trade_row["team_impacts"] = impacts
+        trade_row["primary_team_impacts"] = impacts.first(2)
+        trade_row["additional_team_impact_count"] = [impacts.size - 2, 0].max
+      end
     end
 
     def load_sidebar_trade_payload(trade_id)

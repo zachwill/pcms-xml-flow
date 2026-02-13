@@ -295,27 +295,34 @@ Supervisor review (2026-02-13):
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P1] [INDEX] /trades — make team-in/team-out impact obvious from the list before opening overlay
-  - Problem: Trade rows show team count and assets, but not immediate net direction by team, causing extra overlay opens.
-  - Hypothesis: Compact net-flow summaries in-row will let users shortlist relevant deals faster.
-  - Scope (files):
-    - web/app/views/entities/trades/_results.html.erb
-    - web/app/views/entities/trades/_rightpanel_base.html.erb
-    - web/app/controllers/entities/trades_controller.rb
-    - web/app/controllers/entities/trades_sse_controller.rb
-    - web/test/integration/entities_pane_endpoints_test.rb
-  - Acceptance criteria:
-    - Trades list uses dense flex rows (no `<table>` in `_results`) while preserving current row density.
-    - Each trade row includes a compact team-impact summary (at least outgoing/incoming emphasis for primary teams).
-    - Composition and complexity lenses continue to behave consistently with summary labels.
-    - Sidebar quick deals include the same impact grammar as main rows.
-    - Overlay opens with unchanged route and selected-state behavior.
-  - Rubric (before → target):
+- [x] [P1] [INDEX] /trades — make team-in/team-out impact obvious from the list before opening overlay
+  - Problem: Trade rows showed team count and asset totals, but not per-team directionality, forcing extra overlay opens to understand incoming/outgoing impact.
+  - Hypothesis: Compact in-row OUT/IN team impact summaries would let users shortlist relevant deals before drill-in.
+  - What changed:
+    - Rebuilt `web/app/views/entities/trades/_results.html.erb` from table markup to dense flex rows with sticky header (`#trades-flex-header`) and preserved row click/keyboard overlay-open behavior.
+    - Added inline team-impact modules per trade row (primary teams + overflow count) showing OUT vs IN flows and net direction chips (`Net in` / `Net out` / `Balanced`).
+    - Extended trade index data preparation in `web/app/controllers/entities/trades_controller.rb`:
+      - added `attach_trade_team_impacts!` to hydrate per-trade team flow counts (players/picks/cash/TPE) for visible rows,
+      - attached `primary_team_impacts` and overflow metadata so main list and sidebar can render the same grammar.
+    - Added shared impact-format helpers in `web/app/helpers/entities_helper.rb` (`trade_impact_flow_label`, `trade_impact_net_variant`, `trade_impact_net_label`) to keep OUT/IN phrasing consistent across surfaces.
+    - Updated `web/app/views/entities/trades/_rightpanel_base.html.erb` quick deals to include the same impact grammar as list rows.
+    - Expanded `web/test/integration/entities_pane_endpoints_test.rb` trades assertions and fake DB fixtures to validate flex header presence, OUT/IN impact cues, and no table markup in pane/SSE responses.
+  - Why this improves the flow:
+    - Team directionality is now visible at glance in the feed, reducing unnecessary overlay opens for basic triage.
+    - Main list and quick deals use the same impact language, improving wayfinding continuity between canvas and sidebar.
+    - Existing lens/filter/sort and overlay state behavior remain stable, so predictability is preserved while scan speed increases.
+  - Verification:
+    - `cd web && bundle exec ruby -Itest test/integration/entities_pane_endpoints_test.rb -i "/trades pane responds successfully with flex rows and team impact grammar|trades refresh preserves selected overlay and patches impact-aware rows\/sidebar|trades refresh clears selected overlay when row no longer matches filters|trades refresh clears selected overlay when composition filter removes selected row|trades sidebar endpoints return overlay and clear works/"`
+    - `rg "<table" web/app/views/entities/trades/_results.html.erb`
+  - Rubric (before → after):
     - Scan speed: 3 → 5
     - Information hierarchy: 4 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Full-page `/trades` index integration assertions still hit the known `tailwind.css` test asset load-path issue in this environment; keep using focused pane/SSE subsets until the harness is fixed.
+    - Consider extracting a shared trades impact-row partial if similar OUT/IN grammar is introduced in overlays or other deal feeds.
   - Guardrails:
     - Do not modify Salary Book files.
 

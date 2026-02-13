@@ -47,6 +47,62 @@ module EntitiesHelper
     value ? "Yes" : "No"
   end
 
+  # Compact tokenization used by trades list + quick deals.
+  # Example: 2P + 1K + $2.5M cash + 1 TPE
+  def trade_impact_flow_label(impact_row, direction:)
+    return "—" if impact_row.blank?
+
+    players = trade_impact_value(impact_row, direction, :players)
+    picks = trade_impact_value(impact_row, direction, :picks)
+    cash = trade_impact_value(impact_row, direction, :cash)
+    tpe = trade_impact_value(impact_row, direction, :tpe)
+
+    tokens = []
+    tokens << "#{players}P" if players.positive?
+    tokens << "#{picks}K" if picks.positive?
+    tokens << "#{format_salary(cash)} cash" if cash.positive?
+    tokens << "#{tpe} TPE" if tpe.positive?
+
+    tokens.any? ? tokens.join(" + ") : "—"
+  end
+
+  def trade_impact_net_variant(impact_row)
+    return :balanced if impact_row.blank?
+
+    outgoing_weight = trade_impact_weight(impact_row, direction: :out)
+    incoming_weight = trade_impact_weight(impact_row, direction: :in)
+
+    return :net_in if incoming_weight > outgoing_weight
+    return :net_out if outgoing_weight > incoming_weight
+
+    :balanced
+  end
+
+  def trade_impact_net_label(impact_row)
+    case trade_impact_net_variant(impact_row)
+    when :net_in then "Net in"
+    when :net_out then "Net out"
+    else "Balanced"
+    end
+  end
+
+  def trade_impact_weight(impact_row, direction:)
+    players = trade_impact_value(impact_row, direction, :players)
+    picks = trade_impact_value(impact_row, direction, :picks)
+    cash = trade_impact_value(impact_row, direction, :cash)
+    tpe = trade_impact_value(impact_row, direction, :tpe)
+
+    players + picks + tpe + (cash.positive? ? 1 : 0)
+  end
+
+  def trade_impact_value(impact_row, direction, type)
+    suffix = direction.to_s == "out" ? "out" : "in"
+    key = "#{type}_#{suffix}"
+
+    value = impact_row[key] || impact_row[key.to_sym]
+    type == :cash ? value.to_f : value.to_i
+  end
+
   # Use numeric fallback when a team_id is present (handles non-NBA team codes safely).
   def safe_team_href(team_code:, team_id:)
     if team_id.present?

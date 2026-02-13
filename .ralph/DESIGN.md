@@ -177,24 +177,28 @@ Supervisor review — 2026-02-13 (latest design loop audit):
     - Consider extending provenance grammar to multi-token intent parsing (per-token source breakdown) if query complexity increases.
     - Stabilize full `entities_pane_endpoints_test.rb` runs in environments lacking compiled `tailwind.css`; SSE-focused transactions coverage remains passing.
 
-- [ ] [P2] [TOOL] /tools/two-way-utility — strengthen compare-card risk explanations
-  - Problem: Compare board shows deltas, but “why risky” context (hard limit vs estimated limit, threshold posture) is still implicit.
-  - Hypothesis: Compact risk-source annotations in compare cards will improve decision confidence without extra drill-ins.
-  - Scope (files):
+- [x] [P2] [TOOL] /tools/two-way-utility — strengthen compare-card risk explanations
+  - What changed (files):
     - web/app/views/tools/two_way_utility/_rightpanel_base.html.erb
+      - Added compare-card risk-source helpers (`limit_basis_label`, `threshold_posture`, `risk_source_summary`) so each pinned slot now states the source of risk explicitly.
+      - Added compact per-slot risk-source copy + chips (limit basis + threshold posture) directly inside Slot A/Slot B cards.
+      - Updated compare delta module with signal-basis language and a dynamic remaining-games label (`hard-limit` vs `estimate-aware`) plus threshold-posture summary for both players.
     - web/test/integration/tools_two_way_utility_test.rb
-  - Acceptance criteria:
-    - Compare cards surface concise risk-source context for each pinned player.
-    - Delta module language reflects whether signals are estimate-based or hard-limit based.
-    - Existing compare actions (`pin`, `clear_slot`, `clear_all`) and overlay preserve behavior remain unchanged.
-  - Rubric (before → target):
+      - Added SSE refresh assertions that verify hard-limit risk-source copy in both compare cards.
+      - Added SSE refresh coverage for mixed hard-limit/estimated comparisons and estimate-aware delta labeling.
+  - Why this improves the flow:
+    - Compare decisions now expose “why risky” inline (limit basis + threshold posture) without forcing overlay drill-ins.
+    - Delta interpretation now communicates whether comparisons are hard-limit-to-hard-limit or estimate-influenced, improving trust when slots mix signal types.
+    - Existing compare mechanics and overlay-preserve wiring remain unchanged; this is a clarity upgrade to the same workflow.
+  - Rubric (before → after):
     - Scan speed: 5 → 5
     - Information hierarchy: 5 → 5
     - Interaction predictability: 5 → 5
     - Density/readability: 5 → 5
     - Navigation/pivots: 5 → 5
-  - Guardrails:
-    - Do not modify Salary Book files.
+  - Follow-up tasks discovered:
+    - Consider reusing this risk-source sentence grammar in the player overlay compare controls so Slot cards and overlay copy stay perfectly aligned.
+    - Full-file `tools_two_way_utility_test.rb` still inherits the known missing `tailwind.css` layout-asset issue in this environment; SSE-focused coverage for this flow passes and is the active guardrail.
 
 - [ ] [P3] [TOOL] /tools/system-values — add tax-bracket step interpretation notes in overlay
   - Problem: Tax bracket overlays show values/deltas but not a quick reminder of incremental step interpretation for first-pass readers.

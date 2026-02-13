@@ -13,6 +13,27 @@
     ratio.present? ? "#{(ratio * 100).round}%" : "—"
   end
 
+  limit_basis_label = ->(row) { row["active_list_games_limit_is_estimate"] ? "Estimated limit" : "Hard limit" }
+  threshold_posture = lambda do |row|
+    remaining = row["remaining_active_list_games"]
+
+    if remaining.present?
+      remaining_value = remaining.to_i
+
+      if remaining_value <= 10
+        { label: "≤10 left", chip_class: "entity-chip entity-chip--danger", detail: "critical threshold posture (≤10 left)" }
+      elsif remaining_value <= 20
+        { label: "≤20 left", chip_class: "entity-chip entity-chip--warning", detail: "warning threshold posture (≤20 left)" }
+      else
+        { label: ">20 left", chip_class: "entity-chip entity-chip--muted", detail: "above warning threshold (>20 left)" }
+      end
+    else
+      { label: "Threshold n/a", chip_class: "entity-chip entity-chip--muted", detail: "threshold context unavailable" }
+    end
+  end
+
+  risk_source_summary = ->(row) { "#{limit_basis_label.call(row).downcase} · #{threshold_posture.call(row)[:detail]}" }
+
   refresh_base = "/tools/two-way-utility/sse/refresh?#{@state_query}"
   compare_state_suffix_expr = "'&selected_id=' + encodeURIComponent($overlaytype === 'player' ? $overlayid : '') + '&compare_a=' + encodeURIComponent($comparea || '') + '&compare_b=' + encodeURIComponent($compareb || '')"
 
@@ -22,6 +43,25 @@
 
     signing_a = format_date_short(@compare_a_row["signing_date"])
     signing_b = format_date_short(@compare_b_row["signing_date"])
+
+    compare_a_limit_basis = limit_basis_label.call(@compare_a_row)
+    compare_b_limit_basis = limit_basis_label.call(@compare_b_row)
+    compare_a_threshold = threshold_posture.call(@compare_a_row)
+    compare_b_threshold = threshold_posture.call(@compare_b_row)
+
+    delta_limit_basis_summary = if compare_a_limit_basis == compare_b_limit_basis
+      "Signal basis: both players are #{compare_a_limit_basis.downcase}."
+    else
+      "Signal basis: #{@compare_a_row["player_name"]} is #{compare_a_limit_basis.downcase}; #{@compare_b_row["player_name"]} is #{compare_b_limit_basis.downcase}."
+    end
+
+    delta_remaining_label = if compare_a_limit_basis == "Hard limit" && compare_b_limit_basis == "Hard limit"
+      "Remaining games (hard-limit)"
+    else
+      "Remaining games (estimate-aware)"
+    end
+
+    delta_threshold_summary = "Threshold posture — #{@compare_a_row["player_name"]}: #{compare_a_threshold[:detail]} · #{@compare_b_row["player_name"]}: #{compare_b_threshold[:detail]}"
 
     signing_delta_label = begin
       if @compare_a_row["signing_date"].present? && @compare_b_row["signing_date"].present?
@@ -114,10 +154,15 @@
               class="cursor-pointer w-full text-left"
               data-on:click="<%= open_expr %>"
             >
+              <% limit_basis = limit_basis_label.call(row) %>
+              <% threshold_context = threshold_posture.call(row) %>
               <div class="text-xs font-medium truncate"><%= row["player_name"] %></div>
               <div class="text-[10px] text-muted-foreground/80 tabular-nums"><%= row["team_code"] %> · <%= row["remaining_active_list_games"].presence || "—" %> left</div>
               <div class="text-[10px] text-muted-foreground/80 tabular-nums">Used <%= used_pct_label.call(row) %> · Signed <%= format_date_short(row["signing_date"]).presence || "—" %></div>
-              <div class="mt-1">
+              <div class="text-[10px] text-muted-foreground/80">Risk source: <%= risk_source_summary.call(row) %>.</div>
+              <div class="mt-1 flex flex-wrap items-center gap-1">
+                <span class="entity-chip entity-chip--muted"><%= limit_basis %></span>
+                <span class="<%= threshold_context[:chip_class] %>"><%= threshold_context[:label] %></span>
                 <span class="entity-chip entity-chip--muted" data-show="<%= slot_signal %> === '<%= row_id %>'" style="display: none;">Pinned</span>
               </div>
             </button>
@@ -131,8 +176,9 @@
     <% if compare_ready %>
       <div class="rounded border border-border/60 bg-muted/20 px-2.5 py-2 text-[11px] tabular-nums space-y-1.5">
         <div class="font-medium text-muted-foreground"><%= @compare_b_row["player_name"] %> vs <%= @compare_a_row["player_name"] %> delta</div>
+        <div class="text-[10px] text-muted-foreground/80"><%= delta_limit_basis_summary %></div>
         <div class="flex items-center justify-between gap-3">
-          <span class="text-muted-foreground">Remaining games</span>
+          <span class="text-muted-foreground"><%= delta_remaining_label %></span>
           <span class="font-medium <%= remaining_delta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' %>"><%= remaining_delta >= 0 ? '+' : '' %><%= remaining_delta %></span>
         </div>
         <div class="flex items-center justify-between gap-3">
@@ -143,6 +189,7 @@
           <span class="text-muted-foreground">Signing context</span>
           <span class="font-medium text-right"><%= signing_delta_label %></span>
         </div>
+        <div class="text-[10px] text-muted-foreground/80"><%= delta_threshold_summary %></div>
         <div class="text-[10px] text-muted-foreground/80"><%= @compare_a_row["player_name"] %>: <%= signing_a.presence || '—' %> · <%= @compare_b_row["player_name"] %>: <%= signing_b.presence || '—' %></div>
       </div>
     <% end %>

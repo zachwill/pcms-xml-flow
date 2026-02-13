@@ -214,15 +214,45 @@ class ToolsTwoWayUtilityTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "two-way utility restores compare board from query state" do
+  test "two-way utility refresh renders compare board risk-source context from compare params" do
     with_fake_connection do
-      get "/tools/two-way-utility", params: { compare_a: "1001", compare_b: "1002" }, headers: modern_headers
+      get "/tools/two-way-utility/sse/refresh", params: {
+        conference: "all",
+        team: "",
+        risk: "all",
+        compare_a: "1001",
+        compare_b: "1002"
+      }, headers: modern_headers
 
       assert_response :success
+      assert_includes response.media_type, "text/event-stream"
       assert_includes response.body, '"comparea":"1001"'
       assert_includes response.body, '"compareb":"1002"'
       assert_includes response.body, "Warning Wing vs Critical Prospect delta"
+      assert_includes response.body, "Risk source: hard limit · critical threshold posture (≤10 left)."
+      assert_includes response.body, "Risk source: hard limit · warning threshold posture (≤20 left)."
+      assert_includes response.body, "Signal basis: both players are hard limit."
+      assert_includes response.body, "Remaining games (hard-limit)"
       assert_includes response.body, "Signing context"
+    end
+  end
+
+  test "two-way utility refresh delta flags estimate-aware basis when either slot uses estimates" do
+    with_fake_connection do
+      get "/tools/two-way-utility/sse/refresh", params: {
+        conference: "all",
+        team: "",
+        risk: "all",
+        compare_a: "1001",
+        compare_b: "1003"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, "Estimate Guard vs Critical Prospect delta"
+      assert_includes response.body, "Signal basis: Critical Prospect is hard limit; Estimate Guard is estimated limit."
+      assert_includes response.body, "Remaining games (estimate-aware)"
+      assert_includes response.body, "Risk source: estimated limit · above warning threshold"
     end
   end
 

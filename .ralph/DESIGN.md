@@ -14,6 +14,13 @@ Rubric (1-5):
 4) Density/readability balance
 5) Navigation/pivots
 
+Supervisor review — 2026-02-13:
+- Reviewed recent commits for `/players`, `/trades`, and `/tools/team-summary` against workbench interaction goals.
+- Confirmed multi-region interactions use one SSE response and canonical patch boundaries (`#maincanvas`, `#rightpanel-base`, `#rightpanel-overlay`).
+- Confirmed no Salary Book files were modified.
+- Drift noted: `/trades` still needs asset-composition archetype lenses (player-heavy/pick-heavy/cash-TPE) beyond the shipped complexity triage controls.
+- Drift noted: `/tools/team-summary` still needs header sorting to route through SSE refresh (separate from the shipped inline pin compare flow).
+
 - [x] [P1] [INDEX] /players — isolate constrained cap commitments without losing drill-in context
   - Problem: Player scanning is strong, but users still need too many row opens to isolate constraint-heavy contracts across multiple cap years.
   - Hypothesis: Adding constraint-specific knobs + cap-horizon switching will make “find risky money fast” a first-pass scan flow.
@@ -44,6 +51,61 @@ Rubric (1-5):
   - Follow-up tasks discovered:
     - Add explicit “why matched” highlighting for the active constraint lens on row chips (currently chips are present but not lens-prioritized).
     - Consider exposing horizon-aware overlay KPI emphasis (currently overlay remains static 2025–2027 snapshot).
+  - Guardrails:
+    - Do not modify Salary Book files.
+
+- [x] [P1] [INDEX] /trades — complexity-first sorting + lens controls for fast deal triage
+  - Problem: Trades rows were dense but effectively single-order; users could not quickly re-rank toward most complex multi-asset deals.
+  - Hypothesis: A complexity lens plus explicit sort controls would make high-friction deal review a first-pass scan behavior from the index itself.
+  - Scope (files):
+    - web/app/views/entities/trades/index.html.erb
+    - web/app/views/entities/trades/_results.html.erb
+    - web/app/views/entities/trades/_rightpanel_base.html.erb
+    - web/app/controllers/entities/trades_controller.rb
+    - web/app/controllers/entities/trades_sse_controller.rb
+    - web/test/integration/entities_pane_endpoints_test.rb
+  - What changed:
+    - Added commandbar controls for `sort` (`newest`, `most_teams`, `most_assets`) and `complexity lens` (`all`, `complex`, `mega`).
+    - Extended index SQL rollups with `team_count`, `player_count`, `pick_count`, `cash_line_count`, `tpe_line_count`, and `complexity_asset_count` for deterministic ranking.
+    - Wired refresh through one `/trades/sse/refresh` response patching results + sidebar + overlay with overlay-preserve/clear semantics.
+    - Updated sidebar quick-deals and snapshot KPIs to mirror active sort/lens context.
+  - Why this improves the flow:
+    - Makes “find the messiest deals first” a direct commandbar action instead of manual row scanning.
+    - Keeps users in one explorer surface while preserving drill-in continuity.
+  - Rubric (before → after):
+    - Scan speed: 4 → 5
+    - Information hierarchy: 4 → 5
+    - Interaction predictability: 4 → 5
+    - Density/readability: 4 → 4
+    - Navigation/pivots: 4 → 5
+  - Corrective follow-up:
+    - Add explicit composition archetype filters (player-heavy vs pick-heavy vs cash/TPE-involved); complexity is now baseline but not the final intent lens.
+  - Guardrails:
+    - Do not modify Salary Book files.
+
+- [x] [P2] [TOOL] /tools/team-summary — inline Pin A / Pin B compare flow from dense rows
+  - Problem: Team Summary allowed one-row drill-ins, but lacked in-grid compare holds for two candidates while continuing to scan.
+  - Hypothesis: Inline compare pinning would improve planning flow by removing sidebar/open-close churn during shortlist decisions.
+  - Scope (files):
+    - web/app/views/tools/team_summary/_workspace_main.html.erb
+    - web/app/views/tools/team_summary/_compare_strip.html.erb
+    - web/app/views/tools/team_summary/_rightpanel_base.html.erb
+    - web/app/controllers/tools/team_summary_controller.rb
+    - web/test/integration/tools_team_summary_test.rb
+  - What changed:
+    - Added row-level Pin A / Pin B controls in the frozen identity column.
+    - Added compare strip cards with slot clear actions, delta summary, and direct focus-back into sidebar drill-in.
+    - Added `/tools/team-summary/sse/compare` multi-region SSE patching compare strip + rightpanel base + overlay with signal sync (`selectedteam`, `comparea`, `compareb`).
+    - Kept row density and sticky-column behavior while adding compare affordances.
+  - Why this improves the flow:
+    - Supports side-by-side planning decisions directly in the workbench table.
+    - Keeps interaction grammar predictable: pin updates are patch-driven and overlay-safe.
+  - Rubric (before → after):
+    - Scan speed: 4 → 5
+    - Information hierarchy: 4 → 5
+    - Interaction predictability: 4 → 5
+    - Density/readability: 5 → 5
+    - Navigation/pivots: 4 → 5
   - Guardrails:
     - Do not modify Salary Book files.
 
@@ -141,9 +203,9 @@ Rubric (1-5):
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P1] [INDEX] /trades — isolate deal archetypes (player-heavy vs pick-heavy) in one pass
-  - Problem: Complexity lens exists, but users still can’t quickly isolate by asset composition intent.
-  - Hypothesis: Asset-type composition knobs will improve “what kind of deal is this?” triage speed.
+- [ ] [P1] [INDEX] /trades — add composition archetype lenses on top of complexity baseline
+  - Problem: Complexity sorting/lensing is now in place, but users still can’t quickly isolate by asset-composition intent.
+  - Hypothesis: Asset-type composition knobs will complete the “what kind of deal is this?” triage loop.
   - Scope (files):
     - web/app/views/entities/trades/index.html.erb
     - web/app/views/entities/trades/_results.html.erb

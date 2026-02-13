@@ -1,16 +1,24 @@
+<% cap_horizon = @cap_horizon.to_i %>
+<% cap_horizon_label = format_year_label(cap_horizon) %>
+<% next_horizon = cap_horizon + 1 %>
+<% next_horizon_label = format_year_label(next_horizon) %>
+
 <main id="maincanvas" class="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-background">
   <div id="players-maincanvas" class="px-4 py-4 space-y-4">
     <div class="flex items-end justify-between gap-4">
       <div>
         <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Players workspace</div>
         <h2 class="text-sm font-semibold text-foreground">
-          Player directory
+          Constraint-first cap scan
           <span class="text-muted-foreground font-medium">· <%= @players.size %> rows</span>
         </h2>
       </div>
 
-      <div class="text-[11px] text-muted-foreground tabular-nums">
-        <span>Cap '<%= format_year_label(2025).split("-").first %> total: <%= format_compact_currency(@sidebar_summary[:total_cap]) %></span>
+      <div class="text-[11px] text-muted-foreground tabular-nums text-right">
+        <span>Cap <%= cap_horizon_label %> total: <%= format_compact_currency(@sidebar_summary[:total_cap]) %></span>
+        <% if @constraint_lens != "all" %>
+          <span class="ml-2">· <%= @sidebar_summary[:constraint_lens_label] %></span>
+        <% end %>
       </div>
     </div>
 
@@ -24,10 +32,11 @@
           <div class="flex items-center px-4 h-8 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
             <div class="w-64 shrink-0">Player</div>
             <div class="w-32 shrink-0">Team</div>
-            <div class="w-32 shrink-0">Status</div>
+            <div class="w-40 shrink-0">Constraint posture</div>
             <div class="w-44 shrink-0">Agent</div>
-            <div class="w-24 shrink-0 text-right font-mono">Cap 2025</div>
-            <div class="w-24 shrink-0 text-right font-mono">Total</div>
+            <div class="w-24 shrink-0 text-right font-mono tabular-nums">Cap <%= cap_horizon_label %></div>
+            <div class="w-24 shrink-0 text-right font-mono tabular-nums">Cap <%= next_horizon_label %></div>
+            <div class="w-24 shrink-0 text-right font-mono tabular-nums">Total</div>
           </div>
         </div>
 
@@ -41,11 +50,22 @@
             <% agent_path_value = agent_id.present? ? "/agents/#{agent_id}" : nil %>
 
             <% status_tokens = [] %>
-            <% status_tokens << "2W" if player["is_two_way"] %>
-            <% status_tokens << "Restricted" if player["is_trade_restricted_now"] %>
-            <% status_tokens << "No-Trade" if player["is_no_trade"] %>
+            <% status_tokens << ["2W", "entity-chip entity-chip--muted"] if player["is_two_way"] %>
+            <% status_tokens << ["TR", "entity-chip entity-chip--danger"] if player["is_trade_restricted_now"] %>
+            <% status_tokens << ["NTC", "entity-chip entity-chip--danger"] if player["is_no_trade"] %>
+
+            <% constraint_tokens = [] %>
+            <% constraint_tokens << ["Lock now", "entity-chip entity-chip--danger"] if player["has_lock_now"] %>
+            <% constraint_tokens << ["Options", "entity-chip entity-chip--accent"] if player["has_future_option"] %>
+            <% constraint_tokens << ["Non-Gtd", "entity-chip entity-chip--warning"] if player["has_non_guaranteed"] %>
+            <% constraint_tokens << ["Trade Kicker", "entity-chip entity-chip--warning"] if player["is_trade_bonus"] %>
+            <% if player["expires_after_horizon"] %>
+              <% constraint_tokens << ["Expires #{next_horizon}", "entity-chip entity-chip--muted"] %>
+            <% end %>
 
             <% row_click_expr = "$selectedplayerid = '#{player_id}'; $overlaytype = 'player'; @get('/players/sidebar/#{player_id}')" %>
+            <% cap_lens_value = player["cap_lens_value"] %>
+            <% cap_next_value = player["cap_next_value"] %>
 
             <div
               class="group cursor-pointer transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10"
@@ -115,15 +135,16 @@
                   <% end %>
                 </div>
 
-                <div class="w-32 shrink-0">
+                <div class="w-40 shrink-0">
                   <div class="entity-cell-two-line">
                     <div class="entity-cell-primary text-[11px]">
                       <%= player["player_status_name"].presence || player["player_status_lk"].presence || "—" %>
                     </div>
                     <div class="entity-cell-secondary gap-1">
-                      <% if status_tokens.any? %>
-                        <% status_tokens.each do |token| %>
-                          <span class="entity-chip entity-chip--muted"><%= token %></span>
+                      <% chips = constraint_tokens.presence || status_tokens %>
+                      <% if chips.present? %>
+                        <% chips.first(3).each do |label, classes| %>
+                          <span class="<%= classes %>"><%= label %></span>
                         <% end %>
                       <% else %>
                         <span>—</span>
@@ -148,7 +169,11 @@
                 </div>
 
                 <div class="w-24 shrink-0 flex items-center justify-end">
-                  <span class="font-mono tabular-nums text-sm"><%= player["cap_2025"].present? ? format_salary(player["cap_2025"]) : "—" %></span>
+                  <span class="font-mono tabular-nums text-sm"><%= cap_lens_value.present? ? format_salary(cap_lens_value) : "—" %></span>
+                </div>
+
+                <div class="w-24 shrink-0 flex items-center justify-end">
+                  <span class="font-mono tabular-nums text-sm <%= player['expires_after_horizon'] ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground' %>"><%= cap_next_value.present? ? format_salary(cap_next_value) : "—" %></span>
                 </div>
 
                 <div class="w-24 shrink-0 flex items-center justify-end">

@@ -43,6 +43,8 @@ module Entities
           playerquery: @query,
           playerteam: @team_lens.to_s,
           playerstatus: @status_lens.to_s,
+          playerconstraint: @constraint_lens.to_s,
+          playerhorizon: @cap_horizon.to_s,
           playersort: @sort_lens.to_s,
           overlaytype: resolved_overlay_type,
           selectedplayerid: resolved_selected_player_id

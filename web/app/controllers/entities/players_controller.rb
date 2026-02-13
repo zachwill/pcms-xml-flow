@@ -1,12 +1,10 @@
 module Entities
   class PlayersController < ApplicationController
+    INDEX_CAP_HORIZONS = [2025, 2026, 2027].freeze
+
     PLAYER_STATUS_LENSES = %w[all two_way restricted no_trade].freeze
-    PLAYER_SORT_LENSES = {
-      "cap_desc" => "sbw.cap_2025 DESC NULLS LAST, sbw.player_name ASC",
-      "cap_asc" => "sbw.cap_2025 ASC NULLS LAST, sbw.player_name ASC",
-      "name_asc" => "sbw.player_name ASC",
-      "name_desc" => "sbw.player_name DESC"
-    }.freeze
+    PLAYER_CONSTRAINT_LENSES = %w[all lock_now options non_guaranteed trade_kicker expiring].freeze
+    PLAYER_SORT_LENSES = %w[cap_desc cap_asc name_asc name_desc].freeze
 
     # GET /players
     def index
@@ -116,8 +114,14 @@ module Entities
       requested_status = params[:status].to_s.strip
       @status_lens = PLAYER_STATUS_LENSES.include?(requested_status) ? requested_status : "all"
 
+      requested_constraint = params[:constraint].to_s.strip
+      @constraint_lens = PLAYER_CONSTRAINT_LENSES.include?(requested_constraint) ? requested_constraint : "all"
+
+      requested_horizon = normalize_cap_horizon_param(params[:horizon])
+      @cap_horizon = requested_horizon || INDEX_CAP_HORIZONS.first
+
       requested_sort = params[:sort].to_s.strip
-      @sort_lens = PLAYER_SORT_LENSES.key?(requested_sort) ? requested_sort : "cap_desc"
+      @sort_lens = PLAYER_SORT_LENSES.include?(requested_sort) ? requested_sort : "cap_desc"
 
       @selected_player_id = normalize_selected_player_id_param(params[:selected_id])
     end
@@ -138,11 +142,33 @@ module Entities
       conn = ActiveRecord::Base.connection
       where_clauses = []
 
+      horizon_cap_column = "sbw.cap_#{@cap_horizon}"
+      next_horizon_year = @cap_horizon + 1
+      next_cap_column = "sbw.cap_#{next_horizon_year}"
+
+      option_presence_sql = (2026..2030).map do |year|
+        "NULLIF(UPPER(COALESCE(sbw.option_#{year}, '')), 'NONE') IS NOT NULL"
+      end.join(" OR ")
+
+      non_guaranteed_presence_sql = (2025..2030).map do |year|
+        "COALESCE(sbw.is_non_guaranteed_#{year}, false) = true"
+      end.join(" OR ")
+
+      lock_now_sql = <<~SQL.squish
+        (
+          COALESCE(sbw.is_trade_restricted_now, false) = true
+          OR COALESCE(sbw.is_trade_consent_required_now, false) = true
+          OR COALESCE(sbw.is_no_trade, false) = true
+        )
+      SQL
+
+      expiring_sql = "COALESCE(#{horizon_cap_column}, 0) > 0 AND COALESCE(#{next_cap_column}, 0) = 0"
+
       if @query.present?
         if @query.match?(/\A\d+\z/)
           where_clauses << "sbw.player_id = #{conn.quote(@query.to_i)}"
         else
-          where_clauses << "sbw.player_name ILIKE #{conn.quote("%#{@query}%")}" 
+          where_clauses << "sbw.player_name ILIKE #{conn.quote("%#{@query}%")}"
         end
       end
 
@@ -162,8 +188,21 @@ module Entities
         where_clauses << "COALESCE(sbw.is_no_trade, false) = true"
       end
 
+      case @constraint_lens
+      when "lock_now"
+        where_clauses << lock_now_sql
+      when "options"
+        where_clauses << "(#{option_presence_sql})"
+      when "non_guaranteed"
+        where_clauses << "(#{non_guaranteed_presence_sql})"
+      when "trade_kicker"
+        where_clauses << "COALESCE(sbw.is_trade_bonus, false) = true"
+      when "expiring"
+        where_clauses << "(#{expiring_sql})"
+      end
+
       where_sql = where_clauses.any? ? where_clauses.join(" AND ") : "1 = 1"
-      sort_sql = PLAYER_SORT_LENSES.fetch(@sort_lens)
+      sort_sql = index_sort_sql(horizon_cap_column: horizon_cap_column)
       limit = @query.present? ? 240 : 140
 
       @players = conn.exec_query(<<~SQL).to_a
@@ -177,8 +216,18 @@ module Entities
           sbw.agent_name,
           sbw.is_two_way,
           sbw.is_trade_restricted_now,
+          sbw.is_trade_consent_required_now,
           sbw.is_no_trade,
+          sbw.is_trade_bonus,
+          (#{option_presence_sql}) AS has_future_option,
+          (#{non_guaranteed_presence_sql}) AS has_non_guaranteed,
+          #{lock_now_sql} AS has_lock_now,
+          (#{expiring_sql}) AS expires_after_horizon,
+          #{horizon_cap_column}::numeric AS cap_lens_value,
+          #{next_cap_column}::numeric AS cap_next_value,
           sbw.cap_2025::numeric AS cap_2025,
+          sbw.cap_2026::numeric AS cap_2026,
+          sbw.cap_2027::numeric AS cap_2027,
           sbw.total_salary_from_2025::numeric AS total_salary_from_2025,
           p.years_of_service,
           p.player_status_lk,
@@ -204,9 +253,14 @@ module Entities
       active_filters << %(Search: "#{@query}") if @query.present?
       active_filters << "Team: #{team_lens_label(@team_lens)}" unless @team_lens == "ALL"
       active_filters << "Status: #{status_lens_label(@status_lens)}" unless @status_lens == "all"
+      active_filters << "Constraint: #{constraint_lens_label(@constraint_lens)}" unless @constraint_lens == "all"
+      active_filters << "Horizon: #{cap_horizon_label(@cap_horizon)}" unless @cap_horizon == INDEX_CAP_HORIZONS.first
       active_filters << "Sort: #{sort_lens_label(@sort_lens)}" unless @sort_lens == "cap_desc"
 
-      top_rows = rows.first(14)
+      top_rows = rows
+                 .sort_by { |row| [-(row["cap_lens_value"].to_f), row["player_name"].to_s] }
+                 .first(14)
+
       selected_id = selected_player_id.to_i
       if selected_id.positive?
         selected_row = rows.find { |row| row["player_id"].to_i == selected_id }
@@ -221,7 +275,12 @@ module Entities
         two_way_count: rows.count { |row| row["is_two_way"] },
         restricted_count: rows.count { |row| row["is_trade_restricted_now"] },
         no_trade_count: rows.count { |row| row["is_no_trade"] },
-        total_cap: rows.sum { |row| row["cap_2025"].to_f },
+        constrained_count: rows.count { |row| constrained_row?(row) },
+        cap_horizon: @cap_horizon,
+        cap_horizon_label: cap_horizon_label(@cap_horizon),
+        constraint_lens: @constraint_lens,
+        constraint_lens_label: constraint_lens_label(@constraint_lens),
+        total_cap: rows.sum { |row| row["cap_lens_value"].to_f },
         filters: active_filters,
         top_rows: top_rows
       }
@@ -245,13 +304,53 @@ module Entities
       end
     end
 
+    def constraint_lens_label(constraint_lens)
+      case constraint_lens
+      when "lock_now" then "Lock now"
+      when "options" then "Options ahead"
+      when "non_guaranteed" then "Non-guaranteed"
+      when "trade_kicker" then "Trade kicker"
+      when "expiring" then "Expiring after horizon"
+      else "All commitments"
+      end
+    end
+
+    def cap_horizon_label(horizon_year)
+      year = horizon_year.to_i
+      "#{year.to_s[-2..]}-#{(year + 1).to_s[-2..]}"
+    end
+
     def sort_lens_label(sort_lens)
       case sort_lens
-      when "cap_asc" then "Cap ascending"
+      when "cap_asc" then "Cap #{cap_horizon_label(@cap_horizon)} ascending"
       when "name_asc" then "Name A→Z"
       when "name_desc" then "Name Z→A"
-      else "Cap descending"
+      else "Cap #{cap_horizon_label(@cap_horizon)} descending"
       end
+    end
+
+    def index_sort_sql(horizon_cap_column:)
+      case @sort_lens
+      when "cap_asc"
+        "#{horizon_cap_column} ASC NULLS LAST, sbw.player_name ASC"
+      when "name_asc"
+        "sbw.player_name ASC"
+      when "name_desc"
+        "sbw.player_name DESC"
+      else
+        "#{horizon_cap_column} DESC NULLS LAST, sbw.player_name ASC"
+      end
+    end
+
+    def constrained_row?(row)
+      row["has_lock_now"] || row["is_trade_bonus"] || row["has_future_option"] || row["has_non_guaranteed"]
+    end
+
+    def normalize_cap_horizon_param(raw)
+      horizon = Integer(raw.to_s.strip, 10)
+      INDEX_CAP_HORIZONS.include?(horizon) ? horizon : nil
+    rescue ArgumentError, TypeError
+      nil
     end
 
     def normalize_selected_player_id_param(raw)

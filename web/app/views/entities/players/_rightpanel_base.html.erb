@@ -1,5 +1,7 @@
 <% if @sidebar_summary.present? %>
   <% summary = @sidebar_summary %>
+  <% cap_horizon = summary[:cap_horizon].to_i %>
+  <% cap_horizon_label = summary[:cap_horizon_label].presence || format_year_label(cap_horizon) %>
 
   <div id="rightpanel-base" class="space-y-4">
     <div class="rounded-lg border border-border bg-background p-3 space-y-3">
@@ -31,8 +33,8 @@
         } %>
 
         <%= render partial: "tools/salary_book/kpi_cell", locals: {
-          label: "Restricted",
-          value: summary[:restricted_count].to_i.to_s,
+          label: "Constrained",
+          value: summary[:constrained_count].to_i.to_s,
           class_name: "w-full"
         } %>
       </div>
@@ -45,7 +47,7 @@
         } %>
 
         <%= render partial: "tools/salary_book/kpi_cell", locals: {
-          label: "Cap '25",
+          label: "Cap #{cap_horizon_label}",
           value: format_compact_currency(summary[:total_cap]),
           value_class_name: "text-[11px]",
           class_name: "w-full"
@@ -62,8 +64,11 @@
     </div>
 
     <div class="rounded-lg border border-border bg-background">
-      <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">
-        Top cap hits
+      <div class="px-3 py-2 border-b border-border">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Top cap hits · <%= cap_horizon_label %></div>
+        <% if summary[:constraint_lens].to_s != "all" %>
+          <div class="text-[10px] text-muted-foreground/70"><%= summary[:constraint_lens_label] %></div>
+        <% end %>
       </div>
 
       <% top_rows = Array(summary[:top_rows]) %>
@@ -75,6 +80,13 @@
             <% player_id = row["player_id"] %>
             <% open_expr = "$selectedplayerid = '#{player_id}'; $overlaytype = 'player'; @get('/players/sidebar/#{player_id}')" %>
 
+            <% row_tags = [] %>
+            <% row_tags << "Lock" if row["has_lock_now"] %>
+            <% row_tags << "Option" if row["has_future_option"] %>
+            <% row_tags << "NG" if row["has_non_guaranteed"] %>
+            <% row_tags << "TK" if row["is_trade_bonus"] %>
+            <% row_tags << "Exp" if row["expires_after_horizon"] %>
+
             <button
               type="button"
               class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
@@ -84,10 +96,10 @@
               <div class="entity-cell-two-line">
                 <div class="entity-cell-primary justify-between gap-2">
                   <a href="/players/<%= player_id %>" class="truncate font-medium hover:underline" onclick="event.stopPropagation()"><%= row["player_name"] %></a>
-                  <span class="font-mono tabular-nums text-[11px] shrink-0"><%= row["cap_2025"].present? ? format_compact_currency(row["cap_2025"]) : "—" %></span>
+                  <span class="font-mono tabular-nums text-[11px] shrink-0"><%= row["cap_lens_value"].present? ? format_compact_currency(row["cap_lens_value"]) : "—" %></span>
                 </div>
                 <div class="entity-cell-secondary justify-between gap-2">
-                  <span class="truncate"><%= row["team_code"].presence || "Free Agent" %> · <%= row["agent_name"].presence || "No agent" %></span>
+                  <span class="truncate"><%= row["team_code"].presence || "Free Agent" %> · <%= row_tags.presence&.join(" · ") || "No active constraints" %></span>
                   <% if row["is_two_way"] %>
                     <span class="entity-chip entity-chip--muted">2W</span>
                   <% end %>

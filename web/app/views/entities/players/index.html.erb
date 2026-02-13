@@ -4,6 +4,8 @@
   pane_query_expr = "'q=' + encodeURIComponent($playerquery) +
     '&team=' + encodeURIComponent($playerteam) +
     '&status=' + encodeURIComponent($playerstatus) +
+    '&constraint=' + encodeURIComponent($playerconstraint) +
+    '&horizon=' + encodeURIComponent($playerhorizon) +
     '&sort=' + encodeURIComponent($playersort)"
 
   selected_overlay_query_expr = "'selected_id=' + encodeURIComponent($overlaytype === 'player' ? $selectedplayerid : '')"
@@ -13,7 +15,7 @@
   submit_search_expr = "evt.preventDefault(); #{refresh_expr}"
   clear_search_expr = "$playerquery = ''; #{refresh_expr}"
 
-  signals_literal = "{ playerquery: #{@query.to_json}, playerteam: #{@team_lens.to_json}, playerstatus: #{@status_lens.to_json}, playersort: #{@sort_lens.to_json}, selectedplayerid: '', overlaytype: 'none' }"
+  signals_literal = "{ playerquery: #{@query.to_json}, playerteam: #{@team_lens.to_json}, playerstatus: #{@status_lens.to_json}, playerconstraint: #{@constraint_lens.to_json}, playerhorizon: #{@cap_horizon.to_s.to_json}, playersort: #{@sort_lens.to_json}, selectedplayerid: '', overlaytype: 'none' }"
 %>
 
 <div id="players-workspace" class="h-screen w-screen flex flex-col overflow-hidden bg-background" data-signals="<%= signals_literal %>">
@@ -99,6 +101,45 @@
                 data-on:change="if (el.checked) { <%= refresh_expr %>; }"
               />
               <span class="text-[11px] leading-none select-none" data-class="{ 'text-foreground font-semibold': $playerstatus === '<%= status_value %>', 'text-muted-foreground': $playerstatus !== '<%= status_value %>' }"><%= status_label %></span>
+            </label>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="min-w-[10rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Constraint lens</div>
+        <select
+          id="players-constraint-lens"
+          class="h-7 w-44 rounded border border-border bg-background px-2 text-xs text-foreground"
+          data-bind="playerconstraint"
+          data-on:change="<%= refresh_expr %>"
+        >
+          <option value="all" <%= "selected" if @constraint_lens == "all" %>>All commitments</option>
+          <option value="lock_now" <%= "selected" if @constraint_lens == "lock_now" %>>Lock now (TR/NTC/consent)</option>
+          <option value="options" <%= "selected" if @constraint_lens == "options" %>>Options ahead</option>
+          <option value="non_guaranteed" <%= "selected" if @constraint_lens == "non_guaranteed" %>>Non-guaranteed years</option>
+          <option value="trade_kicker" <%= "selected" if @constraint_lens == "trade_kicker" %>>Trade kicker</option>
+          <option value="expiring" <%= "selected" if @constraint_lens == "expiring" %>>Expiring after horizon</option>
+        </select>
+      </div>
+
+      <div class="min-w-[9rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Cap horizon</div>
+        <div class="space-y-1">
+          <% [2025, 2026, 2027].each do |horizon_year| %>
+            <% horizon_label = format_year_label(horizon_year) %>
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input
+                id="players-cap-horizon-<%= horizon_year %>"
+                type="radio"
+                name="players-cap-horizon"
+                value="<%= horizon_year %>"
+                class="size-3.5 accent-primary"
+                <%= "checked" if @cap_horizon.to_i == horizon_year %>
+                data-bind="playerhorizon"
+                data-on:change="if (el.checked) { <%= refresh_expr %>; }"
+              />
+              <span class="text-[11px] leading-none select-none" data-class="{ 'text-foreground font-semibold': String($playerhorizon) === '<%= horizon_year %>', 'text-muted-foreground': String($playerhorizon) !== '<%= horizon_year %>' }">Cap <%= horizon_label %></span>
             </label>
           <% end %>
         </div>

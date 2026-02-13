@@ -14,7 +14,7 @@ Rubric (1-5):
 4) Density/readability balance
 5) Navigation/pivots
 
-- [ ] [P1] [INDEX] /players — isolate constrained cap commitments without losing drill-in context
+- [x] [P1] [INDEX] /players — isolate constrained cap commitments without losing drill-in context
   - Problem: Player scanning is strong, but users still need too many row opens to isolate constraint-heavy contracts across multiple cap years.
   - Hypothesis: Adding constraint-specific knobs + cap-horizon switching will make “find risky money fast” a first-pass scan flow.
   - Scope (files):
@@ -24,17 +24,26 @@ Rubric (1-5):
     - web/app/controllers/entities/players_controller.rb
     - web/app/controllers/entities/players_sse_controller.rb
     - web/test/integration/entities_players_index_test.rb
-  - Acceptance criteria:
-    - Commandbar exposes a discoverable constraint lens (beyond current status radios) and a cap-horizon knob.
-    - Main rows render horizon-aware cap values while remaining dense and interactive.
-    - Changing any knob uses one SSE refresh and preserves selected overlay when the selected player remains visible.
-    - Sidebar quick list reflects the same horizon/constraint context and keeps selected-state visibility.
-  - Rubric (before → target):
+  - What changed:
+    - Added a commandbar **Constraint lens** (`all`, `lock_now`, `options`, `non_guaranteed`, `trade_kicker`, `expiring`) and a **Cap horizon** knob (`2025`, `2026`, `2027`) to `/players`.
+    - Extended index query/filter state in `PlayersController` with `constraint` + `horizon`, including horizon-aware cap sort and SQL-backed constraint predicates.
+    - Updated main rows to render horizon-aware cap columns (`Cap <horizon>`, `Cap <horizon+1>`) plus dense constraint posture chips.
+    - Updated right sidebar base KPIs + quick list to use the same horizon/constraint context and horizon-aware cap values.
+    - Extended SSE signal patching (`playerconstraint`, `playerhorizon`) so knob changes still run through one `/players/sse/refresh` multi-region response and preserve overlay when visible.
+    - Expanded integration coverage for new commandbar knobs and horizon/constraint SSE behavior.
+  - Why this improves the flow:
+    - Users can now isolate risk-heavy commitments in one pass from the index (without repeatedly opening overlays), while keeping drill-in continuity when iterating filters.
+    - Horizon switching makes cap risk scanning year-aware without losing row density or pivot affordances.
+    - Sidebar quick list now mirrors the same lens context as the table, reducing mental mismatch.
+  - Rubric (before → after):
     - Scan speed: 4 → 5
     - Information hierarchy: 4 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 4 → 5
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Add explicit “why matched” highlighting for the active constraint lens on row chips (currently chips are present but not lens-prioritized).
+    - Consider exposing horizon-aware overlay KPI emphasis (currently overlay remains static 2025–2027 snapshot).
   - Guardrails:
     - Do not modify Salary Book files.
 

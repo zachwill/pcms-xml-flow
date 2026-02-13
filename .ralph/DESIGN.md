@@ -40,6 +40,26 @@ Supervisor review — 2026-02-13 (pass 4):
   - `/agencies`: posture radios (`inactive_live_book`, `live_book_risk`) still lack explicit threshold/helper copy.
 - Added fresh unchecked tasks below so the worker can resume with flow-level outcomes.
 
+Supervisor review — 2026-02-13 (pass 5):
+- Reviewed the latest `web/` design commits from this loop:
+  - `b02c869` `/agencies` posture thresholds
+  - `f9a2001` `/tools/system-values` Minimum Salary drill-ins
+  - `6e47367` `/tools/system-values` Rookie Scale drill-ins
+  - `6563ee6` `/tools/two-way-utility` overlay compare pin actions
+- Scope discipline held: each commit stayed on one explicit surface + one user flow (no grep-style cosmetic churn).
+- Track discipline held: three TOOL commits + one INDEX commit.
+- Re-verified Datastar contract correctness:
+  - `/tools/system-values/sse/refresh` remains one SSE response patching `#commandbar`, `#maincanvas`, `#rightpanel-base`, and `#rightpanel-overlay`, then patching overlay signals.
+  - `/tools/two-way-utility/sse/refresh` remains one SSE response patching main + sidebar + overlay + compare/overlay signals.
+  - `/agencies/sse/refresh` still preserves the canonical multi-region workbench update path.
+- Salary Book guardrail still holds: no Salary Book files were modified.
+- `.ralph/DESIGN.md` evidence remains complete for all four commits (problem, hypothesis, scope, why, rubric deltas).
+- Drift status: none detected; no cosmetic-only reverts required.
+- Outcome-focused follow-ups for next loop:
+  - `/tools/system-values`: add metric-cell click-through for Rookie rows so overlay headline metric can switch from Year 1 to the clicked column.
+  - `/agencies`: add compact helper copy defining what counts toward `restrictions` (no-trade, kicker, trade-restricted) near posture controls.
+  - `/tools/two-way-utility`: reduce compare-action expression drift by centralizing shared refresh query assembly used by row/base/overlay controls.
+
 - [x] [P1] [INDEX] /teams — keep compare-slot URL state synced during row pin/clear actions
   - Problem: Team compare pinning works in-flow, but pin/clear actions do not immediately update URL query state, making shared/reloaded compare sessions inconsistent.
   - Hypothesis: Applying `replaceState` on pin/clear SSE actions will preserve shareability and reduce confusion when users bookmark or reload mid-triage.

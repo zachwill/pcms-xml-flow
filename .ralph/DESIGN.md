@@ -176,26 +176,41 @@ Supervisor review — 2026-02-13:
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P1] [INDEX] /drafts — sort for ownership complexity to surface high-risk pick situations first
+- [x] [P1] [INDEX] /drafts — sort for ownership complexity to surface high-risk pick situations first
   - Problem: Draft picks/selections views are dense, but users cannot quickly reorder by complexity/provenance risk.
   - Hypothesis: View-aware sort/lens controls will turn the page into a triage board instead of a static listing.
   - Scope (files):
     - web/app/views/entities/drafts/index.html.erb
     - web/app/views/entities/drafts/_results.html.erb
+    - web/app/views/entities/drafts/_rightpanel_base.html.erb
     - web/app/controllers/entities/drafts_controller.rb
     - web/app/controllers/entities/drafts_sse_controller.rb
     - web/test/integration/entities_pane_endpoints_test.rb
-  - Acceptance criteria:
-    - Commandbar adds explicit sort options per draft view (picks/selections/grid).
-    - Picks/selections can be sorted by provenance/complexity-oriented criteria in addition to default order.
-    - Sort/lens changes patch results + sidebar + overlay via one SSE response.
-    - Existing overlay preserve/clear behavior remains deterministic across mode changes.
-  - Rubric (before → target):
+  - What changed:
+    - Added commandbar controls for **Sort** and **Ownership lens** with view-aware sort labels for picks/selections/grid (`board`, `risk`, `provenance`) plus shared lenses (`all`, `at_risk`, `critical`).
+    - Extended `/drafts` URL + Datastar signals to carry `sort`/`lens`, and updated `/drafts/sse/refresh` to patch those signals in the same one-response multi-region SSE update.
+    - Extended picks query with provenance/risk rollups (`provenance_trade_count`, `ownership_risk_score`, line counts), plus risk/provenance ordering and lens filtering.
+    - Extended selections query with provenance counts + `provenance_risk_score`, plus risk/provenance ordering and lens filtering.
+    - Extended grid rows with provenance counts, lens filtering for risk tiers, and team-row ordering by risk/provenance so high-encumbrance teams surface first.
+    - Updated results table + sidebar base to expose the active sort/lens context and visible complexity cues (risk/provenance columns/chips) so ranking rationale is legible during scan.
+    - Expanded integration coverage for new drafts commandbar controls and SSE signal patching of sort/lens while preserving existing overlay preserve/clear semantics.
+  - Why this improves the flow:
+    - Drafts now behaves like a triage board: users can immediately route to the riskiest ownership situations instead of manually scanning default order.
+    - The same sort/lens grammar works across picks, selections, and grid, which improves predictability while still being view-appropriate.
+    - Sidebar quick lists now mirror active ranking context, reducing mismatch between main list order and sidebar wayfinding.
+  - Verification:
+    - `cd web && bundle exec rails test test/integration/entities_pane_endpoints_test.rb` *(fails in this environment: missing gem `lucide-rails-0.7.3`)*
+    - `cd web && ruby -c app/controllers/entities/drafts_controller.rb && ruby -c app/controllers/entities/drafts_sse_controller.rb && ruby -c test/integration/entities_pane_endpoints_test.rb` *(syntax OK)*
+    - `ruby -rerb -e "['web/app/views/entities/drafts/index.html.erb','web/app/views/entities/drafts/_results.html.erb','web/app/views/entities/drafts/_rightpanel_base.html.erb'].each { |p| ERB.new(File.read(p)).src }; puts 'ERB OK'"`
+  - Rubric (before → after):
     - Scan speed: 4 → 5
     - Information hierarchy: 4 → 5
     - Interaction predictability: 5 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 5 → 5
+  - Follow-up tasks discovered:
+    - Add per-row “why matched lens” emphasis (e.g., highlight critical trigger type: forfeited vs conditional vs provenance depth) for faster trust in filtered states.
+    - Consider a dedicated grid sidebar quick module for top-risk teams/cells to reduce main-table horizontal scan when using `risk`/`provenance` sort.
   - Guardrails:
     - Do not modify Salary Book files.
 

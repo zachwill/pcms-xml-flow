@@ -9,6 +9,7 @@
         <% else %>
           Draft selections · <%= @year %>
         <% end %>
+        · <%= @sort_label %>
       </h2>
       <p class="text-[11px] text-muted-foreground mt-1">
         <% if @view == "grid" %>
@@ -17,6 +18,9 @@
           Click a pick row to inspect ownership chain, protections, and pivots.
         <% else %>
           Click a selection row to trace pre-draft provenance and linked transactions.
+        <% end %>
+        <% if @lens != "all" %>
+          <span class="font-medium text-foreground">Lens: <%= @lens_label %></span>
         <% end %>
       </p>
     </div>
@@ -97,6 +101,9 @@
                           <% if cell[:has_conditional] && !cell[:has_swap] %>
                             <span class="inline-flex items-center px-1 py-0 rounded text-[9px] font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 mr-0.5">C</span>
                           <% end %>
+                          <% if cell[:provenance_trade_count].to_i.positive? %>
+                            <span class="inline-flex items-center px-1 py-0 rounded text-[9px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 mr-0.5">P<%= cell[:provenance_trade_count].to_i %></span>
+                          <% end %>
                           <span class="<%= cell[:has_conditional] ? 'italic' : '' %> <%= cell[:has_forfeited] ? 'line-through text-muted-foreground/60' : (cell[:has_outgoing] ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground') %>"><%= truncate(cell_text, length: 44) %></span>
                         </button>
                       <% else %>
@@ -128,6 +135,7 @@
               <th class="text-left px-3 py-2 font-medium">Current owner</th>
               <th class="text-left px-3 py-2 font-medium">Status</th>
               <th class="text-left px-3 py-2 font-medium">Protections</th>
+              <th class="text-right px-3 py-2 font-medium">Complexity</th>
             </tr>
           <% else %>
             <tr>
@@ -135,6 +143,7 @@
               <th class="text-left px-3 py-2 font-medium">Player</th>
               <th class="text-left px-3 py-2 font-medium">Drafting team</th>
               <th class="text-left px-3 py-2 font-medium">Transaction</th>
+              <th class="text-right px-3 py-2 font-medium">Provenance</th>
             </tr>
           <% end %>
         </thead>
@@ -191,6 +200,14 @@
                   </div>
                 </td>
                 <td class="px-3 py-2 text-muted-foreground text-[11px] max-w-xs truncate"><%= pick["protections_summary"].presence || "—" %></td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums">
+                  <% risk_score = pick["ownership_risk_score"].to_i %>
+                  <% provenance_count = pick["provenance_trade_count"].to_i %>
+                  <div class="space-y-0.5">
+                    <div class="font-medium"><%= risk_score %></div>
+                    <div class="text-[10px] leading-none text-muted-foreground">P<%= provenance_count %> · <%= pick["asset_line_count"].to_i %> lines</div>
+                  </div>
+                </td>
               </tr>
             <% end %>
           <% else %>
@@ -241,6 +258,18 @@
                       <% end %>
                     </div>
                   </div>
+                </td>
+                <td class="px-3 py-2 text-right font-mono tabular-nums">
+                  <% provenance_count = sel["provenance_trade_count"].to_i %>
+                  <% risk_score = sel["provenance_risk_score"].to_i %>
+                  <% if provenance_count.positive? || risk_score.positive? %>
+                    <div class="space-y-0.5">
+                      <div class="font-medium"><%= provenance_count %></div>
+                      <div class="text-[10px] leading-none text-muted-foreground">risk <%= risk_score %></div>
+                    </div>
+                  <% else %>
+                    <span class="text-muted-foreground">—</span>
+                  <% end %>
                 </td>
               </tr>
             <% end %>

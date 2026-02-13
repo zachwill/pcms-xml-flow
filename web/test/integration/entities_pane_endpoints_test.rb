@@ -233,7 +233,7 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
 
   test "drafts pane responds successfully without double render" do
     with_fake_connection do
-      get "/drafts/pane", params: { view: "picks", year: "2027", round: "all", team: "" }, headers: modern_headers
+      get "/drafts/pane", params: { view: "picks", year: "2027", round: "all", team: "", sort: "risk", lens: "at_risk" }, headers: modern_headers
 
       assert_response :success
       assert_includes response.body, 'id="drafts-results"'
@@ -243,18 +243,20 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
 
   test "drafts index exposes commandbar ownership controls and sidebar base" do
     with_fake_connection do
-      get "/drafts", params: { view: "picks", year: "2027", round: "all", team: "" }, headers: modern_headers
+      get "/drafts", params: { view: "picks", year: "2027", round: "all", team: "", sort: "risk", lens: "at_risk" }, headers: modern_headers
 
       assert_response :success
       assert_includes response.body, 'id="draft-team-select"'
       assert_includes response.body, 'id="draft-year-select"'
+      assert_includes response.body, 'id="draft-sort-select-picks"'
+      assert_includes response.body, 'id="draft-lens-select"'
       assert_includes response.body, 'id="rightpanel-base"'
     end
   end
 
   test "drafts refresh uses one sse response for multi-region patches" do
     with_fake_connection do
-      get "/drafts/sse/refresh", params: { view: "picks", year: "2027", round: "all", team: "" }, headers: modern_headers
+      get "/drafts/sse/refresh", params: { view: "picks", year: "2027", round: "all", team: "", sort: "risk", lens: "critical" }, headers: modern_headers
 
       assert_response :success
       assert_includes response.media_type, "text/event-stream"
@@ -263,6 +265,8 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, 'id="rightpanel-overlay"'
       assert_includes response.body, "event: datastar-patch-signals"
+      assert_includes response.body, '"draftsort":"risk"'
+      assert_includes response.body, '"draftlens":"critical"'
     end
   end
 
@@ -273,6 +277,8 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
         year: "2027",
         round: "all",
         team: "",
+        sort: "provenance",
+        lens: "at_risk",
         selected_type: "pick",
         selected_key: "pick-BOS-2027-1"
       }, headers: modern_headers
@@ -280,6 +286,8 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_includes response.media_type, "text/event-stream"
       assert_includes response.body, "Open canonical draft-pick page"
+      assert_includes response.body, '"draftsort":"provenance"'
+      assert_includes response.body, '"draftlens":"at_risk"'
       assert_includes response.body, '"overlaytype":"pick"'
       assert_includes response.body, '"overlaykey":"grid-BOS-2027-1"'
     end
@@ -292,6 +300,8 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
         year: "2026",
         round: "all",
         team: "",
+        sort: "risk",
+        lens: "at_risk",
         selected_type: "selection",
         selected_key: "selection-777001"
       }, headers: modern_headers
@@ -299,6 +309,8 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_includes response.media_type, "text/event-stream"
       assert_includes response.body, "Open canonical draft-selection page"
+      assert_includes response.body, '"draftsort":"risk"'
+      assert_includes response.body, '"draftlens":"at_risk"'
       assert_includes response.body, '"overlaytype":"selection"'
       assert_includes response.body, '"overlaykey":"selection-777001"'
     end

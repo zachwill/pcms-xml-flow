@@ -2,6 +2,8 @@ module Entities
   class DraftsController < ApplicationController
     INDEX_VIEWS = %w[picks selections grid].freeze
     INDEX_ROUNDS = %w[all 1 2].freeze
+    INDEX_SORTS = %w[board risk provenance].freeze
+    INDEX_LENSES = %w[all at_risk critical].freeze
 
     # GET /drafts
     # Unified workspace for draft picks (future assets), draft selections (historical),
@@ -63,6 +65,11 @@ module Entities
 
       @round = normalize_round_param(params[:round])&.to_s || "all"
       @team = normalize_team_code_param(params[:team])
+      @sort = normalize_sort_param(params[:sort]) || "board"
+      @lens = normalize_lens_param(params[:lens]) || "all"
+
+      @sort_label = drafts_sort_label(view: @view, sort: @sort)
+      @lens_label = drafts_lens_label(@lens)
 
       current_year = Date.today.year
       default_picks_year = Date.today.month >= 7 ? current_year + 1 : current_year
@@ -108,9 +115,9 @@ module Entities
       end
 
       team_filter_sql = if @team.present?
-        "WHERE picks.original_team_code = #{conn.quote(@team)} OR picks.current_team_code = #{conn.quote(@team)}"
+        "(ranked_picks.original_team_code = #{conn.quote(@team)} OR ranked_picks.current_team_code = #{conn.quote(@team)})"
       else
-        ""
+        "1=1"
       end
 
       @results = conn.exec_query(<<~SQL).to_a
@@ -141,35 +148,72 @@ module Entities
               WHEN BOOL_OR(v.is_conditional) THEN 'Conditional'
               WHEN BOOL_OR(v.asset_type = 'TO') THEN 'Traded'
               ELSE 'Own'
-            END AS pick_status
+            END AS pick_status,
+            COUNT(*)::integer AS asset_line_count,
+            COUNT(*) FILTER (WHERE v.asset_type = 'TO')::integer AS outgoing_line_count,
+            COUNT(*) FILTER (WHERE v.is_conditional)::integer AS conditional_line_count
           FROM pcms.vw_draft_pick_assets v
           WHERE v.draft_year = #{year_sql}
             #{round_filter_sql}
           GROUP BY v.draft_year, v.draft_round, v.team_code
+        ),
+        pick_rank AS (
+          SELECT
+            picks.*,
+            (
+              SELECT COUNT(*)::integer
+              FROM pcms.draft_pick_trades dpt
+              WHERE dpt.draft_year = picks.draft_year
+                AND dpt.draft_round = picks.draft_round
+                AND (
+                  dpt.original_team_code = picks.original_team_code
+                  OR dpt.from_team_code = picks.original_team_code
+                  OR dpt.to_team_code = picks.original_team_code
+                )
+            ) AS provenance_trade_count
+          FROM picks
+        ),
+        ranked_picks AS (
+          SELECT
+            pick_rank.*,
+            (
+              CASE WHEN pick_rank.has_forfeited THEN 7 ELSE 0 END
+              + CASE WHEN pick_rank.has_conditional THEN 4 ELSE 0 END
+              + CASE WHEN pick_rank.is_swap THEN 2 ELSE 0 END
+              + CASE WHEN pick_rank.pick_status = 'Traded' THEN 2 ELSE 0 END
+              + LEAST(COALESCE(pick_rank.provenance_trade_count, 0), 6)
+            )::integer AS ownership_risk_score
+          FROM pick_rank
         )
         SELECT
-          picks.draft_year,
-          picks.draft_round,
-          picks.original_team_code,
-          picks.current_team_code,
+          ranked_picks.draft_year,
+          ranked_picks.draft_round,
+          ranked_picks.original_team_code,
+          ranked_picks.current_team_code,
           ot.team_name AS original_team_name,
           ct.team_name AS current_team_name,
-          picks.is_swap,
-          picks.has_conditional,
-          picks.has_forfeited,
-          picks.protections_summary,
-          picks.pick_status
-        FROM picks
+          ranked_picks.is_swap,
+          ranked_picks.has_conditional,
+          ranked_picks.has_forfeited,
+          ranked_picks.protections_summary,
+          ranked_picks.pick_status,
+          ranked_picks.asset_line_count,
+          ranked_picks.outgoing_line_count,
+          ranked_picks.conditional_line_count,
+          ranked_picks.provenance_trade_count,
+          ranked_picks.ownership_risk_score
+        FROM ranked_picks
         LEFT JOIN pcms.teams ot
-          ON ot.team_code = picks.original_team_code
+          ON ot.team_code = ranked_picks.original_team_code
          AND ot.league_lk = 'NBA'
          AND ot.is_active = TRUE
         LEFT JOIN pcms.teams ct
-          ON ct.team_code = picks.current_team_code
+          ON ct.team_code = ranked_picks.current_team_code
          AND ct.league_lk = 'NBA'
          AND ct.is_active = TRUE
-        #{team_filter_sql}
-        ORDER BY picks.draft_round, picks.original_team_code
+        WHERE #{team_filter_sql}
+          AND #{picks_lens_sql(alias_name: "ranked_picks")}
+        ORDER BY #{picks_order_sql}
       SQL
     end
 
@@ -181,33 +225,55 @@ module Entities
       where_clauses << "ds.drafting_team_code = #{conn.quote(@team)}" if @team.present?
 
       @results = conn.exec_query(<<~SQL).to_a
+        WITH selection_rows AS (
+          SELECT
+            ds.transaction_id,
+            ds.draft_year,
+            ds.draft_round,
+            ds.pick_number,
+            ds.player_id,
+            COALESCE(
+              NULLIF(TRIM(CONCAT_WS(' ', p.display_first_name, p.display_last_name)), ''),
+              NULLIF(TRIM(CONCAT_WS(' ', p.first_name, p.last_name)), ''),
+              ds.player_id::text
+            ) AS player_name,
+            ds.drafting_team_id,
+            ds.drafting_team_code,
+            t.team_name AS drafting_team_name,
+            ds.transaction_date,
+            tx.trade_id,
+            tx.transaction_type_lk,
+            (
+              SELECT COUNT(*)::integer
+              FROM pcms.draft_pick_trades dpt
+              WHERE dpt.draft_year = ds.draft_year
+                AND dpt.draft_round = ds.draft_round
+                AND (
+                  dpt.original_team_code = ds.drafting_team_code
+                  OR dpt.from_team_code = ds.drafting_team_code
+                  OR dpt.to_team_code = ds.drafting_team_code
+                )
+            ) AS provenance_trade_count
+          FROM pcms.draft_selections ds
+          LEFT JOIN pcms.transactions tx
+            ON tx.transaction_id = ds.transaction_id
+          LEFT JOIN pcms.people p
+            ON p.person_id = ds.player_id
+          LEFT JOIN pcms.teams t
+            ON t.team_code = ds.drafting_team_code
+           AND t.league_lk = 'NBA'
+          WHERE #{where_clauses.join(" AND ")}
+        )
         SELECT
-          ds.transaction_id,
-          ds.draft_year,
-          ds.draft_round,
-          ds.pick_number,
-          ds.player_id,
-          COALESCE(
-            NULLIF(TRIM(CONCAT_WS(' ', p.display_first_name, p.display_last_name)), ''),
-            NULLIF(TRIM(CONCAT_WS(' ', p.first_name, p.last_name)), ''),
-            ds.player_id::text
-          ) AS player_name,
-          ds.drafting_team_id,
-          ds.drafting_team_code,
-          t.team_name AS drafting_team_name,
-          ds.transaction_date,
-          tx.trade_id,
-          tx.transaction_type_lk
-        FROM pcms.draft_selections ds
-        LEFT JOIN pcms.transactions tx
-          ON tx.transaction_id = ds.transaction_id
-        LEFT JOIN pcms.people p
-          ON p.person_id = ds.player_id
-        LEFT JOIN pcms.teams t
-          ON t.team_code = ds.drafting_team_code
-         AND t.league_lk = 'NBA'
-        WHERE #{where_clauses.join(" AND ")}
-        ORDER BY ds.draft_round ASC, ds.pick_number ASC
+          selection_rows.*,
+          (
+            COALESCE(selection_rows.provenance_trade_count, 0)
+            + CASE WHEN selection_rows.trade_id IS NOT NULL THEN 1 ELSE 0 END
+            + CASE WHEN selection_rows.draft_round = 1 THEN 1 ELSE 0 END
+          )::integer AS provenance_risk_score
+        FROM selection_rows
+        WHERE #{selections_lens_sql(alias_name: "selection_rows")}
+        ORDER BY #{selections_order_sql}
       SQL
     end
 
@@ -234,13 +300,26 @@ module Entities
           BOOL_OR(v.asset_type = 'TO') AS has_outgoing,
           BOOL_OR(v.is_swap) AS has_swap,
           BOOL_OR(v.is_conditional) AS has_conditional,
-          BOOL_OR(v.is_forfeited) AS has_forfeited
+          BOOL_OR(v.is_forfeited) AS has_forfeited,
+          (
+            SELECT COUNT(*)::integer
+            FROM pcms.draft_pick_trades dpt
+            WHERE dpt.draft_year = v.draft_year
+              AND dpt.draft_round = v.draft_round
+              AND (
+                dpt.original_team_code = v.team_code
+                OR dpt.from_team_code = v.team_code
+                OR dpt.to_team_code = v.team_code
+              )
+          ) AS provenance_trade_count
         FROM pcms.vw_draft_pick_assets v
         LEFT JOIN pcms.teams t ON t.team_code = v.team_code AND t.league_lk = 'NBA'
         WHERE #{where_sql}
         GROUP BY v.team_code, t.team_name, v.draft_year, v.draft_round
         ORDER BY v.team_code, v.draft_round, v.draft_year
       SQL
+
+      rows = apply_grid_lens(rows)
 
       @grid_rows = rows
       @grid_data = {}
@@ -260,12 +339,14 @@ module Entities
           has_outgoing: row["has_outgoing"],
           has_swap: row["has_swap"],
           has_conditional: row["has_conditional"],
-          has_forfeited: row["has_forfeited"]
+          has_forfeited: row["has_forfeited"],
+          provenance_trade_count: row["provenance_trade_count"],
+          ownership_risk_score: grid_cell_risk_score(row)
         }
       end
 
       @grid_years = (year_start..year_end).to_a
-      @grid_teams = @grid_teams.sort_by { |code, _| code }
+      @grid_teams = sort_grid_teams(@grid_teams, rows)
     end
 
     def build_sidebar_summary!
@@ -274,17 +355,24 @@ module Entities
       filters << "Year: #{@year}"
       filters << "Round: #{@round == 'all' ? 'All' : "R#{@round}"}"
       filters << "Team: #{@team}" if @team.present?
+      filters << "Sort: #{@sort_label}"
+      filters << "Lens: #{@lens_label}" unless @lens == "all"
 
       case @view
       when "picks"
         rows = Array(@results)
         @sidebar_summary = {
           view: "picks",
+          sort_label: @sort_label,
+          lens_label: @lens_label,
           row_count: rows.size,
           traded_count: rows.count { |row| row["pick_status"].to_s == "Traded" },
           conditional_count: rows.count { |row| truthy?(row["has_conditional"]) },
           swap_count: rows.count { |row| truthy?(row["is_swap"]) },
           forfeited_count: rows.count { |row| truthy?(row["has_forfeited"]) },
+          at_risk_count: rows.count { |row| picks_row_at_risk?(row) },
+          critical_count: rows.count { |row| picks_row_critical?(row) },
+          provenance_trade_total: rows.sum { |row| row["provenance_trade_count"].to_i },
           filters:,
           top_rows: rows.first(12)
         }
@@ -292,10 +380,15 @@ module Entities
         rows = Array(@results)
         @sidebar_summary = {
           view: "selections",
+          sort_label: @sort_label,
+          lens_label: @lens_label,
           row_count: rows.size,
           first_round_count: rows.count { |row| row["draft_round"].to_i == 1 },
           with_trade_count: rows.count { |row| row["trade_id"].present? },
           with_player_count: rows.count { |row| row["player_id"].present? },
+          at_risk_count: rows.count { |row| selections_row_at_risk?(row) },
+          critical_count: rows.count { |row| selections_row_critical?(row) },
+          provenance_trade_total: rows.sum { |row| row["provenance_trade_count"].to_i },
           filters:,
           top_rows: rows.first(12)
         }
@@ -303,12 +396,17 @@ module Entities
         rows = Array(@grid_rows)
         @sidebar_summary = {
           view: "grid",
+          sort_label: @sort_label,
+          lens_label: @lens_label,
           team_count: @grid_teams.size,
           year_count: @grid_years.size,
           cell_count: rows.size,
           outgoing_count: rows.count { |row| truthy?(row["has_outgoing"]) },
           conditional_count: rows.count { |row| truthy?(row["has_conditional"]) },
           swap_count: rows.count { |row| truthy?(row["has_swap"]) },
+          at_risk_count: rows.count { |row| grid_row_at_risk?(row) },
+          critical_count: rows.count { |row| grid_row_critical?(row) },
+          provenance_trade_total: rows.sum { |row| row["provenance_trade_count"].to_i },
           filters:
         }
       end
@@ -509,6 +607,162 @@ module Entities
       }
     end
 
+    def picks_order_sql
+      case @sort
+      when "risk"
+        "ranked_picks.ownership_risk_score DESC, ranked_picks.provenance_trade_count DESC, ranked_picks.outgoing_line_count DESC, ranked_picks.draft_round ASC, ranked_picks.original_team_code ASC"
+      when "provenance"
+        "ranked_picks.provenance_trade_count DESC, ranked_picks.ownership_risk_score DESC, ranked_picks.draft_round ASC, ranked_picks.original_team_code ASC"
+      else
+        "ranked_picks.draft_round ASC, ranked_picks.original_team_code ASC"
+      end
+    end
+
+    def picks_lens_sql(alias_name:)
+      case @lens
+      when "at_risk"
+        "(#{alias_name}.has_conditional OR #{alias_name}.is_swap OR #{alias_name}.has_forfeited OR #{alias_name}.pick_status = 'Traded' OR #{alias_name}.provenance_trade_count > 0)"
+      when "critical"
+        "(#{alias_name}.has_forfeited OR #{alias_name}.conditional_line_count >= 1 OR #{alias_name}.provenance_trade_count >= 2)"
+      else
+        "1=1"
+      end
+    end
+
+    def selections_order_sql
+      case @sort
+      when "risk"
+        "provenance_risk_score DESC, selection_rows.provenance_trade_count DESC, selection_rows.draft_round ASC, selection_rows.pick_number ASC"
+      when "provenance"
+        "selection_rows.provenance_trade_count DESC, provenance_risk_score DESC, selection_rows.draft_round ASC, selection_rows.pick_number ASC"
+      else
+        "selection_rows.draft_round ASC, selection_rows.pick_number ASC"
+      end
+    end
+
+    def selections_lens_sql(alias_name:)
+      case @lens
+      when "at_risk"
+        "(#{alias_name}.provenance_trade_count > 0 OR #{alias_name}.trade_id IS NOT NULL)"
+      when "critical"
+        "(#{alias_name}.provenance_trade_count >= 2)"
+      else
+        "1=1"
+      end
+    end
+
+    def apply_grid_lens(rows)
+      case @lens
+      when "at_risk"
+        rows.select { |row| grid_row_at_risk?(row) }
+      when "critical"
+        rows.select { |row| grid_row_critical?(row) }
+      else
+        rows
+      end
+    end
+
+    def grid_row_at_risk?(row)
+      truthy?(row["has_outgoing"]) || truthy?(row["has_conditional"]) || truthy?(row["has_swap"]) || row["provenance_trade_count"].to_i.positive?
+    end
+
+    def grid_row_critical?(row)
+      truthy?(row["has_forfeited"]) || truthy?(row["has_conditional"]) || row["provenance_trade_count"].to_i >= 2
+    end
+
+    def picks_row_at_risk?(row)
+      truthy?(row["has_conditional"]) || truthy?(row["is_swap"]) || truthy?(row["has_forfeited"]) || row["pick_status"].to_s == "Traded" || row["provenance_trade_count"].to_i.positive?
+    end
+
+    def picks_row_critical?(row)
+      truthy?(row["has_forfeited"]) || truthy?(row["has_conditional"]) || row["provenance_trade_count"].to_i >= 2
+    end
+
+    def selections_row_at_risk?(row)
+      row["provenance_trade_count"].to_i.positive? || row["trade_id"].present?
+    end
+
+    def selections_row_critical?(row)
+      row["provenance_trade_count"].to_i >= 2
+    end
+
+    def grid_cell_risk_score(row)
+      (
+        (truthy?(row["has_forfeited"]) ? 7 : 0) +
+        (truthy?(row["has_conditional"]) ? 4 : 0) +
+        (truthy?(row["has_swap"]) ? 2 : 0) +
+        (truthy?(row["has_outgoing"]) ? 2 : 0) +
+        [row["provenance_trade_count"].to_i, 6].min
+      ).to_i
+    end
+
+    def sort_grid_teams(team_map, rows)
+      return [] if team_map.blank?
+
+      grouped = rows.group_by { |row| row["team_code"].to_s }
+
+      ranked = team_map.map do |team_code, team_name|
+        team_rows = grouped[team_code.to_s] || []
+
+        risk_total = team_rows.sum { |row| grid_cell_risk_score(row) }
+        provenance_total = team_rows.sum { |row| row["provenance_trade_count"].to_i }
+        outgoing_count = team_rows.count { |row| truthy?(row["has_outgoing"]) }
+
+        {
+          team_code: team_code.to_s,
+          team_name: team_name,
+          risk_total:,
+          provenance_total:,
+          outgoing_count:
+        }
+      end
+
+      sorted = case @sort
+      when "risk"
+        ranked.sort_by { |row| [-row[:risk_total], -row[:outgoing_count], -row[:provenance_total], row[:team_code]] }
+      when "provenance"
+        ranked.sort_by { |row| [-row[:provenance_total], -row[:risk_total], -row[:outgoing_count], row[:team_code]] }
+      else
+        ranked.sort_by { |row| row[:team_code] }
+      end
+
+      sorted.map { |row| [row[:team_code], row[:team_name]] }
+    end
+
+    def drafts_sort_label(view:, sort:)
+      case view.to_s
+      when "grid"
+        case sort.to_s
+        when "risk" then "Most encumbered teams"
+        when "provenance" then "Most provenance-active teams"
+        else "Team code"
+        end
+      when "selections"
+        case sort.to_s
+        when "risk" then "Highest contest risk"
+        when "provenance" then "Deepest provenance chain"
+        else "Board order"
+        end
+      else
+        case sort.to_s
+        when "risk" then "Ownership risk first"
+        when "provenance" then "Deepest provenance chain"
+        else "Board order"
+        end
+      end
+    end
+
+    def drafts_lens_label(lens)
+      case lens.to_s
+      when "at_risk"
+        "At-risk only"
+      when "critical"
+        "Critical only"
+      else
+        "All rows"
+      end
+    end
+
     def requested_overlay_context
       overlay_type = params[:selected_type].to_s.strip.downcase
       overlay_key = params[:selected_key].to_s.strip
@@ -613,6 +867,22 @@ module Entities
       round = raw.to_s.strip
       round = "all" if round.blank?
       return round if INDEX_ROUNDS.include?(round)
+
+      nil
+    end
+
+    def normalize_sort_param(raw)
+      sort = raw.to_s.strip
+      sort = "board" if sort.blank?
+      return sort if INDEX_SORTS.include?(sort)
+
+      nil
+    end
+
+    def normalize_lens_param(raw)
+      lens = raw.to_s.strip
+      lens = "all" if lens.blank?
+      return lens if INDEX_LENSES.include?(lens)
 
       nil
     end

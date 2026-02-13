@@ -4,7 +4,9 @@
   pane_query_expr = "'view=' + encodeURIComponent($draftview) +
     '&year=' + encodeURIComponent($draftyear) +
     '&round=' + encodeURIComponent($draftround) +
-    '&team=' + encodeURIComponent($draftteam)"
+    '&team=' + encodeURIComponent($draftteam) +
+    '&sort=' + encodeURIComponent($draftsort) +
+    '&lens=' + encodeURIComponent($draftlens)"
 
   refresh_query_expr = "(#{pane_query_expr}) +
     '&selected_type=' + encodeURIComponent($overlaytype) +
@@ -12,7 +14,7 @@
 
   refresh_expr = "@get('/drafts/sse/refresh?' + (#{refresh_query_expr})); window.history.replaceState({}, '', '/drafts?' + (#{pane_query_expr}))"
 
-  signals_literal = "{ draftview: #{@view.to_json}, draftyear: #{@year.to_json}, draftround: #{@round.to_json}, draftteam: #{(@team || '').to_json}, overlaytype: 'none', overlaykey: '' }"
+  signals_literal = "{ draftview: #{@view.to_json}, draftyear: #{@year.to_json}, draftround: #{@round.to_json}, draftteam: #{(@team || '').to_json}, draftsort: #{@sort.to_json}, draftlens: #{@lens.to_json}, overlaytype: 'none', overlaykey: '' }"
 %>
 
 <div id="drafts-workspace" class="h-screen w-screen flex flex-col overflow-hidden bg-background" data-signals="<%= signals_literal %>">
@@ -104,6 +106,63 @@
             <% code = team["team_code"].to_s.upcase %>
             <option value="<%= code %>" <%= "selected" if @team == code %>><%= code %> · <%= team["team_name"] %></option>
           <% end %>
+        </select>
+      </div>
+
+      <div class="min-w-[14rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Sort</div>
+
+        <select
+          id="draft-sort-select-picks"
+          class="h-7 w-56 rounded border border-border bg-background px-2 text-xs text-foreground"
+          data-bind="draftsort"
+          data-show="$draftview === 'picks'"
+          data-on:change="<%= refresh_expr %>"
+          style="<%= @view == 'picks' ? '' : 'display: none;' %>"
+        >
+          <option value="board" <%= "selected" if @sort == "board" %>>Board order (round/team)</option>
+          <option value="risk" <%= "selected" if @sort == "risk" %>>Ownership risk first</option>
+          <option value="provenance" <%= "selected" if @sort == "provenance" %>>Deepest provenance chain</option>
+        </select>
+
+        <select
+          id="draft-sort-select-selections"
+          class="h-7 w-56 rounded border border-border bg-background px-2 text-xs text-foreground"
+          data-bind="draftsort"
+          data-show="$draftview === 'selections'"
+          data-on:change="<%= refresh_expr %>"
+          style="<%= @view == 'selections' ? '' : 'display: none;' %>"
+        >
+          <option value="board" <%= "selected" if @sort == "board" %>>Board order (round/pick)</option>
+          <option value="risk" <%= "selected" if @sort == "risk" %>>Highest contest risk</option>
+          <option value="provenance" <%= "selected" if @sort == "provenance" %>>Deepest provenance chain</option>
+        </select>
+
+        <select
+          id="draft-sort-select-grid"
+          class="h-7 w-56 rounded border border-border bg-background px-2 text-xs text-foreground"
+          data-bind="draftsort"
+          data-show="$draftview === 'grid'"
+          data-on:change="<%= refresh_expr %>"
+          style="<%= @view == 'grid' ? '' : 'display: none;' %>"
+        >
+          <option value="board" <%= "selected" if @sort == "board" %>>Team code (A→Z)</option>
+          <option value="risk" <%= "selected" if @sort == "risk" %>>Most encumbered teams</option>
+          <option value="provenance" <%= "selected" if @sort == "provenance" %>>Most provenance-active teams</option>
+        </select>
+      </div>
+
+      <div class="min-w-[12rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Ownership lens</div>
+        <select
+          id="draft-lens-select"
+          class="h-7 w-48 rounded border border-border bg-background px-2 text-xs text-foreground"
+          data-bind="draftlens"
+          data-on:change="<%= refresh_expr %>"
+        >
+          <option value="all" <%= "selected" if @lens == "all" %>>All rows</option>
+          <option value="at_risk" <%= "selected" if @lens == "at_risk" %>>At-risk only</option>
+          <option value="critical" <%= "selected" if @lens == "critical" %>>Critical only</option>
         </select>
       </div>
     </div>

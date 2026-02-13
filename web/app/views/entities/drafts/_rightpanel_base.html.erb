@@ -13,28 +13,41 @@
           <span class="text-muted-foreground font-medium">· <%= summary[:cell_count].to_i %> cells</span>
         <% end %>
       </div>
+      <div class="text-[11px] text-muted-foreground tabular-nums">
+        <span>Sort: <%= summary[:sort_label].presence || @sort_label %></span>
+        <% if summary[:lens_label].present? && summary[:lens_label] != "All rows" %>
+          <span class="px-1 text-muted-foreground/50">·</span>
+          <span>Lens: <%= summary[:lens_label] %></span>
+        <% end %>
+      </div>
     </div>
 
     <% if view == "picks" %>
-      <div class="grid grid-cols-2 gap-1.5">
+      <div class="grid grid-cols-3 gap-1.5">
         <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Rows", value: summary[:row_count].to_i.to_s, class_name: "w-full" } %>
+        <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "At risk", value: summary[:at_risk_count].to_i.to_s, class_name: "w-full" } %>
+        <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Critical", value: summary[:critical_count].to_i.to_s, class_name: "w-full", variant: (summary[:critical_count].to_i.positive? ? "negative" : "muted") } %>
         <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Traded", value: summary[:traded_count].to_i.to_s, class_name: "w-full" } %>
         <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Conditional", value: summary[:conditional_count].to_i.to_s, class_name: "w-full" } %>
-        <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Swaps", value: summary[:swap_count].to_i.to_s, class_name: "w-full" } %>
+        <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Prov.", value: summary[:provenance_trade_total].to_i.to_s, class_name: "w-full" } %>
       </div>
     <% elsif view == "selections" %>
-      <div class="grid grid-cols-2 gap-1.5">
+      <div class="grid grid-cols-3 gap-1.5">
         <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Rows", value: summary[:row_count].to_i.to_s, class_name: "w-full" } %>
+        <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "At risk", value: summary[:at_risk_count].to_i.to_s, class_name: "w-full" } %>
+        <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Critical", value: summary[:critical_count].to_i.to_s, class_name: "w-full", variant: (summary[:critical_count].to_i.positive? ? "negative" : "muted") } %>
         <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "R1", value: summary[:first_round_count].to_i.to_s, class_name: "w-full" } %>
         <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "With trade", value: summary[:with_trade_count].to_i.to_s, class_name: "w-full" } %>
-        <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Known player", value: summary[:with_player_count].to_i.to_s, class_name: "w-full" } %>
+        <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Prov.", value: summary[:provenance_trade_total].to_i.to_s, class_name: "w-full" } %>
       </div>
     <% else %>
-      <div class="grid grid-cols-2 gap-1.5">
+      <div class="grid grid-cols-3 gap-1.5">
         <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Teams", value: summary[:team_count].to_i.to_s, class_name: "w-full" } %>
         <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Years", value: summary[:year_count].to_i.to_s, class_name: "w-full" } %>
-        <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Outgoing", value: summary[:outgoing_count].to_i.to_s, class_name: "w-full" } %>
-        <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Conditional", value: summary[:conditional_count].to_i.to_s, class_name: "w-full" } %>
+        <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Cells", value: summary[:cell_count].to_i.to_s, class_name: "w-full" } %>
+        <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "At risk", value: summary[:at_risk_count].to_i.to_s, class_name: "w-full" } %>
+        <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Critical", value: summary[:critical_count].to_i.to_s, class_name: "w-full", variant: (summary[:critical_count].to_i.positive? ? "negative" : "muted") } %>
+        <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Prov.", value: summary[:provenance_trade_total].to_i.to_s, class_name: "w-full" } %>
       </div>
     <% end %>
 
@@ -49,7 +62,7 @@
 
   <% if view == "picks" && Array(summary[:top_rows]).any? %>
     <div class="rounded-lg border border-border bg-background">
-      <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">Quick picks</div>
+      <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">Quick picks · <%= summary[:sort_label].presence || @sort_label %></div>
       <div class="divide-y divide-border">
         <% Array(summary[:top_rows]).each do |row| %>
           <% key = "pick-#{row['original_team_code']}-#{row['draft_year']}-#{row['draft_round']}" %>
@@ -65,7 +78,11 @@
                 <span class="font-medium"><%= row["draft_year"] %> R<%= row["draft_round"] %> · <%= row["original_team_code"] %></span>
                 <span class="font-mono tabular-nums text-[11px]"><%= row["current_team_code"] %></span>
               </div>
-              <div class="entity-cell-secondary truncate"><%= row["protections_summary"].presence || row["pick_status"].presence || "Own" %></div>
+              <div class="entity-cell-secondary truncate">
+                <span><%= row["protections_summary"].presence || row["pick_status"].presence || "Own" %></span>
+                <span class="px-1 text-muted-foreground/50">·</span>
+                <span>risk <%= row["ownership_risk_score"].to_i %> · P<%= row["provenance_trade_count"].to_i %></span>
+              </div>
             </div>
           </button>
         <% end %>
@@ -73,7 +90,7 @@
     </div>
   <% elsif view == "selections" && Array(summary[:top_rows]).any? %>
     <div class="rounded-lg border border-border bg-background">
-      <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">Quick selections</div>
+      <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">Quick selections · <%= summary[:sort_label].presence || @sort_label %></div>
       <div class="divide-y divide-border">
         <% Array(summary[:top_rows]).each do |row| %>
           <% key = "selection-#{row['transaction_id']}" %>
@@ -89,7 +106,11 @@
                 <span class="font-medium"><%= row["draft_year"] %> R<%= row["draft_round"] %> P<%= row["pick_number"] %></span>
                 <span class="font-mono tabular-nums text-[11px]">#<%= row["transaction_id"] %></span>
               </div>
-              <div class="entity-cell-secondary truncate"><%= row["player_name"].presence || "Unknown player" %> · <%= row["drafting_team_code"] %></div>
+              <div class="entity-cell-secondary truncate">
+                <span><%= row["player_name"].presence || "Unknown player" %> · <%= row["drafting_team_code"] %></span>
+                <span class="px-1 text-muted-foreground/50">·</span>
+                <span>P<%= row["provenance_trade_count"].to_i %></span>
+              </div>
             </div>
           </button>
         <% end %>

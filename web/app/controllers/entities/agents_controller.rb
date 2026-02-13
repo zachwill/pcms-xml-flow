@@ -292,6 +292,7 @@ module Entities
 
     def setup_directory_filters!
       @directory_kind = params[:kind].to_s == "agencies" ? "agencies" : "agents"
+      @query = params[:q].to_s.strip
 
       @active_only = cast_bool(params[:active_only])
       @certified_only = cast_bool(params[:certified_only])
@@ -328,6 +329,21 @@ module Entities
         where_clauses << "COALESCE(#{book_total_sql}, 0) > 0" if @with_book
         where_clauses << "COALESCE(#{expiring_sql}, 0) > 0" if @with_expiring
         where_clauses << "(COALESCE(w.no_trade_count, 0) > 0 OR COALESCE(w.trade_kicker_count, 0) > 0 OR COALESCE(w.trade_restricted_count, 0) > 0)" if @with_restrictions
+
+        if @query.present?
+          query_sql = conn.quote("%#{@query}%")
+          query_clauses = [
+            "w.agency_name ILIKE #{query_sql}",
+            "EXISTS (SELECT 1 FROM pcms.agents_warehouse aw WHERE aw.agency_id = w.agency_id AND aw.full_name ILIKE #{query_sql})"
+          ]
+          if @query.match?(/\A\d+\z/)
+            query_id_sql = conn.quote(@query.to_i)
+            query_clauses << "w.agency_id = #{query_id_sql}"
+            query_clauses << "EXISTS (SELECT 1 FROM pcms.agents_warehouse aw WHERE aw.agency_id = w.agency_id AND aw.agent_id = #{query_id_sql})"
+          end
+
+          where_clauses << "(#{query_clauses.join(" OR ")})"
+        end
 
         @agencies = conn.exec_query(<<~SQL).to_a
           SELECT
@@ -383,6 +399,21 @@ module Entities
         where_clauses << "COALESCE(#{book_total_sql}, 0) > 0" if @with_book
         where_clauses << "COALESCE(#{expiring_sql}, 0) > 0" if @with_expiring
         where_clauses << "(COALESCE(w.no_trade_count, 0) > 0 OR COALESCE(w.trade_kicker_count, 0) > 0 OR COALESCE(w.trade_restricted_count, 0) > 0)" if @with_restrictions
+
+        if @query.present?
+          query_sql = conn.quote("%#{@query}%")
+          query_clauses = [
+            "w.full_name ILIKE #{query_sql}",
+            "COALESCE(w.agency_name, '') ILIKE #{query_sql}"
+          ]
+          if @query.match?(/\A\d+\z/)
+            query_id_sql = conn.quote(@query.to_i)
+            query_clauses << "w.agent_id = #{query_id_sql}"
+            query_clauses << "w.agency_id = #{query_id_sql}"
+          end
+
+          where_clauses << "(#{query_clauses.join(" OR ")})"
+        end
 
         @agents = conn.exec_query(<<~SQL).to_a
           SELECT
@@ -442,6 +473,7 @@ module Entities
       @sidebar_summary = {
         kind: @directory_kind,
         year: @book_year,
+        query: @query,
         sort_key: @sort_key,
         sort_dir: @sort_dir,
         row_count: rows.size,
@@ -486,6 +518,7 @@ module Entities
 
     def sidebar_filter_labels
       labels = []
+      labels << %(Search: "#{@query}") if @query.present?
       labels << "Active only" if @active_only
       labels << "Certified only" if @certified_only && @directory_kind == "agents"
       labels << "With clients" if @with_clients

@@ -33,6 +33,7 @@ module Entities
         patch_elements_by_id(sse, overlay_html)
         patch_signals(
           sse,
+          agentquery: @query,
           entitykind: @directory_kind,
           activeonly: @active_only,
           certifiedonly: @certified_only,

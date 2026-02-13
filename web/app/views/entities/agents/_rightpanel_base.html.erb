@@ -107,7 +107,10 @@
     <% end %>
   </div>
 
-  <div class="text-[10px] text-muted-foreground/70 tabular-nums px-1">
-    Sort: <%= summary[:sort_key].to_s.humanize.presence || "Book" %> · <%= summary[:sort_dir].to_s.upcase.presence || "DESC" %>
+  <div class="text-[10px] text-muted-foreground/70 tabular-nums px-1 space-y-0.5">
+    <% if summary[:query].present? %>
+      <div>Search: <span class="text-foreground"><%= summary[:query] %></span></div>
+    <% end %>
+    <div>Sort: <%= summary[:sort_key].to_s.humanize.presence || "Book" %> · <%= summary[:sort_dir].to_s.upcase.presence || "DESC" %></div>
   </div>
 </div>

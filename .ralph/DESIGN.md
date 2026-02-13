@@ -74,29 +74,29 @@ Rubric (1-5):
     - Add a sortable lens (e.g., pick order vs most provenance events) for faster anomaly hunting within busy draft years.
     - Consider an optional “include adjacent years” mode to trace late/early draft-window chains without changing pages.
 
-- [ ] [P1] [INDEX] /agents (`web/app/views/entities/agents/index.html.erb`) — jump directly to target agents/agencies while keeping current lens state
-  - Problem: Agents workspace lacks a direct search flow; users must rely on sort/filter combinations for known-entity lookup.
-  - Hypothesis: Adding a commandbar query knob with SSE refresh + overlay preservation will improve lookup speed without sacrificing density.
-  - Scope (files):
+- [x] [P1] [INDEX] /agents (`web/app/views/entities/agents/index.html.erb`) — jump directly to target agents/agencies while keeping current lens state
+  - What changed (files):
     - `web/app/controllers/entities/agents_controller.rb`
     - `web/app/controllers/entities/agents_sse_controller.rb`
     - `web/app/views/entities/agents/index.html.erb`
     - `web/app/views/entities/agents/_workspace_main.html.erb`
     - `web/app/views/entities/agents/_rightpanel_base.html.erb`
+    - `web/app/views/entities/shared/_commandbar.html.erb`
     - `web/test/integration/entities_agents_index_test.rb`
-  - Acceptance criteria:
-    - Commandbar exposes a searchable text input matching agent and agency names.
-    - Query changes refresh main + sidebar via one SSE response, with URL query state preserved.
-    - If an open overlay entity remains in result set, it stays open; otherwise it clears predictably.
-    - Matched lookup flow is usable in both `kind=agents` and `kind=agencies` modes.
-  - Rubric (before → target):
+  - Why this improves the flow:
+    - Agents commandbar now has a first-class search input (`q`) so known-agent and known-agency lookups are direct, not sort/filter-only.
+    - Query state is URL-backed and carried through all knob changes (`kind`, filters, year, sort/dir), so users can pivot lenses without losing lookup context.
+    - One SSE refresh still patches `#agents-maincanvas`, `#rightpanel-base`, and `#rightpanel-overlay` together, with overlay preserve/clear behavior unchanged and predictable.
+    - Search matching is usable in both modes: `kind=agents` matches agent + agency names; `kind=agencies` matches agency names plus member-agent names.
+  - Rubric (before → after):
     - Scan speed: 3 → 5
     - Information hierarchy: 4 → 4
     - Interaction predictability: 4 → 4
     - Density/readability: 4 → 4
     - Navigation/pivots: 4 → 5
-  - Guardrails:
-    - Do not modify Salary Book files.
+  - Follow-up tasks discovered:
+    - Add optional debounced “search-as-you-type” mode to reduce Apply/Clear clicks while preserving request-cancellation safety.
+    - Consider row-level match highlighting to improve quick visual confirmation during high-volume scans.
 
 - [ ] [P1] [INDEX] /players (`web/app/views/entities/players/index.html.erb`) — preserve selected player drill-in during iterative filter/sort changes
   - Problem: Players refresh clears overlay state unconditionally, forcing repeated reopen actions during triage.

@@ -9,7 +9,9 @@
   locals:
   - active_entity_scope: agents|agencies|drafts|players|teams|trades|transactions
   - knobs: Array[Hash] — filter groups, each with :label and :options
-    - options: Array[Hash] with :type (checkbox|radio), :id, :label, :name, :value, :checked, :bind, :on_change
+    - options: Array[Hash]
+      - toggle options: :type (checkbox|radio), :id, :label, :name, :value, :checked, :bind, :on_change
+      - search option: :type (search), :id, :placeholder, :value, :bind, :on_submit, :on_clear
 %>
 
 <%
@@ -62,35 +64,83 @@
       <% knobs.each_with_index do |group, group_idx| %>
         <% group_label = group[:label].to_s.strip.presence || group["label"].to_s.strip.presence || "Filters" %>
         <% options = Array(group[:options] || group["options"]) %>
+        <% group_min_width_class = group[:min_width_class].to_s.strip.presence || group["min_width_class"].to_s.strip.presence || "min-w-[4.5rem]" %>
 
-        <div class="min-w-[4.5rem] space-y-1">
+        <div class="<%= group_min_width_class %> space-y-1">
           <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70"><%= group_label %></div>
           <div class="space-y-1">
             <% options.each_with_index do |option, option_idx| %>
-              <% option_type = option[:type].to_s == "radio" ? "radio" : "checkbox" %>
-              <% option_name = option[:name].to_s.strip.presence || option["name"].to_s.strip.presence || "knob-#{group_idx}" %>
-              <% option_label = option[:label].to_s.strip.presence || option["label"].to_s.strip.presence || "Option" %>
-              <% option_id = option[:id].to_s.strip.presence || option["id"].to_s.strip.presence || "knob-#{group_idx}-#{option_idx}" %>
-              <% option_value = option[:value].to_s %>
-              <% option_checked = option.key?(:checked) ? !!option[:checked] : !!option["checked"] %>
-              <% option_bind = option[:bind].to_s.strip.presence || option["bind"].to_s.strip.presence %>
-              <% option_on_change = option[:on_change].to_s.strip.presence || option["on_change"].to_s.strip.presence %>
+              <% requested_type = option[:type].to_s.strip.presence || option["type"].to_s.strip.presence || "checkbox" %>
+              <% option_type = if requested_type == "radio"
+                "radio"
+              elsif requested_type == "search"
+                "search"
+              else
+                "checkbox"
+              end %>
 
-              <div class="flex items-center gap-1.5">
-                <input
-                  type="<%= option_type %>"
-                  id="<%= option_id %>"
-                  <% if option_type == "radio" %>
-                    name="<%= option_name %>"
+              <% option_id = option[:id].to_s.strip.presence || option["id"].to_s.strip.presence || "knob-#{group_idx}-#{option_idx}" %>
+              <% option_bind = option[:bind].to_s.strip.presence || option["bind"].to_s.strip.presence %>
+
+              <% if option_type == "search" %>
+                <% option_placeholder = option[:placeholder].to_s.strip.presence || option["placeholder"].to_s.strip.presence || "Search" %>
+                <% option_value = option[:value].to_s %>
+                <% option_on_submit = option[:on_submit].to_s.strip.presence || option["on_submit"].to_s.strip.presence %>
+                <% option_on_clear = option[:on_clear].to_s.strip.presence || option["on_clear"].to_s.strip.presence %>
+                <% option_on_keydown = option[:on_keydown].to_s.strip.presence || option["on_keydown"].to_s.strip.presence %>
+                <% option_input_width_class = option[:input_width_class].to_s.strip.presence || option["input_width_class"].to_s.strip.presence || "w-40" %>
+                <% option_apply_label = option[:apply_label].to_s.strip.presence || option["apply_label"].to_s.strip.presence || "Apply" %>
+                <% option_clear_label = option[:clear_label].to_s.strip.presence || option["clear_label"].to_s.strip.presence || "Clear" %>
+
+                <form class="flex items-center gap-1.5"<% if option_on_submit.present? %> data-on:submit="<%= option_on_submit %>"<% end %>>
+                  <input
+                    id="<%= option_id %>"
+                    type="search"
+                    placeholder="<%= option_placeholder %>"
+                    class="<%= option_input_width_class %> h-7 rounded border border-border bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground/70"
                     value="<%= option_value %>"
+                    <% if option_bind.present? %>data-bind="<%= option_bind %>"<% end %>
+                    <% if option_on_keydown.present? %>data-on:keydown="<%= option_on_keydown %>"<% end %>
+                  />
+
+                  <% if option_on_submit.present? %>
+                    <button
+                      type="submit"
+                      class="cursor-pointer h-7 px-2 rounded border border-border bg-muted/40 text-[11px] text-foreground hover:bg-muted transition-colors"
+                    ><%= option_apply_label %></button>
                   <% end %>
-                  class="size-3.5 accent-primary"
-                  <% if option_checked %>checked<% end %>
-                  <% if option_bind.present? %>data-bind="<%= option_bind %>"<% end %>
-                  <% if option_on_change.present? %>data-on:change="<%= option_on_change %>"<% end %>
-                />
-                <label for="<%= option_id %>" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors"><%= option_label %></label>
-              </div>
+
+                  <% if option_on_clear.present? %>
+                    <button
+                      type="button"
+                      class="cursor-pointer h-7 px-2 rounded border border-border bg-background text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                      data-on:click="<%= option_on_clear %>"
+                    ><%= option_clear_label %></button>
+                  <% end %>
+                </form>
+              <% else %>
+                <% option_name = option[:name].to_s.strip.presence || option["name"].to_s.strip.presence || "knob-#{group_idx}" %>
+                <% option_label = option[:label].to_s.strip.presence || option["label"].to_s.strip.presence || "Option" %>
+                <% option_value = option[:value].to_s %>
+                <% option_checked = option.key?(:checked) ? !!option[:checked] : !!option["checked"] %>
+                <% option_on_change = option[:on_change].to_s.strip.presence || option["on_change"].to_s.strip.presence %>
+
+                <div class="flex items-center gap-1.5">
+                  <input
+                    type="<%= option_type %>"
+                    id="<%= option_id %>"
+                    <% if option_type == "radio" %>
+                      name="<%= option_name %>"
+                      value="<%= option_value %>"
+                    <% end %>
+                    class="size-3.5 accent-primary"
+                    <% if option_checked %>checked<% end %>
+                    <% if option_bind.present? %>data-bind="<%= option_bind %>"<% end %>
+                    <% if option_on_change.present? %>data-on:change="<%= option_on_change %>"<% end %>
+                  />
+                  <label for="<%= option_id %>" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors"><%= option_label %></label>
+                </div>
+              <% end %>
             <% end %>
           </div>
         </div>

@@ -2,6 +2,7 @@
 <% year_label = format_year_label(@book_year).split("-").first %>
 <%
   shared_lens_query = {
+    q: @query,
     active_only: (@active_only ? 1 : 0),
     certified_only: (@certified_only ? 1 : 0),
     with_clients: (@with_clients ? 1 : 0),
@@ -32,6 +33,12 @@
         <%= directory_kind == "agents" ? "Agent directory" : "Agency directory" %>
         <span class="text-muted-foreground font-medium">· <%= directory_kind == "agents" ? @agents.size : @agencies.size %> rows</span>
       </h2>
+
+      <% if @query.present? %>
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">
+          Search: <span class="font-medium text-foreground"><%= @query %></span>
+        </div>
+      <% end %>
 
       <div class="flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-wide">
         <a

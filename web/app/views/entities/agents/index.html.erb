@@ -2,7 +2,8 @@
 <% content_for :title, directory_scope == "agencies" ? "Agencies" : "Agents" %>
 
 <%
-  pane_query_expr = "'kind=' + $entitykind +
+  pane_query_expr = "'q=' + encodeURIComponent($agentquery) +
+    '&kind=' + $entitykind +
     '&active_only=' + ($activeonly ? '1' : '0') +
     '&certified_only=' + ($certifiedonly ? '1' : '0') +
     '&with_clients=' + ($withclients ? '1' : '0') +
@@ -18,12 +19,14 @@
   sse_get_expr = "@get('/agents/sse/refresh?' + (#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr}))"
   update_url_expr = "window.history.replaceState({}, '', '/agents?' + (#{pane_query_expr}))"
   refresh_expr = "#{sse_get_expr}; #{update_url_expr}"
+  clear_search_expr = "$agentquery = ''; #{refresh_expr}"
 %>
 
 <div
   id="agents-workspace"
   class="h-screen w-screen flex flex-col overflow-hidden bg-background"
   data-signals="{
+    agentquery: <%= @query.to_json %>,
     entitykind: '<%= @directory_kind %>',
     activeonly: <%= @active_only ? 'true' : 'false' %>,
     certifiedonly: <%= @certified_only ? 'true' : 'false' %>,
@@ -41,6 +44,22 @@
   <%= render partial: "entities/shared/commandbar", locals: {
     active_entity_scope: directory_scope,
     header_knobs: [
+      {
+        label: "Search",
+        min_width_class: "min-w-[13rem]",
+        options: [
+          {
+            type: "search",
+            id: "agents-directory-search",
+            placeholder: "agent or agency",
+            value: @query,
+            bind: "agentquery",
+            on_submit: "evt.preventDefault(); #{refresh_expr}",
+            on_clear: clear_search_expr,
+            input_width_class: "w-40"
+          }
+        ]
+      },
       {
         label: "Directory",
         options: [

@@ -5,86 +5,153 @@
   <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contract history</h2>
   <details class="rounded-lg border border-border bg-background p-3" open>
     <summary class="cursor-pointer text-sm font-medium">Chronology + version rollup (<%= contract_chronology_rows.size %> contracts · <%= contract_version_rows.size %> versions)</summary>
-    <div class="mt-3 space-y-3">
-      <% if contract_chronology_rows.empty? %>
-        <div class="p-3 rounded border border-border/60 text-sm text-muted-foreground italic">No contract chronology rows found.</div>
-      <% else %>
-        <div class="overflow-x-auto rounded-lg border border-border">
-          <table class="entity-table min-w-full text-xs">
-            <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-              <tr>
-                <th class="text-left px-3 py-2 font-medium">Contract</th>
-                <th class="text-left px-3 py-2 font-medium">Signing</th>
-                <th class="text-left px-3 py-2 font-medium">Teams</th>
-                <th class="text-left px-3 py-2 font-medium">Method / exception</th>
-                <th class="text-left px-3 py-2 font-medium">Flags</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              <% contract_chronology_rows.each do |r| %>
-                <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75 align-top">
-                  <td class="px-3 py-2">
-                    <div class="font-mono tabular-nums">#<%= r["contract_id"] %></div>
-                    <div class="text-muted-foreground">versions: <%= r["version_count"] || 0 %> · latest v<%= r["latest_version_number"] || "—" %></div>
-                  </td>
-                  <td class="px-3 py-2 text-muted-foreground font-mono tabular-nums">
-                    <div><%= format_plain_date(r["signing_date"]) %></div>
-                    <div>end: <%= format_plain_date(r["contract_end_date"]) %></div>
-                    <div>start year: <%= r["start_year"] || r["min_version_start_year"] || "—" %></div>
-                  </td>
-                  <td class="px-3 py-2 text-muted-foreground">
-                    <div>sign: <% if r["signing_team_id"].present? %><a href="<%= safe_team_href(team_code: r['signing_team_code'] || r['team_code'], team_id: r['signing_team_id']) %>" class="hover:underline"><%= r["signing_team_code"] || r["team_code"] || r["signing_team_id"] %></a><% else %>—<% end %></div>
-                    <div>S&amp;T: <% if r["sign_and_trade_to_team_id"].present? %><a href="<%= safe_team_href(team_code: r['sign_and_trade_to_team_code'], team_id: r['sign_and_trade_to_team_id']) %>" class="hover:underline"><%= r["sign_and_trade_to_team_code"] || r["sign_and_trade_to_team_id"] %></a><% else %>—<% end %></div>
-                  </td>
-                  <td class="px-3 py-2 text-muted-foreground">
-                    <div><%= r["signed_method_lk"].presence || "—" %><%= r["signed_method_label"].present? ? " — #{r['signed_method_label']}" : "" %></div>
-                    <div>exception: <%= r["exception_type_lk"].presence || "—" %></div>
-                  </td>
-                  <td class="px-3 py-2 text-muted-foreground">
-                    <% flags = [] %>
-                    <% flags << "S&T" if r["is_sign_and_trade"] %>
-                    <% flags << "status #{r['record_status_lk']}" if r["record_status_lk"].present? %>
-                    <%= flags.any? ? flags.join(" · ") : "—" %>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      <% end %>
 
-      <% if contract_version_rows.any? %>
-        <div class="overflow-x-auto rounded-lg border border-border">
-          <table class="entity-table min-w-full text-xs">
-            <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-              <tr>
-                <th class="text-left px-3 py-2 font-medium">Contract / v</th>
-                <th class="text-left px-3 py-2 font-medium">Start / len</th>
-                <th class="text-left px-3 py-2 font-medium">Type</th>
-                <th class="text-left px-3 py-2 font-medium">Flags</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              <% contract_version_rows.each do |r| %>
-                <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75 align-top">
-                  <td class="px-3 py-2 font-mono tabular-nums">#<%= r["contract_id"] %> / v<%= r["version_number"] %></td>
-                  <td class="px-3 py-2 text-muted-foreground font-mono tabular-nums"><%= r["start_salary_year"] || "—" %> · <%= r["contract_length"] || "—" %>y</td>
-                  <td class="px-3 py-2 text-muted-foreground"><%= r["contract_type_lk"].presence || "—" %></td>
-                  <td class="px-3 py-2 text-muted-foreground">
-                    <% flags = [] %>
-                    <% flags << "Exhibit-10" if r["is_exhibit_10"] %>
-                    <% flags << "Poison" if r["is_poison_pill"] %>
-                    <% flags << "Trade bonus" if r["is_trade_bonus"] %>
-                    <% flags << "No-trade" if r["is_no_trade"] %>
-                    <% flags << "Protected" if r["is_protected_contract"] %>
-                    <%= flags.any? ? flags.join(" · ") : "—" %>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      <% end %>
+    <div class="mt-3 space-y-4">
+      <div class="space-y-2">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Contract chronology lanes</div>
+
+        <% if contract_chronology_rows.empty? %>
+          <div class="p-3 rounded border border-border/60 text-sm text-muted-foreground italic">No contract chronology rows found.</div>
+        <% else %>
+          <div class="rounded-lg border border-border divide-y divide-border/60">
+            <% contract_chronology_rows.each do |r| %>
+              <% chronology_flags = [] %>
+              <% chronology_flags << "Sign-and-trade" if r["is_sign_and_trade"] %>
+              <% chronology_flags << "Status #{r['record_status_lk']}" if r["record_status_lk"].present? %>
+
+              <% signing_method = [r["signed_method_lk"], r["signed_method_label"]].compact.reject(&:blank?).uniq.join(" · ") %>
+              <% exception_text = [r["exception_type_lk"], r["exception_type_label"]].compact.reject(&:blank?).uniq.join(" · ") %>
+
+              <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                <div class="flex flex-wrap items-start gap-3">
+                  <div class="w-44 shrink-0">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary font-mono tabular-nums">Contract #<%= r["contract_id"] %></div>
+                      <div class="entity-cell-secondary font-mono tabular-nums">v<%= r["latest_version_number"] || "—" %> latest · <%= r["version_count"] || 0 %> versions</div>
+                    </div>
+                  </div>
+
+                  <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary font-mono tabular-nums"><%= format_plain_date(r["signing_date"]) %></div>
+                      <div class="entity-cell-secondary font-mono tabular-nums">End <%= format_plain_date(r["contract_end_date"]) %> · Start <%= r["start_year"] || r["min_version_start_year"] || "—" %></div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary gap-2">
+                        <span class="text-muted-foreground">Sign</span>
+                        <% if r["signing_team_id"].present? %>
+                          <a href="<%= safe_team_href(team_code: r['signing_team_code'] || r['team_code'], team_id: r['signing_team_id']) %>" class="font-medium hover:underline"><%= r["signing_team_code"] || r["team_code"] || r["signing_team_id"] %></a>
+                        <% else %>
+                          <span class="text-muted-foreground/60">—</span>
+                        <% end %>
+                      </div>
+                      <div class="entity-cell-secondary gap-2">
+                        <span>S&amp;T</span>
+                        <% if r["sign_and_trade_to_team_id"].present? %>
+                          <a href="<%= safe_team_href(team_code: r['sign_and_trade_to_team_code'], team_id: r['sign_and_trade_to_team_id']) %>" class="hover:underline"><%= r["sign_and_trade_to_team_code"] || r["sign_and_trade_to_team_id"] %></a>
+                        <% else %>
+                          <span class="text-muted-foreground/60">—</span>
+                        <% end %>
+                      </div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary truncate"><%= signing_method.presence || "—" %></div>
+                      <div class="entity-cell-secondary truncate">Exception <%= exception_text.presence || "—" %></div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary gap-1.5">
+                        <% if chronology_flags.any? %>
+                          <% chronology_flags.each do |flag| %>
+                            <span class="entity-chip entity-chip--warning"><%= flag %></span>
+                          <% end %>
+                        <% else %>
+                          <span class="text-muted-foreground/60">No active flags</span>
+                        <% end %>
+                      </div>
+                      <div class="entity-cell-secondary font-mono tabular-nums">ID <%= r["contract_id"] %></div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Contract version lanes</div>
+
+        <% if contract_version_rows.empty? %>
+          <div class="p-3 rounded border border-border/60 text-sm text-muted-foreground italic">No contract version rows found.</div>
+        <% else %>
+          <div class="rounded-lg border border-border divide-y divide-border/60">
+            <% contract_version_rows.each do |r| %>
+              <% version_flags = [] %>
+              <% version_flags << "No-Trade" if r["is_no_trade"] %>
+              <% version_flags << "Trade Bonus" if r["is_trade_bonus"] %>
+              <% version_flags << "Poison Pill" if r["is_poison_pill"] %>
+              <% version_flags << "Exhibit-10" if r["is_exhibit_10"] %>
+              <% version_flags << "Protected" if r["is_protected_contract"] %>
+              <% version_flags << "Full Protection" if r["is_full_protection"] %>
+
+              <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                <div class="flex flex-wrap items-start gap-3">
+                  <div class="w-44 shrink-0">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary font-mono tabular-nums">#<%= r["contract_id"] %> / v<%= r["version_number"] %></div>
+                      <div class="entity-cell-secondary font-mono tabular-nums">Start <%= r["start_salary_year"] || "—" %> · <%= r["contract_length"] || "—" %> years</div>
+                    </div>
+                  </div>
+
+                  <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary truncate"><%= r["contract_type_label"].presence || r["contract_type_lk"].presence || "—" %></div>
+                      <div class="entity-cell-secondary">Type</div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary font-mono tabular-nums"><%= format_plain_date(r["version_date"]) %></div>
+                      <div class="entity-cell-secondary">Version effective date</div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary gap-1.5">
+                        <% if r["is_rookie_scale_extension"] %>
+                          <span class="entity-chip entity-chip--accent">Rookie ext</span>
+                        <% end %>
+                        <% if r["is_veteran_extension"] %>
+                          <span class="entity-chip entity-chip--accent">Veteran ext</span>
+                        <% end %>
+                        <% if !r["is_rookie_scale_extension"] && !r["is_veteran_extension"] %>
+                          <span class="text-muted-foreground/60">No extension tag</span>
+                        <% end %>
+                      </div>
+                      <div class="entity-cell-secondary font-mono tabular-nums">Status <%= r["record_status_lk"].presence || "—" %></div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary gap-1.5">
+                        <% if version_flags.any? %>
+                          <% version_flags.each do |flag| %>
+                            <% flag_class = flag.in?(["No-Trade", "Poison Pill"]) ? "entity-chip entity-chip--danger" : "entity-chip entity-chip--warning" %>
+                            <span class="<%= flag_class %>"><%= flag %></span>
+                          <% end %>
+                        <% else %>
+                          <span class="text-muted-foreground/60">No active flags</span>
+                        <% end %>
+                      </div>
+                      <div class="entity-cell-secondary font-mono tabular-nums">v<%= r["version_number"] %></div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
     </div>
   </details>
 </section>

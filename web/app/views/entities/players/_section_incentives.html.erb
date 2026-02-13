@@ -5,47 +5,90 @@
   <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Incentives</h2>
   <details class="rounded-lg border border-border bg-background p-3" open>
     <summary class="cursor-pointer text-sm font-medium">Bonus rows (<%= bonus_rows.size %>)</summary>
-    <div class="mt-3 space-y-3">
-      <% if bonus_rows.empty? %>
-        <div class="text-sm text-muted-foreground italic">No bonus rows for this contract version.</div>
-      <% else %>
-        <div class="overflow-x-auto rounded-lg border border-border">
-          <table class="entity-table min-w-full text-xs">
-            <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-              <tr>
-                <th class="text-left px-3 py-2 font-medium">Year</th>
-                <th class="text-left px-3 py-2 font-medium">Type</th>
-                <th class="text-right px-3 py-2 font-medium">Amount</th>
-                <th class="text-left px-3 py-2 font-medium">Likelihood</th>
-                <th class="text-left px-3 py-2 font-medium">Clause</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              <% bonus_rows.each do |r| %>
-                <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                  <td class="px-3 py-2 font-mono tabular-nums"><%= r["salary_year"] %></td>
-                  <td class="px-3 py-2 text-muted-foreground"><%= r["bonus_type_lk"].presence || "—" %></td>
-                  <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["bonus_amount"]) %></td>
-                  <td class="px-3 py-2">
-                    <span class="entity-chip <%= r['is_likely'] ? 'entity-chip--success' : 'entity-chip--warning' %>"><%= r["is_likely"] ? "Likely" : "Unlikely" %></span>
-                  </td>
-                  <td class="px-3 py-2"><%= r["clause_name"].presence || r["criteria_description"].presence || "—" %></td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      <% end %>
+
+    <div class="mt-3 space-y-4">
+      <div class="space-y-2">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Bonus event lanes</div>
+
+        <% if bonus_rows.empty? %>
+          <div class="p-3 rounded border border-border/60 text-sm text-muted-foreground italic">No bonus rows for this contract version.</div>
+        <% else %>
+          <div class="rounded-lg border border-border divide-y divide-border/60">
+            <% bonus_rows.each do |r| %>
+              <% likelihood_chip_class = r["is_likely"] ? "entity-chip entity-chip--success" : "entity-chip entity-chip--warning" %>
+              <% likelihood_label = r["is_likely"] ? "Likely" : "Unlikely" %>
+
+              <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                <div class="flex flex-wrap items-start gap-3">
+                  <div class="w-44 shrink-0">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary font-mono tabular-nums"><%= format_year_label(r["salary_year"]) %></div>
+                      <div class="entity-cell-secondary truncate"><%= r["bonus_type_lk"].presence || "Bonus type unknown" %></div>
+                    </div>
+                  </div>
+
+                  <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(r["bonus_amount"]) %></div>
+                      <div class="entity-cell-secondary justify-end">Incentive amount</div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary gap-1.5">
+                        <span class="<%= likelihood_chip_class %>"><%= likelihood_label %></span>
+                        <% if r["earned_lk"].present? %>
+                          <span class="entity-chip entity-chip--muted"><%= r["earned_lk"] %></span>
+                        <% end %>
+                      </div>
+                      <div class="entity-cell-secondary font-mono tabular-nums">Paid by <%= format_plain_date(r["paid_by_date"]) %></div>
+                    </div>
+
+                    <div class="entity-cell-two-line xl:col-span-2">
+                      <div class="entity-cell-primary truncate"><%= r["clause_name"].presence || r["criteria_description"].presence || "—" %></div>
+                      <div class="entity-cell-secondary">Clause / criteria</div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
 
       <% if bonus_max_rows.any? %>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-          <% bonus_max_rows.each do |r| %>
-            <div class="rounded border border-border/60 p-2">
-              <span class="font-mono tabular-nums"><%= r["salary_year"] %></span>
-              · <span class="text-muted-foreground"><%= r["bonus_type_lk"] %></span>
-              · <span class="font-mono tabular-nums"><%= format_salary(r["max_amount"]) %></span>
-            </div>
-          <% end %>
+        <div class="space-y-2">
+          <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Bonus maximum lanes</div>
+
+          <div class="rounded-lg border border-border divide-y divide-border/60">
+            <% bonus_max_rows.each do |r| %>
+              <% max_likelihood_chip = r["is_likely"] ? "entity-chip entity-chip--success" : "entity-chip entity-chip--warning" %>
+
+              <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                <div class="flex flex-wrap items-start gap-3">
+                  <div class="w-44 shrink-0">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary font-mono tabular-nums"><%= format_year_label(r["salary_year"]) %></div>
+                      <div class="entity-cell-secondary truncate"><%= r["bonus_type_lk"].presence || "Bonus max" %></div>
+                    </div>
+                  </div>
+
+                  <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(r["max_amount"]) %></div>
+                      <div class="entity-cell-secondary justify-end">Max amount</div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary">
+                        <span class="<%= max_likelihood_chip %>"><%= r["is_likely"] ? "Likely" : "Unlikely" %></span>
+                      </div>
+                      <div class="entity-cell-secondary">Likelihood cap</div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            <% end %>
+          </div>
         </div>
       <% end %>
     </div>

@@ -7,105 +7,227 @@
   <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Guarantees + protections</h2>
   <details class="rounded-lg border border-border bg-background p-3" open>
     <summary class="cursor-pointer text-sm font-medium">Guarantee matrix + protection detail</summary>
-    <div class="mt-3 space-y-3">
-      <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="entity-table min-w-full text-xs">
-          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-            <tr>
-              <th class="text-left px-3 py-2 font-medium">Year</th>
-              <th class="text-right px-3 py-2 font-medium">Guaranteed amount</th>
-              <th class="text-left px-3 py-2 font-medium">Guarantee type</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <% horizon_years.each do |year| %>
-              <% guaranteed_amount = @salary_book_row&.fetch("guaranteed_amount_#{year}", nil) %>
-              <% is_full = @salary_book_row&.fetch("is_fully_guaranteed_#{year}", nil) %>
-              <% is_partial = @salary_book_row&.fetch("is_partially_guaranteed_#{year}", nil) %>
-              <% is_non = @salary_book_row&.fetch("is_non_guaranteed_#{year}", nil) %>
-              <% type = is_full ? "FULL" : (is_partial ? "PARTIAL" : (is_non ? "NON" : nil)) %>
-              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                <td class="px-3 py-2 font-mono tabular-nums"><%= year %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(guaranteed_amount) %></td>
-                <td class="px-3 py-2 text-muted-foreground"><%= type.presence || "—" %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
+
+    <div class="mt-3 space-y-4">
+      <div class="space-y-2">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Guarantee horizon lanes</div>
+
+        <div class="rounded-lg border border-border divide-y divide-border/60">
+          <% horizon_years.each do |year| %>
+            <% guaranteed_amount = @salary_book_row&.fetch("guaranteed_amount_#{year}", nil) %>
+            <% cap_amount = @salary_book_row&.fetch("cap_#{year}", nil) %>
+            <% option = normalize_contract_option(@salary_book_row&.fetch("option_#{year}", nil)) %>
+            <% is_full = @salary_book_row&.fetch("is_fully_guaranteed_#{year}", nil) %>
+            <% is_partial = @salary_book_row&.fetch("is_partially_guaranteed_#{year}", nil) %>
+            <% is_non = @salary_book_row&.fetch("is_non_guaranteed_#{year}", nil) %>
+
+            <% guarantee_type = if is_full
+              "FULL"
+            elsif is_partial
+              "PARTIAL"
+            elsif is_non
+              "NON"
+            end %>
+
+            <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+              <div class="flex flex-wrap items-start gap-3">
+                <div class="w-44 shrink-0">
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary font-mono tabular-nums"><%= format_year_label(year) %></div>
+                    <div class="entity-cell-secondary">Guarantee + option posture</div>
+                  </div>
+                </div>
+
+                <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(guaranteed_amount) %></div>
+                    <div class="entity-cell-secondary justify-end">Guaranteed</div>
+                  </div>
+
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(cap_amount) %></div>
+                    <div class="entity-cell-secondary justify-end">Cap hit</div>
+                  </div>
+
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary gap-1.5">
+                      <% if guarantee_type.present? %>
+                        <% guarantee_chip_class = case guarantee_type
+                        when "FULL"
+                          "entity-chip entity-chip--success"
+                        when "PARTIAL"
+                          "entity-chip entity-chip--warning"
+                        else
+                          "entity-chip entity-chip--danger"
+                        end %>
+                        <span class="<%= guarantee_chip_class %>"><%= guarantee_type %></span>
+                      <% else %>
+                        <span class="entity-chip entity-chip--muted">No guarantee tag</span>
+                      <% end %>
+
+                      <% if option.present? %>
+                        <% option_chip_class = case option
+                        when "PO"
+                          "entity-chip entity-chip--accent"
+                        when "TO"
+                          "entity-chip entity-chip--warning"
+                        when "ETO"
+                          "entity-chip entity-chip--danger"
+                        else
+                          "entity-chip entity-chip--muted"
+                        end %>
+                        <span class="<%= option_chip_class %>"><%= option %></span>
+                      <% end %>
+                    </div>
+                    <div class="entity-cell-secondary">Flags at glance</div>
+                  </div>
+
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary font-mono tabular-nums"><%= @salary_book_row.present? ? @salary_book_row["contract_id"] || "—" : "—" %></div>
+                    <div class="entity-cell-secondary font-mono tabular-nums">Contract ID</div>
+                  </div>
+                </div>
+              </div>
+            </article>
+          <% end %>
+        </div>
       </div>
 
       <% if protection_rows.any? %>
-        <div class="overflow-x-auto rounded-lg border border-border">
-          <table class="entity-table min-w-full text-xs">
-            <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-              <tr>
-                <th class="text-left px-3 py-2 font-medium">Year</th>
-                <th class="text-right px-3 py-2 font-medium">Protection</th>
-                <th class="text-right px-3 py-2 font-medium">Effective</th>
-                <th class="text-left px-3 py-2 font-medium">Coverage</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              <% protection_rows.each do |r| %>
-                <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                  <td class="px-3 py-2 font-mono tabular-nums"><%= r["salary_year"] %></td>
-                  <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["protection_amount"]) %></td>
-                  <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["effective_protection_amount"]) %></td>
-                  <td class="px-3 py-2 text-muted-foreground"><%= r["coverage_codes"].presence || "—" %></td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
+        <div class="space-y-2">
+          <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Protection coverage lanes</div>
+
+          <div class="rounded-lg border border-border divide-y divide-border/60">
+            <% protection_rows.each do |r| %>
+              <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                <div class="flex flex-wrap items-start gap-3">
+                  <div class="w-44 shrink-0">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary font-mono tabular-nums"><%= format_year_label(r["salary_year"]) %></div>
+                      <div class="entity-cell-secondary">Protection rollup</div>
+                    </div>
+                  </div>
+
+                  <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(r["protection_amount"]) %></div>
+                      <div class="entity-cell-secondary justify-end">Protection</div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(r["effective_protection_amount"]) %></div>
+                      <div class="entity-cell-secondary justify-end">Effective</div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary truncate"><%= r["coverage_codes"].presence || "—" %></div>
+                      <div class="entity-cell-secondary">Coverage codes</div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary gap-1.5">
+                        <% if r["has_conditional"] %>
+                          <span class="entity-chip entity-chip--warning">Conditional</span>
+                        <% end %>
+                        <span class="entity-chip entity-chip--muted"><%= r["row_count"].to_i %> rows</span>
+                      </div>
+                      <div class="entity-cell-secondary">Clause density</div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            <% end %>
+          </div>
         </div>
       <% end %>
 
       <% if protection_condition_rows.any? %>
-        <div class="overflow-x-auto rounded-lg border border-border">
-          <table class="entity-table min-w-full text-xs">
-            <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-              <tr>
-                <th class="text-left px-3 py-2 font-medium">Year</th>
-                <th class="text-right px-3 py-2 font-medium">Amount</th>
-                <th class="text-left px-3 py-2 font-medium">Earned</th>
-                <th class="text-left px-3 py-2 font-medium">Clause</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              <% protection_condition_rows.each do |r| %>
-                <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                  <td class="px-3 py-2 font-mono tabular-nums"><%= r["salary_year"] || "—" %></td>
-                  <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["amount"]) %></td>
-                  <td class="px-3 py-2 text-muted-foreground"><%= r["earned_type_lk"].presence || "—" %> · <span class="font-mono tabular-nums"><%= format_plain_date(r["earned_date"]) %></span></td>
-                  <td class="px-3 py-2"><%= r["clause_name"].presence || r["criteria_description"].presence || "—" %></td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
+        <div class="space-y-2">
+          <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Protection condition lanes</div>
+
+          <div class="rounded-lg border border-border divide-y divide-border/60">
+            <% protection_condition_rows.each do |r| %>
+              <% earned_label = [r["earned_type_lk"], format_plain_date(r["earned_date"])].compact.reject(&:blank?).join(" · ") %>
+
+              <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                <div class="flex flex-wrap items-start gap-3">
+                  <div class="w-44 shrink-0">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary font-mono tabular-nums"><%= format_year_label(r["salary_year"]) %></div>
+                      <div class="entity-cell-secondary font-mono tabular-nums">Condition #<%= r["condition_id"] || "—" %></div>
+                    </div>
+                  </div>
+
+                  <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(r["amount"]) %></div>
+                      <div class="entity-cell-secondary justify-end">Condition amount</div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary truncate"><%= earned_label.presence || "—" %></div>
+                      <div class="entity-cell-secondary">Earned trigger</div>
+                    </div>
+
+                    <div class="entity-cell-two-line xl:col-span-2">
+                      <div class="entity-cell-primary truncate"><%= r["clause_name"].presence || r["criteria_description"].presence || "—" %></div>
+                      <div class="entity-cell-secondary">Clause description</div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            <% end %>
+          </div>
         </div>
       <% end %>
 
       <% if payment_schedule_rows.any? %>
-        <div class="overflow-x-auto rounded-lg border border-border">
-          <table class="entity-table min-w-full text-xs">
-            <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-              <tr>
-                <th class="text-left px-3 py-2 font-medium">Year</th>
-                <th class="text-right px-3 py-2 font-medium">Payment</th>
-                <th class="text-left px-3 py-2 font-medium">Schedule</th>
-                <th class="text-left px-3 py-2 font-medium">Window</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              <% payment_schedule_rows.each do |r| %>
-                <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                  <td class="px-3 py-2 font-mono tabular-nums"><%= r["salary_year"] %></td>
-                  <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["payment_amount"]) %></td>
-                  <td class="px-3 py-2 text-muted-foreground"><%= [r["schedule_type_lk"], r["payment_type_lk"]].compact.reject(&:blank?).join(" · ").presence || "—" %></td>
-                  <td class="px-3 py-2 text-muted-foreground font-mono tabular-nums"><%= format_plain_date(r["first_payment_date"]) %> → <%= format_plain_date(r["last_payment_date"]) %></td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
+        <div class="space-y-2">
+          <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Payment schedule lanes</div>
+
+          <div class="rounded-lg border border-border divide-y divide-border/60">
+            <% payment_schedule_rows.each do |r| %>
+              <% schedule_text = [r["schedule_type_lk"], r["payment_type_lk"]].compact.reject(&:blank?).join(" · ") %>
+
+              <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                <div class="flex flex-wrap items-start gap-3">
+                  <div class="w-44 shrink-0">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary font-mono tabular-nums"><%= format_year_label(r["salary_year"]) %></div>
+                      <div class="entity-cell-secondary font-mono tabular-nums">Schedule #<%= r["payment_schedule_id"] %></div>
+                    </div>
+                  </div>
+
+                  <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(r["payment_amount"]) %></div>
+                      <div class="entity-cell-secondary justify-end">Payment amount</div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary truncate"><%= schedule_text.presence || "—" %></div>
+                      <div class="entity-cell-secondary">Schedule type</div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary font-mono tabular-nums"><%= format_plain_date(r["first_payment_date"]) %> → <%= format_plain_date(r["last_payment_date"]) %></div>
+                      <div class="entity-cell-secondary">Payment window</div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary gap-1.5">
+                        <% if r["is_default_schedule"] %>
+                          <span class="entity-chip entity-chip--accent">Default</span>
+                        <% end %>
+                        <span class="entity-chip entity-chip--muted"><%= r["detail_count"].to_i %> dates</span>
+                      </div>
+                      <div class="entity-cell-secondary">Installment density</div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            <% end %>
+          </div>
         </div>
       <% end %>
     </div>

@@ -1,58 +1,91 @@
 <% ledger_entries = Array(@ledger_entries) %>
+<% delta_color = lambda do |value|
+  amount = value.to_f
+  if amount > 0
+    "text-emerald-600 dark:text-emerald-400"
+  elsif amount < 0
+    "text-red-600 dark:text-red-400"
+  else
+    "text-muted-foreground"
+  end
+end %>
 
 <section id="ledger" class="space-y-3">
   <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ledger timeline</h2>
   <details class="rounded-lg border border-border bg-background p-3" open>
     <summary class="cursor-pointer text-sm font-medium">Recent entries (<%= ledger_entries.size %>)</summary>
-    <div class="mt-3">
+
+    <div class="mt-3 space-y-2">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Cap + tax + apron impact lanes</div>
+
       <% if ledger_entries.empty? %>
-        <div class="text-sm text-muted-foreground italic">No ledger entries found.</div>
+        <div class="p-3 rounded border border-border/60 text-sm text-muted-foreground italic">No ledger entries found.</div>
       <% else %>
-        <div class="overflow-x-auto rounded-lg border border-border">
-          <table class="entity-table min-w-full text-xs">
-            <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-              <tr>
-                <th class="text-left px-3 py-2 font-medium">Date</th>
-                <th class="text-left px-3 py-2 font-medium">Team</th>
-                <th class="text-left px-3 py-2 font-medium">Transaction</th>
-                <th class="text-left px-3 py-2 font-medium">Type</th>
-                <th class="text-right px-3 py-2 font-medium">Cap Δ</th>
-                <th class="text-right px-3 py-2 font-medium">Tax Δ</th>
-                <th class="text-right px-3 py-2 font-medium">Apron Δ</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              <% ledger_entries.first(30).each do |e| %>
-                <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                  <td class="px-3 py-2 font-mono tabular-nums"><%= e["ledger_date"] || "—" %></td>
-                  <td class="px-3 py-2">
-                    <% if e["team_code"].present? %>
-                      <a href="<%= team_href(team_code: e['team_code'], team_id: e['team_id']) %>" class="hover:underline"><%= e["team_code"] %></a>
-                    <% else %>
-                      <span class="text-muted-foreground">—</span>
-                    <% end %>
-                  </td>
-                  <td class="px-3 py-2 font-mono tabular-nums">
-                    <% if e["transaction_id"].present? %>
-                      <a href="<%= transaction_href(e['transaction_id']) %>" class="hover:underline">#<%= e["transaction_id"] %></a>
-                      <% if e["trade_id"].present? %>
-                        · <a href="<%= trade_href(e['trade_id']) %>" class="hover:underline">T#<%= e["trade_id"] %></a>
+        <div class="rounded-lg border border-border divide-y divide-border/60">
+          <% ledger_entries.first(30).each do |e| %>
+            <% transaction_type = [e["transaction_type_lk"], e["transaction_description_lk"]].compact.reject(&:blank?).join(" · ") %>
+
+            <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+              <div class="flex flex-wrap items-start gap-3">
+                <div class="w-44 shrink-0">
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary font-mono tabular-nums"><%= format_plain_date(e["ledger_date"]) %></div>
+                    <div class="entity-cell-secondary gap-1.5">
+                      <% if e["team_code"].present? %>
+                        <a href="<%= team_href(team_code: e['team_code'], team_id: e['team_id']) %>" class="hover:underline"><%= e["team_code"] %></a>
+                      <% else %>
+                        <span class="text-muted-foreground/60">—</span>
                       <% end %>
-                    <% else %>
-                      <span class="text-muted-foreground">—</span>
-                    <% end %>
-                  </td>
-                  <td class="px-3 py-2 text-muted-foreground"><%= [e["transaction_type_lk"], e["transaction_description_lk"]].compact.reject(&:blank?).join(" · ").presence || "—" %></td>
-                  <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(e["cap_change"]) %></td>
-                  <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(e["tax_change"]) %></td>
-                  <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(e["apron_change"]) %></td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
+
+                      <% if e["trade_id"].present? %>
+                        <span class="entity-chip entity-chip--warning">Trade</span>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary font-mono tabular-nums gap-2">
+                      <% if e["transaction_id"].present? %>
+                        <a href="<%= transaction_href(e['transaction_id']) %>" class="hover:underline">#<%= e["transaction_id"] %></a>
+                        <% if e["trade_id"].present? %>
+                          <a href="<%= trade_href(e['trade_id']) %>" class="hover:underline">T#<%= e["trade_id"] %></a>
+                        <% end %>
+                      <% else %>
+                        <span class="text-muted-foreground/60">—</span>
+                      <% end %>
+                    </div>
+                    <div class="entity-cell-secondary">Transaction refs</div>
+                  </div>
+
+                  <div class="entity-cell-two-line xl:col-span-2">
+                    <div class="entity-cell-primary truncate"><%= transaction_type.presence || "—" %></div>
+                    <div class="entity-cell-secondary">Event type</div>
+                  </div>
+
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary justify-end font-mono tabular-nums <%= delta_color.call(e['cap_change']) %>"><%= format_room_amount(e["cap_change"]) %></div>
+                    <div class="entity-cell-secondary justify-end font-mono tabular-nums">Cap Δ</div>
+                  </div>
+
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary justify-end font-mono tabular-nums <%= delta_color.call(e['tax_change']) %>"><%= format_room_amount(e["tax_change"]) %></div>
+                    <div class="entity-cell-secondary justify-end font-mono tabular-nums">Tax Δ</div>
+                  </div>
+
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary justify-end font-mono tabular-nums <%= delta_color.call(e['apron_change']) %>"><%= format_room_amount(e["apron_change"]) %></div>
+                    <div class="entity-cell-secondary justify-end font-mono tabular-nums">Apron Δ</div>
+                  </div>
+                </div>
+              </div>
+            </article>
+          <% end %>
         </div>
+
         <% if ledger_entries.size > 30 %>
-          <div class="mt-2 text-xs text-muted-foreground italic">Showing first 30 of <%= ledger_entries.size %> rows.</div>
+          <div class="text-xs text-muted-foreground italic">Showing first 30 of <%= ledger_entries.size %> rows.</div>
         <% end %>
       <% end %>
     </div>

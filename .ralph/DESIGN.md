@@ -31,7 +31,7 @@ Rubric (1-5):
 
 ---
 
-- [ ] [P1] [ENTITY] /players/:slug — replace table-heavy contract sections with dense flex dossier lanes
+- [x] [P1] [ENTITY] /players/:slug — replace table-heavy contract sections with dense flex dossier lanes
   - Problem: Contract history, guarantees, incentives, and ledger sections still read like disconnected spreadsheet tables.
   - Hypothesis: Converting to unified flex-row dossier lanes will reduce context switching and improve “what matters now” comprehension.
   - Scope (files):
@@ -40,16 +40,27 @@ Rubric (1-5):
     - web/app/views/entities/players/_section_incentives.html.erb
     - web/app/views/entities/players/_section_ledger.html.erb
     - web/test/integration/entities_players_show_test.rb
+  - What changed (files):
+    - Replaced all table markup in the four target player dossier sections with dense flex-row lane layouts using consistent identity + metric cells (`entity-cell-two-line`).
+    - Added explicit high-signal chips/flags across lanes (PO/TO/ETO, FULL/PARTIAL/NON guarantees, No-Trade, Trade Bonus, conditional protections, likely/unlikely incentives).
+    - Added focused integration coverage in `entities_players_show_test.rb` to assert lane rendering, absence of `<table>` in targeted sections, and visibility of key flags.
+  - Why this improves the flow:
+    - Contract reading now follows one scan grammar across chronology → guarantees → incentives → ledger, reducing mode-switching between differently shaped tables.
+    - Year/event identity is anchored in left lanes while money/flags stay in predictable right metric cells, making “what matters now” faster to parse.
+    - Pivots (team/transaction/trade links) remain inline in the same row context instead of buried in wide table columns.
   - Acceptance criteria:
     - No `<table>` markup remains in the four target player section partials.
     - Section rows use consistent identity + metric cell grammar (year/event/action + money/flags).
     - High-signal flags (option, no-trade, trade bonus, guarantee type) are visible at row glance.
-  - Rubric (before → target):
+  - Rubric (before → after):
     - Scan speed: 3 → 5
     - Information hierarchy: 3 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 3 → 4
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Add a compact “next decisions” rail near constraints/contract horizon so the same lane grammar surfaces upcoming option/expiry triggers first.
+    - Consider harmonizing Vitals/Connections/Team History onto the same lane grammar to complete full-page dossier consistency.
   - Guardrails:
     - Do not modify Salary Book files.
 

@@ -198,22 +198,34 @@ Rubric (1-5):
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P1] [ENTITY] /trades/:id — reframe trade detail as team-centric OUT/IN impact board
+- [x] [P1] [ENTITY] /trades/:id — reframe trade detail as team-centric OUT/IN impact board
   - Problem: Trade detail contains rich data but requires too much table scanning to understand team-by-team directionality.
   - Hypothesis: Team-centric OUT/IN lanes with net impact cues will reduce drill burden and improve legal/cap interpretation.
   - Scope (files):
     - web/app/views/entities/trades/show.html.erb
     - web/test/integration/entities_trades_show_test.rb
+  - What changed (files):
+    - Rebuilt `#leg-breakdown` in `web/app/views/entities/trades/show.html.erb` from a single summary table into a team-centric impact board with per-team OUT/IN/net cues, salary/cash deltas, and inline asset lanes.
+    - Added team-level lane composition logic at the top of `show.html.erb` to aggregate outgoing/incoming players, picks, cash, and related transactions so each team lane reads as one impact snapshot.
+    - Rebuilt `#trade-groups` in `show.html.erb` into legal lanes (by group + team) that keep signed-method + generated/acquired exception context in the same row grammar, plus a lane-style team exception registry.
+    - Added focused integration coverage in `web/test/integration/entities_trades_show_test.rb` asserting no table markup in `#leg-breakdown`/`#trade-groups`, visibility of OUT/IN/net cues, and preserved player/pick/transaction/team pivots.
+  - Why this improves the flow:
+    - Users now start with directionality (OUT vs IN vs net) per team before drilling into raw row audits, eliminating the previous “decode tables first” step.
+    - Asset pivots (player, pick, transaction) are now embedded directly in each team lane, so analysis stays team-contextual rather than bouncing across isolated sections.
+    - Legal trade-group interpretation is now aligned with the same team lane grammar, making cap-legal context readable without switching scanning modes.
   - Acceptance criteria:
     - Leg breakdown and trade-group sections are readable in team-centric lane grammar.
     - OUT/IN/net cues are visible before reading deep details.
     - Transaction, player, and pick pivots are preserved in each lane.
-  - Rubric (before → target):
+  - Rubric (before → after):
     - Scan speed: 2 → 5
     - Information hierarchy: 3 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 3 → 4
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Add lane-level toggles (`assets only`, `transactions only`, `legal only`) with URL-persisted state for large multi-team trades.
+    - Add explicit TPE direction mapping (OUT vs IN) once warehouse rows expose directional exception flow in trade details.
   - Guardrails:
     - Do not modify Salary Book files.
 

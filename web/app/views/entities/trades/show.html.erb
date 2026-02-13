@@ -10,6 +10,147 @@
 <% pick_line_item_count = @pick_details.size %>
 <% transaction_count = @transactions.size %>
 
+<%
+  trade_pick_pivot_href = "/draft-selections"
+
+  impact_rows_by_team = {}
+  seed_trade_team_lane = lambda do |team_id:, team_code:, team_name: nil|
+    key = team_id.presence || team_code.to_s.upcase.presence
+    next nil if key.blank?
+
+    impact_rows_by_team[key] ||= {
+      team_id: team_id,
+      team_code: team_code.to_s.upcase.presence,
+      team_name: team_name,
+      players_out: 0,
+      players_in: 0,
+      picks_out: 0,
+      picks_in: 0,
+      cash_out: 0.0,
+      cash_in: 0.0,
+      tpe_out: 0,
+      tpe_in: 0,
+      outgoing_assets: [],
+      incoming_assets: [],
+      transactions: []
+    }
+  end
+
+  trade_team_row_by_key = @trade_teams.index_by { |row| row["team_id"].presence || row["team_code"].to_s.upcase.presence }
+
+  @trade_teams.each do |row|
+    lane = seed_trade_team_lane.call(team_id: row["team_id"], team_code: row["team_code"], team_name: row["team_name"])
+    next unless lane
+
+    lane[:tpe_out] = row["tpe_line_item_count"].to_i
+  end
+
+  @player_details.each do |row|
+    lane = seed_trade_team_lane.call(team_id: row["team_id"], team_code: row["team_code"], team_name: row["team_name"])
+    next unless lane
+
+    direction = row["is_sent"] == false ? :in : :out
+
+    flags = []
+    flags << "S&T" if row["is_sign_and_trade"]
+    flags << "Kicker" if row["is_trade_bonus"]
+    flags << "NTC" if row["is_no_trade"]
+    flags << "Consent" if row["is_player_consent"]
+    flags << "Poison" if row["is_poison_pill"]
+    flags << "BYC" if row["is_base_year"]
+
+    asset_row = {
+      kind: "player",
+      label: row["player_name"].presence || "Player ##{row['player_id']}",
+      href: (row["player_id"].present? ? player_href(row["player_id"]) : nil),
+      meta: flags.any? ? flags.join(" · ") : "Player line"
+    }
+
+    if direction == :out
+      lane[:players_out] += 1
+      lane[:outgoing_assets] << asset_row
+    else
+      lane[:players_in] += 1
+      lane[:incoming_assets] << asset_row
+    end
+  end
+
+  @pick_details.each do |row|
+    lane = seed_trade_team_lane.call(team_id: row["team_id"], team_code: row["team_code"], team_name: row["team_name"])
+    next unless lane
+
+    direction = row["is_sent"] == false ? :in : :out
+
+    pick_label = [row["draft_pick_year"], "R#{row['draft_pick_round'].presence || '?'}"].compact.join(" ")
+    pick_flags = []
+    pick_flags << "Swap" if row["is_draft_pick_swap"]
+    pick_flags << "Future" if row["is_draft_pick_future"]
+    pick_flags << "Y+2" if row["is_draft_year_plus_two"]
+    pick_flags << row["draft_pick_conditional_lk"] if row["draft_pick_conditional_lk"].present?
+
+    asset_row = {
+      kind: "pick",
+      label: pick_label.presence || "Draft pick",
+      href: trade_pick_pivot_href,
+      meta: pick_flags.any? ? pick_flags.join(" · ") : "Draft asset"
+    }
+
+    if direction == :out
+      lane[:picks_out] += 1
+      lane[:outgoing_assets] << asset_row
+    else
+      lane[:picks_in] += 1
+      lane[:incoming_assets] << asset_row
+    end
+  end
+
+  @cash_details.each do |row|
+    lane = seed_trade_team_lane.call(team_id: row["team_id"], team_code: row["team_code"], team_name: row["team_name"])
+    next unless lane
+
+    direction = row["is_sent"] == false ? :in : :out
+    amount = row["cash_amount"].to_f.abs
+    next if amount.zero?
+
+    asset_row = {
+      kind: "cash",
+      label: "Cash #{format_salary(amount)}",
+      href: nil,
+      meta: "Cash line"
+    }
+
+    if direction == :out
+      lane[:cash_out] += amount
+      lane[:outgoing_assets] << asset_row
+    else
+      lane[:cash_in] += amount
+      lane[:incoming_assets] << asset_row
+    end
+  end
+
+  @transactions.each do |tx|
+    [
+      [tx["from_team_id"], tx["from_team_code"], tx["from_team_name"], "OUT"],
+      [tx["to_team_id"], tx["to_team_code"], tx["to_team_name"], "IN"]
+    ].each do |team_id, team_code, team_name, flow|
+      lane = seed_trade_team_lane.call(team_id:, team_code:, team_name:)
+      next unless lane
+
+      lane[:transactions] << {
+        row: tx,
+        flow: flow
+      }
+    end
+  end
+
+  impact_rows_by_team.each_value do |lane|
+    lane[:transactions] = lane[:transactions].uniq { |item| [item[:row]["transaction_id"], item[:flow]] }
+  end
+
+  team_sequence = (@trade_teams.map { |row| row["team_id"].presence || row["team_code"].to_s.upcase.presence } + impact_rows_by_team.keys).compact.uniq
+  grouped_trade_groups = @trade_group_rows.group_by { |row| row["trade_group_number"] }
+%>
+
 <div id="entity-directory" class="min-h-screen w-full bg-background">
   <%= render partial: "entities/shared/commandbar", locals: {
     active_entity_scope: "trades"
@@ -27,8 +168,8 @@
     <%= render partial: "entities/shared/local_nav", locals: {
       sections: [
         ["vitals", "Vitals"],
-        ["leg-breakdown", "Leg breakdown"],
-        ["trade-groups", "Trade groups"],
+        ["leg-breakdown", "OUT/IN board"],
+        ["trade-groups", "Legal lanes"],
         ["player-items", "Player items"],
         ["pick-cash", "Pick + cash"],
         ["transactions", "Transactions"],
@@ -73,179 +214,378 @@
       </section>
 
       <section id="leg-breakdown" class="scroll-mt-24 space-y-3">
-        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Leg breakdown</h2>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Team-centric OUT/IN impact board</h2>
+          <div class="flex flex-wrap gap-1.5 text-[10px]">
+            <span class="entity-chip entity-chip--muted"><%= team_sequence.size %> team lanes</span>
+            <span class="entity-chip entity-chip--accent"><%= player_line_item_count %> player lines</span>
+            <span class="entity-chip entity-chip--warning"><%= pick_line_item_count %> pick lines</span>
+            <span class="entity-chip entity-chip--success"><%= transaction_count %> transaction pivots</span>
+          </div>
+        </div>
 
-    <% if @trade_teams.empty? %>
-      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No trade_teams rows found.</div>
-    <% else %>
-      <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="entity-table min-w-full text-xs">
-          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-            <tr>
-              <th class="text-left px-3 py-2 font-medium">Team</th>
-              <th class="text-right px-3 py-2 font-medium">Salary change</th>
-              <th class="text-right px-3 py-2 font-medium">Cash in / out</th>
-              <th class="text-right px-3 py-2 font-medium">Players</th>
-              <th class="text-right px-3 py-2 font-medium">Picks</th>
-              <th class="text-right px-3 py-2 font-medium">TPE</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <% @trade_teams.each do |row| %>
-              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                <td class="px-3 py-2">
-                  <% if row["team_code"].present? %>
-                    <div class="entity-cell-two-line">
+        <% if team_sequence.empty? %>
+          <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No trade-team impact rows found.</div>
+        <% else %>
+          <div class="rounded-lg border border-border overflow-hidden">
+            <div class="divide-y divide-border/60">
+              <% team_sequence.each do |team_key| %>
+                <% lane = impact_rows_by_team[team_key] || {} %>
+                <% team_row = trade_team_row_by_key[team_key] || {} %>
+                <% team_id = lane[:team_id].presence || team_row["team_id"] %>
+                <% team_code = lane[:team_code].presence || team_row["team_code"] %>
+                <% team_name = lane[:team_name].presence || team_row["team_name"] %>
+
+                <% impact_row = {
+                  "players_out" => lane[:players_out].to_i,
+                  "players_in" => lane[:players_in].to_i,
+                  "picks_out" => lane[:picks_out].to_i,
+                  "picks_in" => lane[:picks_in].to_i,
+                  "cash_out" => lane[:cash_out].to_f,
+                  "cash_in" => lane[:cash_in].to_f,
+                  "tpe_out" => lane[:tpe_out].to_i,
+                  "tpe_in" => lane[:tpe_in].to_i
+                } %>
+
+                <% net_variant = trade_impact_net_variant(impact_row) %>
+                <% net_chip_class = case net_variant
+                   when :net_in then "entity-chip entity-chip--success"
+                   when :net_out then "entity-chip entity-chip--danger"
+                   else "entity-chip entity-chip--muted"
+                   end %>
+
+                <% salary_delta = team_row["team_salary_change"].to_f %>
+                <% salary_delta_class = if salary_delta.positive?
+                  "text-emerald-600 dark:text-emerald-400"
+                elsif salary_delta.negative?
+                  "text-red-500"
+                else
+                  "text-muted-foreground"
+                end %>
+
+                <% outgoing_assets = Array(lane[:outgoing_assets]) %>
+                <% incoming_assets = Array(lane[:incoming_assets]) %>
+                <% lane_transactions = Array(lane[:transactions]) %>
+
+                <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                  <div class="flex flex-wrap items-start gap-3">
+                    <div class="w-40 shrink-0 entity-cell-two-line">
                       <div class="entity-cell-primary">
-                        <a href="<%= safe_team_href(team_code: row['team_code'], team_id: row['team_id']) %>" class="font-medium hover:underline"><%= row["team_code"] %></a>
-                      </div>
-                      <div class="entity-cell-secondary truncate"><%= row["team_name"].presence || "team_id: #{row['team_id'] || '—'}" %></div>
-                    </div>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(row["team_salary_change"]) %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(row["total_cash_received"]) %> / <%= format_salary(row["total_cash_sent"]) %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= row["player_line_item_count"] || 0 %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= row["pick_line_item_count"] || 0 %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= row["tpe_line_item_count"] || 0 %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
-  </section>
-
-      <section id="trade-groups" class="scroll-mt-24 space-y-3">
-        <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Trade-group legal structure</h2>
-
-    <% if @trade_group_rows.empty? %>
-      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No trade_groups rows found.</div>
-    <% else %>
-      <% grouped_trade_groups = @trade_group_rows.group_by { |r| r["trade_group_number"] } %>
-      <div class="space-y-3">
-        <% grouped_trade_groups.keys.sort.each do |group_number| %>
-          <% rows = grouped_trade_groups[group_number] || [] %>
-          <div class="rounded-lg border border-border bg-background p-3 space-y-2">
-            <div class="text-sm font-medium">Group <span class="font-mono tabular-nums"><%= group_number %></span></div>
-            <div class="overflow-x-auto">
-              <table class="entity-table min-w-full text-xs">
-                <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
-                  <tr>
-                    <th class="text-left px-2 py-1 font-medium">Team</th>
-                    <th class="text-left px-2 py-1 font-medium">Signed method</th>
-                    <th class="text-left px-2 py-1 font-medium">Generated exception</th>
-                    <th class="text-left px-2 py-1 font-medium">Acquired exception</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-border/60">
-                  <% rows.each do |r| %>
-                    <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                      <td class="px-2 py-1 text-xs">
-                        <% if r["team_id"].present? %>
-                          <a href="<%= safe_team_href(team_code: r['team_code'], team_id: r['team_id']) %>" class="hover:underline"><%= r["team_code"] || r["team_id"] %></a>
-                          <% if r["team_name"].present? %>
-                            <div class="text-muted-foreground"><%= r["team_name"] %></div>
-                          <% end %>
+                        <% if team_id.present? || team_code.present? %>
+                          <a href="<%= safe_team_href(team_code:, team_id:) %>" class="font-medium hover:underline"><%= team_code.presence || team_id %></a>
                         <% else %>
                           <span class="text-muted-foreground">—</span>
                         <% end %>
-                      </td>
-                      <td class="px-2 py-1 text-xs text-muted-foreground">
-                        <% if r["signed_method_lk"].present? %>
-                          <span class="font-mono"><%= r["signed_method_lk"] %></span>
-                          <% if r["signed_method_label"].present? %>
-                            <span> — <%= r["signed_method_label"] %></span>
-                          <% end %>
-                        <% else %>
-                          —
+                      </div>
+                      <div class="entity-cell-secondary truncate"><%= team_name.presence || "team unavailable" %></div>
+                    </div>
+
+                    <div class="min-w-0 flex-1 space-y-1">
+                      <div class="flex flex-wrap items-center gap-1.5 text-[10px] tabular-nums">
+                        <span class="entity-chip entity-chip--danger">OUT <%= trade_impact_flow_label(impact_row, direction: :out) %></span>
+                        <span class="entity-chip entity-chip--success">IN <%= trade_impact_flow_label(impact_row, direction: :in) %></span>
+                        <span class="<%= net_chip_class %>"><%= trade_impact_net_label(impact_row) %></span>
+                      </div>
+
+                      <div class="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground tabular-nums">
+                        <span>Players <span class="text-foreground"><%= lane[:players_out].to_i + lane[:players_in].to_i %></span></span>
+                        <span class="text-muted-foreground/50">·</span>
+                        <span>Picks <span class="text-foreground"><%= lane[:picks_out].to_i + lane[:picks_in].to_i %></span></span>
+                        <span class="text-muted-foreground/50">·</span>
+                        <span>TPE rows <span class="text-foreground"><%= team_row["tpe_line_item_count"].to_i %></span></span>
+                        <% if lane_transactions.any? %>
+                          <span class="text-muted-foreground/50">·</span>
+                          <span>Txn pivots <span class="text-foreground"><%= lane_transactions.size %></span></span>
                         <% end %>
-                      </td>
-                      <td class="px-2 py-1 text-xs text-muted-foreground">
-                        <% if r["generated_team_exception_id"].present? %>
-                          <% generated_id = r["generated_team_exception_id"].to_i %>
-                          <% if available_trade_exception_ids.include?(generated_id) %>
-                            <a href="#team-exception-<%= generated_id %>" class="hover:underline font-mono">#<%= r["generated_team_exception_id"] %></a>
-                          <% else %>
-                            <span class="font-mono">#<%= r["generated_team_exception_id"] %></span>
-                          <% end %>
-                          <% if r["generated_exception_type_lk"].present? %>
-                            <div>
-                              <span class="font-mono"><%= r["generated_exception_type_lk"] %></span>
-                              <% if r["generated_exception_type_label"].present? %>
-                                <span> — <%= r["generated_exception_type_label"] %></span>
-                              <% end %>
+                      </div>
+                    </div>
+
+                    <div class="flex items-start gap-1">
+                      <div class="w-24 entity-cell-two-line">
+                        <div class="entity-cell-primary justify-end font-mono tabular-nums <%= salary_delta_class %>"><%= format_salary(salary_delta) %></div>
+                        <div class="entity-cell-secondary justify-end">Salary Δ</div>
+                      </div>
+                      <div class="w-24 entity-cell-two-line">
+                        <div class="entity-cell-primary justify-end font-mono tabular-nums text-emerald-600 dark:text-emerald-400"><%= format_salary(team_row["total_cash_received"]) %></div>
+                        <div class="entity-cell-secondary justify-end">Cash IN</div>
+                      </div>
+                      <div class="w-24 entity-cell-two-line">
+                        <div class="entity-cell-primary justify-end font-mono tabular-nums text-red-500"><%= format_salary(team_row["total_cash_sent"]) %></div>
+                        <div class="entity-cell-secondary justify-end">Cash OUT</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mt-2 grid gap-2 lg:grid-cols-2">
+                    <div class="rounded border border-border/60 bg-background/60">
+                      <div class="px-2 py-1 border-b border-border/60 text-[10px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">OUT assets</div>
+                      <% if outgoing_assets.any? %>
+                        <div class="divide-y divide-border/50">
+                          <% outgoing_assets.first(6).each do |asset| %>
+                            <% asset_chip_class = case asset[:kind]
+                               when "player" then "entity-chip entity-chip--muted"
+                               when "pick" then "entity-chip entity-chip--accent"
+                               else "entity-chip entity-chip--warning"
+                               end %>
+                            <div class="px-2 py-1.5 flex items-start justify-between gap-2 text-[11px]">
+                              <div class="min-w-0">
+                                <% if asset[:href].present? %>
+                                  <a href="<%= asset[:href] %>" class="font-medium hover:underline truncate"><%= asset[:label] %></a>
+                                <% else %>
+                                  <span class="font-medium"><%= asset[:label] %></span>
+                                <% end %>
+                                <div class="text-[10px] text-muted-foreground truncate"><%= asset[:meta] %></div>
+                              </div>
+                              <span class="<%= asset_chip_class %>"><%= asset[:kind] %></span>
                             </div>
                           <% end %>
-                        <% else %>
-                          —
+                        </div>
+                        <% if outgoing_assets.size > 6 %>
+                          <div class="px-2 py-1 text-[10px] text-muted-foreground">+<%= outgoing_assets.size - 6 %> more outgoing assets</div>
                         <% end %>
-                      </td>
-                      <td class="px-2 py-1 text-xs text-muted-foreground">
-                        <% if r["acquired_team_exception_id"].present? %>
-                          <% acquired_id = r["acquired_team_exception_id"].to_i %>
-                          <% if available_trade_exception_ids.include?(acquired_id) %>
-                            <a href="#team-exception-<%= acquired_id %>" class="hover:underline font-mono">#<%= r["acquired_team_exception_id"] %></a>
-                          <% else %>
-                            <span class="font-mono">#<%= r["acquired_team_exception_id"] %></span>
-                          <% end %>
-                          <% if r["acquired_exception_type_lk"].present? %>
-                            <div>
-                              <span class="font-mono"><%= r["acquired_exception_type_lk"] %></span>
-                              <% if r["acquired_exception_type_label"].present? %>
-                                <span> — <%= r["acquired_exception_type_label"] %></span>
-                              <% end %>
+                      <% else %>
+                        <div class="px-2 py-2 text-[11px] text-muted-foreground italic">No outgoing asset rows.</div>
+                      <% end %>
+                    </div>
+
+                    <div class="rounded border border-border/60 bg-background/60">
+                      <div class="px-2 py-1 border-b border-border/60 text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">IN assets</div>
+                      <% if incoming_assets.any? %>
+                        <div class="divide-y divide-border/50">
+                          <% incoming_assets.first(6).each do |asset| %>
+                            <% asset_chip_class = case asset[:kind]
+                               when "player" then "entity-chip entity-chip--muted"
+                               when "pick" then "entity-chip entity-chip--accent"
+                               else "entity-chip entity-chip--warning"
+                               end %>
+                            <div class="px-2 py-1.5 flex items-start justify-between gap-2 text-[11px]">
+                              <div class="min-w-0">
+                                <% if asset[:href].present? %>
+                                  <a href="<%= asset[:href] %>" class="font-medium hover:underline truncate"><%= asset[:label] %></a>
+                                <% else %>
+                                  <span class="font-medium"><%= asset[:label] %></span>
+                                <% end %>
+                                <div class="text-[10px] text-muted-foreground truncate"><%= asset[:meta] %></div>
+                              </div>
+                              <span class="<%= asset_chip_class %>"><%= asset[:kind] %></span>
                             </div>
                           <% end %>
-                        <% else %>
-                          —
+                        </div>
+                        <% if incoming_assets.size > 6 %>
+                          <div class="px-2 py-1 text-[10px] text-muted-foreground">+<%= incoming_assets.size - 6 %> more incoming assets</div>
                         <% end %>
-                      </td>
-                    </tr>
+                      <% else %>
+                        <div class="px-2 py-2 text-[11px] text-muted-foreground italic">No incoming asset rows.</div>
+                      <% end %>
+                    </div>
+                  </div>
+
+                  <% if lane_transactions.any? %>
+                    <div class="mt-2 rounded border border-border/60 bg-muted/20">
+                      <div class="px-2 py-1 border-b border-border/60 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Transaction pivots</div>
+                      <div class="divide-y divide-border/50">
+                        <% lane_transactions.first(4).each do |tx_item| %>
+                          <% tx_row = tx_item[:row] %>
+                          <% route_label = [tx_row["from_team_code"], tx_row["to_team_code"]].compact.reject(&:blank?).join(" → ").presence || "Route unavailable" %>
+                          <div class="px-2 py-1.5 flex flex-wrap items-start justify-between gap-2 text-[11px]">
+                            <div class="min-w-0">
+                              <a href="<%= transaction_href(tx_row['transaction_id']) %>" class="font-medium hover:underline">Txn #<%= tx_row["transaction_id"] %></a>
+                              <div class="text-[10px] text-muted-foreground">
+                                <span class="font-mono tabular-nums"><%= tx_row["transaction_date"].presence || "—" %></span>
+                                <span class="text-muted-foreground/50 px-1">·</span>
+                                <span><%= route_label %></span>
+                                <% if tx_row["player_id"].present? %>
+                                  <span class="text-muted-foreground/50 px-1">·</span>
+                                  <a href="<%= player_href(tx_row['player_id']) %>" class="hover:underline"><%= tx_row["player_name"].presence || "Player ##{tx_row['player_id']}" %></a>
+                                <% end %>
+                              </div>
+                            </div>
+
+                            <div class="flex items-center gap-1.5">
+                              <span class="entity-chip <%= tx_item[:flow] == 'OUT' ? 'entity-chip--danger' : 'entity-chip--success' %>"><%= tx_item[:flow] %></span>
+                              <a href="<%= trade_href(tr['trade_id']) %>" class="text-[10px] text-muted-foreground hover:text-foreground hover:underline">Trade #<%= tr["trade_id"] %></a>
+                            </div>
+                          </div>
+                        <% end %>
+                      </div>
+                    </div>
                   <% end %>
-                </tbody>
-              </table>
+                </article>
+              <% end %>
             </div>
           </div>
         <% end %>
-      </div>
-    <% end %>
+      </section>
 
-    <% if @trade_group_exception_rows.any? %>
-      <details class="rounded-lg border border-border bg-background p-3">
-        <summary class="cursor-pointer text-sm font-medium">Referenced team exceptions (<%= @trade_group_exception_rows.size %>)</summary>
-        <div class="mt-3 space-y-2">
-          <% @trade_group_exception_rows.each do |ex| %>
-            <article id="team-exception-<%= ex['team_exception_id'] %>" class="rounded border border-border/60 p-2">
-              <div class="text-sm font-mono">#<%= ex["team_exception_id"] %></div>
-              <div class="text-xs text-muted-foreground mt-1">
-                <% if ex["team_id"].present? %>
-                  <a href="<%= safe_team_href(team_code: ex['team_code'], team_id: ex['team_id']) %>" class="hover:underline"><%= ex["team_code"] || ex["team_id"] %></a>
-                <% else %>
-                  <span><%= ex["team_code"] || "—" %></span>
-                <% end %>
-                · year <span class="font-mono"><%= ex["salary_year"] || "—" %></span>
-              </div>
-              <div class="text-xs text-muted-foreground mt-1">
-                type:
-                <% if ex["exception_type_lk"].present? %>
-                  <span class="font-mono"><%= ex["exception_type_lk"] %></span>
-                  <% if ex["exception_type_label"].present? %>
-                    <span> — <%= ex["exception_type_label"] %></span>
-                  <% end %>
-                <% else %>
-                  —
-                <% end %>
-                · remaining <span class="font-mono tabular-nums"><%= format_salary(ex["remaining_amount"]) %></span>
-              </div>
-            </article>
-          <% end %>
+      <section id="trade-groups" class="scroll-mt-24 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Trade-group legal lanes</h2>
+          <div class="flex flex-wrap gap-1.5 text-[10px]">
+            <span class="entity-chip entity-chip--muted"><%= grouped_trade_groups.size %> groups</span>
+            <span class="entity-chip entity-chip--accent"><%= @trade_group_rows.size %> team legs</span>
+            <span class="entity-chip entity-chip--warning"><%= @trade_group_exception_rows.size %> referenced exceptions</span>
+          </div>
         </div>
-      </details>
-    <% end %>
-  </section>
+
+        <% if grouped_trade_groups.empty? %>
+          <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No trade-group legal rows found.</div>
+        <% else %>
+          <div class="space-y-3">
+            <% grouped_trade_groups.keys.sort.each do |group_number| %>
+              <% rows = grouped_trade_groups[group_number] || [] %>
+              <article class="rounded-lg border border-border overflow-hidden">
+                <div class="px-3 py-2 border-b border-border bg-muted/20 flex items-center justify-between gap-2">
+                  <div class="text-sm font-medium">Group <span class="font-mono tabular-nums"><%= group_number %></span></div>
+                  <div class="text-[10px] text-muted-foreground tabular-nums"><%= rows.size %> team lanes</div>
+                </div>
+
+                <div class="divide-y divide-border/60">
+                  <% rows.each do |r| %>
+                    <% team_key = r["team_id"].presence || r["team_code"].to_s.upcase.presence %>
+                    <% lane = impact_rows_by_team[team_key] || {} %>
+                    <% impact_row = {
+                      "players_out" => lane[:players_out].to_i,
+                      "players_in" => lane[:players_in].to_i,
+                      "picks_out" => lane[:picks_out].to_i,
+                      "picks_in" => lane[:picks_in].to_i,
+                      "cash_out" => lane[:cash_out].to_f,
+                      "cash_in" => lane[:cash_in].to_f,
+                      "tpe_out" => lane[:tpe_out].to_i,
+                      "tpe_in" => lane[:tpe_in].to_i
+                    } %>
+
+                    <% net_variant = trade_impact_net_variant(impact_row) %>
+                    <% net_chip_class = case net_variant
+                       when :net_in then "entity-chip entity-chip--success"
+                       when :net_out then "entity-chip entity-chip--danger"
+                       else "entity-chip entity-chip--muted"
+                       end %>
+
+                    <% generated_id = r["generated_team_exception_id"].to_i if r["generated_team_exception_id"].present? %>
+                    <% acquired_id = r["acquired_team_exception_id"].to_i if r["acquired_team_exception_id"].present? %>
+
+                    <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                      <div class="flex flex-wrap items-start gap-3">
+                        <div class="w-40 shrink-0 entity-cell-two-line">
+                          <div class="entity-cell-primary">
+                            <% if r["team_id"].present? || r["team_code"].present? %>
+                              <a href="<%= safe_team_href(team_code: r['team_code'], team_id: r['team_id']) %>" class="font-medium hover:underline"><%= r["team_code"].presence || r["team_id"] %></a>
+                            <% else %>
+                              <span class="text-muted-foreground">—</span>
+                            <% end %>
+                          </div>
+                          <div class="entity-cell-secondary truncate"><%= r["team_name"].presence || "team unavailable" %></div>
+                        </div>
+
+                        <div class="min-w-0 flex-1 space-y-1">
+                          <div class="text-sm">
+                            <% if r["signed_method_lk"].present? %>
+                              <span class="font-medium">Signed method</span>
+                              <span class="font-mono tabular-nums"><%= r["signed_method_lk"] %></span>
+                              <% if r["signed_method_label"].present? %>
+                                <span class="text-muted-foreground">· <%= r["signed_method_label"] %></span>
+                              <% end %>
+                            <% else %>
+                              <span class="text-muted-foreground">Signed method unavailable</span>
+                            <% end %>
+                          </div>
+
+                          <div class="flex flex-wrap items-center gap-1.5 text-[10px] tabular-nums">
+                            <span class="entity-chip entity-chip--danger">OUT <%= trade_impact_flow_label(impact_row, direction: :out) %></span>
+                            <span class="entity-chip entity-chip--success">IN <%= trade_impact_flow_label(impact_row, direction: :in) %></span>
+                            <span class="<%= net_chip_class %>"><%= trade_impact_net_label(impact_row) %></span>
+                          </div>
+
+                          <% if r["trade_group_comments"].present? %>
+                            <div class="text-[11px] text-muted-foreground"><%= r["trade_group_comments"] %></div>
+                          <% end %>
+
+                          <div class="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                            <span class="font-medium text-foreground">Generated</span>
+                            <% if r["generated_team_exception_id"].present? %>
+                              <% if available_trade_exception_ids.include?(generated_id) %>
+                                <a href="#team-exception-<%= generated_id %>" class="hover:underline font-mono tabular-nums">#<%= r["generated_team_exception_id"] %></a>
+                              <% else %>
+                                <span class="font-mono tabular-nums">#<%= r["generated_team_exception_id"] %></span>
+                              <% end %>
+                              <% if r["generated_exception_type_lk"].present? %>
+                                <span><%= r["generated_exception_type_lk"] %></span>
+                              <% end %>
+                              <% if r["generated_exception_type_label"].present? %>
+                                <span>· <%= r["generated_exception_type_label"] %></span>
+                              <% end %>
+                            <% else %>
+                              <span>—</span>
+                            <% end %>
+
+                            <span class="text-muted-foreground/50">|</span>
+                            <span class="font-medium text-foreground">Acquired</span>
+                            <% if r["acquired_team_exception_id"].present? %>
+                              <% if available_trade_exception_ids.include?(acquired_id) %>
+                                <a href="#team-exception-<%= acquired_id %>" class="hover:underline font-mono tabular-nums">#<%= r["acquired_team_exception_id"] %></a>
+                              <% else %>
+                                <span class="font-mono tabular-nums">#<%= r["acquired_team_exception_id"] %></span>
+                              <% end %>
+                              <% if r["acquired_exception_type_lk"].present? %>
+                                <span><%= r["acquired_exception_type_lk"] %></span>
+                              <% end %>
+                              <% if r["acquired_exception_type_label"].present? %>
+                                <span>· <%= r["acquired_exception_type_label"] %></span>
+                              <% end %>
+                            <% else %>
+                              <span>—</span>
+                            <% end %>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  <% end %>
+                </div>
+              </article>
+            <% end %>
+          </div>
+        <% end %>
+
+        <% if @trade_group_exception_rows.any? %>
+          <details class="rounded-lg border border-border bg-background p-3">
+            <summary class="cursor-pointer text-sm font-medium">Team exception registry (<%= @trade_group_exception_rows.size %>)</summary>
+            <div class="mt-3 space-y-2">
+              <% @trade_group_exception_rows.each do |ex| %>
+                <article id="team-exception-<%= ex['team_exception_id'] %>" class="rounded border border-border/60 px-2 py-1.5">
+                  <div class="flex flex-wrap items-center gap-2 text-sm">
+                    <span class="font-mono tabular-nums">#<%= ex["team_exception_id"] %></span>
+                    <% if ex["team_id"].present? || ex["team_code"].present? %>
+                      <a href="<%= safe_team_href(team_code: ex['team_code'], team_id: ex['team_id']) %>" class="hover:underline"><%= ex["team_code"].presence || ex["team_id"] %></a>
+                    <% else %>
+                      <span class="text-muted-foreground">—</span>
+                    <% end %>
+                    <span class="text-muted-foreground">Year <span class="font-mono tabular-nums"><%= ex["salary_year"] || "—" %></span></span>
+                  </div>
+
+                  <div class="mt-1 text-[11px] text-muted-foreground tabular-nums flex flex-wrap gap-x-2 gap-y-1">
+                    <span>Type
+                      <% if ex["exception_type_lk"].present? %>
+                        <span class="font-mono"><%= ex["exception_type_lk"] %></span>
+                      <% else %>
+                        <span>—</span>
+                      <% end %>
+                      <% if ex["exception_type_label"].present? %>
+                        <span>· <%= ex["exception_type_label"] %></span>
+                      <% end %>
+                    </span>
+                    <span class="text-muted-foreground/50">·</span>
+                    <span>Remaining <span class="font-mono"><%= format_salary(ex["remaining_amount"]) %></span></span>
+                    <% if ex["expiration_date"].present? %>
+                      <span class="text-muted-foreground/50">·</span>
+                      <span>Expires <span class="font-mono"><%= format_plain_date(ex["expiration_date"]) %></span></span>
+                    <% end %>
+                  </div>
+                </article>
+              <% end %>
+            </div>
+          </details>
+        <% end %>
+      </section>
 
       <section id="player-items" class="scroll-mt-24 space-y-3">
         <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Player line items</h2>

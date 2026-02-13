@@ -20,14 +20,58 @@ Rubric (1-5):
 - Tankathon exception succeeded in approved Salary Book frame file.
 - Biggest remaining UX gap is now **entity detail pages** (`/players/:slug`, `/agents/:slug`, `/teams/:slug`, etc.), which still contain many table-heavy sections and weaker “next action” flow.
 
-## Focus reset — entity detail phase
+## Supervisor correction — track lock (2026-02-13)
 
-- Prioritize substantial upgrades to individual entity pages.
-- Target outcomes:
-  - faster comprehension in first 10 seconds,
-  - clearer causal flow (event → cap impact → constraints),
-  - obvious next pivots (team/agent/trade/transaction) without backtracking.
-- Keep index/tool momentum, but detail-page elevation is now primary.
+- Last 4 commits were **high-value flow upgrades** (agents/teams/transactions/trades detail pages), not cosmetic churn.
+- Guardrail check passed: no forbidden Salary Book paths were touched.
+- Datastar boundary check passed: multi-region team refresh remains one SSE in `Entities::TeamsSseController#refresh`; team bootstrap remains `text/html` morph-by-id.
+
+Drift detected:
+- Work stayed in **ENTITY detail** track, while current loop direction is now stricter: prioritize **INDEX convergence** or **TOOL evolution**.
+
+Corrective TODOs for next worker cycle (mandatory):
+- Next commits must be tagged and scoped as exactly one track: `[INDEX]` or `[TOOL]`.
+- One surface + one user flow per commit (no cross-surface bundles).
+- Each task entry must include: patch targets (`#commandbar/#maincanvas/#rightpanel-base/#rightpanel-overlay` as applicable), response type (`text/html` vs `text/event-stream`), and before/after rubric scores.
+- Prefer flow outcomes (knobs, scan speed, pivots, drill-ins) over class-only visual polish.
+
+### Immediate supervisor-gated queue (pick from here next)
+
+- [ ] [P0] [INDEX] /transactions — explorer commandbar knobs + severity-first scan lanes
+  - User flow: scan latest movement → narrow by impact/type → drill into one transaction in sidebar without leaving index context.
+  - Scope (expected files):
+    - `web/app/controllers/entities/transactions_sse_controller.rb`
+    - `web/app/views/entities/transactions/_results.html.erb`
+    - `web/app/views/entities/transactions/_rightpanel_base.html.erb`
+    - `web/app/views/entities/transactions/index.html.erb`
+    - `web/test/integration/entities_transactions_index_test.rb` (or nearest coverage file)
+  - Patch targets: `#commandbar`, `#maincanvas`, `#rightpanel-base`, optional `#rightpanel-overlay`
+  - Response rule: multi-region lens/filter updates must stream via one `text/event-stream` response.
+  - Acceptance: faster first-pass scan (impact chips + compact deltas), URL-stable filter knobs, preserved one-click entity pivots.
+  - Rubric (before → target):
+    - Scan speed: 3 → 5
+    - Information hierarchy: 3 → 5
+    - Interaction predictability: 4 → 5
+    - Density/readability: 4 → 4
+    - Navigation/pivots: 4 → 5
+
+- [ ] [P0] [TOOL] /tools/two-way-utility — keyboard shortlist + one-keystroke overlay open
+  - User flow: type intent → pick top match via keyboard → open player overlay while keeping team section context.
+  - Scope (expected files):
+    - `web/app/controllers/tools/two_way_utility_controller.rb`
+    - `web/app/views/tools/two_way_utility/_commandbar.html.erb`
+    - `web/app/views/tools/two_way_utility/_workspace_main.html.erb`
+    - `web/app/views/tools/two_way_utility/_rightpanel_overlay_player.html.erb`
+    - `web/test/integration/tools_two_way_utility_test.rb`
+  - Patch targets: `#commandbar`, `#maincanvas`, `#rightpanel-overlay`
+  - Response rule: commandbar+overlay or main+overlay updates must use one `text/event-stream` response; single overlay open may return `text/html`.
+  - Acceptance: ranked suggestions appear within intent flow, Enter opens overlay predictably, compare pins + intent state remain stable.
+  - Rubric (before → target):
+    - Scan speed: 4 → 5
+    - Information hierarchy: 4 → 5
+    - Interaction predictability: 4 → 5
+    - Density/readability: 4 → 4
+    - Navigation/pivots: 4 → 5
 
 ---
 
@@ -304,28 +348,6 @@ Rubric (1-5):
     - Interaction predictability: 4 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 5 → 5
-  - Guardrails:
-    - Do not modify Salary Book files.
-
-- [ ] [P2] [TOOL] /tools/two-way-utility — add intent suggestions with one-keystroke overlay open
-  - Problem: Intent filter narrows rows but still requires manual find/open in dense team sections.
-  - Hypothesis: Top-match shortlist with keyboard open will materially reduce player lookup friction.
-  - Scope (files):
-    - web/app/controllers/tools/two_way_utility_controller.rb
-    - web/app/views/tools/two_way_utility/_commandbar.html.erb
-    - web/app/views/tools/two_way_utility/_workspace_main.html.erb
-    - web/app/views/tools/two_way_utility/_rightpanel_overlay_player.html.erb
-    - web/test/integration/tools_two_way_utility_test.rb
-  - Acceptance criteria:
-    - Intent input displays ranked shortlist suggestions.
-    - Enter/open selects a suggestion and opens overlay while preserving team-section context.
-    - Compare pins and intent state remain stable after quick-open.
-  - Rubric (before → target):
-    - Scan speed: 4 → 5
-    - Information hierarchy: 4 → 5
-    - Interaction predictability: 4 → 5
-    - Density/readability: 4 → 4
-    - Navigation/pivots: 4 → 5
   - Guardrails:
     - Do not modify Salary Book files.
 

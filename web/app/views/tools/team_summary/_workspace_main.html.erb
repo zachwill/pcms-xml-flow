@@ -1,9 +1,4 @@
 <%
-  sort_toggle_params = @state_params
-
-  next_cap_space_sort = (@sort == "cap_space_desc") ? "cap_space_asc" : "cap_space_desc"
-  next_tax_overage_sort = (@sort == "tax_overage_desc") ? "tax_overage_asc" : "tax_overage_desc"
-
   sticky_team_column_px = 208
   metric_column_px = 96
   flags_column_px = 144
@@ -18,6 +13,17 @@
   ].join("&")
 
   compare_signal_query_expr = "&selected=' + encodeURIComponent($selectedteam || '') + '&compare_a=' + encodeURIComponent($comparea || '') + '&compare_b=' + encodeURIComponent($compareb || '')"
+
+  header_sort_state_query_expr = "'year=' + encodeURIComponent($tsyear) +
+    '&conference=' + encodeURIComponent(($tsconferenceeast && $tsconferencewest) ? 'all' : ($tsconferenceeast ? 'Eastern' : ($tsconferencewest ? 'Western' : 'all'))) +
+    '&pressure=' + encodeURIComponent($tspressure) +
+    '&sort=' + encodeURIComponent(($tssortmetric === 'team' ? 'team_asc' : ($tssortmetric === 'tax_overage' ? ($tssortasc ? 'tax_overage_asc' : 'tax_overage_desc') : ($tssortasc ? 'cap_space_asc' : 'cap_space_desc')))) +
+    '&selected=' + encodeURIComponent($selectedteam || '') +
+    '&compare_a=' + encodeURIComponent($comparea || '') +
+    '&compare_b=' + encodeURIComponent($compareb || '')"
+
+  cap_sort_refresh_expr = "if ($tssortmetric === 'cap_space') { $tssortasc = !$tssortasc; } else { $tssortmetric = 'cap_space'; $tssortasc = false; } @get('#{tools_team_summary_sse_refresh_path}?' + (#{header_sort_state_query_expr}))"
+  tax_sort_refresh_expr = "if ($tssortmetric === 'tax_overage') { $tssortasc = !$tssortasc; } else { $tssortmetric = 'tax_overage'; $tssortasc = false; } @get('#{tools_team_summary_sse_refresh_path}?' + (#{header_sort_state_query_expr}))"
 %>
 
 <%= render partial: "tools/team_summary/compare_strip" %>
@@ -50,12 +56,30 @@
         </div>
         <div class="w-24 shrink-0 text-right pr-3">Cap Total</div>
         <div class="w-24 shrink-0 text-right pr-3">
-          <a class="hover:underline" href="<%= tools_team_summary_path(sort_toggle_params.merge(sort: next_cap_space_sort)) %>">Cap Space</a>
+          <button
+            type="button"
+            class="cursor-pointer inline-flex items-center gap-1 hover:underline transition-colors"
+            data-class="{ 'text-foreground': $tssortmetric === 'cap_space', 'text-muted-foreground/90': $tssortmetric !== 'cap_space' }"
+            data-on:click="<%= cap_sort_refresh_expr %>"
+          >
+            <span>Cap Space</span>
+            <span class="font-mono" data-show="$tssortmetric === 'cap_space' && !$tssortasc" style="display: none;">↓</span>
+            <span class="font-mono" data-show="$tssortmetric === 'cap_space' && $tssortasc" style="display: none;">↑</span>
+          </button>
         </div>
         <div class="w-24 shrink-0 text-right pr-3">Tax Total</div>
         <div class="w-24 shrink-0 text-right pr-3">Tax Level</div>
         <div class="w-24 shrink-0 text-right pr-3">
-          <a class="hover:underline" href="<%= tools_team_summary_path(sort_toggle_params.merge(sort: next_tax_overage_sort)) %>">Tax Overage</a>
+          <button
+            type="button"
+            class="cursor-pointer inline-flex items-center gap-1 hover:underline transition-colors"
+            data-class="{ 'text-foreground': $tssortmetric === 'tax_overage', 'text-muted-foreground/90': $tssortmetric !== 'tax_overage' }"
+            data-on:click="<%= tax_sort_refresh_expr %>"
+          >
+            <span>Tax Overage</span>
+            <span class="font-mono" data-show="$tssortmetric === 'tax_overage' && !$tssortasc" style="display: none;">↓</span>
+            <span class="font-mono" data-show="$tssortmetric === 'tax_overage' && $tssortasc" style="display: none;">↑</span>
+          </button>
         </div>
         <div class="w-24 shrink-0 text-right pr-3">Room Tax</div>
         <div class="w-24 shrink-0 text-right pr-3">Room A1</div>

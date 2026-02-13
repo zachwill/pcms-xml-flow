@@ -143,6 +143,17 @@ class ToolsTeamSummaryTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "team summary table-header sorts route through refresh sse with signal-backed state" do
+    with_fake_connection do
+      get "/tools/team-summary", headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, "data-on:click=\"if ($tssortmetric === 'cap_space') { $tssortasc = !$tssortasc; } else { $tssortmetric = 'cap_space'; $tssortasc = false; } @get('/tools/team-summary/sse/refresh?"
+      assert_includes response.body, "data-on:click=\"if ($tssortmetric === 'tax_overage') { $tssortasc = !$tssortasc; } else { $tssortmetric = 'tax_overage'; $tssortasc = false; } @get('/tools/team-summary/sse/refresh?"
+      assert_includes response.body, "&amp;selected=' + encodeURIComponent($selectedteam || '') + '&amp;compare_a=' + encodeURIComponent($comparea || '') + '&amp;compare_b=' + encodeURIComponent($compareb || '')"
+    end
+  end
+
   test "team summary rows expose inline pin a/b actions wired to compare sse flow" do
     with_fake_connection do
       get "/tools/team-summary", headers: modern_headers

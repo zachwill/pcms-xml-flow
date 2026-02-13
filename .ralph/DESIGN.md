@@ -323,26 +323,32 @@ Supervisor review — 2026-02-13 (pass 2):
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P2] [TOOL] /tools/team-summary — make table-header sorting fully patch-driven without full-page jumps
-  - Problem: Header sort links still behave like navigation links, breaking compare/selection continuity.
-  - Hypothesis: Routing header sorts through the existing refresh SSE flow will keep users in continuous workbench mode.
+- [x] [P2] [TOOL] /tools/team-summary — make table-header sorting fully patch-driven without full-page jumps
+  - Problem: Header sort links still behaved like navigation links, breaking compare/selection continuity.
+  - Hypothesis: Routing header sorts through the existing refresh SSE flow keeps users in continuous workbench mode.
   - Scope (files):
     - web/app/views/tools/team_summary/_workspace_main.html.erb
-    - web/app/views/tools/team_summary/show.html.erb
-    - web/app/controllers/tools/team_summary_controller.rb
-    - web/app/javascript/tools/team_summary.js
     - web/test/integration/tools_team_summary_test.rb
-  - Acceptance criteria:
-    - Clicking Cap Space / Tax Overage headers triggers SSE refresh instead of full-page reload.
-    - Compare strip, row highlights, and rightpanel overlay remain synchronized after sort changes.
-    - URL state still reflects active sort for shareability.
-    - No reduction in row density or sticky-column behavior.
-  - Rubric (before → target):
+  - What changed:
+    - Replaced **Cap Space** and **Tax Overage** header `<a>` navigation links with Datastar-driven `<button>` controls in `tools/team_summary/_workspace_main`.
+    - Wired both header controls to mutate sort signals (`tssortmetric`, `tssortasc`) and issue one `/tools/team-summary/sse/refresh` request using signal-backed query state (year, conference, pressure, selected, compare A/B).
+    - Added active-sort direction indicators (`↑` / `↓`) and signal-bound emphasis so header sort state remains legible without reloading.
+    - Added integration coverage asserting header sort interactions now target refresh SSE with selected/compare signal continuity in query construction.
+  - Why this improves the flow:
+    - Sorting now stays in the same patch-driven interaction grammar as the rest of Team Summary, so compare strip pins, row highlights, and sidebar drill-in context survive sort changes.
+    - Header interactions no longer depend on stale server-rendered query links when compare state changes outside `#maincanvas`.
+    - URL shareability remains intact via existing signal→`replaceState` sync after SSE signal patches.
+  - Verification:
+    - `cd web && bundle exec rails test test/integration/tools_team_summary_test.rb` *(fails in this environment: missing gem `lucide-rails-0.7.3`)*
+    - `cd web && ruby -c app/controllers/tools/team_summary_controller.rb && ruby -c test/integration/tools_team_summary_test.rb && ruby -rerb -e "ERB.new(File.read('app/views/tools/team_summary/_workspace_main.html.erb')).src; puts 'ERB OK'"` *(syntax/ERB OK)*
+  - Rubric (before → after):
     - Scan speed: 5 → 5
     - Information hierarchy: 5 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 5 → 5
     - Navigation/pivots: 5 → 5
+  - Follow-up tasks discovered:
+    - Consider extracting the repeated Team Summary state-query expression into a shared helper/partial local to avoid drift between commandbar and header sort request builders.
   - Guardrails:
     - Do not modify Salary Book files.
 

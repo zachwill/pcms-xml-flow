@@ -1,5 +1,22 @@
 <% rows ||= [] %>
 <% selected_year ||= nil %>
+<% baseline_year ||= nil %>
+<% baseline_rows ||= [] %>
+
+<% baseline_year_i = baseline_year.present? ? baseline_year.to_i : nil %>
+<% baseline_label = baseline_year_i ? format_year_label(baseline_year_i) : "—" %>
+<% baseline_rows_by_yos = baseline_rows.index_by { |row| row["years_of_service"].to_i } %>
+
+<% format_currency_delta = lambda do |delta|
+  if delta.nil?
+    "n/a"
+  elsif delta.to_f.zero?
+    "±$0K"
+  else
+    prefix = delta.to_f.positive? ? "+" : ""
+    "#{prefix}#{format_compact_currency(delta)}"
+  end
+end %>
 
 <section data-show="$showsalaryscales">
   <div class="overflow-x-auto">
@@ -7,7 +24,7 @@
       <div class="sticky top-0 z-30 bg-background will-change-transform shadow-[0_1px_3px_0_rgb(0_0_0/0.08),0_1px_2px_-1px_rgb(0_0_0/0.08)]">
         <div class="h-9 flex items-center border-b border-border bg-muted px-4">
           <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">League Salary Scales (Minimum by YOS)</div>
-          <div class="ml-auto text-[10px] text-muted-foreground/70 tabular-nums"><%= rows.length %> rows</div>
+          <div class="ml-auto text-[10px] text-muted-foreground/70 tabular-nums">Δ vs <%= baseline_label %> · <%= rows.length %> rows</div>
         </div>
 
         <div class="h-8 flex items-center border-b border-border bg-background text-[10px] uppercase tracking-wide font-medium text-muted-foreground/90 select-none cursor-default">
@@ -22,20 +39,76 @@
       <% else %>
         <div class="divide-y divide-border">
           <% rows.each do |row| %>
-            <% highlighted = row["salary_year"].to_i == selected_year.to_i %>
-            <% row_bg = highlighted ? "bg-yellow-100/70 dark:bg-yellow-900/20" : "" %>
-            <% sticky_bg = highlighted ? "bg-yellow-100/70 dark:bg-yellow-900/20 group-hover:bg-yellow-100/70 dark:group-hover:bg-yellow-900/20" : "bg-background group-hover:bg-yellow-50 dark:group-hover:bg-yellow-900/25" %>
+            <% row_year = row["salary_year"].to_i %>
+            <% highlighted = row_year == selected_year.to_i %>
+            <% baseline_match = baseline_year_i.present? && row_year == baseline_year_i %>
+
+            <% row_bg = if highlighted
+              "bg-yellow-100/70 dark:bg-yellow-900/20"
+            elsif baseline_match
+              "bg-sky-100/60 dark:bg-sky-900/20"
+            else
+              ""
+            end %>
+
+            <% sticky_bg = if highlighted
+              "bg-yellow-100/70 dark:bg-yellow-900/20 group-hover:bg-yellow-100/70 dark:group-hover:bg-yellow-900/20"
+            elsif baseline_match
+              "bg-sky-100/60 dark:bg-sky-900/20 group-hover:bg-sky-100/60 dark:group-hover:bg-sky-900/20"
+            else
+              "bg-background group-hover:bg-yellow-50 dark:group-hover:bg-yellow-900/25"
+            end %>
+
+            <% row_context = if highlighted && baseline_match
+              "selected + baseline"
+            elsif highlighted
+              "selected season"
+            elsif baseline_match
+              "baseline season"
+            else
+              "minimum scale"
+            end %>
+
+            <% yos_key = row["years_of_service"].to_i %>
+            <% baseline_yos_row = baseline_rows_by_yos[yos_key] %>
+            <% delta_value = if baseline_yos_row.present? && row["minimum_salary_amount"].present? && baseline_yos_row["minimum_salary_amount"].present?
+              row["minimum_salary_amount"].to_f - baseline_yos_row["minimum_salary_amount"].to_f
+            end %>
+
+            <% delta_label = if baseline_match
+              "baseline"
+            else
+              "Δ #{format_currency_delta.call(delta_value)}"
+            end %>
+
+            <% delta_class = if baseline_match
+              "text-muted-foreground/80"
+            elsif delta_value.nil?
+              "text-muted-foreground/60"
+            elsif delta_value.to_f.positive?
+              "text-emerald-600 dark:text-emerald-400"
+            elsif delta_value.to_f.negative?
+              "text-red-500"
+            else
+              "text-muted-foreground"
+            end %>
 
             <div class="group flex items-stretch text-xs transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/25 <%= row_bg %>">
               <div class="w-36 shrink-0 px-4 py-1.5 sticky left-0 z-20 relative transition-colors duration-75 <%= sticky_bg %> before:absolute before:right-0 before:top-0 before:bottom-0 before:w-[6px] before:bg-gradient-to-r before:from-[rgba(0,0,0,0.08)] before:to-transparent after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/50">
                 <div class="entity-cell-two-line">
-                  <div class="entity-cell-primary font-mono tabular-nums"><%= format_year_label(row["salary_year"].to_i) %></div>
-                  <div class="entity-cell-secondary"><%= highlighted ? "selected season" : "minimum scale" %></div>
+                  <div class="entity-cell-primary font-mono tabular-nums"><%= format_year_label(row_year) %></div>
+                  <div class="entity-cell-secondary"><%= row_context %></div>
                 </div>
               </div>
 
               <div class="w-24 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= row["years_of_service"] %></div>
-              <div class="w-40 shrink-0 px-3 py-2 text-right font-mono tabular-nums"><%= format_compact_currency(row["minimum_salary_amount"]) %></div>
+
+              <div class="w-40 shrink-0 px-3 py-1">
+                <div class="entity-cell-two-line">
+                  <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_compact_currency(row["minimum_salary_amount"]) %></div>
+                  <div class="entity-cell-secondary justify-end font-mono tabular-nums <%= delta_class %>"><%= delta_label %></div>
+                </div>
+              </div>
             </div>
           <% end %>
         </div>

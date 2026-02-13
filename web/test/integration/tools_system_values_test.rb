@@ -269,7 +269,7 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "system values shows baseline-aware delta rows in system and tax tables" do
+  test "system values shows baseline-aware delta rows across all sections" do
     with_fake_connection do
       get "/tools/system-values", params: {
         year: "2025",
@@ -283,6 +283,9 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "selected season"
       assert_includes response.body, "Δ +$1.0M"
       assert_includes response.body, "Δ +0.25x"
+      assert_includes response.body, "Δ +$80K"
+      assert_includes response.body, "Δ +$600K"
+      assert_includes response.body, "Δ +0.000"
     end
   end
 

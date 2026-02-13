@@ -265,26 +265,26 @@ Next-loop guardrails (tightened):
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P2] [TOOL] /tools/system-values (`web/app/views/tools/system_values/show.html.erb`) — extend baseline-delta grammar into Minimum Salary and Rookie Scale sections
-  - Problem: Baseline delta treatment is strongest in System/Tax tables; Minimum/Rookie sections still require manual comparison.
-  - Hypothesis: Applying consistent delta rows and baseline markers in all sections will improve cross-section scan speed and interpretability.
-  - Scope (files):
-    - `web/app/controllers/tools/system_values_controller.rb`
+- [x] [P2] [TOOL] /tools/system-values (`web/app/views/tools/system_values/show.html.erb`) — extend baseline-delta grammar into Minimum Salary and Rookie Scale sections
+  - What changed (files):
+    - `web/app/views/tools/system_values/show.html.erb`
     - `web/app/views/tools/system_values/_league_salary_scales_table.html.erb`
     - `web/app/views/tools/system_values/_rookie_scale_amounts_table.html.erb`
-    - `web/app/views/tools/system_values/show.html.erb`
     - `web/test/integration/tools_system_values_test.rb`
-  - Acceptance criteria:
-    - Minimum Salary rows show numeric delta vs selected baseline with consistent color semantics.
-    - Rookie Scale rows show numeric delta vs selected baseline with consistent color semantics.
-    - Baseline row/selected row labeling remains explicit across all four sections.
-    - Integration tests validate minimum + rookie delta rendering.
-  - Rubric (before → target):
+  - Why this improves the flow:
+    - Minimum Salary now follows the same baseline-delta grammar as System/Tax: explicit baseline header (`Δ vs …`), selected/baseline row context labels, and per-cell delta rows with consistent positive/negative/neutral coloring.
+    - Rookie Scale now mirrors that grammar across Year 1/2, option amounts, and option percentage columns, so users can scan one section interaction model instead of manually recomputing differences.
+    - Baseline context is now explicit in all four sections (System, Tax, Minimum, Rookie), reducing interpretation drift when switching sections.
+    - `show.html.erb` now passes baseline-year context and baseline row sets into Minimum/Rookie partials so deltas are computed against the same selected baseline as the rest of the page.
+  - Rubric (before → after):
     - Scan speed: 4 → 5
     - Information hierarchy: 4 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 4 → 4
+  - Follow-up tasks discovered:
+    - Consolidate duplicated delta-formatting lambdas (currency/rate/percent) into a shared helper to keep section semantics aligned as columns evolve.
+    - Consider adding small “baseline missing” affordances when a YOS tier or pick is absent in baseline data (currently rendered as `Δ n/a`).
   - Guardrails:
     - Do not modify Salary Book files.
 

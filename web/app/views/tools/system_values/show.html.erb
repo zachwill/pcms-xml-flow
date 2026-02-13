@@ -197,14 +197,18 @@
         <div id="section-minimum" class="scroll-mt-2">
           <%= render partial: "tools/system_values/league_salary_scales_table", locals: {
             rows: @league_salary_scales,
-            selected_year: @selected_year
+            selected_year: @selected_year,
+            baseline_year: @baseline_year,
+            baseline_rows: @baseline_salary_scale_rows
           } %>
         </div>
 
         <div id="section-rookie" class="scroll-mt-2">
           <%= render partial: "tools/system_values/rookie_scale_amounts_table", locals: {
             rows: @rookie_scale_amounts,
-            selected_year: @selected_year
+            selected_year: @selected_year,
+            baseline_year: @baseline_year,
+            baseline_rows: @baseline_rookie_scale_rows
           } %>
         </div>
       </div>

@@ -19,9 +19,12 @@ module Entities
     # Patches:
     # - #maincanvas
     # - #rightpanel-base
-    # - #rightpanel-overlay (cleared)
+    # - #rightpanel-overlay (preserved when selected row remains visible)
     def refresh
       load_index_workspace_state!
+
+      requested_overlay_id = requested_overlay_id_param
+      overlay_html, resolved_overlay_type, resolved_selected_player_id = refreshed_overlay_payload(requested_overlay_id: requested_overlay_id)
 
       with_sse_stream do |sse|
         main_html = without_view_annotations do
@@ -32,12 +35,18 @@ module Entities
           render_to_string(partial: "entities/players/rightpanel_base")
         end
 
-        clear_overlay_html = '<div id="rightpanel-overlay"></div>'
-
         patch_elements_by_id(sse, main_html)
         patch_elements_by_id(sse, sidebar_html)
-        patch_elements_by_id(sse, clear_overlay_html)
-        patch_signals(sse, overlaytype: "none", selectedplayerid: "")
+        patch_elements_by_id(sse, overlay_html)
+        patch_signals(
+          sse,
+          playerquery: @query,
+          playerteam: @team_lens.to_s,
+          playerstatus: @status_lens.to_s,
+          playersort: @sort_lens.to_s,
+          overlaytype: resolved_overlay_type,
+          selectedplayerid: resolved_selected_player_id
+        )
       end
     end
 
@@ -70,6 +79,29 @@ module Entities
     end
 
     private
+
+    def requested_overlay_id_param
+      overlay_id = Integer(params[:selected_id], 10)
+      overlay_id.positive? ? overlay_id : nil
+    rescue ArgumentError, TypeError
+      nil
+    end
+
+    def refreshed_overlay_payload(requested_overlay_id:)
+      return [overlay_clear_html, "none", ""] unless selected_overlay_visible?(overlay_id: requested_overlay_id)
+
+      html = without_view_annotations do
+        render_to_string(partial: "entities/players/rightpanel_overlay_player", locals: { player: load_sidebar_player_payload(requested_overlay_id) })
+      end
+
+      [html, "player", requested_overlay_id.to_s]
+    rescue ActiveRecord::RecordNotFound
+      [overlay_clear_html, "none", ""]
+    end
+
+    def overlay_clear_html
+      '<div id="rightpanel-overlay"></div>'
+    end
 
     def without_view_annotations
       original = ActionView::Base.annotate_rendered_view_with_filenames

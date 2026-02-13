@@ -6,7 +6,10 @@
     '&status=' + encodeURIComponent($playerstatus) +
     '&sort=' + encodeURIComponent($playersort)"
 
-  refresh_expr = "@get('/players/sse/refresh?' + (#{pane_query_expr})); window.history.replaceState({}, '', '/players?' + (#{pane_query_expr}))"
+  selected_overlay_query_expr = "'selected_id=' + encodeURIComponent($overlaytype === 'player' ? $selectedplayerid : '')"
+  refresh_query_expr = "(#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr})"
+
+  refresh_expr = "@get('/players/sse/refresh?' + (#{refresh_query_expr})); window.history.replaceState({}, '', '/players?' + (#{pane_query_expr}))"
   submit_search_expr = "evt.preventDefault(); #{refresh_expr}"
   clear_search_expr = "$playerquery = ''; #{refresh_expr}"
 

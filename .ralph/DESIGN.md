@@ -98,28 +98,27 @@ Rubric (1-5):
     - Add optional debounced “search-as-you-type” mode to reduce Apply/Clear clicks while preserving request-cancellation safety.
     - Consider row-level match highlighting to improve quick visual confirmation during high-volume scans.
 
-- [ ] [P1] [INDEX] /players (`web/app/views/entities/players/index.html.erb`) — preserve selected player drill-in during iterative filter/sort changes
-  - Problem: Players refresh clears overlay state unconditionally, forcing repeated reopen actions during triage.
-  - Hypothesis: Preserve-when-visible overlay behavior will make filter iteration faster and more predictable.
-  - Scope (files):
+- [x] [P1] [INDEX] /players (`web/app/views/entities/players/index.html.erb`) — preserve selected player drill-in during iterative filter/sort changes
+  - What changed (files):
     - `web/app/controllers/entities/players_controller.rb`
     - `web/app/controllers/entities/players_sse_controller.rb`
-    - `web/app/views/entities/players/_workspace_main.html.erb`
+    - `web/app/views/entities/players/index.html.erb`
     - `web/app/views/entities/players/_rightpanel_base.html.erb`
     - `web/test/integration/entities_players_index_test.rb`
-  - Acceptance criteria:
-    - If selected player remains in filtered rows, `#rightpanel-overlay` remains open after refresh.
-    - If selected player is filtered out, overlay clears with explicit signal reset.
-    - Selected state is visible in both table row and sidebar quick-list entry.
-    - Refresh remains one SSE response for main + sidebar regions.
-  - Rubric (before → target):
+  - Why this improves the flow:
+    - Players refresh now carries selected overlay context (`selected_id`) and preserves `#rightpanel-overlay` when that player is still in the filtered result set.
+    - When the selected player is filtered out, refresh explicitly clears overlay HTML and resets signals (`overlaytype`, `selectedplayerid`) in the same SSE transaction.
+    - Selected-state highlighting is now synchronized between main table row and sidebar quick-list row; sidebar summary also guarantees the selected visible player appears in the quick list.
+    - Commandbar knob changes still ship one ordered SSE response for main canvas + sidebar base + overlay/signals.
+  - Rubric (before → after):
     - Scan speed: 4 → 5
     - Information hierarchy: 4 → 4
     - Interaction predictability: 3 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 4 → 5
-  - Guardrails:
-    - Do not modify Salary Book files.
+  - Follow-up tasks discovered:
+    - Add a lightweight "selected" chip/marker in the sidebar quick list to make preserved context even more obvious during long scan sessions.
+    - Consider adding keyboard next/previous row stepping while retaining overlay preservation semantics.
 
 - [ ] [P1] [INDEX] /teams (`web/app/views/entities/teams/index.html.erb`) — keep team pressure drill-ins stable while tuning conference/pressure knobs
   - Problem: Teams refresh clears selected overlay context, interrupting pressure comparison loops.

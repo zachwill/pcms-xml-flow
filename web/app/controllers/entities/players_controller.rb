@@ -23,41 +23,7 @@ module Entities
     # GET /players/sidebar/:id
     def sidebar
       player_id = Integer(params[:id])
-      conn = ActiveRecord::Base.connection
-      id_sql = conn.quote(player_id)
-
-      player = conn.exec_query(<<~SQL).first
-        SELECT
-          sbw.player_id,
-          sbw.player_name,
-          sbw.team_code,
-          t.team_id,
-          t.team_name,
-          sbw.agent_id,
-          sbw.agent_name,
-          sbw.is_two_way,
-          sbw.is_trade_restricted_now,
-          sbw.is_no_trade,
-          sbw.cap_2025::numeric AS cap_2025,
-          sbw.cap_2026::numeric AS cap_2026,
-          sbw.cap_2027::numeric AS cap_2027,
-          sbw.total_salary_from_2025::numeric AS total_salary_from_2025,
-          p.years_of_service,
-          p.player_status_lk,
-          status_lk.short_description AS player_status_name
-        FROM pcms.salary_book_warehouse sbw
-        LEFT JOIN pcms.teams t
-          ON t.team_code = sbw.team_code
-         AND t.league_lk = 'NBA'
-        LEFT JOIN pcms.people p
-          ON p.person_id = sbw.player_id
-        LEFT JOIN pcms.lookups status_lk
-          ON status_lk.lookup_type = 'lk_player_statuses'
-         AND status_lk.lookup_code = p.player_status_lk
-        WHERE sbw.player_id = #{id_sql}
-        LIMIT 1
-      SQL
-      raise ActiveRecord::RecordNotFound unless player
+      player = load_sidebar_player_payload(player_id)
 
       render partial: "entities/players/rightpanel_overlay_player", locals: { player: player }
     rescue ArgumentError
@@ -130,7 +96,7 @@ module Entities
       setup_index_filters!
       load_player_team_lenses!
       load_index_players!
-      build_player_sidebar_summary!
+      build_player_sidebar_summary!(selected_player_id: @selected_player_id)
     end
 
     def setup_index_filters!
@@ -152,6 +118,8 @@ module Entities
 
       requested_sort = params[:sort].to_s.strip
       @sort_lens = PLAYER_SORT_LENSES.key?(requested_sort) ? requested_sort : "cap_desc"
+
+      @selected_player_id = normalize_selected_player_id_param(params[:selected_id])
     end
 
     def load_player_team_lenses!
@@ -230,13 +198,22 @@ module Entities
       SQL
     end
 
-    def build_player_sidebar_summary!
+    def build_player_sidebar_summary!(selected_player_id: nil)
       rows = Array(@players)
       active_filters = []
       active_filters << %(Search: "#{@query}") if @query.present?
       active_filters << "Team: #{team_lens_label(@team_lens)}" unless @team_lens == "ALL"
       active_filters << "Status: #{status_lens_label(@status_lens)}" unless @status_lens == "all"
       active_filters << "Sort: #{sort_lens_label(@sort_lens)}" unless @sort_lens == "cap_desc"
+
+      top_rows = rows.first(14)
+      selected_id = selected_player_id.to_i
+      if selected_id.positive?
+        selected_row = rows.find { |row| row["player_id"].to_i == selected_id }
+        if selected_row.present? && top_rows.none? { |row| row["player_id"].to_i == selected_id }
+          top_rows = [selected_row] + top_rows.first(13)
+        end
+      end
 
       @sidebar_summary = {
         row_count: rows.size,
@@ -246,7 +223,7 @@ module Entities
         no_trade_count: rows.count { |row| row["is_no_trade"] },
         total_cap: rows.sum { |row| row["cap_2025"].to_f },
         filters: active_filters,
-        top_rows: rows.first(14)
+        top_rows: top_rows
       }
     end
 
@@ -275,6 +252,63 @@ module Entities
       when "name_desc" then "Name Z→A"
       else "Cap descending"
       end
+    end
+
+    def normalize_selected_player_id_param(raw)
+      selected_id = Integer(raw.to_s.strip, 10)
+      selected_id.positive? ? selected_id : nil
+    rescue ArgumentError, TypeError
+      nil
+    end
+
+    def selected_overlay_visible?(overlay_id:)
+      normalized_id = overlay_id.to_i
+      return false if normalized_id <= 0
+
+      Array(@players).any? { |row| row["player_id"].to_i == normalized_id }
+    end
+
+    def load_sidebar_player_payload(player_id)
+      normalized_id = Integer(player_id)
+      raise ActiveRecord::RecordNotFound if normalized_id <= 0
+
+      conn = ActiveRecord::Base.connection
+      id_sql = conn.quote(normalized_id)
+
+      player = conn.exec_query(<<~SQL).first
+        SELECT
+          sbw.player_id,
+          sbw.player_name,
+          sbw.team_code,
+          t.team_id,
+          t.team_name,
+          sbw.agent_id,
+          sbw.agent_name,
+          sbw.is_two_way,
+          sbw.is_trade_restricted_now,
+          sbw.is_no_trade,
+          sbw.cap_2025::numeric AS cap_2025,
+          sbw.cap_2026::numeric AS cap_2026,
+          sbw.cap_2027::numeric AS cap_2027,
+          sbw.total_salary_from_2025::numeric AS total_salary_from_2025,
+          p.years_of_service,
+          p.player_status_lk,
+          status_lk.short_description AS player_status_name
+        FROM pcms.salary_book_warehouse sbw
+        LEFT JOIN pcms.teams t
+          ON t.team_code = sbw.team_code
+         AND t.league_lk = 'NBA'
+        LEFT JOIN pcms.people p
+          ON p.person_id = sbw.player_id
+        LEFT JOIN pcms.lookups status_lk
+          ON status_lk.lookup_type = 'lk_player_statuses'
+         AND status_lk.lookup_code = p.player_status_lk
+        WHERE sbw.player_id = #{id_sql}
+        LIMIT 1
+      SQL
+      raise ActiveRecord::RecordNotFound unless player
+
+      player
     end
 
     def resolve_player_from_slug!(raw_slug, redirect_on_canonical_miss: true)

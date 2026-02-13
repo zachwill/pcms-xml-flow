@@ -216,22 +216,32 @@ Current focus reset (2026-02-12):
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P2] [TOOL] /tools/salary-book (Tankathon view only) — replace table board with Salary Book-style flex rows
+- [x] [P2] [TOOL] /tools/salary-book (Tankathon view only) — replace table board with Salary Book-style flex rows
   - Problem: Tankathon view still renders as a traditional table, which feels inconsistent with the Salary Book flex-row scanning grammar and slows visual comparison.
   - Hypothesis: Rebuilding Tankathon rows/cells as dense flex divs (matching Salary Book row anatomy) will improve scan rhythm while preserving one-click team switching.
   - Scope (files):
     - web/app/views/tools/salary_book/_maincanvas_tankathon_frame.html.erb
-  - Acceptance criteria:
-    - Tankathon board renders with div/flex row primitives (no `<table>` in the Tankathon frame partial).
-    - Team row identity + standings metrics remain aligned and scannable at current density.
-    - Row click still dispatches `salarybook-switch-team` and switches the active team as before.
-    - Active-team visual treatment remains obvious and consistent with current Salary Book hover/selection grammar.
-  - Rubric (before → target):
+  - What changed:
+    - Rebuilt the Tankathon standings board in `web/app/views/tools/salary_book/_maincanvas_tankathon_frame.html.erb` from `<table>` markup to a dense flex-row board with a fixed-width column rail and row-level identity cell anatomy.
+    - Kept the existing `#salarybook-standings-table` patch/test anchor while switching to div primitives, so frame endpoint behavior and selector expectations remain stable.
+    - Preserved row interaction semantics: each row still dispatches `salarybook-switch-team` with the current year, and now also supports Enter/Space keyboard activation for predictable row action parity.
+    - Preserved active-team posture cues and strengthened visibility with an inline `Active` chip plus existing selected-row background/ring treatment.
+  - Why this improves the flow:
+    - Tankathon now scans with the same row rhythm as the rest of Salary Book (identity lane + compact numeric rails), reducing context switching between views.
+    - Team identity and standings metrics remain aligned in one dense lane, improving at-a-glance comparison speed without sacrificing density.
+    - Team-switch behavior is unchanged (and keyboard-complete), so users get higher scan quality without relearning interaction mechanics.
+  - Verification:
+    - `cd web && bundle exec ruby -Itest test/integration/salary_book_views_test.rb -i "/tankathon frame endpoint returns patchable standings frame|injuries frame endpoint returns patchable loading frame/"`
+    - `rg "<table" web/app/views/tools/salary_book/_maincanvas_tankathon_frame.html.erb`
+  - Rubric (before → after):
     - Scan speed: 3 → 5
     - Information hierarchy: 4 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Full-page Salary Book integration assertions still hit the known `tailwind.css` test asset load-path issue in this environment; continue frame-focused integration subsets until the harness is fixed.
+    - Consider adding sticky-left identity rails for Pick + Team if Tankathon adds materially more metric columns in a future expansion.
   - Guardrails:
     - Salary Book exception: only edit `web/app/views/tools/salary_book/_maincanvas_tankathon_frame.html.erb`.
     - Do not modify any other Salary Book files/controllers/helpers/tests.

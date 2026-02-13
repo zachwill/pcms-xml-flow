@@ -52,6 +52,23 @@ A bad task is broad cosmetic churn (for example, repo-wide class sweeps) with no
 4. Density/readability balance
 5. Navigation/pivots
 
+## Supervisor review log
+
+### 2026-02-13 (commits `f2eab7f` → `496be37`)
+
+- Scope discipline: ✅ each commit stayed on one explicit INDEX surface + one user flow (`/teams`, `/agents`, `/drafts`, `/transactions`).
+- Track discipline: ✅ all work remained in INDEX convergence (no mixed TOOL work).
+- Flow impact: ✅ changes improved explorer-workbench behavior (discoverable knobs, dense interactive rows, rightpanel drill-ins, canonical pivots).
+- Patch/response contract: ✅ multi-region updates use single ordered SSE responses; sidebar open/clear endpoints remain single-region HTML.
+- Cosmetic churn check: ✅ no broad style-only sweeps detected in reviewed commits.
+- Guardrail check: ✅ no Salary Book files changed.
+- Evidence check: ✅ completed items include before/after rubric scoring + completion notes.
+
+Supervisor TODOs for next cycle:
+- For `/trades`, require explicit selected-row state + overlay clear/preserve policy in acceptance criteria and tests.
+- Keep commit messages flow-specific (`surface + user intent`), not implementation-only summaries.
+- Reject class-only or spacing-only sweeps unless directly tied to a listed acceptance criterion.
+
 ## Backlog
 
 - [x] [P1] [INDEX] /players (`web/app/views/entities/players/index.html.erb`) — find and triage players in-list without losing context
@@ -276,6 +293,7 @@ A bad task is broad cosmetic churn (for example, repo-wide class sweeps) with no
   - Acceptance criteria:
     - Team filter is present and discoverable in commandbar (not only URL param).
     - Row click opens overlay with compact team-in/team-out anatomy, assets summary, and canonical pivots.
+    - Selected-row state is visually persistent, and refresh defines deterministic overlay behavior (preserve when still visible or explicit clear when filtered out).
     - Multi-target refreshes use ordered SSE patching when main/side panels both change.
     - Rows remain dense, hover-consistent, and link-rich.
   - Rubric (before → target):

@@ -7,9 +7,15 @@ module Entities
     # Patches:
     # - #transactions-results
     # - #rightpanel-base
-    # - #rightpanel-overlay (cleared)
+    # - #rightpanel-overlay (preserved when selected row remains visible)
     def refresh
       load_index_state!
+
+      requested_overlay_type, requested_overlay_id = requested_overlay_context
+      overlay_html, resolved_overlay_type, resolved_overlay_id = refreshed_overlay_payload(
+        requested_type: requested_overlay_type,
+        requested_id: requested_overlay_id
+      )
 
       with_sse_stream do |sse|
         main_html = without_view_annotations do
@@ -20,11 +26,9 @@ module Entities
           render_to_string(partial: "entities/transactions/rightpanel_base")
         end
 
-        clear_overlay_html = '<div id="rightpanel-overlay"></div>'
-
         patch_elements_by_id(sse, main_html)
         patch_elements_by_id(sse, sidebar_html)
-        patch_elements_by_id(sse, clear_overlay_html)
+        patch_elements_by_id(sse, overlay_html)
         patch_signals(
           sse,
           txndaterange: @daterange,
@@ -33,13 +37,41 @@ module Entities
           txnwaivers: @waivers,
           txnextensions: @extensions,
           txnother: @other,
-          overlaytype: "none",
-          overlayid: ""
+          overlaytype: resolved_overlay_type,
+          overlayid: resolved_overlay_id
         )
       end
     end
 
     private
+
+    def requested_overlay_context
+      overlay_type = params[:selected_type].to_s.strip.downcase
+      return [nil, nil] unless overlay_type == "transaction"
+
+      overlay_id = Integer(params[:selected_id], 10)
+      return [nil, nil] if overlay_id <= 0
+
+      [overlay_type, overlay_id]
+    rescue ArgumentError, TypeError
+      [nil, nil]
+    end
+
+    def refreshed_overlay_payload(requested_type:, requested_id:)
+      return [overlay_clear_html, "none", ""] unless selected_overlay_visible?(overlay_type: requested_type, overlay_id: requested_id)
+
+      html = without_view_annotations do
+        render_to_string(partial: "entities/transactions/rightpanel_overlay_transaction", locals: load_sidebar_transaction_payload(requested_id))
+      end
+
+      [html, "transaction", requested_id.to_s]
+    rescue ActiveRecord::RecordNotFound
+      [overlay_clear_html, "none", ""]
+    end
+
+    def overlay_clear_html
+      '<div id="rightpanel-overlay"></div>'
+    end
 
     def without_view_annotations
       original = ActionView::Base.annotate_rendered_view_with_filenames

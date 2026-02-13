@@ -8,7 +8,11 @@
     '&extensions=' + ($txnextensions ? '1' : '0') +
     '&other=' + ($txnother ? '1' : '0')"
 
-  refresh_expr = "@get('/transactions/sse/refresh?' + (#{pane_query_expr})); window.history.replaceState({}, '', '/transactions?' + (#{pane_query_expr}))"
+  selected_overlay_query_expr = "'selected_type=' + encodeURIComponent($overlaytype) +
+    '&selected_id=' + encodeURIComponent($overlayid)"
+  refresh_query_expr = "(#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr})"
+
+  refresh_expr = "@get('/transactions/sse/refresh?' + (#{refresh_query_expr})); window.history.replaceState({}, '', '/transactions?' + (#{pane_query_expr}))"
 
   signals_literal = "{ txndaterange: #{@daterange.to_json}, txnteam: #{(@team || '').to_json}, txnsignings: #{@signings.to_json}, txnwaivers: #{@waivers.to_json}, txnextensions: #{@extensions.to_json}, txnother: #{@other.to_json}, overlaytype: 'none', overlayid: '' }"
 %>

@@ -188,26 +188,26 @@ Next-loop guardrails (tightened):
     - Add a lightweight selected marker glyph in grid cells to further improve preserved-context legibility during rapid year changes.
     - Consider optional keyboard next/previous pick stepping that reuses the same overlay preserve/clear contract.
 
-- [ ] [P1] [INDEX] /transactions (`web/app/views/entities/transactions/index.html.erb`) — keep transaction detail open while refining feed filters
-  - Problem: Transaction refresh clears detail overlay on every change, slowing triage for multi-step investigations.
-  - Hypothesis: Preserve selected transaction when still visible to reduce reopening and context loss.
-  - Scope (files):
+- [x] [P1] [INDEX] /transactions (`web/app/views/entities/transactions/index.html.erb`) — keep transaction detail open while refining feed filters
+  - What changed (files):
     - `web/app/controllers/entities/transactions_controller.rb`
     - `web/app/controllers/entities/transactions_sse_controller.rb`
-    - `web/app/views/entities/transactions/_results.html.erb`
-    - `web/app/views/entities/transactions/_rightpanel_base.html.erb`
+    - `web/app/views/entities/transactions/index.html.erb`
     - `web/test/integration/entities_pane_endpoints_test.rb`
-  - Acceptance criteria:
-    - Selected transaction overlay persists across refresh when row remains in feed.
-    - Overlay clears with explicit reset only when filtered row is no longer present.
-    - Main feed row + quick-feed button both reflect active selection.
-    - Multi-region updates continue to ship as one SSE response.
-  - Rubric (before → target):
+  - Why this improves the flow:
+    - Transactions commandbar refresh now carries selected overlay context (`selected_type` + `selected_id`) so filter/knob changes can preserve the open transaction detail when that row is still visible.
+    - SSE refresh now uses deterministic preserve/clear behavior: it re-renders `#rightpanel-overlay` for visible selected rows and explicitly clears overlay HTML + resets `overlaytype`/`overlayid` when the selected row no longer matches filters.
+    - Sidebar quick-feed summary now guarantees the selected visible transaction appears in top rows, so active-state highlighting stays synchronized between main feed row and quick-feed button.
+    - Multi-region updates remain one ordered SSE transaction patching `#transactions-results`, `#rightpanel-base`, and `#rightpanel-overlay` together.
+  - Rubric (before → after):
     - Scan speed: 4 → 5
     - Information hierarchy: 4 → 4
     - Interaction predictability: 3 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Add an explicit selected-marker chip/glyph in quick-feed rows to make preserved context even more legible during rapid filter cycling.
+    - Consider optional keyboard next/previous transaction stepping that reuses the same overlay preserve/clear contract.
   - Guardrails:
     - Do not modify Salary Book files.
 

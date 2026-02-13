@@ -170,16 +170,30 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
           ]
         )
       elsif sql.include?("WITH filtered_transactions AS") && sql.include?("FROM pcms.transactions t")
+        rows = if sql.include?("(t.from_team_code = 'LAL' OR t.to_team_code = 'LAL')")
+          []
+        elsif sql.include?("(t.from_team_code = 'BOS' OR t.to_team_code = 'BOS')")
+          [
+            [ 700001, "2025-02-07", "SIGN", "Signed to rest-of-season deal", 88001, 1629001, "Alpha Guard", 1610612737, "ATL", "Atlanta Hawks", 1610612738, "BOS", "Boston Celtics", "MIN", "STD" ]
+          ]
+        elsif sql.include?("(t.from_team_code = 'POR' OR t.to_team_code = 'POR')")
+          [
+            [ 700002, "2025-02-06", "WAIVE", "Waived", nil, 1629002, "Beta Wing", 1610612757, "POR", "Portland Trail Blazers", nil, nil, nil, nil, nil ]
+          ]
+        else
+          [
+            [ 700001, "2025-02-07", "SIGN", "Signed to rest-of-season deal", 88001, 1629001, "Alpha Guard", 1610612737, "ATL", "Atlanta Hawks", 1610612738, "BOS", "Boston Celtics", "MIN", "STD" ],
+            [ 700002, "2025-02-06", "WAIVE", "Waived", nil, 1629002, "Beta Wing", 1610612757, "POR", "Portland Trail Blazers", nil, nil, nil, nil, nil ]
+          ]
+        end
+
         ActiveRecord::Result.new(
           [
             "transaction_id", "transaction_date", "transaction_type_lk", "transaction_description_lk", "trade_id",
             "player_id", "player_name", "from_team_id", "from_team_code", "from_team_name",
             "to_team_id", "to_team_code", "to_team_name", "signed_method_lk", "contract_type_lk"
           ],
-          [
-            [ 700001, "2025-02-07", "SIGN", "Signed to rest-of-season deal", 88001, 1629001, "Alpha Guard", 1610612737, "ATL", "Atlanta Hawks", 1610612738, "BOS", "Boston Celtics", "MIN", "STD" ],
-            [ 700002, "2025-02-06", "WAIVE", "Waived", nil, 1629002, "Beta Wing", 1610612757, "POR", "Portland Trail Blazers", nil, nil, nil, nil, nil ]
-          ]
+          rows
         )
       elsif sql.include?("COUNT(*)::integer AS ledger_row_count") && sql.include?("FROM pcms.ledger_entries le")
         ActiveRecord::Result.new(
@@ -456,6 +470,50 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, 'id="rightpanel-overlay"'
       assert_includes response.body, "event: datastar-patch-signals"
+    end
+  end
+
+  test "transactions refresh preserves selected overlay when selected row remains visible" do
+    with_fake_connection do
+      get "/transactions/sse/refresh", params: {
+        daterange: "season",
+        team: "BOS",
+        signings: "1",
+        waivers: "1",
+        extensions: "1",
+        other: "0",
+        selected_type: "transaction",
+        selected_id: "700001"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, 'id="transactions-results"'
+      assert_includes response.body, 'id="rightpanel-base"'
+      assert_includes response.body, "Transaction #700001"
+      assert_includes response.body, '"overlaytype":"transaction"'
+      assert_includes response.body, '"overlayid":"700001"'
+    end
+  end
+
+  test "transactions refresh clears selected overlay when row no longer matches filters" do
+    with_fake_connection do
+      get "/transactions/sse/refresh", params: {
+        daterange: "season",
+        team: "LAL",
+        signings: "1",
+        waivers: "1",
+        extensions: "1",
+        other: "0",
+        selected_type: "transaction",
+        selected_id: "700001"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, '<div id="rightpanel-overlay"></div>'
+      assert_includes response.body, '"overlaytype":"none"'
+      assert_includes response.body, '"overlayid":""'
     end
   end
 

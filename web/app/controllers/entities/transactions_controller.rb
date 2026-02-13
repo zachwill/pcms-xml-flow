@@ -361,6 +361,7 @@ module Entities
       @waivers = params[:waivers] != "0"
       @extensions = params[:extensions] != "0"
       @other = params[:other] == "1"
+      @selected_transaction_id = normalize_selected_transaction_id_param(params[:selected_id])
 
       @team_options = conn.exec_query(<<~SQL).to_a
         SELECT team_code, team_name
@@ -462,10 +463,10 @@ module Entities
         ORDER BY t.transaction_date DESC, t.transaction_id DESC
       SQL
 
-      build_sidebar_summary!
+      build_sidebar_summary!(selected_transaction_id: @selected_transaction_id)
     end
 
-    def build_sidebar_summary!
+    def build_sidebar_summary!(selected_transaction_id: nil)
       rows = Array(@transactions)
       bucket_counts = {
         signings: rows.count { |row| transaction_bucket(row["transaction_type_lk"]) == :signings },
@@ -484,6 +485,15 @@ module Entities
       filters << "Team: #{@team}" if @team.present?
       filters << "Types: #{active_type_filters.join(', ')}" if active_type_filters.any?
 
+      top_rows = rows.first(14)
+      selected_id = selected_transaction_id.to_i
+      if selected_id.positive?
+        selected_row = rows.find { |row| row["transaction_id"].to_i == selected_id }
+        if selected_row.present? && top_rows.none? { |row| row["transaction_id"].to_i == selected_id }
+          top_rows = [selected_row] + top_rows.first(13)
+        end
+      end
+
       @sidebar_summary = {
         row_count: rows.size,
         daterange_label: daterange_label(@daterange),
@@ -492,7 +502,7 @@ module Entities
         waivers_count: bucket_counts[:waivers],
         extensions_count: bucket_counts[:extensions],
         other_count: bucket_counts[:other],
-        top_rows: rows.first(14)
+        top_rows:
       }
     end
 
@@ -578,6 +588,22 @@ module Entities
         artifact_summary:,
         trade_summary:
       }
+    end
+
+    def normalize_selected_transaction_id_param(raw)
+      selected_id = Integer(raw.to_s.strip, 10)
+      selected_id.positive? ? selected_id : nil
+    rescue ArgumentError, TypeError
+      nil
+    end
+
+    def selected_overlay_visible?(overlay_type:, overlay_id:)
+      return false unless overlay_type.to_s == "transaction"
+
+      normalized_id = overlay_id.to_i
+      return false if normalized_id <= 0
+
+      Array(@transactions).any? { |row| row["transaction_id"].to_i == normalized_id }
     end
 
     def transaction_bucket(type_code)

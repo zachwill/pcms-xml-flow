@@ -30,6 +30,118 @@ Supervisor review — 2026-02-13 (pass 3):
   - `/tools/two-way-utility`: add overlay-header pin/unpin affordances for compare-slot parity.
   - `/agencies`: add explicit posture-threshold helper copy for trust in `live_book_risk` lens.
 
+Supervisor review — 2026-02-13 (pass 4):
+- Audited current `web/` state after pass 3 using recent commit history and direct surface checks.
+- No new design commits landed after pass 3 (`HEAD` adds `Update pi` only), so the design loop currently has zero actionable unchecked tasks.
+- Re-validated open gaps directly in code:
+  - `/tools/system-values`: `Tools::SystemValuesController#resolve_overlay_section` still only supports `system|tax`, and Minimum/Rookie tables are still read-only rows (no drill-in path).
+  - `/tools/two-way-utility`: player overlay header still lacks compare slot pin/unpin controls; compare actions are row/base-only.
+  - `/teams`: pin/clear compare actions in `_workspace_main` still call refresh SSE without `replaceState` URL sync.
+  - `/agencies`: posture radios (`inactive_live_book`, `live_book_risk`) still lack explicit threshold/helper copy.
+- Added fresh unchecked tasks below so the worker can resume with flow-level outcomes.
+
+- [ ] [P1] [INDEX] /teams — keep compare-slot URL state synced during row pin/clear actions
+  - Problem: Team compare pinning works in-flow, but pin/clear actions do not immediately update URL query state, making shared/reloaded compare sessions inconsistent.
+  - Hypothesis: Applying `replaceState` on pin/clear SSE actions will preserve shareability and reduce confusion when users bookmark or reload mid-triage.
+  - Scope (files):
+    - web/app/views/entities/teams/_workspace_main.html.erb
+    - web/app/controllers/entities/teams_sse_controller.rb
+    - web/test/integration/entities_teams_index_test.rb
+  - Acceptance criteria:
+    - Pin A / Pin B / clear-slot / clear-all actions update URL `compare_a` + `compare_b` without full navigation.
+    - Single-request `/teams/sse/refresh` behavior remains intact (main + sidebar + overlay + signals).
+    - Reloading a copied URL restores compare strip slot state.
+  - Rubric (before → target):
+    - Scan speed: 5 → 5
+    - Information hierarchy: 5 → 5
+    - Interaction predictability: 4 → 5
+    - Density/readability: 5 → 5
+    - Navigation/pivots: 5 → 5
+  - Guardrails:
+    - Do not modify Salary Book files.
+
+- [ ] [P1] [INDEX] /agencies — make posture-lens thresholds explicit in-commandbar
+  - Problem: Posture lenses now filter better, but users still cannot see exactly what qualifies as `inactive + live` or `live risk` without inferring from rows.
+  - Hypothesis: Threshold helper copy near posture controls will improve trust and reduce interpretation ambiguity during shortlist scans.
+  - Scope (files):
+    - web/app/views/entities/agencies/index.html.erb
+    - web/app/views/entities/agencies/_rightpanel_base.html.erb
+    - web/test/integration/entities_agencies_index_test.rb
+  - Acceptance criteria:
+    - Commandbar posture controls include concise rule text for `inactive_live_book` and `live_book_risk`.
+    - Sidebar snapshot mirrors the same threshold language so table and panel use one posture grammar.
+    - Existing `/agencies/sse/refresh` multi-region behavior and overlay preserve/clear semantics remain unchanged.
+  - Rubric (before → target):
+    - Scan speed: 5 → 5
+    - Information hierarchy: 5 → 5
+    - Interaction predictability: 4 → 5
+    - Density/readability: 4 → 4
+    - Navigation/pivots: 5 → 5
+  - Guardrails:
+    - Do not modify Salary Book files.
+
+- [ ] [P2] [TOOL] /tools/system-values — extend drill-ins to Minimum Salary (YOS) section
+  - Problem: System/Tax sections now support rightpanel drill-ins, but Minimum Salary rows are still passive, forcing users to mentally compare deltas in-table only.
+  - Hypothesis: YOS-level drill-ins with selected-vs-baseline context will complete the baseline-analysis loop and reduce scan-to-detail friction.
+  - Scope (files):
+    - web/app/controllers/tools/system_values_controller.rb
+    - web/app/views/tools/system_values/_league_salary_scales_table.html.erb
+    - web/app/views/tools/system_values/_rightpanel_overlay_metric.html.erb
+    - web/test/integration/tools_system_values_test.rb
+  - Acceptance criteria:
+    - Clicking a Minimum Salary row opens overlay detail via existing System Values sidebar/SSE contract.
+    - Overlay includes selected vs baseline value + delta + clear pivot back to canonical System Values state.
+    - Refresh preserves/clears Minimum overlays deterministically when year/range changes.
+  - Rubric (before → target):
+    - Scan speed: 5 → 5
+    - Information hierarchy: 5 → 5
+    - Interaction predictability: 4 → 5
+    - Density/readability: 4 → 4
+    - Navigation/pivots: 4 → 5
+  - Guardrails:
+    - Do not modify Salary Book files.
+
+- [ ] [P2] [TOOL] /tools/system-values — extend drill-ins to Rookie Scale pick rows
+  - Problem: Rookie Scale table is dense but non-interactive, so users cannot isolate pick-level baseline shifts in the right panel during planning passes.
+  - Hypothesis: Pick-row drill-ins with option-amount/option-% context will make rookie-scale anomalies easier to inspect without losing workspace position.
+  - Scope (files):
+    - web/app/controllers/tools/system_values_controller.rb
+    - web/app/views/tools/system_values/_rookie_scale_amounts_table.html.erb
+    - web/app/views/tools/system_values/_rightpanel_overlay_metric.html.erb
+    - web/test/integration/tools_system_values_test.rb
+  - Acceptance criteria:
+    - Clicking a Rookie Scale row opens overlay detail keyed by pick + year context.
+    - Overlay clearly communicates Year1/Year2 + Option Y3/Y4 deltas vs baseline.
+    - Existing one-request `/tools/system-values/sse/refresh` patch behavior remains canonical.
+  - Rubric (before → target):
+    - Scan speed: 5 → 5
+    - Information hierarchy: 5 → 5
+    - Interaction predictability: 4 → 5
+    - Density/readability: 4 → 4
+    - Navigation/pivots: 4 → 5
+  - Guardrails:
+    - Do not modify Salary Book files.
+
+- [ ] [P2] [TOOL] /tools/two-way-utility — add compare slot pin/unpin actions in player overlay header
+  - Problem: Compare slot controls exist in rows/base panel but not in player overlay header, causing avoidable back-and-forth when users are already in drill-in mode.
+  - Hypothesis: Overlay-level pin/unpin controls will keep compare workflow continuous while preserving drill-in focus.
+  - Scope (files):
+    - web/app/views/tools/two_way_utility/_rightpanel_overlay_player.html.erb
+    - web/app/controllers/tools/two_way_utility_controller.rb
+    - web/test/integration/tools_two_way_utility_test.rb
+  - Acceptance criteria:
+    - Overlay header exposes Pin A / Pin B / clear actions with active-slot visual state.
+    - Actions route through existing `/tools/two-way-utility/sse/refresh` compare action path (no extra fetch choreography).
+    - Overlay remains stable after pin/unpin and compare URL params stay shareable.
+  - Rubric (before → target):
+    - Scan speed: 5 → 5
+    - Information hierarchy: 5 → 5
+    - Interaction predictability: 4 → 5
+    - Density/readability: 5 → 5
+    - Navigation/pivots: 5 → 5
+  - Guardrails:
+    - Do not modify Salary Book files.
+
 - [x] [P1] [INDEX] /players — isolate constrained cap commitments without losing drill-in context
   - Problem: Player scanning is strong, but users still need too many row opens to isolate constraint-heavy contracts across multiple cap years.
   - Hypothesis: Adding constraint-specific knobs + cap-horizon switching will make “find risky money fast” a first-pass scan flow.

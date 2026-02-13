@@ -50,26 +50,40 @@ Rubric (1-5):
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P1] [INDEX] /teams — make pressure filters immediately scannable with live counts and clear active posture
+- [x] [P1] [INDEX] /teams — make pressure filters immediately scannable with live counts and clear active posture
   - Problem: Pressure radio choices are available, but users cannot quickly see expected result volume before toggling.
   - Hypothesis: Showing live counts per pressure option will improve first-pass triage speed and reduce trial toggles.
   - Scope (files):
     - web/app/views/entities/teams/index.html.erb
+    - web/app/views/entities/teams/_commandbar.html.erb
     - web/app/controllers/entities/teams_controller.rb
     - web/app/controllers/entities/teams_sse_controller.rb
     - web/app/views/entities/teams/_rightpanel_base.html.erb
     - web/test/integration/entities_teams_index_test.rb
-  - Acceptance criteria:
-    - Pressure controls display counts for all posture options (All, Over Cap, Over Tax, Over Apron 1, Over Apron 2).
-    - Counts refresh with SSE and remain consistent with rendered row count.
-    - Active pressure posture is visually explicit in both commandbar and sidebar snapshot.
-    - Existing compare-slot behavior continues to work unchanged.
-  - Rubric (before → target):
+  - What changed:
+    - Extracted `/teams` commandbar into `entities/teams/_commandbar` so it can be patched during SSE refresh.
+    - Added live pressure counts (All / Over Cap / Over Tax / Over Apron 1 / Over Apron 2) next to pressure controls in commandbar, plus explicit “Active” posture text.
+    - Updated index loading to fetch conference/query-scoped team rows once, derive pressure counts server-side, then apply the active pressure lens in Ruby so non-active lens counts remain visible.
+    - Added active-pressure snapshot treatment in `#rightpanel-base` (active posture row + count grid) so posture is explicit outside the commandbar.
+    - Extended `/teams/sse/refresh` to patch `#commandbar` alongside `#maincanvas`, `#rightpanel-base`, and `#rightpanel-overlay` so counts and active posture stay live.
+    - Preserved compare-slot behavior and hardened compare-action parsing by reading query params (`action`/`slot`) safely in addition to explicit compare keys.
+    - Expanded integration coverage for SSE commandbar patching and pressure-count/row-count consistency checks.
+  - Why this improves the flow:
+    - Users can now see expected row volume for every pressure posture before toggling, reducing blind trial-clicking.
+    - Active pressure context is visible in both primary orientation zones (commandbar + sidebar snapshot), improving wayfinding during scan loops.
+    - One SSE refresh keeps counts, rows, sidebar snapshot, and overlay state synchronized, preserving interaction predictability.
+  - Verification:
+    - `cd web && bundle exec ruby -Itest test/integration/entities_teams_index_test.rb -n "/teams refresh/"`
+    - `cd web && bundle exec ruby -Itest test/integration/entities_teams_index_test.rb -n "/sidebar returns/"`
+  - Rubric (before → after):
     - Scan speed: 4 → 5
     - Information hierarchy: 4 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 5 → 5
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Migrate teams compare URLs from `action`/`slot` to canonical `compare_action`/`compare_slot` and remove legacy fallback parsing.
+    - Fix local integration-test asset setup so full-page `/teams` index tests can run without `tailwind.css` load-path errors.
   - Guardrails:
     - Do not modify Salary Book files.
 

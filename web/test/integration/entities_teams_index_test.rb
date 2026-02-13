@@ -106,6 +106,7 @@ class EntitiesTeamsIndexTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_includes response.body, 'id="teams-pressure-over-tax"'
       assert_includes response.body, 'id="teams-conference-eastern"'
+      assert_includes response.body, "Active: All teams · 2"
       assert_includes response.body, 'id="maincanvas"'
       assert_includes response.body, 'id="teams-compare-strip"'
       assert_includes response.body, 'id="teams-compare-url-sync"'
@@ -142,6 +143,7 @@ class EntitiesTeamsIndexTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_includes response.media_type, "text/event-stream"
       assert_includes response.body, "event: datastar-patch-elements"
+      assert_includes response.body, "id=\"commandbar\""
       assert_includes response.body, "id=\"maincanvas\""
       assert_includes response.body, "id=\"teams-compare-strip\""
       assert_includes response.body, "id=\"rightpanel-base\""
@@ -149,6 +151,46 @@ class EntitiesTeamsIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "event: datastar-patch-signals"
       assert_includes response.body, '"comparea":""'
       assert_includes response.body, '"compareb":""'
+    end
+  end
+
+  test "teams refresh updates pressure counts and active posture with sse" do
+    with_fake_connection do
+      get "/teams/sse/refresh", params: {
+        q: "",
+        conference: "Western",
+        pressure: "all",
+        sort: "pressure_desc"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, 'id="commandbar"'
+      assert_includes response.body, "Active pressure posture"
+      assert_includes response.body, "Current search/conference scope"
+
+      active_all_match = response.body.match(/Active:\s+All teams\s+·\s+(\d+)/)
+      rows_all_match = response.body.match(/Cap pressure scan[\s\S]*?·\s+(\d+)\s+rows/)
+      assert active_all_match, "expected All teams active count in commandbar"
+      assert rows_all_match, "expected row count in workspace header"
+      assert_equal active_all_match[1], rows_all_match[1]
+
+      get "/teams/sse/refresh", params: {
+        q: "",
+        conference: "ALL",
+        pressure: "over_cap",
+        sort: "pressure_desc"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, '"teamspressure":"over_cap"'
+
+      active_over_cap_match = response.body.match(/Active:\s+Over Cap\s+·\s+(\d+)/)
+      rows_over_cap_match = response.body.match(/Cap pressure scan[\s\S]*?·\s+(\d+)\s+rows/)
+      assert active_over_cap_match, "expected Over Cap active count in commandbar"
+      assert rows_over_cap_match, "expected row count in workspace header"
+      assert_equal active_over_cap_match[1], rows_over_cap_match[1]
     end
   end
 

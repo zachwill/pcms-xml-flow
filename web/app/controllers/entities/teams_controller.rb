@@ -129,8 +129,11 @@ module Entities
     end
 
     def apply_index_compare_action!
-      action = resolve_compare_action(params[:action])
-      slot = resolve_compare_slot(params[:slot])
+      compare_action_param = params[:compare_action].presence || request.query_parameters["action"]
+      compare_slot_param = params[:compare_slot].presence || request.query_parameters["slot"]
+
+      action = resolve_compare_action(compare_action_param)
+      slot = resolve_compare_slot(compare_slot_param)
       team_id = normalize_selected_team_id_param(params[:team_id])
 
       case action
@@ -184,20 +187,9 @@ module Entities
         SQL
       end
 
-      case @pressure_lens
-      when "over_cap"
-        where_clauses << "(COALESCE(tsw.salary_cap_amount, 0) - COALESCE(tsw.cap_total_hold, 0)) < 0"
-      when "over_tax"
-        where_clauses << "COALESCE(tsw.room_under_tax, 0) < 0"
-      when "over_apron1"
-        where_clauses << "COALESCE(tsw.room_under_apron1, 0) < 0"
-      when "over_apron2"
-        where_clauses << "COALESCE(tsw.room_under_apron2, 0) < 0"
-      end
-
       order_sql = INDEX_SORT_SQL.fetch(@sort_lens)
 
-      @teams = conn.exec_query(<<~SQL).to_a
+      @teams_scope_rows = conn.exec_query(<<~SQL).to_a
         SELECT
           t.team_id,
           t.team_code,
@@ -248,6 +240,9 @@ module Entities
         WHERE #{where_clauses.join(" AND ")}
         ORDER BY #{order_sql}
       SQL
+
+      @pressure_counts = build_pressure_counts(@teams_scope_rows)
+      @teams = @teams_scope_rows.select { |row| pressure_row_matches_lens?(row, @pressure_lens) }
     end
 
     def build_index_compare_state!
@@ -278,14 +273,20 @@ module Entities
         end
       end
 
+      pressure_counts = @pressure_counts || build_pressure_counts(@teams_scope_rows || rows)
+
       @sidebar_summary = {
         row_count: rows.size,
         eastern_count: rows.count { |row| row["conference_name"] == "Eastern" },
         western_count: rows.count { |row| row["conference_name"] == "Western" },
-        over_cap_count: rows.count { |row| row["pressure_bucket"] == "over_cap" },
-        over_tax_count: rows.count { |row| row["pressure_bucket"] == "over_tax" || row["pressure_bucket"] == "over_apron1" || row["pressure_bucket"] == "over_apron2" },
-        over_apron1_count: rows.count { |row| row["pressure_bucket"] == "over_apron1" || row["pressure_bucket"] == "over_apron2" },
-        over_apron2_count: rows.count { |row| row["pressure_bucket"] == "over_apron2" },
+        over_cap_count: pressure_counts["over_cap"],
+        over_tax_count: pressure_counts["over_tax"],
+        over_apron1_count: pressure_counts["over_apron1"],
+        over_apron2_count: pressure_counts["over_apron2"],
+        pressure_counts: pressure_counts,
+        active_pressure_lens: @pressure_lens,
+        active_pressure_label: pressure_lens_label(@pressure_lens),
+        active_pressure_count: pressure_counts[@pressure_lens],
         luxury_tax_total: rows.sum { |row| row["luxury_tax_owed"].to_f },
         filters: active_filters,
         top_rows: top_rows,
@@ -379,6 +380,39 @@ module Entities
       when "over_apron2" then "Over Apron 2"
       else "All teams"
       end
+    end
+
+    def build_pressure_counts(rows)
+      scoped_rows = Array(rows)
+
+      {
+        "all" => scoped_rows.size,
+        "over_cap" => scoped_rows.count { |row| pressure_rank_for_row(row) >= 1 },
+        "over_tax" => scoped_rows.count { |row| pressure_rank_for_row(row) >= 2 },
+        "over_apron1" => scoped_rows.count { |row| pressure_rank_for_row(row) >= 3 },
+        "over_apron2" => scoped_rows.count { |row| pressure_rank_for_row(row) >= 4 }
+      }
+    end
+
+    def pressure_row_matches_lens?(row, lens)
+      threshold = pressure_threshold_for_lens(lens)
+      return true if threshold.zero?
+
+      pressure_rank_for_row(row) >= threshold
+    end
+
+    def pressure_threshold_for_lens(lens)
+      case lens
+      when "over_cap" then 1
+      when "over_tax" then 2
+      when "over_apron1" then 3
+      when "over_apron2" then 4
+      else 0
+      end
+    end
+
+    def pressure_rank_for_row(row)
+      row["pressure_rank"].to_i
     end
 
     def sort_lens_label(lens)

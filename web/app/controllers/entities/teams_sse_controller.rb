@@ -16,6 +16,7 @@ module Entities
     # GET /teams/sse/refresh
     # One-request multi-region refresh for teams index filters/sorting.
     # Patches:
+    # - #commandbar
     # - #maincanvas
     # - #rightpanel-base
     # - #rightpanel-overlay (preserved when selected row remains visible)
@@ -26,6 +27,10 @@ module Entities
       overlay_html, resolved_overlay_type, resolved_selected_team_id = refreshed_overlay_payload(requested_overlay_id: requested_overlay_id)
 
       with_sse_stream do |sse|
+        commandbar_html = without_view_annotations do
+          render_to_string(partial: "entities/teams/commandbar")
+        end
+
         main_html = without_view_annotations do
           render_to_string(partial: "entities/teams/workspace_main")
         end
@@ -34,6 +39,7 @@ module Entities
           render_to_string(partial: "entities/teams/rightpanel_base")
         end
 
+        patch_elements_by_id(sse, commandbar_html)
         patch_elements_by_id(sse, main_html)
         patch_elements_by_id(sse, sidebar_html)
         patch_elements_by_id(sse, overlay_html)

@@ -8,6 +8,17 @@
     { key: "b", label: "Slot B", row: compare_b_row, tone: "emerald" }
   ] %>
   <% has_compare = compare_slots.any? { |slot| slot[:row].present? } %>
+  <% pressure_counts = summary[:pressure_counts] || {} %>
+  <% active_pressure_lens = summary[:active_pressure_lens].to_s.presence || "all" %>
+  <% active_pressure_label = summary[:active_pressure_label].presence || "All teams" %>
+  <% active_pressure_count = summary[:active_pressure_count].to_i %>
+  <% pressure_options = [
+    ["all", "All teams"],
+    ["over_cap", "Over Cap"],
+    ["over_tax", "Over Tax"],
+    ["over_apron1", "Over Apron 1"],
+    ["over_apron2", "Over Apron 2"]
+  ] %>
 
   <% if compare_a_row.present? && compare_b_row.present? %>
     <% compare_cap_delta = compare_b_row["cap_space"].to_f - compare_a_row["cap_space"].to_f %>
@@ -84,6 +95,41 @@
           value: summary[:over_apron2_count].to_i.to_s,
           class_name: "w-full"
         } %>
+      </div>
+
+      <% active_chip_classes = case active_pressure_lens
+        when "over_apron2"
+          "entity-chip entity-chip--danger"
+        when "over_apron1"
+          "entity-chip entity-chip--warning"
+        when "over_tax"
+          "entity-chip entity-chip--warning"
+        when "over_cap"
+          "entity-chip entity-chip--muted"
+        else
+          "entity-chip entity-chip--success"
+        end %>
+
+      <div class="rounded border border-border/70 bg-muted/20 px-2 py-2 space-y-1.5">
+        <div class="flex items-center justify-between gap-2 text-[10px] uppercase tracking-wide text-muted-foreground/80">
+          <span>Active pressure posture</span>
+          <span class="font-mono tabular-nums normal-case tracking-normal"><%= active_pressure_count %> rows</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="<%= active_chip_classes %>"><%= active_pressure_label %></span>
+          <span class="text-[10px] text-muted-foreground/80">Current search/conference scope</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-1 text-[10px] tabular-nums">
+          <% pressure_options.each do |lens, label| %>
+            <div class="flex items-center justify-between rounded border px-1.5 py-1"
+                 data-class="{ 'border-primary/40 bg-primary/10': $teamspressure === '<%= lens %>', 'border-border/60 bg-background': $teamspressure !== '<%= lens %>' }">
+              <span class="truncate" data-class="{ 'text-foreground font-medium': $teamspressure === '<%= lens %>', 'text-muted-foreground': $teamspressure !== '<%= lens %>' }"><%= label %></span>
+              <span class="font-mono"><%= pressure_counts[lens].to_i %></span>
+            </div>
+          <% end %>
+        </div>
       </div>
 
       <% if Array(summary[:filters]).any? %>

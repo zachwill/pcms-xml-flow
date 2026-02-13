@@ -251,7 +251,7 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
     host! "localhost"
   end
 
-  test "system values renders rightpanel targets, sse apply path, and minimum/rookie row drill-in wiring" do
+  test "system values renders rightpanel targets, sse apply path, and rookie metric-cell drill-in wiring" do
     with_fake_connection do
       get "/tools/system-values", params: {
         year: "2026",
@@ -269,6 +269,8 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "$svoverlaysection='minimum'; $svoverlaymetric='minimum_salary_amount'"
       assert_includes response.body, "$svoverlaylower='0'"
       assert_includes response.body, "$svoverlaysection='rookie'; $svoverlaymetric='salary_year_1'"
+      assert_includes response.body, "$svoverlaysection='rookie'; $svoverlaymetric='option_amount_year_4'"
+      assert_includes response.body, "$svoverlaysection='rookie'; $svoverlaymetric='option_pct_year_3'"
       assert_includes response.body, "$svoverlaylower='1'"
     end
   end
@@ -320,7 +322,7 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "system values rookie scale sidebar drill-in renders pick baseline context" do
+  test "system values rookie scale sidebar drill-in renders pick baseline context for selected rookie metric" do
     with_fake_connection do
       get "/tools/system-values/sidebar/metric", params: {
         year: "2026",
@@ -328,7 +330,7 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
         from_year: "2024",
         to_year: "2026",
         overlay_section: "rookie",
-        overlay_metric: "salary_year_1",
+        overlay_metric: "option_amount_year_4",
         overlay_year: "2026",
         overlay_lower: "1",
         overlay_upper: ""
@@ -338,10 +340,11 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
       assert_equal "text/html", response.media_type
       assert_includes response.body, 'id="rightpanel-overlay"'
       assert_includes response.body, "Rookie Scale Amounts"
+      assert_includes response.body, "Option Year 4 Amount"
       assert_includes response.body, "Pick 1"
       assert_includes response.body, "Pick scale detail"
       assert_includes response.body, "Year 1 Salary"
-      assert_includes response.body, "Option Year 4 Amount"
+      assert_includes response.body, "border-amber-500/70"
       assert_includes response.body, "Source table: pcms.rookie_scale_amounts"
     end
   end
@@ -423,7 +426,7 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "system values refresh preserves rookie overlay when pick row remains in range" do
+  test "system values refresh preserves rookie overlay metric when pick row remains in range" do
     with_fake_connection do
       get "/tools/system-values/sse/refresh", params: {
         year: "2026",
@@ -431,7 +434,7 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
         from_year: "2025",
         to_year: "2026",
         overlay_section: "rookie",
-        overlay_metric: "salary_year_1",
+        overlay_metric: "option_pct_year_4",
         overlay_year: "2026",
         overlay_lower: "1",
         overlay_upper: ""
@@ -440,9 +443,10 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_includes response.media_type, "text/event-stream"
       assert_includes response.body, 'id="rightpanel-overlay"'
+      assert_includes response.body, 'Option Year 4 %'
       assert_includes response.body, 'Source table: pcms.rookie_scale_amounts'
       assert_includes response.body, '"svoverlaysection":"rookie"'
-      assert_includes response.body, '"svoverlaymetric":"salary_year_1"'
+      assert_includes response.body, '"svoverlaymetric":"option_pct_year_4"'
       assert_includes response.body, '"svoverlayyear":"2026"'
       assert_includes response.body, '"svoverlaylower":"1"'
     end

@@ -20,25 +20,30 @@ Audit reset — 2026-02-13:
 - Remaining work is flow-level parity/trust polish (not class-only churn).
 - This file is reset to only actionable unchecked design tasks.
 
-- [ ] [P1] [TOOL] /tools/system-values — make Rookie Scale drill-ins metric-cell specific
-  - Problem: Rookie row drill-ins always default overlay metric to Year 1, so users cannot directly open Option Y3/Y4 or option-% context from the exact cell they’re scanning.
-  - Hypothesis: Cell-specific drill-in targets will improve predictability and reduce extra clicks during rookie baseline analysis.
-  - Scope (files):
+- [x] [P1] [TOOL] /tools/system-values — make Rookie Scale drill-ins metric-cell specific
+  - What changed (files):
     - web/app/views/tools/system_values/_rookie_scale_amounts_table.html.erb
+      - Converted Rookie drill-ins from row-level default (`salary_year_1`) to per-metric cell actions for all six rookie metrics.
+      - Added metric-specific active-cell styling (while preserving row-level context highlight) so clicked context is unambiguous.
     - web/app/views/tools/system_values/_rightpanel_overlay_metric.html.erb
+      - Highlighted the active metric inside “Pick scale detail” to mirror the clicked Rookie cell.
+    - web/app/views/tools/system_values/_rightpanel_base.html.erb
+      - Updated sidebar helper copy to match new interaction grammar (Rookie now metric-cell drill-in).
     - web/test/integration/tools_system_values_test.rb
-  - Acceptance criteria:
-    - Clicking any Rookie metric cell opens overlay with matching `overlay_metric` (Year 1, Year 2, Option Y3, Option Y4, Y3 %, Y4 %).
-    - Active row/cell state remains legible after open (no ambiguity about what was clicked).
-    - Existing `/tools/system-values/sse/refresh` preserve/clear semantics continue working for rookie overlays.
-  - Rubric (before → target):
+      - Expanded wiring assertions to cover multiple rookie metric targets.
+      - Updated rookie overlay and SSE preserve assertions to validate non-default rookie metrics are retained.
+  - Why this improves the flow:
+    - Users can now open the exact rookie metric they are scanning (Option Y3/Y4 and option-% included) in one click.
+    - Active state now communicates both the focused row and the exact focused metric cell, reducing ambiguity and backtracking.
+    - Overlay metric state persists through `/tools/system-values/sse/refresh` for non-default rookie metrics, preserving context during baseline/range changes.
+  - Rubric (before → after):
     - Scan speed: 5 → 5
     - Information hierarchy: 5 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 5 → 5
-  - Guardrails:
-    - Do not modify Salary Book files.
+  - Follow-up tasks discovered:
+    - Consider matching this metric-cell focus cue style on other multi-metric detail tables where row-level drill-ins still mask exact metric origin.
 
 - [ ] [P1] [INDEX] /agencies — define restriction composition where posture controls are used
   - Problem: `live risk` lens now exposes threshold text, but “restrictions” is still undefined, forcing users to infer components.

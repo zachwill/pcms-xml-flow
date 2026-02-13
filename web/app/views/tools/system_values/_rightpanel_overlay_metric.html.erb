@@ -82,10 +82,11 @@ end %>
             else
               "text-muted-foreground"
             end %>
+            <% detail_active = row[:metric].to_s == payload[:metric].to_s %>
 
-            <div class="rounded border border-border/70 bg-muted/10 px-2 py-1.5">
+            <div class="rounded border px-2 py-1.5 <%= detail_active ? 'border-amber-500/70 bg-amber-100/60 dark:border-amber-500/60 dark:bg-amber-900/25' : 'border-border/70 bg-muted/10' %>">
               <div class="flex items-center justify-between gap-2">
-                <span class="text-[10px] uppercase tracking-wide text-muted-foreground/80"><%= row[:label] %></span>
+                <span class="text-[10px] uppercase tracking-wide <%= detail_active ? 'text-foreground font-semibold' : 'text-muted-foreground/80' %>"><%= row[:label] %></span>
                 <span class="font-semibold font-mono tabular-nums"><%= row[:selected_value_label] %></span>
               </div>
               <div class="mt-0.5 flex items-center justify-between gap-2">

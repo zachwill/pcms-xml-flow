@@ -14,12 +14,13 @@ Rubric (1-5):
 4) Density/readability balance
 5) Navigation/pivots
 
-Supervisor review — 2026-02-13:
-- Reviewed recent commits for `/players`, `/trades`, and `/tools/team-summary` against workbench interaction goals.
-- Confirmed multi-region interactions use one SSE response and canonical patch boundaries (`#maincanvas`, `#rightpanel-base`, `#rightpanel-overlay`).
+Supervisor review — 2026-02-13 (pass 2):
+- Reviewed latest INDEX commits for `/agents`, `/drafts`, `/transactions`, and `/trades`; each commit stayed scoped to one explicit surface + user flow.
+- Confirmed work stayed in INDEX convergence track (no broad cosmetic sweeps), with flow-level gains: in-panel pivots (`/agents`), risk/provenance triage knobs (`/drafts`), intent search retrieval (`/transactions`), and composition archetype lenses (`/trades`).
+- Confirmed multi-region interactions still use one SSE response with stable patch targets (`#maincanvas` section partial + `#rightpanel-base` + `#rightpanel-overlay`) and deterministic overlay preserve/clear behavior.
 - Confirmed no Salary Book files were modified.
-- Drift noted: `/trades` still needs asset-composition archetype lenses (player-heavy/pick-heavy/cash-TPE) beyond the shipped complexity triage controls.
-- Drift noted: `/tools/team-summary` still needs header sorting to route through SSE refresh (separate from the shipped inline pin compare flow).
+- Drift remaining: `/tools/team-summary` header sorting still needs to route through SSE refresh to keep compare/overlay continuity.
+- Drift remaining: `/draft-selections` provenance-first index convergence is still pending.
 
 - [x] [P1] [INDEX] /players — isolate constrained cap commitments without losing drill-in context
   - Problem: Player scanning is strong, but users still need too many row opens to isolate constraint-heavy contracts across multiple cap years.

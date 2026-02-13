@@ -234,26 +234,26 @@ Next-loop guardrails (tightened):
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P2] [TOOL] /tools/two-way-utility (`web/app/views/tools/two_way_utility/show.html.erb`) — preserve selected player context while cycling risk/team/conference lenses
-  - Problem: Refresh currently clears the player overlay unconditionally, interrupting risk-triage workflows.
-  - Hypothesis: Preserve selected player overlay when still in result set to improve rapid compare/triage loops.
-  - Scope (files):
+- [x] [P2] [TOOL] /tools/two-way-utility (`web/app/views/tools/two_way_utility/show.html.erb`) — preserve selected player context while cycling risk/team/conference lenses
+  - What changed (files):
     - `web/app/controllers/tools/two_way_utility_controller.rb`
-    - `web/app/views/tools/two_way_utility/_player_row.html.erb`
+    - `web/app/views/tools/two_way_utility/show.html.erb`
     - `web/app/views/tools/two_way_utility/_rightpanel_base.html.erb`
-    - `web/app/views/tools/two_way_utility/_workspace_main.html.erb`
     - `web/test/integration/tools_two_way_utility_test.rb`
-  - Acceptance criteria:
-    - On refresh, selected player overlay remains open if player still matches current lenses.
-    - If no longer visible, overlay is cleared with explicit signal reset.
-    - Active selection is visibly synchronized between table row and quick risk queue.
-    - Refresh remains one ordered SSE response for all affected regions.
-  - Rubric (before → target):
+  - Why this improves the flow:
+    - Commandbar knob refresh now sends the current selected overlay id (`selected_id`) to `/tools/two-way-utility/sse/refresh`, so refreshes can preserve context instead of always hard-clearing overlay state.
+    - Refresh now applies deterministic preserve/clear behavior in one SSE stream: if selected player is still visible, `#rightpanel-overlay` is re-rendered and `overlaytype/overlayid` stay on that player; otherwise overlay HTML is explicitly cleared and signals reset.
+    - Sidebar quick-risk queue now guarantees the selected visible player is present in quick rows, and adds a selected marker chip so active state is visibly synchronized with the highlighted table row.
+    - Multi-region update contract is unchanged (single ordered SSE response patching `#maincanvas`, `#rightpanel-base`, `#rightpanel-overlay`, plus signals).
+  - Rubric (before → after):
     - Scan speed: 4 → 5
     - Information hierarchy: 4 → 4
     - Interaction predictability: 3 → 5
     - Density/readability: 5 → 5
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Add optional keyboard next/previous player stepping that reuses the same preserve/clear overlay contract.
+    - Consider adding a compact selected-context chip in the commandbar to make preserved drill-in state even clearer during fast lens cycling.
   - Guardrails:
     - Do not modify Salary Book files.
 

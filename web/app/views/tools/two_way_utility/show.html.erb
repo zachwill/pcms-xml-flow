@@ -1,11 +1,14 @@
 <% content_for :title, "Two-Way Utility" %>
 
 <%
-  refresh_query_expr = "'conference=' + encodeURIComponent($twconference) +
+  pane_query_expr = "'conference=' + encodeURIComponent($twconference) +
     '&team=' + encodeURIComponent($twteam) +
     '&risk=' + encodeURIComponent($twrisk)"
 
-  refresh_expr = "@get('/tools/two-way-utility/sse/refresh?' + (#{refresh_query_expr})); window.history.replaceState({}, '', '/tools/two-way-utility?' + (#{refresh_query_expr}))"
+  selected_overlay_query_expr = "'selected_id=' + encodeURIComponent($overlaytype === 'player' ? $overlayid : '')"
+  refresh_query_expr = "(#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr})"
+
+  refresh_expr = "@get('/tools/two-way-utility/sse/refresh?' + (#{refresh_query_expr})); window.history.replaceState({}, '', '/tools/two-way-utility?' + (#{pane_query_expr}))"
 
   signals_literal = {
     twconference: @conference.to_s,

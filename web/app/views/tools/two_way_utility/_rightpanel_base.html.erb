@@ -61,7 +61,14 @@
               </div>
               <div class="entity-cell-secondary justify-between gap-2">
                 <span class="font-mono tabular-nums"><%= row["remaining_active_list_games"].presence || "—" %> left</span>
-                <span class="<%= risk_chip_class %>"><%= risk_label %></span>
+                <span class="flex items-center gap-1">
+                  <span class="<%= risk_chip_class %>"><%= risk_label %></span>
+                  <span
+                    class="entity-chip entity-chip--muted"
+                    data-show="$overlaytype === 'player' && $overlayid === '<%= row_id %>'"
+                    style="display: none;"
+                  >Selected</span>
+                </span>
               </div>
             </div>
           </button>

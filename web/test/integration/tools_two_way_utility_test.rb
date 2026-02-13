@@ -225,6 +225,16 @@ class ToolsTwoWayUtilityTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "two-way utility commandbar refresh keeps selected-id context in request params" do
+    with_fake_connection do
+      get "/tools/two-way-utility", headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, "selected_id="
+      assert_includes response.body, "$overlaytype === 'player' ? $overlayid : ''"
+    end
+  end
+
   test "two-way utility refresh endpoint returns ordered multi-region sse patches" do
     with_fake_connection do
       get "/tools/two-way-utility/sse/refresh", params: {
@@ -243,6 +253,44 @@ class ToolsTwoWayUtilityTest < ActionDispatch::IntegrationTest
       assert_includes response.body, '"twconference":"Western"'
       assert_includes response.body, '"twteam":"POR"'
       assert_includes response.body, '"twrisk":"critical"'
+      assert_includes response.body, '"overlaytype":"none"'
+      assert_includes response.body, '"overlayid":""'
+    end
+  end
+
+  test "two-way utility refresh preserves selected overlay when player remains visible" do
+    with_fake_connection do
+      get "/tools/two-way-utility/sse/refresh", params: {
+        conference: "all",
+        team: "POR",
+        risk: "warning",
+        selected_id: "1002"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, 'id="rightpanel-overlay"'
+      assert_includes response.body, "Warning Wing"
+      assert_includes response.body, '"overlaytype":"player"'
+      assert_includes response.body, '"overlayid":"1002"'
+      assert_includes response.body, "Selected"
+    end
+  end
+
+  test "two-way utility refresh clears selected overlay when player is filtered out" do
+    with_fake_connection do
+      get "/tools/two-way-utility/sse/refresh", params: {
+        conference: "Eastern",
+        team: "BOS",
+        risk: "critical",
+        selected_id: "1002"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, 'id="rightpanel-overlay"></div>'
+      assert_includes response.body, '"overlaytype":"none"'
+      assert_includes response.body, '"overlayid":""'
     end
   end
 

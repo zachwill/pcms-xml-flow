@@ -48,9 +48,14 @@ module Tools
     # Patches:
     # - #maincanvas
     # - #rightpanel-base
-    # - #rightpanel-overlay (cleared)
+    # - #rightpanel-overlay (preserved when selected row remains visible)
     def refresh
       load_workspace_state!
+
+      requested_overlay_id = requested_overlay_id_param
+      overlay_html, resolved_overlay_type, resolved_overlay_id = refreshed_overlay_payload(
+        requested_overlay_id: requested_overlay_id
+      )
 
       with_sse_stream do |sse|
         main_html = without_view_annotations do
@@ -61,18 +66,16 @@ module Tools
           render_to_string(partial: "tools/two_way_utility/rightpanel_base", layout: false)
         end
 
-        clear_overlay_html = '<div id="rightpanel-overlay"></div>'
-
         patch_elements_by_id(sse, main_html)
         patch_elements_by_id(sse, sidebar_html)
-        patch_elements_by_id(sse, clear_overlay_html)
+        patch_elements_by_id(sse, overlay_html)
         patch_signals(
           sse,
           twconference: @conference,
           twteam: @team.to_s,
           twrisk: @risk,
-          overlaytype: "none",
-          overlayid: ""
+          overlaytype: resolved_overlay_type,
+          overlayid: resolved_overlay_id
         )
       end
     rescue ActiveRecord::StatementInvalid => e
@@ -101,7 +104,8 @@ module Tools
       @team_codes = resolve_team_codes(@team_options, @rows_by_team.keys, @team)
 
       @state_query = build_state_query
-      build_sidebar_summary!
+      @selected_player_id = normalize_selected_player_id_param(params[:selected_id])
+      build_sidebar_summary!(selected_player_id: @selected_player_id)
     end
 
     def apply_boot_error!(error)
@@ -117,7 +121,8 @@ module Tools
       @team_options = []
       @team_codes = []
       @state_query = build_state_query
-      build_sidebar_summary!
+      @selected_player_id = nil
+      build_sidebar_summary!(selected_player_id: @selected_player_id)
     end
 
     def resolve_conference(value)
@@ -409,7 +414,7 @@ module Tools
       end
     end
 
-    def build_sidebar_summary!
+    def build_sidebar_summary!(selected_player_id: nil)
       rows = Array(@rows)
       critical_count = rows.count { |row| row["risk_tier"] == "critical" }
       warning_count = rows.count { |row| row["risk_tier"] == "warning" }
@@ -429,6 +434,14 @@ module Tools
         end
         .first(14)
 
+      selected_id = selected_player_id.to_i
+      if selected_id.positive?
+        selected_row = rows.find { |row| row["player_id"].to_i == selected_id }
+        if selected_row.present? && quick_rows.none? { |row| row["player_id"].to_i == selected_id }
+          quick_rows = [selected_row] + quick_rows.first(13)
+        end
+      end
+
       active_filters = []
       active_filters << "Conference: #{@conference}" unless @conference == "all"
       active_filters << "Team: #{@team}" if @team.present?
@@ -444,6 +457,45 @@ module Tools
         active_filters:,
         quick_rows:
       }
+    end
+
+    def normalize_selected_player_id_param(raw)
+      selected_id = Integer(raw.to_s.strip, 10)
+      selected_id.positive? ? selected_id : nil
+    rescue ArgumentError, TypeError
+      nil
+    end
+
+    def requested_overlay_id_param
+      @selected_player_id || normalize_selected_player_id_param(params[:selected_id])
+    end
+
+    def selected_overlay_visible?(overlay_id:)
+      normalized_id = overlay_id.to_i
+      return false if normalized_id <= 0
+
+      Array(@rows).any? { |row| row["player_id"].to_i == normalized_id }
+    end
+
+    def refreshed_overlay_payload(requested_overlay_id:)
+      return [overlay_clear_html, "none", ""] unless selected_overlay_visible?(overlay_id: requested_overlay_id)
+
+      @sidebar_player = @rows.find { |row| row["player_id"].to_i == requested_overlay_id.to_i }
+      return [overlay_clear_html, "none", ""] unless @sidebar_player.present?
+
+      @sidebar_team_meta = @team_meta_by_code[@sidebar_player["team_code"].to_s] || {}
+
+      html = without_view_annotations do
+        render_to_string(partial: "tools/two_way_utility/rightpanel_overlay_player", layout: false)
+      end
+
+      [html, "player", requested_overlay_id.to_s]
+    rescue ActiveRecord::RecordNotFound
+      [overlay_clear_html, "none", ""]
+    end
+
+    def overlay_clear_html
+      '<div id="rightpanel-overlay"></div>'
     end
 
     def risk_sort_priority(tier)

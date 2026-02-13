@@ -21,6 +21,8 @@ module Tools
 
           main_html = if view == "tankathon"
             build_tankathon_main_html(team_code:, year:)
+          elsif view == "injuries"
+            build_injuries_main_html(team_code:, year:)
           else
             players = fetch_team_players(team_code)
             build_salary_book_main_html(
@@ -65,6 +67,21 @@ module Tools
         without_view_annotations do
           render_to_string(
             partial: "tools/salary_book/maincanvas_tankathon_frame",
+            locals: {
+              team_code:,
+              year:,
+              standings_rows: [],
+              standing_date: nil,
+              season_year: nil,
+              season_label: nil,
+              error_message: message
+            },
+          )
+        end
+      elsif view == "injuries"
+        without_view_annotations do
+          render_to_string(
+            partial: "tools/salary_book/maincanvas_injuries_frame",
             locals: {
               team_code:,
               team_codes: [],
@@ -122,13 +139,32 @@ module Tools
     end
 
     def build_tankathon_main_html(team_code:, year:)
+      tankathon_payload = fetch_tankathon_payload(year)
+
+      without_view_annotations do
+        render_to_string(
+          partial: "tools/salary_book/maincanvas_tankathon_frame",
+          locals: {
+            team_code:,
+            year:,
+            standings_rows: tankathon_payload[:rows],
+            standing_date: tankathon_payload[:standing_date],
+            season_year: tankathon_payload[:season_year],
+            season_label: tankathon_payload[:season_label],
+            error_message: nil
+          },
+        )
+      end
+    end
+
+    def build_injuries_main_html(team_code:, year:)
       team_rows = fetch_team_index_rows(year)
       team_codes = team_rows.map { |row| row["team_code"] }.compact
       _, team_meta_by_code = build_team_maps(team_rows)
 
       without_view_annotations do
         render_to_string(
-          partial: "tools/salary_book/maincanvas_tankathon_frame",
+          partial: "tools/salary_book/maincanvas_injuries_frame",
           locals: {
             team_code:,
             team_codes:,

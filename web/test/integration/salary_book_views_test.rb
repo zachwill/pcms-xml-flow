@@ -39,6 +39,35 @@ class SalaryBookViewsTest < ActionDispatch::IntegrationTest
       ["WAS", "Washington Wizards", "Eastern", 30]
     ].freeze
 
+    STANDINGS_COLUMNS = %w[
+      team_code
+      team_name
+      team_id
+      team_tricode
+      conference
+      conference_rank
+      league_rank
+      wins
+      losses
+      win_pct
+      record
+      l10
+      current_streak_text
+      conference_games_back
+      league_games_back
+      diff_pts_per_game
+      season_year
+      season_label
+      standing_date
+      lottery_rank
+    ].freeze
+
+    STANDINGS_ROWS = [
+      ["SAC", "Sacramento Kings", 26, "SAC", "West", 15, 30, 12, 43, 0.218, "12-43", "0-10", "L 13", 29.5, 29.5, -10.2, 2025, "2025-26", Date.new(2026, 2, 12), 1],
+      ["WAS", "Washington Wizards", 30, "WAS", "East", 15, 29, 14, 39, 0.264, "14-39", "4-6", "L 3", 26.0, 26.0, -11.0, 2025, "2025-26", Date.new(2026, 2, 12), 2],
+      ["POR", "Portland Trail Blazers", 25, "POR", "West", 9, 17, 26, 28, 0.481, "26-28", "4-6", "W 3", 15.0, 15.0, -1.9, 2025, "2025-26", Date.new(2026, 2, 12), 3]
+    ].freeze
+
     def quote(value)
       case value
       when nil
@@ -59,6 +88,10 @@ class SalaryBookViewsTest < ActionDispatch::IntegrationTest
         return ActiveRecord::Result.new(%w[team_code team_name conference_name team_id], TEAM_ROWS)
       end
 
+      if sql.include?("FROM nba.standings s")
+        return ActiveRecord::Result.new(STANDINGS_COLUMNS, STANDINGS_ROWS)
+      end
+
       # Salary Book player queries can safely return empty rows for these tests.
       if sql.include?("FROM pcms.salary_book_warehouse sbw")
         return ActiveRecord::Result.new([], [])
@@ -72,6 +105,20 @@ class SalaryBookViewsTest < ActionDispatch::IntegrationTest
     host! "localhost"
   end
 
+  test "salary book page can boot directly into injuries view" do
+    with_fake_connection do
+      get "/tools/salary-book", params: { view: "injuries", team: "POR", year: "2025" }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, "activeview: 'injuries'"
+      assert_includes response.body, 'id="salarybook-team-frame"'
+      assert_includes response.body, "salarybook-sand-loader"
+      assert_includes response.body, "salarybook-sand-grid"
+      assert_includes response.body, 'id="view-injuries"'
+      assert_includes response.body, 'value="injuries"'
+    end
+  end
+
   test "salary book page can boot directly into tankathon view" do
     with_fake_connection do
       get "/tools/salary-book", params: { view: "tankathon", team: "POR", year: "2025" }, headers: modern_headers
@@ -79,16 +126,17 @@ class SalaryBookViewsTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_includes response.body, "activeview: 'tankathon'"
       assert_includes response.body, 'id="salarybook-team-frame"'
-      assert_includes response.body, "salarybook-sand-loader"
-      assert_includes response.body, "salarybook-sand-grid"
+      assert_includes response.body, 'id="salarybook-standings-table"'
       assert_includes response.body, 'id="view-tankathon"'
       assert_includes response.body, 'value="tankathon"'
+      assert_includes response.body, "Tankathon"
+      assert_includes response.body, "nba.standings"
     end
   end
 
-  test "tankathon frame endpoint returns patchable team frame" do
+  test "injuries frame endpoint returns patchable loading frame" do
     with_fake_connection do
-      get "/tools/salary-book/frame", params: { view: "tankathon", team: "POR", year: "2025" }, headers: modern_headers
+      get "/tools/salary-book/frame", params: { view: "injuries", team: "POR", year: "2025" }, headers: modern_headers
 
       assert_response :success
       assert_equal "text/html", response.media_type
@@ -96,6 +144,19 @@ class SalaryBookViewsTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "salarybook-sand-loader"
       assert_includes response.body, "salarybook-sand-grid"
       assert_includes response.body, "salarybook-sand-dot-16"
+    end
+  end
+
+  test "tankathon frame endpoint returns patchable standings frame" do
+    with_fake_connection do
+      get "/tools/salary-book/frame", params: { view: "tankathon", team: "POR", year: "2025" }, headers: modern_headers
+
+      assert_response :success
+      assert_equal "text/html", response.media_type
+      assert_includes response.body, 'id="salarybook-team-frame"'
+      assert_includes response.body, 'id="salarybook-standings-table"'
+      assert_includes response.body, "Switch to POR"
+      assert_includes response.body, "nba.standings"
     end
   end
 

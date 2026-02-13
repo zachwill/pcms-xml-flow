@@ -12,6 +12,10 @@
 <% initial_team_meta = local_assigns.fetch(:initial_team_meta, {}) %>
 <% initial_team_codes = local_assigns.fetch(:initial_team_codes, []) %>
 <% initial_team_meta_by_code = local_assigns.fetch(:initial_team_meta_by_code, {}) %>
+<% initial_tankathon_rows = local_assigns.fetch(:initial_tankathon_rows, []) %>
+<% initial_tankathon_standing_date = local_assigns.fetch(:initial_tankathon_standing_date, nil) %>
+<% initial_tankathon_season_year = local_assigns.fetch(:initial_tankathon_season_year, nil) %>
+<% initial_tankathon_season_label = local_assigns.fetch(:initial_tankathon_season_label, nil) %>
 
 <main
   id="maincanvas"
@@ -19,6 +23,16 @@
 >
   <% if initial_view == "tankathon" %>
     <%= render partial: "tools/salary_book/maincanvas_tankathon_frame", locals: {
+      team_code: initial_team,
+      year: salary_year,
+      standings_rows: initial_tankathon_rows,
+      standing_date: initial_tankathon_standing_date,
+      season_year: initial_tankathon_season_year,
+      season_label: initial_tankathon_season_label,
+      error_message: boot_error
+    } %>
+  <% elsif initial_view == "injuries" %>
+    <%= render partial: "tools/salary_book/maincanvas_injuries_frame", locals: {
       team_code: initial_team,
       team_codes: initial_team_codes,
       team_meta_by_code: initial_team_meta_by_code,

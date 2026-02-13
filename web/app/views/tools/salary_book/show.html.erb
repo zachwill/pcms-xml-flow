@@ -51,7 +51,7 @@
     $sidebardraftyearloaded = '';
     $sidebarrightsloaded = false;
 
-    const effectiveview = ($activeview === 'tankathon') ? 'tankathon' : 'salary-book';
+    const effectiveview = ['injuries', 'tankathon'].includes($activeview) ? $activeview : 'salary-book';
 
     @get('/tools/salary-book/sse/switch-team?team=' + teamcode + '&year=' + encodeURIComponent(effectiveyear) + '&view=' + encodeURIComponent(effectiveview));
     window.history.replaceState({}, '', '<%= salary_book_base_path %>?team=' + teamcode + '&year=' + encodeURIComponent(effectiveyear) + '&view=' + encodeURIComponent(effectiveview));
@@ -59,7 +59,8 @@
   data-on:salarybook-switch-view="
     const rawview = (evt.detail && evt.detail.view) ? String(evt.detail.view) : '';
     const nextview = rawview.trim().toLowerCase();
-    if (!['salary-book', 'tankathon'].includes(nextview)) { return; }
+    if (!['injuries', 'rotation', 'salary-book', 'tankathon'].includes(nextview)) { return; }
+    if (nextview === 'rotation') { return; }
 
     const fallbackteam = String($activeteam || '<%= initial_team %>').trim().toUpperCase();
     const requestedteam = (evt.detail && evt.detail.team) ? String(evt.detail.team).trim().toUpperCase() : fallbackteam;
@@ -130,16 +131,20 @@
       <div class="min-w-[6.5rem] space-y-1" role="radiogroup" aria-label="Views">
         <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Views</div>
         <div class="space-y-1">
-          <label class="flex items-center gap-1.5 cursor-not-allowed opacity-60">
+          <label class="flex items-center gap-1.5 cursor-pointer">
             <input
               type="radio"
               id="view-injuries"
               name="salarybook-view"
               value="injuries"
               class="size-3.5 accent-primary"
-              disabled
+              <%= "checked" if initial_view == "injuries" %>
+              data-on:change="if (el.checked) { el.dispatchEvent(new CustomEvent('salarybook-switch-view', { bubbles: true, detail: { view: 'injuries', team: $activeteam, year: '<%= @salary_year %>' } })); }"
             />
-            <span class="text-[11px] leading-none select-none text-muted-foreground">Injuries</span>
+            <span
+              class="text-[11px] leading-none select-none transition-colors"
+              data-class="{ 'text-foreground font-semibold': $activeview === 'injuries', 'text-muted-foreground': $activeview !== 'injuries' }"
+            >Injuries</span>
           </label>
 
           <label class="flex items-center gap-1.5 cursor-not-allowed opacity-60">
@@ -307,7 +312,11 @@
       initial_team_summaries: @initial_team_summaries_by_year,
       initial_team_meta: @initial_team_meta,
       initial_team_codes: @team_codes,
-      initial_team_meta_by_code: @team_meta_by_code
+      initial_team_meta_by_code: @team_meta_by_code,
+      initial_tankathon_rows: @initial_tankathon_rows,
+      initial_tankathon_standing_date: @initial_tankathon_standing_date,
+      initial_tankathon_season_year: @initial_tankathon_season_year,
+      initial_tankathon_season_label: @initial_tankathon_season_label
     } %>
 
     <%# Right panel %>

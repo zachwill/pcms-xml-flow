@@ -1,6 +1,6 @@
 # Contract — Salary Book view switch custom event bus (v1)
 
-Status: implemented (Salary Book + Tankathon v1)
+Status: implemented (Salary Book + Injuries + Tankathon v1)
 
 Scope: switching the Salary Book main frame view without reloading the page.
 
@@ -15,7 +15,7 @@ Dispatch shape:
 el.dispatchEvent(new CustomEvent('salarybook-switch-view', {
   bubbles: true,
   detail: {
-    view: 'salary-book', // or 'tankathon'
+    view: 'salary-book', // or 'injuries' | 'tankathon'
     team: 'BOS',         // optional fallback to root active team
     year: '2025'         // optional fallback to page salary year
   }
@@ -23,7 +23,8 @@ el.dispatchEvent(new CustomEvent('salarybook-switch-view', {
 ```
 
 Payload:
-- `detail.view` (required): one of `salary-book`, `tankathon`
+- `detail.view` (required): one of `injuries`, `salary-book`, `tankathon`
+- `rotation` is present in the UI but currently disabled (no-op)
 - `detail.team` (optional): 3-letter NBA team code
 - `detail.year` (optional): 4-digit salary year
 

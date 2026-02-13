@@ -5,7 +5,7 @@ module Tools
     CURRENT_SALARY_YEAR = 2025
     # Canonical year horizon for the salary book (keep in sync with SalaryBookHelper::SALARY_YEARS).
     SALARY_YEARS = (2025..2030).to_a.freeze
-    AVAILABLE_VIEWS = %w[salary-book tankathon].freeze
+    AVAILABLE_VIEWS = %w[injuries salary-book tankathon].freeze
     DEFAULT_VIEW = "salary-book"
 
     # GET /tools/salary-book
@@ -37,6 +37,10 @@ module Tools
       @initial_picks = []
       @initial_team_summary = nil
       @initial_team_summaries_by_year = {}
+      @initial_tankathon_rows = []
+      @initial_tankathon_standing_date = nil
+      @initial_tankathon_season_year = nil
+      @initial_tankathon_season_label = nil
 
       if @initial_team.present?
         @initial_players = fetch_team_players(@initial_team)
@@ -49,6 +53,14 @@ module Tools
         @initial_team_summaries_by_year = payload[:team_summaries]
         @initial_team_meta = payload[:team_meta].presence || @initial_team_meta
         @initial_team_summary = @initial_team_summaries_by_year[@salary_year] || @initial_team_summaries_by_year[SALARY_YEARS.first]
+      end
+
+      if @initial_view == "tankathon"
+        tankathon_payload = fetch_tankathon_payload(@salary_year)
+        @initial_tankathon_rows = tankathon_payload[:rows]
+        @initial_tankathon_standing_date = tankathon_payload[:standing_date]
+        @initial_tankathon_season_year = tankathon_payload[:season_year]
+        @initial_tankathon_season_label = tankathon_payload[:season_label]
       end
     rescue ActiveRecord::StatementInvalid => e
       # Useful when a dev DB hasn't been hydrated with the pcms.* schema yet.
@@ -63,6 +75,10 @@ module Tools
       @initial_team_summary = nil
       @initial_team_meta = {}
       @initial_team_summaries_by_year = {}
+      @initial_tankathon_rows = []
+      @initial_tankathon_standing_date = nil
+      @initial_tankathon_season_year = nil
+      @initial_tankathon_season_label = nil
       @initial_players = []
       @initial_cap_holds = []
       @initial_exceptions = []
@@ -78,11 +94,26 @@ module Tools
       view = salary_book_view_param
 
       if view == "tankathon"
+        tankathon_payload = fetch_tankathon_payload(year)
+
+        render partial: "tools/salary_book/maincanvas_tankathon_frame", locals: {
+          team_code:,
+          year:,
+          standings_rows: tankathon_payload[:rows],
+          standing_date: tankathon_payload[:standing_date],
+          season_year: tankathon_payload[:season_year],
+          season_label: tankathon_payload[:season_label],
+          error_message: nil
+        }, layout: false
+        return
+      end
+
+      if view == "injuries"
         team_rows = fetch_team_index_rows(year)
         team_codes = team_rows.map { |row| row["team_code"] }.compact
         _, team_meta_by_code = build_team_maps(team_rows)
 
-        render partial: "tools/salary_book/maincanvas_tankathon_frame", locals: {
+        render partial: "tools/salary_book/maincanvas_injuries_frame", locals: {
           team_code:,
           team_codes:,
           team_meta_by_code:,
@@ -112,6 +143,16 @@ module Tools
     rescue ActiveRecord::StatementInvalid => e
       if view == "tankathon"
         render partial: "tools/salary_book/maincanvas_tankathon_frame", locals: {
+          team_code:,
+          year:,
+          standings_rows: [],
+          standing_date: nil,
+          season_year: nil,
+          season_label: nil,
+          error_message: e.message
+        }, layout: false
+      elsif view == "injuries"
+        render partial: "tools/salary_book/maincanvas_injuries_frame", locals: {
           team_code:,
           team_codes: [],
           team_meta_by_code: {},
@@ -357,6 +398,121 @@ module Tools
         WHERE tsw.salary_year = #{year_sql}
         ORDER BY tsw.team_code
       SQL
+    end
+
+    # Tankathon-style standings board sourced from nba.standings.
+    # For a requested salary year, use that season_year when present;
+    # otherwise gracefully fall back to the latest available season.
+    def fetch_tankathon_payload(year)
+      year_sql = conn.quote(year.to_i)
+
+      rows = conn.exec_query(<<~SQL).to_a
+        WITH target_season AS (
+          SELECT COALESCE(
+            (
+              SELECT s.season_year
+              FROM nba.standings s
+              WHERE s.league_id = '00'
+                AND s.season_type = 'Regular Season'
+                AND s.season_year = #{year_sql}
+              LIMIT 1
+            ),
+            (
+              SELECT MAX(s.season_year)
+              FROM nba.standings s
+              WHERE s.league_id = '00'
+                AND s.season_type = 'Regular Season'
+            )
+          ) AS season_year
+        ),
+        latest_dates AS (
+          SELECT
+            s.team_id,
+            MAX(s.standing_date) AS standing_date
+          FROM nba.standings s
+          JOIN target_season ts
+            ON ts.season_year = s.season_year
+          WHERE s.league_id = '00'
+            AND s.season_type = 'Regular Season'
+          GROUP BY s.team_id
+        ),
+        latest AS (
+          SELECT s.*
+          FROM nba.standings s
+          JOIN target_season ts
+            ON ts.season_year = s.season_year
+          JOIN latest_dates ld
+            ON ld.team_id = s.team_id
+           AND ld.standing_date = s.standing_date
+          WHERE s.league_id = '00'
+            AND s.season_type = 'Regular Season'
+        ),
+        ranked AS (
+          SELECT
+            COALESCE(t.team_code, l.team_tricode) AS team_code,
+            COALESCE(t.team_name, CONCAT_WS(' ', l.team_city, l.team_name), l.team_tricode) AS team_name,
+            COALESCE(t.team_id, l.team_id) AS team_id,
+            l.team_tricode,
+            l.conference,
+            l.playoff_rank AS conference_rank,
+            l.league_rank,
+            l.wins,
+            l.losses,
+            l.win_pct,
+            l.record,
+            l.l10,
+            l.current_streak_text,
+            l.conference_games_back,
+            l.league_games_back,
+            l.diff_pts_per_game,
+            l.season_year,
+            l.season_label,
+            l.standing_date,
+            ROW_NUMBER() OVER (
+              ORDER BY
+                l.win_pct ASC NULLS LAST,
+                l.wins ASC NULLS LAST,
+                l.losses DESC NULLS LAST,
+                COALESCE(t.team_code, l.team_tricode) ASC
+            ) AS lottery_rank
+          FROM latest l
+          LEFT JOIN pcms.teams t
+            ON t.team_id = l.team_id
+           AND t.league_lk = 'NBA'
+        )
+        SELECT
+          team_code,
+          team_name,
+          team_id,
+          team_tricode,
+          conference,
+          conference_rank,
+          league_rank,
+          wins,
+          losses,
+          win_pct,
+          record,
+          l10,
+          current_streak_text,
+          conference_games_back,
+          league_games_back,
+          diff_pts_per_game,
+          season_year,
+          season_label,
+          standing_date,
+          lottery_rank
+        FROM ranked
+        ORDER BY lottery_rank ASC
+      SQL
+
+      first_row = rows.first || {}
+
+      {
+        rows:,
+        season_year: first_row["season_year"],
+        season_label: first_row["season_label"],
+        standing_date: first_row["standing_date"]
+      }
     end
 
     def build_team_maps(rows)

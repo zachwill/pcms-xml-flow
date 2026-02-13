@@ -1,0 +1,52 @@
+<% team_meta_by_code = local_assigns.fetch(:team_meta_by_code, {}) || {} %>
+<% year = local_assigns.fetch(:year, SalaryBookHelper::SALARY_YEARS.first) %>
+<% error_message = local_assigns.fetch(:error_message, nil) %>
+
+<%
+  fallback_team_ids = [
+    1610612737, 1610612738, 1610612739, 1610612740, 1610612741,
+    1610612742, 1610612743, 1610612744, 1610612745, 1610612746,
+    1610612747, 1610612748, 1610612749, 1610612750, 1610612751,
+    1610612752, 1610612753, 1610612754, 1610612755, 1610612756,
+    1610612757, 1610612758, 1610612759, 1610612760, 1610612761,
+    1610612762, 1610612763, 1610612764, 1610612765, 1610612766
+  ]
+
+  available_team_ids = team_meta_by_code.values.map { |meta| meta["team_id"] }.compact.uniq
+  available_team_ids = fallback_team_ids if available_team_ids.empty?
+
+  selected_team_ids = available_team_ids.shuffle.first(16)
+
+  if selected_team_ids.length < 16
+    supplement_ids = (fallback_team_ids - selected_team_ids).shuffle
+    selected_team_ids += supplement_ids.first(16 - selected_team_ids.length)
+  end
+
+  dot_logo_urls = selected_team_ids.first(16).map { |team_id| team_logo_url(team_id) }
+%>
+
+<div id="salarybook-team-frame" class="h-full bg-muted/30 dark:bg-muted/20">
+  <% if error_message.present? %>
+    <div class="h-full flex items-center justify-center px-6 py-10">
+      <div class="max-w-3xl rounded-lg border border-border bg-background/60 p-4 text-sm">
+        <div class="font-medium text-destructive">Unable to load Injuries surface</div>
+        <div class="mt-1 text-muted-foreground">Failed while building loading board for <%= year %>.</div>
+        <pre class="mt-2 overflow-auto rounded bg-muted/40 p-2 text-xs text-muted-foreground"><%= error_message %></pre>
+      </div>
+    </div>
+  <% else %>
+    <div class="h-full flex items-center justify-center px-6 py-10">
+      <div class="salarybook-sand-loader" role="status" aria-live="polite" aria-label="Loading">
+        <div class="salarybook-sand-grid" aria-hidden="true">
+          <% dot_logo_urls.each_with_index do |logo_url, idx| %>
+            <div class="salarybook-sand-dot salarybook-sand-dot-<%= idx + 1 %>">
+              <% if logo_url.present? %>
+                <img src="<%= logo_url %>" alt="" class="salarybook-sand-logo" loading="eager" decoding="async" />
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>

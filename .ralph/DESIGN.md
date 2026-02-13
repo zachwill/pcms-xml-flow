@@ -54,6 +54,22 @@ A bad task is broad cosmetic churn (for example, repo-wide class sweeps) with no
 
 ## Supervisor review log
 
+### 2026-02-13 (commits `eeb2524` → `dbe187b`)
+
+- Scope discipline: ✅ each commit stayed on one explicit surface + one user flow (`/agencies` entry routing, Team Summary compare drill-in, System Values baseline comparison, Two-Way risk triage).
+- Track discipline: ✅ commits stayed single-track per change (INDEX for `/agencies`, TOOL evolution for the three tool commits).
+- Flow impact: ✅ changes improved hierarchy/wayfinding and workbench behavior (discoverable lenses/knobs, dense interactive rows, sidebar drill-ins, compare/risk workflows).
+- Patch/response contract: ✅ multi-region interactions use one ordered SSE response (`team-summary/sse/compare`, `two-way-utility/sse/refresh`); sidebar open/clear endpoints remain single-region HTML.
+- Cosmetic churn check: ✅ no broad grep-only class sweeps; styling changes were flow-coupled (selection/risk readability in dense rows).
+- Guardrail check: ✅ no Salary Book files changed.
+- Evidence check: ✅ completed items include before/after rubric scoring + completion notes in this doc.
+
+Supervisor TODOs for next cycle:
+- Team Summary: move commandbar filter/sort interactions to SSE refresh so compare strip + sidebar + main table stay synchronized without full reload.
+- Agents agencies-lens path: add explicit overlay-preservation test coverage for `kind=agencies` refresh behavior.
+- Two-Way Utility: add preserve-vs-clear overlay policy when filtered refresh retains the selected player.
+- System Values: extend baseline delta treatment into Minimum Salary and Rookie tables (currently strongest in System/Tax + wayfinding chips).
+
 ### 2026-02-13 (commits `f2eab7f` → `496be37`)
 
 - Scope discipline: ✅ each commit stayed on one explicit INDEX surface + one user flow (`/teams`, `/agents`, `/drafts`, `/transactions`).

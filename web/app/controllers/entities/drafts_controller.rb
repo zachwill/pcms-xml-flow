@@ -329,6 +329,7 @@ module Entities
         team = row["team_code"]
         year = row["draft_year"]
         round = row["draft_round"]
+        risk_tier = grid_risk_tier(row)
 
         @grid_teams[team] ||= row["team_name"]
 
@@ -341,7 +342,9 @@ module Entities
           has_conditional: row["has_conditional"],
           has_forfeited: row["has_forfeited"],
           provenance_trade_count: row["provenance_trade_count"],
-          ownership_risk_score: grid_cell_risk_score(row)
+          ownership_risk_score: grid_cell_risk_score(row),
+          risk_tier:,
+          risk_tier_label: grid_risk_tier_label(risk_tier)
         }
       end
 
@@ -394,6 +397,8 @@ module Entities
         }
       else
         rows = Array(@grid_rows)
+        severity_counts = grid_risk_counts(rows)
+
         @sidebar_summary = {
           view: "grid",
           sort_label: @sort_label,
@@ -406,6 +411,8 @@ module Entities
           swap_count: rows.count { |row| truthy?(row["has_swap"]) },
           at_risk_count: rows.count { |row| grid_row_at_risk?(row) },
           critical_count: rows.count { |row| grid_row_critical?(row) },
+          normal_count: severity_counts["normal"],
+          severity_counts:,
           provenance_trade_total: rows.sum { |row| row["provenance_trade_count"].to_i },
           filters:
         }
@@ -668,6 +675,38 @@ module Entities
 
     def grid_row_critical?(row)
       truthy?(row["has_forfeited"]) || truthy?(row["has_conditional"]) || row["provenance_trade_count"].to_i >= 2
+    end
+
+    def grid_risk_tier(row)
+      return "critical" if grid_row_critical?(row)
+      return "at_risk" if grid_row_at_risk?(row)
+
+      "normal"
+    end
+
+    def grid_risk_tier_label(tier)
+      case tier.to_s
+      when "critical"
+        "Critical"
+      when "at_risk"
+        "At risk"
+      else
+        "Normal"
+      end
+    end
+
+    def grid_risk_counts(rows)
+      counts = {
+        "normal" => 0,
+        "at_risk" => 0,
+        "critical" => 0
+      }
+
+      rows.each do |row|
+        counts[grid_risk_tier(row)] += 1
+      end
+
+      counts
     end
 
     def picks_row_at_risk?(row)

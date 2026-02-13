@@ -35,6 +35,18 @@
   </div>
 
   <% if @view == "grid" %>
+    <% grid_severity_counts = (@sidebar_summary || {})[:severity_counts] || {} %>
+
+    <div class="rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
+      <div class="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">Ownership risk legend</div>
+      <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
+        <span class="entity-chip entity-chip--muted">Normal · <span class="font-mono tabular-nums"><%= grid_severity_counts.fetch("normal", 0) %></span></span>
+        <span class="entity-chip entity-chip--warning">At risk · <span class="font-mono tabular-nums"><%= grid_severity_counts.fetch("at_risk", 0) %></span></span>
+        <span class="entity-chip entity-chip--danger">Critical · <span class="font-mono tabular-nums"><%= grid_severity_counts.fetch("critical", 0) %></span></span>
+        <span>Critical = conditional/forfeited/2+ provenance; At risk = swap/outgoing/provenance.</span>
+      </div>
+    </div>
+
     <% if @grid_teams.empty? %>
       <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">
         No draft pick data available for this grid window.
@@ -89,22 +101,55 @@
                       data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'pick' && $overlaykey === '<%= cell_key %>' }"
                     >
                       <% if cell.present? %>
+                        <%
+                          risk_tier = cell[:risk_tier].to_s.presence || "normal"
+                          risk_label = cell[:risk_tier_label].to_s.presence || "Normal"
+                          risk_score = cell[:ownership_risk_score].to_i
+                          risk_chip_class = case risk_tier
+                          when "critical"
+                            "entity-chip entity-chip--danger"
+                          when "at_risk"
+                            "entity-chip entity-chip--warning"
+                          else
+                            "entity-chip entity-chip--muted"
+                          end
+                          risk_container_class = case risk_tier
+                          when "critical"
+                            "border-red-300/70 bg-red-50/70 dark:border-red-800/60 dark:bg-red-950/25"
+                          when "at_risk"
+                            "border-amber-300/70 bg-amber-50/70 dark:border-amber-800/60 dark:bg-amber-950/20"
+                          else
+                            "border-border/60 bg-background"
+                          end
+                        %>
+
                         <button
                           type="button"
-                          class="cursor-pointer w-full text-left hover:underline focus-visible:underline"
+                          class="cursor-pointer w-full text-left rounded border px-1.5 py-1 transition-colors duration-75 hover:border-foreground/30 focus-visible:underline <%= risk_container_class %>"
                           data-on:click="<%= cell_open_expr %>"
                           title="<%= cell_text %>"
                         >
-                          <% if cell[:has_swap] %>
-                            <span class="inline-flex items-center px-1 py-0 rounded text-[9px] font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 mr-0.5">S</span>
-                          <% end %>
-                          <% if cell[:has_conditional] && !cell[:has_swap] %>
-                            <span class="inline-flex items-center px-1 py-0 rounded text-[9px] font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 mr-0.5">C</span>
-                          <% end %>
-                          <% if cell[:provenance_trade_count].to_i.positive? %>
-                            <span class="inline-flex items-center px-1 py-0 rounded text-[9px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 mr-0.5">P<%= cell[:provenance_trade_count].to_i %></span>
-                          <% end %>
-                          <span class="<%= cell[:has_conditional] ? 'italic' : '' %> <%= cell[:has_forfeited] ? 'line-through text-muted-foreground/60' : (cell[:has_outgoing] ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground') %>"><%= truncate(cell_text, length: 44) %></span>
+                          <div class="flex items-center justify-between gap-1">
+                            <span class="<%= risk_chip_class %>"><%= risk_label %></span>
+                            <span class="font-mono tabular-nums text-[10px] text-muted-foreground">R<%= risk_score %></span>
+                          </div>
+
+                          <div class="mt-1 flex flex-wrap items-center gap-0.5">
+                            <% if cell[:has_swap] %>
+                              <span class="inline-flex items-center px-1 py-0 rounded text-[9px] font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">S</span>
+                            <% end %>
+                            <% if cell[:has_conditional] %>
+                              <span class="inline-flex items-center px-1 py-0 rounded text-[9px] font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300">C</span>
+                            <% end %>
+                            <% if cell[:has_forfeited] %>
+                              <span class="inline-flex items-center px-1 py-0 rounded text-[9px] font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">F</span>
+                            <% end %>
+                            <% if cell[:provenance_trade_count].to_i.positive? %>
+                              <span class="inline-flex items-center px-1 py-0 rounded text-[9px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">P<%= cell[:provenance_trade_count].to_i %></span>
+                            <% end %>
+                          </div>
+
+                          <div class="mt-1 text-[10px] leading-snug <%= cell[:has_conditional] ? 'italic' : '' %> <%= cell[:has_forfeited] ? 'line-through text-muted-foreground/60' : (cell[:has_outgoing] ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground') %>"><%= truncate(cell_text, length: 44) %></div>
                         </button>
                       <% else %>
                         <span class="text-muted-foreground/60">—</span>

@@ -49,6 +49,17 @@
         <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Critical", value: summary[:critical_count].to_i.to_s, class_name: "w-full", variant: (summary[:critical_count].to_i.positive? ? "negative" : "muted") } %>
         <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Prov.", value: summary[:provenance_trade_total].to_i.to_s, class_name: "w-full" } %>
       </div>
+
+      <% severity_counts = summary[:severity_counts] || {} %>
+      <div class="rounded-md border border-border/60 bg-muted/10 px-2 py-2 text-[10px] text-muted-foreground space-y-1">
+        <div class="uppercase tracking-wide text-muted-foreground/80">Grid risk tiers</div>
+        <div class="flex flex-wrap items-center gap-1">
+          <span class="entity-chip entity-chip--muted">Normal <span class="ml-0.5 font-mono tabular-nums"><%= severity_counts.fetch("normal", summary[:normal_count].to_i) %></span></span>
+          <span class="entity-chip entity-chip--warning">At risk <span class="ml-0.5 font-mono tabular-nums"><%= severity_counts.fetch("at_risk", summary[:at_risk_count].to_i) %></span></span>
+          <span class="entity-chip entity-chip--danger">Critical <span class="ml-0.5 font-mono tabular-nums"><%= severity_counts.fetch("critical", summary[:critical_count].to_i) %></span></span>
+        </div>
+        <div>Critical matches sidebar rules (conditional, forfeited, or ≥2 provenance trades). At risk covers remaining outgoing/swap/provenance cells.</div>
+      </div>
     <% end %>
 
     <% if Array(summary[:filters]).any? %>

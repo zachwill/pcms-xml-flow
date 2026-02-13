@@ -113,15 +113,21 @@ Current focus reset (2026-02-12):
   - Guardrails:
     - Do not modify Salary Book files.
 
+<<<<<<< HEAD
 - [ ] [P1] [INDEX] /drafts — de-table grid/list views and make ownership risk severity visible before drill-in
   - Problem: `/drafts` still relies on table-heavy rendering across grid/picks/selections, and users must click repeatedly to discover high-risk ownership cells.
   - Hypothesis: Moving all three views to dense flex-based workbench rows/cells plus explicit risk severity encoding will improve triage speed before drill-in.
+=======
+- [x] [P1] [INDEX] /drafts — improve grid triage by making ownership risk severity visible before drill-in
+  - Problem: Grid users had to open many cells to determine which ownership slots were normal, at-risk, or critical.
+  - Hypothesis: Inline severity encoding + in-surface legend would make triage faster and make drill-ins intentional.
+>>>>>>> 0379a9d (design: drafts grid ownership risk triage)
   - Scope (files):
+    - web/app/controllers/entities/drafts_controller.rb
     - web/app/views/entities/drafts/_results.html.erb
     - web/app/views/entities/drafts/_rightpanel_base.html.erb
-    - web/app/controllers/entities/drafts_controller.rb
-    - web/app/controllers/entities/drafts_sse_controller.rb
     - web/test/integration/entities_pane_endpoints_test.rb
+<<<<<<< HEAD
   - Acceptance criteria:
     - Grid, picks, and selections presentations in `/drafts` use flex/div row-cell grammar (no `<table>` rendering in `_results`).
     - Grid cells expose a consistent 3-tier risk treatment (normal / at-risk / critical) with legend copy in-surface.
@@ -129,11 +135,30 @@ Current focus reset (2026-02-12):
     - Overlay selection state remains preserved through sort/lens/view SSE refresh when selected item remains visible.
     - Team and year pivots remain one click from row/cell or overlay.
   - Rubric (before → target):
+=======
+  - What changed:
+    - Added a shared grid risk-tier derivation in `DraftsController` (`normal` / `at_risk` / `critical`) and wired each cell to carry tier label + ownership risk score.
+    - Added sidebar summary tier counts (`severity_counts`) computed from the same tier logic used by existing at-risk/critical sidebar KPIs.
+    - Updated grid cells in `_results` to render visible tier chips, risk score (`R#`), and compact encumbrance tokens before drill-in.
+    - Added an in-surface ownership risk legend above the grid and a matching “Grid risk tiers” explainer block in `#rightpanel-base`.
+    - Kept existing overlay open/restore flow intact (grid refresh still preserves selected cell when visible).
+    - Expanded integration coverage to assert SSE grid refresh payload includes tier legend/treatment and risk-score encoding.
+  - Why this improves the flow:
+    - Analysts can now identify critical ownership cells immediately without opening each overlay.
+    - Legend + chips create a stable, shared severity grammar across main grid and sidebar snapshot.
+    - Triage remains predictable during sort/lens refresh because one SSE response still patches results + sidebar + overlay state together.
+  - Verification:
+    - `cd web && bundle exec ruby -Itest test/integration/entities_pane_endpoints_test.rb -i "/drafts (pane|grid refresh surfaces|refresh|sidebar)/"`
+  - Rubric (before → after):
+>>>>>>> 0379a9d (design: drafts grid ownership risk triage)
     - Scan speed: 3 → 5
     - Information hierarchy: 3 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Add one-click year pivot actions directly on grid column headers (currently year pivot remains in commandbar/overlay paths).
+    - Local full-page index integration still depends on fixing the `tailwind.css` test asset load-path setup.
   - Guardrails:
     - Do not modify Salary Book files.
 

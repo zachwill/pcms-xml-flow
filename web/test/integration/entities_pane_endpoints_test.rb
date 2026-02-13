@@ -37,11 +37,11 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
         ActiveRecord::Result.new(
           [
             "team_code", "team_name", "draft_year", "draft_round", "cell_text",
-            "has_outgoing", "has_swap", "has_conditional", "has_forfeited"
+            "has_outgoing", "has_swap", "has_conditional", "has_forfeited", "provenance_trade_count"
           ],
           [
-            [ "BOS", "Boston Celtics", 2027, 1, "To POR: top-4 protected", true, false, true, false ],
-            [ "LAL", "Los Angeles Lakers", 2027, 2, "Own", false, true, false, false ]
+            [ "BOS", "Boston Celtics", 2027, 1, "To POR: top-4 protected", true, false, true, false, 2 ],
+            [ "LAL", "Los Angeles Lakers", 2027, 2, "Own", false, true, false, false, 1 ]
           ]
         )
       elsif sql.include?("WITH picks AS") && sql.include?("FROM pcms.vw_draft_pick_assets v")
@@ -272,6 +272,23 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "drafts grid refresh surfaces ownership risk tiers before drill-in" do
+    with_fake_connection do
+      get "/drafts/sse/refresh", params: { view: "grid", year: "2027", round: "all", team: "", sort: "risk", lens: "all" }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, 'id="drafts-results"'
+      assert_includes response.body, 'id="rightpanel-base"'
+      assert_includes response.body, "Ownership risk legend"
+      assert_includes response.body, "Grid risk tiers"
+      assert_includes response.body, "Critical"
+      assert_includes response.body, "At risk"
+      assert_includes response.body, "R8"
+      assert_includes response.body, "R3"
+    end
+  end
+
   test "drafts refresh uses one sse response for multi-region patches" do
     with_fake_connection do
       get "/drafts/sse/refresh", params: { view: "picks", year: "2027", round: "all", team: "", sort: "risk", lens: "critical" }, headers: modern_headers
@@ -303,6 +320,7 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, "Ownership risk legend"
       assert_includes response.body, "Open canonical draft-pick page"
       assert_includes response.body, '"draftsort":"provenance"'
       assert_includes response.body, '"draftlens":"at_risk"'

@@ -4,7 +4,11 @@
   state_query_expr = "'year=' + encodeURIComponent($svyear) +
     '&baseline_year=' + encodeURIComponent($svbaseline) +
     '&from_year=' + encodeURIComponent($svfrom) +
-    '&to_year=' + encodeURIComponent($svto)"
+    '&to_year=' + encodeURIComponent($svto) +
+    '&show_system_values=' + encodeURIComponent($showsystemvalues ? '1' : '0') +
+    '&show_tax_rates=' + encodeURIComponent($showtaxrates ? '1' : '0') +
+    '&show_salary_scales=' + encodeURIComponent($showsalaryscales ? '1' : '0') +
+    '&show_rookie_scales=' + encodeURIComponent($showrookiescales ? '1' : '0')"
 
   overlay_query_expr = "(#{state_query_expr}) +
     '&overlay_section=' + encodeURIComponent($svoverlaysection || '') +
@@ -15,11 +19,15 @@
 
   sync_url_expr = "const nextUrl = '#{tools_system_values_path}?' + (#{overlay_query_expr}); if ((window.location.pathname + window.location.search) !== nextUrl) { window.history.replaceState({}, '', nextUrl); }"
 
+  normalize_active_section_expr = "const visibleSections = [ { key: 'system', visible: $showsystemvalues }, { key: 'tax', visible: $showtaxrates }, { key: 'minimum', visible: $showsalaryscales }, { key: 'rookie', visible: $showrookiescales } ]; const activeStillVisible = visibleSections.find((section) => section.key === $activesection && section.visible); if (!activeStillVisible) { const firstVisible = visibleSections.find((section) => section.visible); const nextActive = firstVisible ? firstVisible.key : ''; if ($activesection !== nextActive) { $activesection = nextActive; } }"
+
+  root_effect_expr = "#{normalize_active_section_expr} #{sync_url_expr}"
+
   signals_literal = {
-    showsystemvalues: true,
-    showtaxrates: true,
-    showsalaryscales: true,
-    showrookiescales: true,
+    showsystemvalues: @show_system_values,
+    showtaxrates: @show_tax_rates,
+    showsalaryscales: @show_salary_scales,
+    showrookiescales: @show_rookie_scales,
     activesection: "system",
     svyear: @selected_year.to_s,
     svbaseline: @baseline_year.to_s,
@@ -39,7 +47,7 @@
   class="h-screen w-full flex flex-col overflow-hidden bg-background"
   style="height: 100dvh;"
   data-signals='<%= signals_literal %>'
-  data-effect="<%= sync_url_expr %>"
+  data-effect="<%= root_effect_expr %>"
 >
   <div id="flash"></div>
 

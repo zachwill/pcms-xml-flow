@@ -494,24 +494,36 @@ Supervisor review (2026-02-13, PM loop):
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P3] [TOOL] /tools/system-values — persist section visibility state in shareable URL
-  - Problem: Section visibility toggles are client-only, so shared links reopen with default visibility and lose analyst framing.
-  - Hypothesis: Encoding visibility toggles in URL + SSE state will improve collaboration and replayability of analysis views.
-  - Scope (files):
-    - web/app/views/tools/system_values/show.html.erb
-    - web/app/views/tools/system_values/_commandbar.html.erb
-    - web/app/controllers/tools/system_values_controller.rb
-    - web/test/integration/tools_system_values_test.rb
-  - Acceptance criteria:
-    - Visibility toggles (System/Tax/Minimum/Rookie) are reflected in URL query state.
-    - Reloading or sharing URL restores identical visible-section layout.
-    - SSE refresh preserves overlay and visibility state together.
-    - Scrollspy and section wayfinding ignore hidden sections correctly.
-  - Rubric (before → target):
+- [x] [P3] [TOOL] /tools/system-values — persist section visibility state in shareable URL
+  - Problem: Section visibility toggles were client-only, so shared links reopened with default section layout and lost analyst framing.
+  - Hypothesis: Encoding section visibility in canonical URL + SSE signal state improves collaboration/replayability and keeps wayfinding predictable.
+  - What changed:
+    - `web/app/controllers/tools/system_values_controller.rb`
+      - Added URL-backed visibility param parsing (`show_system_values`, `show_tax_rates`, `show_salary_scales`, `show_rookie_scales`) with safe default-on normalization.
+      - Extended query-expression builders so all refresh/sidebar requests carry visibility params.
+      - Included visibility flags in canonical `@state_params` used by pivot/share links.
+      - Extended SSE refresh signal patching to include section visibility booleans alongside overlay state.
+    - `web/app/views/tools/system_values/show.html.erb`
+      - Seeded visibility signals from server state (instead of hardcoded `true`).
+      - Extended URL sync effect to persist visibility toggles in the shareable query string.
+      - Added active-section normalization in root effect so scrollspy/wayfinding never points at a hidden section.
+    - `web/test/integration/tools_system_values_test.rb`
+      - Added assertions that visibility params hydrate initial signals and appear in rendered shareable URLs.
+      - Added SSE refresh assertions for visibility signal patching + visibility-aware query propagation.
+  - Why this improves the flow:
+    - Analysts can now share a System Values URL that preserves exactly which sections are visible, not just year/baseline/overlay context.
+    - Refresh/overlay flows keep visibility + drill-in state synchronized in one SSE response, improving interaction predictability.
+    - Wayfinding state now self-corrects when sections are hidden, so navigation controls only reflect visible targets.
+  - Verification:
+    - `cd web && bundle exec ruby -Itest test/integration/tools_system_values_test.rb -i "/sidebar metric endpoint|tax sidebar|minimum salary sidebar|rookie scale sidebar|refresh endpoint returns ordered multi-region sse patches|refresh preserves minimum overlay|refresh clears minimum overlay|refresh preserves rookie overlay|refresh clears rookie overlay/"`
+    - `cd web && ruby -c app/controllers/tools/system_values_controller.rb`
+  - Rubric (before → after):
     - Scan speed: 4 → 4
     - Information hierarchy: 4 → 5
     - Interaction predictability: 3 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Full-page `/tools/system-values` layout-render integration still hits the known `tailwind.css` test asset load-path issue in this environment; continue focused SSE/sidebar subsets until harness setup is fixed.
   - Guardrails:
     - Do not modify Salary Book files.

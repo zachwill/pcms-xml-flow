@@ -6,6 +6,13 @@ module Tools
     DEFAULT_WINDOW_YEARS = 2
     DEFAULT_BASELINE_OFFSET_YEARS = 1
 
+    SECTION_VISIBILITY_PARAM_DEFINITIONS = {
+      showsystemvalues: "show_system_values",
+      showtaxrates: "show_tax_rates",
+      showsalaryscales: "show_salary_scales",
+      showrookiescales: "show_rookie_scales"
+    }.freeze
+
     SYSTEM_METRIC_DEFINITIONS = {
       "salary_cap_amount" => { label: "Salary Cap", kind: :currency },
       "tax_level_amount" => { label: "Tax Level", kind: :currency },
@@ -129,6 +136,10 @@ module Tools
         patch_elements_by_id(sse, rightpanel_overlay_html)
         patch_signals(
           sse,
+          showsystemvalues: @show_system_values,
+          showtaxrates: @show_tax_rates,
+          showsalaryscales: @show_salary_scales,
+          showrookiescales: @show_rookie_scales,
           svyear: @selected_year.to_s,
           svbaseline: @baseline_year.to_s,
           svfrom: @from_year.to_s,
@@ -157,7 +168,11 @@ module Tools
       "'year=' + encodeURIComponent($svyear) + " \
         "'&baseline_year=' + encodeURIComponent($svbaseline) + " \
         "'&from_year=' + encodeURIComponent($svfrom) + " \
-        "'&to_year=' + encodeURIComponent($svto)"
+        "'&to_year=' + encodeURIComponent($svto) + " \
+        "'&show_system_values=' + encodeURIComponent($showsystemvalues ? '1' : '0') + " \
+        "'&show_tax_rates=' + encodeURIComponent($showtaxrates ? '1' : '0') + " \
+        "'&show_salary_scales=' + encodeURIComponent($showsalaryscales ? '1' : '0') + " \
+        "'&show_rookie_scales=' + encodeURIComponent($showrookiescales ? '1' : '0')"
     end
 
     def overlay_query_expr
@@ -245,6 +260,31 @@ module Tools
       end
 
       [ from_year, to_year ]
+    end
+
+    def resolve_section_visibility!
+      @show_system_values = parse_visibility_param(params[SECTION_VISIBILITY_PARAM_DEFINITIONS.fetch(:showsystemvalues)])
+      @show_tax_rates = parse_visibility_param(params[SECTION_VISIBILITY_PARAM_DEFINITIONS.fetch(:showtaxrates)])
+      @show_salary_scales = parse_visibility_param(params[SECTION_VISIBILITY_PARAM_DEFINITIONS.fetch(:showsalaryscales)])
+      @show_rookie_scales = parse_visibility_param(params[SECTION_VISIBILITY_PARAM_DEFINITIONS.fetch(:showrookiescales)])
+    end
+
+    def parse_visibility_param(value)
+      normalized = value.to_s.strip.downcase
+      return true if normalized.blank?
+      return true if %w[1 true yes on].include?(normalized)
+      return false if %w[0 false no off].include?(normalized)
+
+      true
+    end
+
+    def visibility_state_params
+      {
+        show_system_values: @show_system_values ? "1" : "0",
+        show_tax_rates: @show_tax_rates ? "1" : "0",
+        show_salary_scales: @show_salary_scales ? "1" : "0",
+        show_rookie_scales: @show_rookie_scales ? "1" : "0"
+      }
     end
 
     def fetch_league_system_values(from_year, to_year)
@@ -367,6 +407,8 @@ module Tools
       @selected_rookie_scale_rows = fetch_rookie_scale_amounts(@selected_year, @selected_year)
       @baseline_rookie_scale_rows = fetch_rookie_scale_amounts(@baseline_year, @baseline_year)
 
+      resolve_section_visibility!
+
       @section_shift_cards = build_section_shift_cards
       @comparison_label = "Comparing #{helpers.format_year_label(@selected_year)} against #{helpers.format_year_label(@baseline_year)} baseline"
       @quick_metric_cards = build_quick_metric_cards
@@ -378,7 +420,7 @@ module Tools
         baseline_year: @baseline_year,
         from_year: @from_year,
         to_year: @to_year
-      }
+      }.merge(visibility_state_params)
     end
 
     def apply_boot_error!(error)
@@ -400,6 +442,8 @@ module Tools
       @baseline_salary_scale_rows = []
       @selected_rookie_scale_rows = []
       @baseline_rookie_scale_rows = []
+      resolve_section_visibility!
+
       @section_shift_cards = []
       @quick_metric_cards = []
       @metric_finder_options = []
@@ -413,7 +457,7 @@ module Tools
         baseline_year: @baseline_year,
         from_year: @from_year,
         to_year: @to_year
-      }
+      }.merge(visibility_state_params)
     end
 
     def resolve_overlay_payload!

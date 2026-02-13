@@ -257,7 +257,11 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
         year: "2026",
         baseline_year: "2024",
         from_year: "2024",
-        to_year: "2026"
+        to_year: "2026",
+        show_system_values: "1",
+        show_tax_rates: "0",
+        show_salary_scales: "1",
+        show_rookie_scales: "0"
       }, headers: modern_headers
 
       assert_response :success
@@ -279,6 +283,14 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "$svoverlaysection='rookie'; $svoverlaymetric='option_amount_year_4'"
       assert_includes response.body, "$svoverlaysection='rookie'; $svoverlaymetric='option_pct_year_3'"
       assert_includes response.body, "$svoverlaylower='1'"
+      assert_includes response.body, '"showsystemvalues":true'
+      assert_includes response.body, '"showtaxrates":false'
+      assert_includes response.body, '"showsalaryscales":true'
+      assert_includes response.body, '"showrookiescales":false'
+      assert_includes response.body, "show_system_values=1"
+      assert_includes response.body, "show_tax_rates=0"
+      assert_includes response.body, "show_salary_scales=1"
+      assert_includes response.body, "show_rookie_scales=0"
     end
   end
 
@@ -392,6 +404,10 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
         baseline_year: "2024",
         from_year: "2024",
         to_year: "2026",
+        show_system_values: "0",
+        show_tax_rates: "1",
+        show_salary_scales: "0",
+        show_rookie_scales: "1",
         overlay_section: "tax",
         overlay_metric: "tax_rate_non_repeater",
         overlay_year: "2026",
@@ -411,7 +427,15 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
       assert_includes response.body, '"svoverlaysection":"tax"'
       assert_includes response.body, '"svoverlaymetric":"tax_rate_non_repeater"'
       assert_includes response.body, '"svyear":"2026"'
+      assert_includes response.body, '"showsystemvalues":false'
+      assert_includes response.body, '"showtaxrates":true'
+      assert_includes response.body, '"showsalaryscales":false'
+      assert_includes response.body, '"showrookiescales":true'
       assert_includes response.body, '"svmetricfinder":"tax|tax_rate_non_repeater|2026|5000000||sv-row-tax-2026-5000000-inf"'
+      assert_includes response.body, "show_system_values=0"
+      assert_includes response.body, "show_tax_rates=1"
+      assert_includes response.body, "show_salary_scales=0"
+      assert_includes response.body, "show_rookie_scales=1"
     end
   end
 

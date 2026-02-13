@@ -1,7 +1,8 @@
 <% content_for :title, "Transactions" %>
 
 <%
-  pane_query_expr = "'daterange=' + encodeURIComponent($txndaterange) +
+  pane_query_expr = "'q=' + encodeURIComponent($txnquery) +
+    '&daterange=' + encodeURIComponent($txndaterange) +
     '&team=' + encodeURIComponent($txnteam) +
     '&signings=' + ($txnsignings ? '1' : '0') +
     '&waivers=' + ($txnwaivers ? '1' : '0') +
@@ -13,8 +14,10 @@
   refresh_query_expr = "(#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr})"
 
   refresh_expr = "@get('/transactions/sse/refresh?' + (#{refresh_query_expr})); window.history.replaceState({}, '', '/transactions?' + (#{pane_query_expr}))"
+  submit_search_expr = "evt.preventDefault(); #{refresh_expr}"
+  clear_search_expr = "$txnquery = ''; #{refresh_expr}"
 
-  signals_literal = "{ txndaterange: #{@daterange.to_json}, txnteam: #{(@team || '').to_json}, txnsignings: #{@signings.to_json}, txnwaivers: #{@waivers.to_json}, txnextensions: #{@extensions.to_json}, txnother: #{@other.to_json}, overlaytype: 'none', overlayid: '' }"
+  signals_literal = "{ txnquery: #{@query.to_s.to_json}, txndaterange: #{@daterange.to_json}, txnteam: #{(@team || '').to_json}, txnsignings: #{@signings.to_json}, txnwaivers: #{@waivers.to_json}, txnextensions: #{@extensions.to_json}, txnother: #{@other.to_json}, overlaytype: 'none', overlayid: '' }"
 %>
 
 <div id="transactions-workspace" class="h-screen w-screen flex flex-col overflow-hidden bg-background" data-signals="<%= signals_literal %>">
@@ -39,6 +42,30 @@
     <div class="h-20 w-px bg-border self-center"></div>
 
     <div class="flex items-start gap-4" role="group" aria-label="Transactions filters">
+      <form class="min-w-[15rem] space-y-1" data-on:submit="<%= submit_search_expr %>">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Intent search</div>
+        <div class="flex items-center gap-1.5">
+          <input
+            id="transactions-search-input"
+            type="search"
+            placeholder="player, team, txn id, text"
+            class="w-48 h-7 rounded border border-border bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground/70"
+            value="<%= @query %>"
+            data-bind="txnquery"
+            data-on:keydown="if (evt.key === 'Enter') { evt.preventDefault(); <%= refresh_expr %>; }"
+          />
+          <button
+            type="submit"
+            class="cursor-pointer h-7 px-2 rounded border border-border bg-muted/40 text-[11px] text-foreground hover:bg-muted transition-colors"
+          >Apply</button>
+          <button
+            type="button"
+            class="cursor-pointer h-7 px-2 rounded border border-border bg-background text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            data-on:click="<%= clear_search_expr %>"
+          >Clear</button>
+        </div>
+      </form>
+
       <div class="min-w-[7.5rem] space-y-1">
         <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Date range</div>
         <div class="space-y-1">

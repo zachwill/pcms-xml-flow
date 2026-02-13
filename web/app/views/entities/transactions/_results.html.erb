@@ -12,12 +12,15 @@
            end %>
       </h2>
       <p class="text-[11px] text-muted-foreground mt-1">
-        Click a row to inspect key facts and pivots in the sidebar without leaving the feed.
+        Search by player, transaction id, or description/team text, then open rows in the sidebar without leaving the feed.
       </p>
     </div>
 
-    <div class="text-[11px] text-muted-foreground tabular-nums">
-      <span><%= @transactions.size %> rows</span>
+    <div class="text-right space-y-1">
+      <div class="text-[11px] text-muted-foreground tabular-nums"><span><%= @transactions.size %> rows</span></div>
+      <% if @query.present? %>
+        <div class="text-[10px] text-muted-foreground">Intent: <span class="font-medium text-foreground"><%= @query %></span></div>
+      <% end %>
     </div>
   </div>
 

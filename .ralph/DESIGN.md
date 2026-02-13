@@ -214,7 +214,7 @@ Supervisor review — 2026-02-13:
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P1] [INDEX] /transactions — find transaction rows by player/team intent without losing feed context
+- [x] [P1] [INDEX] /transactions — find transaction rows by player/team intent without losing feed context
   - Problem: Feed filtering is type/date/team-heavy but lacks fast intent search for specific player or description patterns.
   - Hypothesis: A query-first transaction flow will cut scan time for targeted audits.
   - Scope (files):
@@ -223,17 +223,29 @@ Supervisor review — 2026-02-13:
     - web/app/controllers/entities/transactions_controller.rb
     - web/app/controllers/entities/transactions_sse_controller.rb
     - web/test/integration/entities_pane_endpoints_test.rb
-  - Acceptance criteria:
-    - Commandbar includes a search input (player, transaction id, description/team text).
-    - Query is URL-backed and reflected in Datastar signals during refresh.
-    - Query + lens changes keep one SSE response and preserve selected overlay when row remains visible.
-    - Row-level pivots (player/team/trade/transaction) remain dense and unobscured.
-  - Rubric (before → target):
+  - What changed:
+    - Added an **Intent search** commandbar control (`transactions-search-input`) with Apply/Clear actions and Datastar binding (`txnquery`) on `/transactions`.
+    - Made intent query URL-backed (`q=`) and included it in the shared refresh request expression so query + existing knobs still route through one `/transactions/sse/refresh` response.
+    - Extended `TransactionsController#load_index_state!` with SQL-backed intent filtering across transaction id, description/type/method fields, team codes/names, and player name text.
+    - Extended SSE signal patching in `TransactionsSseController#refresh` to include `txnquery`, keeping client signal state synchronized after each refresh.
+    - Updated results header and sidebar filter chips to surface active intent context during scan.
+    - Expanded integration coverage to assert search control presence, SSE query signal patching, and overlay preserve/clear behavior under query changes.
+  - Why this improves the flow:
+    - Users can now jump directly to player/team/description intent from the commandbar without abandoning feed chronology.
+    - Query changes behave like existing knobs (single SSE response, URL sync, deterministic overlay preserve/clear), so interaction grammar stays predictable.
+    - Feed rows and row-level pivots remain dense and unchanged, preserving scan speed while adding targeted retrieval.
+  - Verification:
+    - `cd web && bundle exec rails test test/integration/entities_pane_endpoints_test.rb` *(fails in this environment: missing gem `lucide-rails-0.7.3`)*
+    - `cd web && ruby -c app/controllers/entities/transactions_controller.rb && ruby -c app/controllers/entities/transactions_sse_controller.rb && ruby -c test/integration/entities_pane_endpoints_test.rb` *(syntax OK)*
+    - `cd web && ruby -rerb -e "['app/views/entities/transactions/index.html.erb','app/views/entities/transactions/_results.html.erb'].each { |p| ERB.new(File.read(p)).src }; puts 'ERB OK'"`
+  - Rubric (before → after):
     - Scan speed: 4 → 5
     - Information hierarchy: 4 → 4
     - Interaction predictability: 5 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 5 → 5
+  - Follow-up tasks discovered:
+    - Add matched-text emphasis in row secondary lines (e.g., highlight whether match came from player, route, or description) to further improve trust in intent-filtered states.
   - Guardrails:
     - Do not modify Salary Book files.
 

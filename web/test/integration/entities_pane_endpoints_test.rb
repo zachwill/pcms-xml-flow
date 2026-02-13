@@ -170,21 +170,31 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
           ]
         )
       elsif sql.include?("WITH filtered_transactions AS") && sql.include?("FROM pcms.transactions t")
+        sql_downcase = sql.downcase
+
+        rows = [
+          [ 700001, "2025-02-07", "SIGN", "Signed to rest-of-season deal", 88001, 1629001, "Alpha Guard", 1610612737, "ATL", "Atlanta Hawks", 1610612738, "BOS", "Boston Celtics", "MIN", "STD" ],
+          [ 700002, "2025-02-06", "WAIVE", "Waived", nil, 1629002, "Beta Wing", 1610612757, "POR", "Portland Trail Blazers", nil, nil, nil, nil, nil ]
+        ]
+
         rows = if sql.include?("(t.from_team_code = 'LAL' OR t.to_team_code = 'LAL')")
           []
         elsif sql.include?("(t.from_team_code = 'BOS' OR t.to_team_code = 'BOS')")
-          [
-            [ 700001, "2025-02-07", "SIGN", "Signed to rest-of-season deal", 88001, 1629001, "Alpha Guard", 1610612737, "ATL", "Atlanta Hawks", 1610612738, "BOS", "Boston Celtics", "MIN", "STD" ]
-          ]
+          rows.select { |row| row[8] == "BOS" || row[11] == "BOS" }
         elsif sql.include?("(t.from_team_code = 'POR' OR t.to_team_code = 'POR')")
-          [
-            [ 700002, "2025-02-06", "WAIVE", "Waived", nil, 1629002, "Beta Wing", 1610612757, "POR", "Portland Trail Blazers", nil, nil, nil, nil, nil ]
-          ]
+          rows.select { |row| row[8] == "POR" || row[11] == "POR" }
         else
-          [
-            [ 700001, "2025-02-07", "SIGN", "Signed to rest-of-season deal", 88001, 1629001, "Alpha Guard", 1610612737, "ATL", "Atlanta Hawks", 1610612738, "BOS", "Boston Celtics", "MIN", "STD" ],
-            [ 700002, "2025-02-06", "WAIVE", "Waived", nil, 1629002, "Beta Wing", 1610612757, "POR", "Portland Trail Blazers", nil, nil, nil, nil, nil ]
-          ]
+          rows
+        end
+
+        if sql_downcase.include?("%alpha%")
+          rows = rows.select { |row| row[6].to_s.downcase.include?("alpha") || row[3].to_s.downcase.include?("alpha") }
+        elsif sql_downcase.include?("%beta%")
+          rows = rows.select { |row| row[6].to_s.downcase.include?("beta") || row[3].to_s.downcase.include?("beta") }
+        elsif sql_downcase.include?("%700001%")
+          rows = rows.select { |row| row[0].to_i == 700001 }
+        elsif sql_downcase.include?("%boston%")
+          rows = rows.select { |row| row[9].to_s.downcase.include?("boston") || row[12].to_s.downcase.include?("boston") }
         end
 
         ActiveRecord::Result.new(
@@ -452,9 +462,10 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "transactions index exposes team filter and sidebar base" do
+  test "transactions index exposes intent search plus filters and sidebar base" do
     with_fake_connection do
       get "/transactions", params: {
+        q: "",
         daterange: "season",
         team: "",
         signings: "1",
@@ -464,15 +475,17 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       }, headers: modern_headers
 
       assert_response :success
+      assert_includes response.body, 'id="transactions-search-input"'
       assert_includes response.body, 'id="transactions-team-select"'
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, 'id="rightpanel-overlay"'
     end
   end
 
-  test "transactions refresh uses one sse response for feed and sidebar" do
+  test "transactions refresh uses one sse response for feed, sidebar, and query signals" do
     with_fake_connection do
       get "/transactions/sse/refresh", params: {
+        q: "alpha",
         daterange: "season",
         team: "BOS",
         signings: "1",
@@ -488,12 +501,14 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, 'id="rightpanel-overlay"'
       assert_includes response.body, "event: datastar-patch-signals"
+      assert_includes response.body, '"txnquery":"alpha"'
     end
   end
 
-  test "transactions refresh preserves selected overlay when selected row remains visible" do
+  test "transactions refresh preserves selected overlay when query still matches selected row" do
     with_fake_connection do
       get "/transactions/sse/refresh", params: {
+        q: "alpha",
         daterange: "season",
         team: "BOS",
         signings: "1",
@@ -509,16 +524,18 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="transactions-results"'
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, "Transaction #700001"
+      assert_includes response.body, '"txnquery":"alpha"'
       assert_includes response.body, '"overlaytype":"transaction"'
       assert_includes response.body, '"overlayid":"700001"'
     end
   end
 
-  test "transactions refresh clears selected overlay when row no longer matches filters" do
+  test "transactions refresh clears selected overlay when query removes selected row" do
     with_fake_connection do
       get "/transactions/sse/refresh", params: {
+        q: "beta",
         daterange: "season",
-        team: "LAL",
+        team: "BOS",
         signings: "1",
         waivers: "1",
         extensions: "1",
@@ -530,6 +547,7 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_includes response.media_type, "text/event-stream"
       assert_includes response.body, '<div id="rightpanel-overlay"></div>'
+      assert_includes response.body, '"txnquery":"beta"'
       assert_includes response.body, '"overlaytype":"none"'
       assert_includes response.body, '"overlayid":""'
     end

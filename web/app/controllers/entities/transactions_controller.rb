@@ -357,6 +357,7 @@ module Entities
       @daterange = params[:daterange].to_s.strip.presence || "season"
       @team = params[:team].to_s.strip.upcase.presence
       @team = nil unless @team&.match?(/\A[A-Z]{3}\z/)
+      @query = params[:q].to_s.strip.gsub(/\s+/, " ").presence
       @signings = params[:signings] != "0"
       @waivers = params[:waivers] != "0"
       @extensions = params[:extensions] != "0"
@@ -411,6 +412,43 @@ module Entities
 
       if @team.present?
         where_clauses << "(t.from_team_code = #{conn.quote(@team)} OR t.to_team_code = #{conn.quote(@team)})"
+      end
+
+      if @query.present?
+        query_like_sql = conn.quote("%#{@query}%")
+        where_clauses << <<~SQL
+          (
+            t.transaction_id::text ILIKE #{query_like_sql}
+            OR COALESCE(t.transaction_description_lk, '') ILIKE #{query_like_sql}
+            OR COALESCE(t.transaction_type_lk, '') ILIKE #{query_like_sql}
+            OR COALESCE(t.from_team_code, '') ILIKE #{query_like_sql}
+            OR COALESCE(t.to_team_code, '') ILIKE #{query_like_sql}
+            OR COALESCE(t.signed_method_lk, '') ILIKE #{query_like_sql}
+            OR COALESCE(t.contract_type_lk, '') ILIKE #{query_like_sql}
+            OR EXISTS (
+              SELECT 1
+              FROM pcms.people search_player
+              WHERE search_player.person_id = t.player_id
+                AND COALESCE(
+                  NULLIF(TRIM(CONCAT_WS(' ', search_player.display_first_name, search_player.display_last_name)), ''),
+                  NULLIF(TRIM(CONCAT_WS(' ', search_player.first_name, search_player.last_name)), ''),
+                  ''
+                ) ILIKE #{query_like_sql}
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM pcms.teams search_from_team
+              WHERE search_from_team.team_id = t.from_team_id
+                AND search_from_team.team_name ILIKE #{query_like_sql}
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM pcms.teams search_to_team
+              WHERE search_to_team.team_id = t.to_team_id
+                AND search_to_team.team_name ILIKE #{query_like_sql}
+            )
+          )
+        SQL
       end
 
       @transactions = conn.exec_query(<<~SQL).to_a
@@ -482,6 +520,7 @@ module Entities
       active_type_filters << "Other" if @other
 
       filters = ["Date: #{daterange_label(@daterange)}"]
+      filters << "Intent: #{@query}" if @query.present?
       filters << "Team: #{@team}" if @team.present?
       filters << "Types: #{active_type_filters.join(', ')}" if active_type_filters.any?
 

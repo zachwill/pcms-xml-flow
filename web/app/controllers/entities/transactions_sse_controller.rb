@@ -31,6 +31,7 @@ module Entities
         patch_elements_by_id(sse, overlay_html)
         patch_signals(
           sse,
+          txnquery: @query.to_s,
           txndaterange: @daterange,
           txnteam: @team.to_s,
           txnsignings: @signings,

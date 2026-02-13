@@ -13,6 +13,20 @@
 
   has_compare = @compare_a_code.present? || @compare_b_code.present?
 
+  ordered_team_codes = @rows.map { |candidate| candidate["team_code"].to_s.upcase }.select { |code| code.match?(/\A[A-Z]{3}\z/) }
+  selected_index = ordered_team_codes.index(team_code)
+  can_step_prev = selected_index.present? && selected_index.positive?
+  can_step_next = selected_index.present? && selected_index < (ordered_team_codes.length - 1)
+  selected_position_label = if selected_index.present?
+    "#{selected_index + 1} / #{ordered_team_codes.length}"
+  else
+    "—"
+  end
+
+  step_params = @state_params.merge(selected: team_code)
+  prev_step_path = tools_team_summary_sse_step_path(step_params.merge(direction: "prev"))
+  next_step_path = tools_team_summary_sse_step_path(step_params.merge(direction: "next"))
+
   slot_configs = [
     { key: "a", label: "Slot A", current: @compare_a_code, active_class: "border-indigo-500/60 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300" },
     { key: "b", label: "Slot B", current: @compare_b_code, active_class: "border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" }
@@ -55,6 +69,31 @@
       <div class="min-w-0">
         <h2 class="text-base font-semibold truncate"><%= row["team_name"] %></h2>
         <div class="text-[11px] text-muted-foreground/80 tabular-nums"><%= team_code %> · <%= conference_name %> · <%= format_year_label(@selected_year) %></div>
+      </div>
+    </div>
+
+    <div class="rounded border border-border bg-background px-3 py-2 space-y-2">
+      <div class="flex items-center justify-between gap-2">
+        <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">Browse in current view</div>
+        <div class="text-[10px] tabular-nums text-muted-foreground"><%= selected_position_label %></div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          class="cursor-pointer h-8 rounded border border-border text-[11px] font-medium hover:bg-muted transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+          data-team-summary-step-prev
+          data-on:click="@get('<%= prev_step_path %>')"
+          <%= "disabled" unless can_step_prev %>
+        >← Prev</button>
+
+        <button
+          type="button"
+          class="cursor-pointer h-8 rounded border border-border text-[11px] font-medium hover:bg-muted transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+          data-team-summary-step-next
+          data-on:click="@get('<%= next_step_path %>')"
+          <%= "disabled" unless can_step_next %>
+        >Next →</button>
       </div>
     </div>
 

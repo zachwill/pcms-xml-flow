@@ -97,6 +97,38 @@ module Tools
       end
     end
 
+    # GET /tools/team-summary/sse/step
+    # Overlay stepping for adjacent teams in the current filtered row order.
+    # Patches:
+    # - #rightpanel-overlay
+    # - selectedteam/compare signals
+    def step
+      load_workspace_state!
+      step_selected_team!(resolve_step_direction(params[:direction]))
+      hydrate_sidebar_payload!
+      @state_params = build_state_params
+
+      with_sse_stream do |sse|
+        overlay_html = if @selected_row.present?
+          render_to_string(partial: "tools/team_summary/rightpanel_overlay_team", layout: false)
+        else
+          render_to_string(partial: "tools/team_summary/rightpanel_clear", layout: false)
+        end
+
+        patch_elements_by_id(sse, overlay_html)
+        patch_signals(
+          sse,
+          selectedteam: @selected_team_code.to_s,
+          comparea: @compare_a_code.to_s,
+          compareb: @compare_b_code.to_s
+        )
+      end
+    rescue ActiveRecord::StatementInvalid => e
+      with_sse_stream do |sse|
+        patch_flash(sse, "Team Summary step update failed: #{e.message.to_s.truncate(160)}")
+      end
+    end
+
     # GET /tools/team-summary/sse/refresh
     # One-request multi-region refresh for commandbar knob changes.
     # Patches:
@@ -265,6 +297,33 @@ module Tools
       return normalized if %w[a b].include?(normalized)
 
       nil
+    end
+
+    def resolve_step_direction(value)
+      normalized = value.to_s.strip.downcase
+      return normalized if %w[next prev].include?(normalized)
+
+      nil
+    end
+
+    def step_selected_team!(direction)
+      return if direction.blank?
+
+      ordered_codes = @rows.map { |row| resolve_team_code(row["team_code"]) }.compact
+      return if ordered_codes.empty?
+
+      current_code = resolve_team_code(@selected_team_code)
+      current_index = current_code.present? ? ordered_codes.index(current_code) : nil
+
+      if current_index.nil?
+        @selected_team_code = direction == "prev" ? ordered_codes.last : ordered_codes.first
+        return
+      end
+
+      target_index = direction == "prev" ? current_index - 1 : current_index + 1
+      return if target_index.negative? || target_index >= ordered_codes.length
+
+      @selected_team_code = ordered_codes[target_index]
     end
 
     def normalize_compare_slots!

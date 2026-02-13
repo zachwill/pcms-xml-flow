@@ -133,6 +133,31 @@ class ToolsTeamSummaryTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "team summary overlay exposes next and prev stepping controls with stateful sse urls" do
+    with_fake_connection do
+      get "/tools/team-summary/sidebar/POR", params: {
+        year: "2025",
+        conference: "all",
+        pressure: "all",
+        sort: "cap_space_desc",
+        compare_a: "BOS",
+        compare_b: "LAL",
+        selected: "POR"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, "Browse in current view"
+      assert_includes response.body, "2 / 3"
+      assert_includes response.body, "data-team-summary-step-prev"
+      assert_includes response.body, "data-team-summary-step-next"
+      assert_includes response.body, "/tools/team-summary/sse/step?"
+      assert_includes response.body, "direction=prev"
+      assert_includes response.body, "direction=next"
+      assert_includes response.body, "compare_a=BOS"
+      assert_includes response.body, "compare_b=LAL"
+    end
+  end
+
   test "team summary commandbar knobs submit through refresh sse path" do
     with_fake_connection do
       get "/tools/team-summary", headers: modern_headers
@@ -260,6 +285,31 @@ class ToolsTeamSummaryTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, 'id="rightpanel-overlay"'
       assert_includes response.body, "event: datastar-patch-signals"
+      assert_includes response.body, '"compareb":"LAL"'
+    end
+  end
+
+  test "team summary step endpoint advances overlay selection without clearing compare slots" do
+    with_fake_connection do
+      get "/tools/team-summary/sse/step", params: {
+        year: "2025",
+        conference: "all",
+        pressure: "all",
+        sort: "cap_space_desc",
+        compare_a: "BOS",
+        compare_b: "LAL",
+        selected: "BOS",
+        direction: "next"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, "event: datastar-patch-elements"
+      assert_includes response.body, 'id="rightpanel-overlay"'
+      assert_includes response.body, "Portland Trail Blazers"
+      assert_includes response.body, "event: datastar-patch-signals"
+      assert_includes response.body, '"selectedteam":"POR"'
+      assert_includes response.body, '"comparea":"BOS"'
       assert_includes response.body, '"compareb":"LAL"'
     end
   end

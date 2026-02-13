@@ -433,26 +433,31 @@ Supervisor review (2026-02-13, PM loop):
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P2] [TOOL] /tools/team-summary — support next/previous team stepping inside overlay without losing compare context
+- [x] [P2] [TOOL] /tools/team-summary — support next/previous team stepping inside overlay without losing compare context
   - Problem: Users must close overlay or click new rows to compare adjacent teams, breaking drill-in rhythm.
   - Hypothesis: Overlay next/prev controls tied to current filtered ordering will create a faster, predictable triage loop.
-  - Scope (files):
-    - web/app/views/tools/team_summary/_rightpanel_overlay_team.html.erb
-    - web/app/views/tools/team_summary/_workspace_main.html.erb
-    - web/app/controllers/tools/team_summary_controller.rb
-    - web/app/javascript/tools/team_summary.js
-    - web/test/integration/tools_team_summary_test.rb
-  - Acceptance criteria:
-    - Overlay exposes Next/Prev actions that move through current filtered row order.
-    - Stepping updates overlay content and selected row highlight via one SSE flow.
-    - Compare slots (A/B) remain intact while stepping.
-    - Keyboard escape behavior still closes overlay correctly.
-  - Rubric (before → target):
+  - What changed:
+    - Added a dedicated overlay stepping SSE endpoint (`GET /tools/team-summary/sse/step`) in `web/config/routes.rb` and `web/app/controllers/tools/team_summary_controller.rb`.
+    - Implemented controller stepping logic (`resolve_step_direction`, `step_selected_team!`) that advances selection through the current filtered/sorted `@rows` order without mutating compare slots.
+    - Added one-flow SSE step response (`TeamSummaryController#step`) that patches `#rightpanel-overlay` and synchronized signals (`selectedteam`, `comparea`, `compareb`) together.
+    - Updated `web/app/views/tools/team_summary/_rightpanel_overlay_team.html.erb` to expose inline `Prev` / `Next` controls, show in-view position (`N / total`), and disable edge buttons at first/last visible team.
+    - Added focused integration coverage in `web/test/integration/tools_team_summary_test.rb` for overlay step controls/URLs and SSE stepping behavior (selection advances while compare signals persist).
+  - Why this improves the flow:
+    - Analysts can now triage adjacent teams from inside the overlay without leaving drill-in posture.
+    - Selection highlight and overlay content move together in one SSE interaction, so row context stays predictable while stepping.
+    - Compare board context remains intact, allowing quick adjacent-team scanning without re-pinning A/B slots.
+  - Verification:
+    - `cd web && bundle exec ruby -Itest test/integration/tools_team_summary_test.rb -i "/overlay exposes next and prev stepping controls|step endpoint advances overlay selection/"`
+    - `cd web && bundle exec ruby -c app/controllers/tools/team_summary_controller.rb`
+  - Rubric (before → after):
     - Scan speed: 4 → 5
     - Information hierarchy: 4 → 5
     - Interaction predictability: 3 → 5
     - Density/readability: 5 → 5
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Team Summary still uses `action`/`slot` compare query keys in some paths; migrate to canonical non-reserved params (`compare_action`, `compare_slot`) to avoid Rails parameter ambiguity.
+    - Full-file Team Summary integration runs that render layout continue to hit the known `tailwind.css` load-path harness issue; keep focused SSE/sidebar subsets until harness setup is fixed.
   - Guardrails:
     - Do not modify Salary Book files.
 

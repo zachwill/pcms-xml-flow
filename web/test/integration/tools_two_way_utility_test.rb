@@ -334,7 +334,12 @@ class ToolsTwoWayUtilityTest < ActionDispatch::IntegrationTest
       assert_not_includes response.body, "Estimate Guard"
       assert_includes response.body, "Intent matches"
       assert_includes response.body, "INTENT"
+      assert_includes response.body, 'id="two-way-intent-shortlist"'
+      assert_includes response.body, "↑/↓ pick · Enter opens overlay"
+      assert_includes response.body, "ArrowDown"
       assert_includes response.body, '"twintent":"Warning"'
+      assert_includes response.body, '"twintentcursor":"1002"'
+      assert_includes response.body, '"twintentcursorindex":0'
     end
   end
 
@@ -377,6 +382,8 @@ class ToolsTwoWayUtilityTest < ActionDispatch::IntegrationTest
       assert_includes response.body, '"twteam":"POR"'
       assert_includes response.body, '"twrisk":"critical"'
       assert_includes response.body, '"twintent":""'
+      assert_includes response.body, '"twintentcursor":""'
+      assert_includes response.body, '"twintentcursorindex":0'
       assert_includes response.body, '"comparea":""'
       assert_includes response.body, '"compareb":""'
       assert_includes response.body, '"overlaytype":"none"'

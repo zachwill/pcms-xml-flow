@@ -13,6 +13,46 @@
   refresh_expr = "@get('/tools/two-way-utility/sse/refresh?' + (#{refresh_query_expr}))"
   submit_intent_expr = "evt.preventDefault(); #{refresh_expr}"
   clear_intent_expr = "$twintent = ''; #{refresh_expr}"
+  intent_input_refresh_expr = "clearTimeout(window.__twoWayIntentDebounce); window.__twoWayIntentDebounce = setTimeout(() => { #{refresh_expr}; }, 140);"
+
+  intent_shortlist = Array(@intent_shortlist)
+  intent_shortlist_ids_json = intent_shortlist.map { |entry| entry[:player_id].to_s }.to_json
+
+  keyboard_shortlist_expr = <<~JS.squish
+    const shortlistIds = #{intent_shortlist_ids_json};
+    if (!shortlistIds.length) {
+      if (evt.key === 'Enter') {
+        evt.preventDefault();
+        #{refresh_expr};
+      }
+      return;
+    }
+
+    let cursorIndex = Number($twintentcursorindex || 0);
+    if (!Number.isFinite(cursorIndex) || cursorIndex < 0 || cursorIndex >= shortlistIds.length) {
+      cursorIndex = 0;
+    }
+
+    if (evt.key === 'ArrowDown' || evt.key === 'ArrowUp') {
+      evt.preventDefault();
+      const step = evt.key === 'ArrowDown' ? 1 : -1;
+      cursorIndex = (cursorIndex + step + shortlistIds.length) % shortlistIds.length;
+      $twintentcursorindex = cursorIndex;
+      $twintentcursor = shortlistIds[cursorIndex];
+      return;
+    }
+
+    if (evt.key === 'Enter') {
+      evt.preventDefault();
+      const targetId = shortlistIds[cursorIndex] || shortlistIds[0];
+      if (!targetId) { return; }
+      $twintentcursorindex = cursorIndex;
+      $twintentcursor = targetId;
+      $overlaytype = 'player';
+      $overlayid = targetId;
+      @get('/tools/two-way-utility/sidebar/' + targetId + '?' + (#{pane_query_expr}));
+    }
+  JS
 
   team_options = Array(@team_options)
 %>
@@ -38,17 +78,18 @@
 
   <div class="h-20 w-px bg-border self-center"></div>
 
-  <form class="min-w-[12.5rem] space-y-1" data-on:submit="<%= submit_intent_expr %>">
+  <form class="min-w-[16.5rem] space-y-1" data-on:submit="<%= submit_intent_expr %>">
     <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Player intent</div>
     <div class="flex items-center gap-1.5">
       <input
         id="two-way-intent-input"
         type="search"
         placeholder="name or player_id"
-        class="h-7 w-36 rounded border border-border bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground/70"
+        class="h-7 w-40 rounded border border-border bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground/70"
         value="<%= @intent %>"
         data-bind="twintent"
-        data-on:keydown="if (evt.key === 'Enter') { evt.preventDefault(); <%= refresh_expr %>; }"
+        data-on:input="<%= intent_input_refresh_expr %>"
+        data-on:keydown="<%= keyboard_shortlist_expr %>"
       />
       <button
         type="submit"
@@ -60,10 +101,45 @@
         data-on:click="<%= clear_intent_expr %>"
       >Clear</button>
     </div>
+
+    <div class="flex items-center gap-1.5 min-h-[18px]">
+      <% if intent_shortlist.any? %>
+        <div id="two-way-intent-shortlist" class="flex items-center gap-1.5 overflow-x-auto pr-1">
+          <% intent_shortlist.each_with_index do |entry, idx| %>
+            <% row_id = entry[:player_id].to_s %>
+            <% risk_chip = case entry[:risk_tier].to_s
+               when "critical" then "text-red-700 dark:text-red-300"
+               when "warning" then "text-orange-700 dark:text-orange-300"
+               when "estimate" then "text-muted-foreground"
+               else "text-muted-foreground"
+               end %>
+            <button
+              type="button"
+              class="cursor-pointer h-4 px-1.5 rounded border border-border/70 bg-background text-[10px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors whitespace-nowrap"
+              data-class="{ 'border-foreground/40 bg-yellow-50/70 dark:bg-yellow-900/20 text-foreground': $twintentcursor === '<%= row_id %>' }"
+              data-on:mouseenter="$twintentcursorindex = <%= idx %>; $twintentcursor = '<%= row_id %>'"
+              data-on:focus="$twintentcursorindex = <%= idx %>; $twintentcursor = '<%= row_id %>'"
+              data-on:click="$twintentcursorindex = <%= idx %>; $twintentcursor = '<%= row_id %>'; $overlaytype = 'player'; $overlayid = '<%= row_id %>'; @get('/tools/two-way-utility/sidebar/<%= row_id %>?' + (<%= pane_query_expr %>))"
+            >
+              <span class="font-mono tabular-nums">#<%= idx + 1 %></span>
+              <span class="mx-1">·</span>
+              <span class="font-medium text-foreground"><%= entry[:player_name] %></span>
+              <span class="mx-1">·</span>
+              <span><%= entry[:team_code] %></span>
+              <span class="mx-1">·</span>
+              <span class="font-mono tabular-nums <%= risk_chip %>"><%= entry[:remaining_active_list_games].presence || "—" %>L</span>
+            </button>
+          <% end %>
+        </div>
+      <% elsif @intent.present? %>
+        <span class="text-[10px] text-muted-foreground/70">No shortlist matches in current lens.</span>
+      <% end %>
+    </div>
+
     <div class="text-[10px] text-muted-foreground/70 tabular-nums">
       <%= @sidebar_summary[:row_count].to_i %> rows in view
       <% if @intent.present? %>
-        <span class="ml-1">· intent active</span>
+        <span class="ml-1">· ↑/↓ pick · Enter opens overlay</span>
       <% end %>
     </div>
   </form>

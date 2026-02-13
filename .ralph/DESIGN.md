@@ -69,23 +69,35 @@ Corrective TODOs for next worker cycle (mandatory):
     - Add optional severity threshold customization (e.g., user-selectable dollar cutoffs) without breaking default canonical lane definitions.
     - Add lane-level quick toggles (`dead-money only`, `exception-usage only`) as secondary refinements on top of the primary impact lens.
 
-- [ ] [P0] [TOOL] /tools/two-way-utility — keyboard shortlist + one-keystroke overlay open
+- [x] [P0] [TOOL] /tools/two-way-utility — keyboard shortlist + one-keystroke overlay open
   - User flow: type intent → pick top match via keyboard → open player overlay while keeping team section context.
-  - Scope (expected files):
+  - Scope (implemented files):
     - `web/app/controllers/tools/two_way_utility_controller.rb`
+    - `web/app/views/tools/two_way_utility/show.html.erb`
     - `web/app/views/tools/two_way_utility/_commandbar.html.erb`
     - `web/app/views/tools/two_way_utility/_workspace_main.html.erb`
-    - `web/app/views/tools/two_way_utility/_rightpanel_overlay_player.html.erb`
     - `web/test/integration/tools_two_way_utility_test.rb`
   - Patch targets: `#commandbar`, `#maincanvas`, `#rightpanel-overlay`
-  - Response rule: commandbar+overlay or main+overlay updates must use one `text/event-stream` response; single overlay open may return `text/html`.
-  - Acceptance: ranked suggestions appear within intent flow, Enter opens overlay predictably, compare pins + intent state remain stable.
-  - Rubric (before → target):
+  - Response rule: commandbar+overlay or main+overlay updates use one `text/event-stream` refresh; single overlay open continues as `text/html` via `/tools/two-way-utility/sidebar/:id`.
+  - What changed (files):
+    - Added server-ranked intent shortlist derivation (`INTENT_SHORTLIST_LIMIT`, ranking score, risk-aware tie-breakers) and default shortlist cursor state in `two_way_utility_controller.rb`; wired cursor signals into SSE refresh payload (`twintentcursor`, `twintentcursorindex`).
+    - Extended workspace signals in `show.html.erb` to include shortlist cursor defaults so initial render and subsequent SSE refreshes share the same keyboard state contract.
+    - Rebuilt commandbar intent block in `_commandbar.html.erb` to support keyboard-first shortlist flow: debounced intent refresh, inline ranked shortlist chips, arrow-key cursor movement, and Enter-to-open overlay (`/sidebar/:id`) without leaving the team board context.
+    - Updated top-of-board guidance copy in `_workspace_main.html.erb` to advertise shortlist keyboard grammar while intent is active.
+    - Expanded `tools_two_way_utility_test.rb` assertions to cover shortlist rendering, keyboard wiring presence, and SSE signal propagation for shortlist cursor state.
+  - Why this improves the flow:
+    - Intent search now resolves to a ranked shortlist directly in the commandbar, so users can triage likely targets before scrolling through team sections.
+    - Enter now opens the currently highlighted shortlist row in one keystroke, preserving maincanvas team grouping and compare-board pins.
+    - Cursor state is server-synchronized across SSE refreshes, making keyboard behavior deterministic after every lens/intent update.
+  - Rubric (before → after):
     - Scan speed: 4 → 5
     - Information hierarchy: 4 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Add optional explicit shortcut hints/focus trap (`Ctrl+K` style) so users can jump to intent input and shortlist without pointer movement.
+    - Add server-returned match-reason labels (`prefix`, `id exact`, `substring`) to make shortlist ranking rationale visible for ambiguous queries.
 
 ---
 

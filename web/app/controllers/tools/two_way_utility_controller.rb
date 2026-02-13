@@ -4,6 +4,7 @@ module Tools
 
     RISK_LENSES = %w[all warning critical estimate].freeze
     CONFERENCE_LENSES = ["all", "Eastern", "Western"].freeze
+    INTENT_SHORTLIST_LIMIT = 5
 
     # GET /tools/two-way-utility
     def show
@@ -82,6 +83,8 @@ module Tools
           twteam: @team.to_s,
           twrisk: @risk,
           twintent: @intent.to_s,
+          twintentcursor: @intent_shortlist_default_id.to_s,
+          twintentcursorindex: 0,
           comparea: @compare_a_id.to_s,
           compareb: @compare_b_id.to_s,
           overlaytype: resolved_overlay_type,
@@ -121,6 +124,7 @@ module Tools
       hydrate_compare_rows!
       @selected_player_id = normalize_selected_player_id_param(params[:selected_id])
       build_sidebar_summary!(selected_player_id: @selected_player_id)
+      build_intent_shortlist!
     end
 
     def apply_boot_error!(error)
@@ -143,6 +147,8 @@ module Tools
       @compare_b_row = nil
       @selected_player_id = nil
       build_sidebar_summary!(selected_player_id: @selected_player_id)
+      @intent_shortlist = []
+      @intent_shortlist_default_id = ""
     end
 
     def resolve_conference(value)
@@ -572,6 +578,58 @@ module Tools
         active_filters:,
         quick_rows:
       }
+    end
+
+    def build_intent_shortlist!
+      query = @intent.to_s.strip.downcase
+      if query.blank?
+        @intent_shortlist = []
+        @intent_shortlist_default_id = ""
+        return
+      end
+
+      ranked_rows = Array(@rows)
+        .map do |row|
+          [
+            intent_shortlist_score(row:, query:),
+            risk_sort_priority(row["risk_tier"]),
+            row["remaining_active_list_games"].presence || 999,
+            -(row["games_used_pct"] || 0).to_f,
+            row["team_code"].to_s,
+            row["player_name"].to_s,
+            row
+          ]
+        end
+        .sort_by { |entry| entry[0..5] }
+        .first(INTENT_SHORTLIST_LIMIT)
+
+      @intent_shortlist = ranked_rows.map do |entry|
+        row = entry.last
+        {
+          player_id: row["player_id"].to_i,
+          player_name: row["player_name"].to_s,
+          team_code: row["team_code"].to_s,
+          risk_tier: row["risk_tier"].to_s,
+          remaining_active_list_games: row["remaining_active_list_games"],
+          games_used_pct: row["games_used_pct"]
+        }
+      end
+
+      @intent_shortlist_default_id = @intent_shortlist.first&.dig(:player_id).to_s
+    end
+
+    def intent_shortlist_score(row:, query:)
+      player_name = row["player_name"].to_s.downcase
+      player_id = row["player_id"].to_s
+
+      return 0 if player_id == query
+      return 1 if player_name == query
+      return 2 if player_name.start_with?(query)
+
+      tokens = player_name.split(/[^a-z0-9]+/)
+      return 3 if tokens.any? { |token| token.start_with?(query) }
+
+      player_name.include?(query) ? 4 : 5
     end
 
     def normalize_selected_player_id_param(raw)

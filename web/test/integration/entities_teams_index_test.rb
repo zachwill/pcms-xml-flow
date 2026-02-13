@@ -23,11 +23,37 @@ class EntitiesTeamsIndexTest < ActionDispatch::IntegrationTest
 
     def exec_query(sql)
       if sql.include?("FROM pcms.teams t") && sql.include?("LEFT JOIN pcms.team_salary_warehouse tsw")
+        rows = [bos_row, por_row]
+
         if sql.include?("t.team_id = 1610612738")
-          ActiveRecord::Result.new(team_columns, [bos_row])
+          rows = [bos_row]
+        elsif sql.include?("t.team_id = 1610612757")
+          rows = [por_row]
         else
-          ActiveRecord::Result.new(team_columns, [bos_row, por_row])
+          if sql.include?("t.conference_name = 'Eastern'")
+            rows = rows.select { |row| row[4] == "Eastern" }
+          elsif sql.include?("t.conference_name = 'Western'")
+            rows = rows.select { |row| row[4] == "Western" }
+          end
+
+          if sql.include?("(COALESCE(tsw.salary_cap_amount, 0) - COALESCE(tsw.cap_total_hold, 0)) < 0")
+            rows = rows.select { |row| row[15].to_f < 0 }
+          end
+
+          if sql.include?("COALESCE(tsw.room_under_tax, 0) < 0")
+            rows = rows.select { |row| row[16].to_f < 0 }
+          end
+
+          if sql.include?("COALESCE(tsw.room_under_apron1, 0) < 0")
+            rows = rows.select { |row| row[17].to_f < 0 }
+          end
+
+          if sql.include?("COALESCE(tsw.room_under_apron2, 0) < 0")
+            rows = rows.select { |row| row[18].to_f < 0 }
+          end
         end
+
+        ActiveRecord::Result.new(team_columns, rows)
       else
         ActiveRecord::Result.new([], [])
       end
@@ -101,6 +127,46 @@ class EntitiesTeamsIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "id=\"rightpanel-base\""
       assert_includes response.body, "id=\"rightpanel-overlay\""
       assert_includes response.body, "event: datastar-patch-signals"
+    end
+  end
+
+  test "teams refresh preserves selected overlay when selected row remains visible" do
+    with_fake_connection do
+      get "/teams/sse/refresh", params: {
+        q: "",
+        conference: "ALL",
+        pressure: "all",
+        sort: "pressure_desc",
+        selected_id: "1610612738"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, 'id="maincanvas"'
+      assert_includes response.body, 'id="rightpanel-base"'
+      assert_includes response.body, 'id="rightpanel-overlay"'
+      assert_includes response.body, "Open team page"
+      assert_includes response.body, '"overlaytype":"team"'
+      assert_includes response.body, '"selectedteamid":"1610612738"'
+      assert_operator response.body.scan("$selectedteamid === '1610612738'").length, :>=, 2
+    end
+  end
+
+  test "teams refresh clears selected overlay when selected row is filtered out" do
+    with_fake_connection do
+      get "/teams/sse/refresh", params: {
+        q: "",
+        conference: "Western",
+        pressure: "all",
+        sort: "pressure_desc",
+        selected_id: "1610612738"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, '<div id="rightpanel-overlay"></div>'
+      assert_includes response.body, '"overlaytype":"none"'
+      assert_includes response.body, '"selectedteamid":""'
     end
   end
 

@@ -106,7 +106,7 @@ module Entities
     def load_index_workspace_state!
       setup_index_filters!
       load_index_teams!
-      build_index_sidebar_summary!
+      build_index_sidebar_summary!(selected_team_id: @selected_team_id)
     end
 
     def setup_index_filters!
@@ -120,6 +120,7 @@ module Entities
       @sort_lens = INDEX_SORT_SQL.key?(requested_sort) ? requested_sort : "pressure_desc"
 
       @query = params[:q].to_s.strip
+      @selected_team_id = normalize_selected_team_id_param(params[:selected_id])
     end
 
     def load_index_teams!
@@ -212,13 +213,22 @@ module Entities
       SQL
     end
 
-    def build_index_sidebar_summary!
+    def build_index_sidebar_summary!(selected_team_id: nil)
       rows = Array(@teams)
       active_filters = []
       active_filters << %(Search: "#{@query}") if @query.present?
       active_filters << "Conference: #{@conference_lens}" unless @conference_lens == "ALL"
       active_filters << "Pressure: #{pressure_lens_label(@pressure_lens)}" unless @pressure_lens == "all"
       active_filters << "Sort: #{sort_lens_label(@sort_lens)}" unless @sort_lens == "pressure_desc"
+
+      top_rows = rows.first(14)
+      selected_id = selected_team_id.to_i
+      if selected_id.positive?
+        selected_row = rows.find { |row| row["team_id"].to_i == selected_id }
+        if selected_row.present? && top_rows.none? { |row| row["team_id"].to_i == selected_id }
+          top_rows = [selected_row] + top_rows.first(13)
+        end
+      end
 
       @sidebar_summary = {
         row_count: rows.size,
@@ -230,7 +240,7 @@ module Entities
         over_apron2_count: rows.count { |row| row["pressure_bucket"] == "over_apron2" },
         luxury_tax_total: rows.sum { |row| row["luxury_tax_owed"].to_f },
         filters: active_filters,
-        top_rows: rows.first(14)
+        top_rows: top_rows
       }
     end
 
@@ -313,6 +323,20 @@ module Entities
       when "team_asc" then "Team A→Z"
       else "Pressure first"
       end
+    end
+
+    def normalize_selected_team_id_param(raw)
+      selected_id = Integer(raw.to_s.strip, 10)
+      selected_id.positive? ? selected_id : nil
+    rescue ArgumentError, TypeError
+      nil
+    end
+
+    def selected_overlay_visible?(overlay_id:)
+      normalized_id = overlay_id.to_i
+      return false if normalized_id <= 0
+
+      Array(@teams).any? { |row| row["team_id"].to_i == normalized_id }
     end
 
     def resolve_team_from_slug!(raw_slug, redirect_on_canonical_miss: true)

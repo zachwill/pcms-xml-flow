@@ -142,28 +142,27 @@ Next-loop guardrails (tightened):
     - Add a lightweight "selected" chip/marker in the sidebar quick list to make preserved context even more obvious during long scan sessions.
     - Consider adding keyboard next/previous row stepping while retaining overlay preservation semantics.
 
-- [ ] [P1] [INDEX] /teams (`web/app/views/entities/teams/index.html.erb`) — keep team pressure drill-ins stable while tuning conference/pressure knobs
-  - Problem: Teams refresh clears selected overlay context, interrupting pressure comparison loops.
-  - Hypothesis: Overlay preservation with explicit clear rules will improve continuity for cap-pressure investigation.
-  - Scope (files):
+- [x] [P1] [INDEX] /teams (`web/app/views/entities/teams/index.html.erb`) — keep team pressure drill-ins stable while tuning conference/pressure knobs
+  - What changed (files):
     - `web/app/controllers/entities/teams_controller.rb`
     - `web/app/controllers/entities/teams_sse_controller.rb`
-    - `web/app/views/entities/teams/_workspace_main.html.erb`
+    - `web/app/views/entities/teams/index.html.erb`
     - `web/app/views/entities/teams/_rightpanel_base.html.erb`
     - `web/test/integration/entities_teams_index_test.rb`
-  - Acceptance criteria:
-    - Selected team overlay persists through refresh when team remains visible.
-    - When filtered out, overlay closes and selected signals reset deterministically.
-    - Selected state appears in both main row and pressure-board quick list.
-    - Main + sidebar updates still occur via a single ordered SSE response.
-  - Rubric (before → target):
+  - Why this improves the flow:
+    - Teams refresh now carries `selected_id` and preserves `#rightpanel-overlay` when the selected team is still present in the filtered/sorted result set.
+    - When the selected team is no longer visible, refresh explicitly clears overlay HTML and resets `overlaytype`/`selectedteamid` in the same SSE transaction.
+    - Sidebar pressure-board quick list now mirrors selected-state highlighting, and summary construction guarantees the selected visible team appears in that quick list.
+    - Commandbar knob changes still ship as one ordered SSE response patching `#maincanvas`, `#rightpanel-base`, and `#rightpanel-overlay` together.
+  - Rubric (before → after):
     - Scan speed: 4 → 5
     - Information hierarchy: 4 → 4
     - Interaction predictability: 3 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 4 → 5
-  - Guardrails:
-    - Do not modify Salary Book files.
+  - Follow-up tasks discovered:
+    - Add an explicit “selected” marker chip in pressure-board rows to make preserved context even more legible during rapid filter cycling.
+    - Consider keyboard next/previous team stepping that keeps the same preserve/clear overlay contract.
 
 - [ ] [P1] [INDEX] /drafts (`web/app/views/entities/drafts/index.html.erb`) — preserve pick/selection context while adjusting year/team/round knobs
   - Problem: Drafts refresh always clears overlay, breaking pick-provenance tracing during filter iteration.

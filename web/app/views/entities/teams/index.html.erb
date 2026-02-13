@@ -6,7 +6,10 @@
     '&pressure=' + encodeURIComponent($teamspressure) +
     '&sort=' + encodeURIComponent($teamssort)"
 
-  refresh_expr = "@get('/teams/sse/refresh?' + (#{pane_query_expr})); window.history.replaceState({}, '', '/teams?' + (#{pane_query_expr}))"
+  selected_overlay_query_expr = "'selected_id=' + encodeURIComponent($overlaytype === 'team' ? $selectedteamid : '')"
+  refresh_query_expr = "(#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr})"
+
+  refresh_expr = "@get('/teams/sse/refresh?' + (#{refresh_query_expr})); window.history.replaceState({}, '', '/teams?' + (#{pane_query_expr}))"
   submit_search_expr = "evt.preventDefault(); #{refresh_expr}"
   clear_search_expr = "$teamsquery = ''; #{refresh_expr}"
 

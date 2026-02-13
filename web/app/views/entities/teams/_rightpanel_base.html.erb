@@ -104,6 +104,7 @@
             <button
               type="button"
               class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+              data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $selectedteamid === '<%= team_id %>' }"
               data-on:click="<%= open_expr %>"
             >
               <div class="entity-cell-two-line">

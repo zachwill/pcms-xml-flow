@@ -19,6 +19,18 @@ Current focus reset (2026-02-12):
 - Two-Way Utility row anatomy is the nearest non-Salary-Book reference for this migration.
 - Salary Book Tankathon table-to-flex migration is now enabled as a strict exception (only the Tankathon frame partial; no other Salary Book files).
 
+Supervisor review (2026-02-13):
+- Reviewed: `.ralph/DESIGN.md`, `web/AGENTS.md`, `web/docs/design_guide.md`, `web/docs/datastar_sse_playbook.md`, `reference/sites/INTERACTION_MODELS.md`, plus recent commits (`git log --oneline -8`) and changed web scope (`git diff --name-only HEAD~4 -- web/`).
+- Result: recent commits are flow-level and mostly cleanly scoped to one surface at a time.
+  - INDEX convergence: `/teams`, `/agencies`, `/drafts` moved toward explorer-workbench behavior (sectioned lanes, severity-first scan cues, dense flex rows, sidebar tie-back).
+  - TOOL evolution: Salary Book touched only the approved Tankathon partial and improved row interaction parity (including keyboard activation).
+- Datastar boundary/response checks: multi-region updates remain single SSE responses with canonical targets (`#commandbar`, `#maincanvas`/results, `#rightpanel-base`, `#rightpanel-overlay`) and correct signal patching.
+- Guardrail check: no forbidden Salary Book/controller/helper/test edits detected in reviewed commits.
+- Drift note: commit `4b323c7` message is not surface+flow explicit; keep commit naming strict so review traceability stays high.
+- Corrective TODOs for next loop:
+  - Every commit title should encode track + surface + flow outcome (e.g., `design: [INDEX] /transactions date-grouped triage lanes`).
+  - Keep prioritizing interaction outcomes (scan speed, wayfinding, drill-in predictability) over styling-only churn.
+
 - [x] [P1] [INDEX] /agents — replace table rendering with flex-row workspace and compress Sort controls
   - Problem: `/agents` still uses table markup for both agents/agencies lenses, and the commandbar Sort cluster is too wide/noisy to scan quickly.
   - Hypothesis: A dense flex-row list plus a compact Sort selector + stacked Direction control will improve scan speed and reduce commandbar crowding.

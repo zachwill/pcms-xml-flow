@@ -14,13 +14,21 @@ Rubric (1-5):
 4) Density/readability balance
 5) Navigation/pivots
 
-Supervisor review — 2026-02-13 (pass 2):
-- Reviewed latest INDEX commits for `/agents`, `/drafts`, `/transactions`, and `/trades`; each commit stayed scoped to one explicit surface + user flow.
-- Confirmed work stayed in INDEX convergence track (no broad cosmetic sweeps), with flow-level gains: in-panel pivots (`/agents`), risk/provenance triage knobs (`/drafts`), intent search retrieval (`/transactions`), and composition archetype lenses (`/trades`).
-- Confirmed multi-region interactions still use one SSE response with stable patch targets (`#maincanvas` section partial + `#rightpanel-base` + `#rightpanel-overlay`) and deterministic overlay preserve/clear behavior.
-- Confirmed no Salary Book files were modified.
-- Drift remaining: `/tools/team-summary` header sorting still needs to route through SSE refresh to keep compare/overlay continuity.
-- Drift remaining: `/draft-selections` provenance-first index convergence is still pending.
+Supervisor review — 2026-02-13 (pass 3):
+- Reviewed the latest 4 commits: `/tools/team-summary` header sorting, `/tools/system-values` baseline drill-ins, `/tools/two-way-utility` compare board, and `/agencies` posture shortlist.
+- Scope discipline held: each commit mapped to one explicit surface + one user flow (no grep-style or cosmetic-only churn).
+- Track discipline held: three commits were TOOL evolution and one commit was INDEX convergence.
+- Verified interaction-contract correctness:
+  - multi-region updates route through one SSE response,
+  - patch targets remain canonical (`#commandbar`, `#maincanvas`, `#rightpanel-base`, `#rightpanel-overlay`),
+  - overlay preserve/clear behavior remains deterministic under filtering.
+- Confirmed Salary Book guardrail still holds: no Salary Book files were touched.
+- Confirmed `.ralph/DESIGN.md` now contains before/after rubric scoring for all reviewed commits.
+- Prior drift closed: Team Summary header sorting is now patch-driven through refresh SSE; draft-selections provenance convergence is shipped.
+- Remaining flow-level TODOs (keep next loop outcome-focused):
+  - `/tools/system-values`: extend drill-in parity to Minimum Salary + Rookie Scale sections.
+  - `/tools/two-way-utility`: add overlay-header pin/unpin affordances for compare-slot parity.
+  - `/agencies`: add explicit posture-threshold helper copy for trust in `live_book_risk` lens.
 
 - [x] [P1] [INDEX] /players — isolate constrained cap commitments without losing drill-in context
   - Problem: Player scanning is strong, but users still need too many row opens to isolate constraint-heavy contracts across multiple cap years.

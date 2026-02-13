@@ -7,6 +7,7 @@
   live_risk_threshold_text = "Book #{year_label} > $0 and restrictions > 0"
   restrictions_definition_text = "no-trade + trade kicker + trade-restricted"
   top_rows = Array(summary[:top_rows])
+  overlay_query_expr = "'year=' + encodeURIComponent($agencyyear) + '&sort=' + encodeURIComponent($agencysort) + '&dir=' + encodeURIComponent($agencydir)"
 %>
 
 <div id="rightpanel-base" class="space-y-4">
@@ -131,7 +132,7 @@
           <button
             type="button"
             class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
-            data-on:click="$overlaytype = 'agency'; $overlayid = '<%= row_id %>'; @get('/agencies/sidebar/<%= row_id %>')"
+            data-on:click="$overlaytype = 'agency'; $overlayid = '<%= row_id %>'; @get('/agencies/sidebar/<%= row_id %>?' + (<%= overlay_query_expr %>))"
           >
             <div class="entity-cell-two-line">
               <div class="entity-cell-primary justify-between gap-2">

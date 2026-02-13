@@ -28,6 +28,11 @@
   player_option_count = agency["player_option_count"].to_i
   team_option_count = agency["team_option_count"].to_i
   prior_year_nba_now_free_agent_count = agency["prior_year_nba_now_free_agent_count"].to_i
+
+  agents_lens_href = agents_lens_pivot_href(agency["agency_id"])
+  pivot_year_label = format_year_label(@book_year || 2025).split("-").first
+  pivot_sort_label = agents_lens_pivot_sort_key.to_s.humanize
+  pivot_sort_dir = @sort_dir.to_s.upcase.presence || "DESC"
 %>
 
 <% prefetch_canonical_slugs(entity_type: "agency", entity_ids: [agency["agency_id"]]) %>
@@ -47,7 +52,15 @@
       <span class="font-medium">Back</span>
     </button>
 
-    <a href="<%= agency_href(agency['agency_id']) %>" class="text-xs text-muted-foreground hover:text-foreground hover:underline">Open agency page</a>
+    <div class="flex items-center gap-2 text-xs">
+      <a
+        id="agencies-overlay-open-agents-lens-header"
+        href="<%= agents_lens_href %>"
+        class="text-violet-700 dark:text-violet-300 hover:text-violet-900 dark:hover:text-violet-200 hover:underline"
+      >Open in agents lens</a>
+      <span class="text-muted-foreground/40">·</span>
+      <a href="<%= agency_href(agency['agency_id']) %>" class="text-muted-foreground hover:text-foreground hover:underline">Open agency page</a>
+    </div>
   </div>
 
   <div class="px-4 pb-4 pt-4 space-y-5">
@@ -70,6 +83,15 @@
         </div>
       </div>
     </div>
+
+    <a
+      id="agencies-overlay-open-agents-lens"
+      href="<%= agents_lens_href %>"
+      class="flex items-center justify-between gap-2 rounded border border-violet-400/60 bg-violet-100/60 px-2.5 py-2 text-xs transition-colors hover:bg-violet-100 dark:border-violet-500/50 dark:bg-violet-900/25 dark:hover:bg-violet-900/35"
+    >
+      <span class="font-semibold uppercase tracking-wide text-violet-800 dark:text-violet-200">Open in agents lens</span>
+      <span class="font-mono tabular-nums text-violet-700 dark:text-violet-300"><%= pivot_year_label %> · <%= pivot_sort_label %> <%= pivot_sort_dir %></span>
+    </a>
 
     <div class="border-t border-border pt-4 space-y-2.5">
       <div class="grid grid-cols-4 gap-1.5">

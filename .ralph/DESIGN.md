@@ -461,25 +461,36 @@ Supervisor review (2026-02-13, PM loop):
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P3] [INDEX] /agencies — add direct “open in agents lens” pivot from agency rows/overlay
-  - Problem: Agency triage often requires immediate jump into agent-level rows, but pivot requires manual nav/filter recreation.
+- [x] [P3] [INDEX] /agencies — add direct “open in agents lens” pivot from agency rows/overlay
+  - Problem: Agency triage often requires immediate jump into agent-level rows, but pivot required manual nav/filter recreation.
   - Hypothesis: Preserving lens context while pivoting to `/agents` will reduce context-switch friction.
-  - Scope (files):
-    - web/app/views/entities/agencies/_workspace_main.html.erb
-    - web/app/views/entities/agencies/_rightpanel_overlay_agency.html.erb
-    - web/app/controllers/entities/agencies_controller.rb
-    - web/test/integration/entities_agencies_index_test.rb
-  - Acceptance criteria:
-    - Agency row and overlay expose one-click pivot to `/agents` pre-scoped to that agency.
-    - Pivot preserves year/sort posture where applicable.
-    - Returned `/agents` view opens in agents mode with scoped context visible.
-    - Existing agency overlay behavior is unaffected.
-  - Rubric (before → target):
+  - What changed:
+    - Added scoped agents-lens pivot helpers in `web/app/controllers/entities/agencies_controller.rb`:
+      - introduced `AGENT_LENS_SORT_KEYS` and helper methods (`agents_lens_pivot_href`, `agents_lens_pivot_sort_key`) so `/agencies` can generate canonical `/agents` scoped URLs.
+      - updated `sidebar` to normalize year/sort/dir params before rendering overlay, allowing overlay pivots to preserve active posture.
+    - Updated agency rows in `web/app/views/entities/agencies/_workspace_main.html.erb`:
+      - each row now exposes a direct `agents lens` pivot link (`id="agencies-row-open-agents-:id"`) that opens `/agents` in `kind=agents` with `agency_scope=1` and the selected agency id.
+      - row overlay-open requests now include current `year/sort/dir` query state so overlay pivot links mirror the active workspace posture.
+    - Updated agency sidebar/base surfaces:
+      - `web/app/views/entities/agencies/_rightpanel_overlay_agency.html.erb` now includes two direct “Open in agents lens” pivots (header + inline CTA) and displays preserved posture context (`year · sort dir`).
+      - `web/app/views/entities/agencies/_rightpanel_base.html.erb` now opens overlays with current `year/sort/dir` params so sidebar-driven overlay opens preserve the same pivot posture as row-driven opens.
+    - Expanded integration coverage in `web/test/integration/entities_agencies_index_test.rb` for row-level pivot affordance, overlay pivot presence, posture-preserving pivot params, and unsupported sort fallback (`agents` → `book`) for agents-lens compatibility.
+  - Why this improves the flow:
+    - Agency triage now has a one-click jump into agent rows without rebuilding filters manually.
+    - Pivot URLs carry forward applicable posture (year/sort/dir), so users land in `/agents` with predictable ordering and scoped context visible.
+    - Existing overlay open/clear behavior remains intact; this adds navigation power without changing drill-in semantics.
+  - Verification:
+    - `cd web && bundle exec ruby -Itest test/integration/entities_agencies_index_test.rb -i "/agencies sidebar overlay includes canonical pivots and clear endpoint resets overlay|agencies overlay pivot preserves applicable year\/sort posture for agents lens|agencies refresh preserves selected overlay when posture lens still includes selected row|agencies refresh clears selected overlay when selected row no longer matches posture lens/"`
+    - `cd web && bundle exec ruby -c app/controllers/entities/agencies_controller.rb`
+  - Rubric (before → after):
     - Scan speed: 4 → 5
     - Information hierarchy: 4 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Full-page `/agencies` integration assertions that render the full layout still hit the known `tailwind.css` test asset load-path issue; continue focused SSE/sidebar subsets until harness setup is fixed.
+    - Consider extracting a shared entity-index “open in /agents scoped lens” link helper if similar pivots are added to `/agents` agencies lens and `/entities/agents` sidebars.
   - Guardrails:
     - Do not modify Salary Book files.
 

@@ -179,6 +179,12 @@ class EntitiesAgenciesIndexTest < ActionDispatch::IntegrationTest
       assert_operator response.body.scan("no-trade + trade kicker + trade-restricted").length, :>=, 2
       assert_includes response.body, 'id="maincanvas"'
       assert_includes response.body, 'id="agencies-flex-header"'
+      assert_includes response.body, 'id="agencies-row-open-agents-501"'
+      assert_includes response.body, "kind=agents"
+      assert_includes response.body, "agency_scope_id=501"
+      assert_includes response.body, "year=2025"
+      assert_includes response.body, "sort=book"
+      assert_includes response.body, "dir=desc"
       assert_not_includes response.body, "<table"
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, 'id="rightpanel-overlay"'
@@ -191,6 +197,12 @@ class EntitiesAgenciesIndexTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_includes response.body, 'id="rightpanel-overlay"'
+      assert_includes response.body, "Open in agents lens"
+      assert_includes response.body, "kind=agents"
+      assert_includes response.body, "agency_scope_id=501"
+      assert_includes response.body, "year=2025"
+      assert_includes response.body, "sort=book"
+      assert_includes response.body, "dir=desc"
       assert_includes response.body, "Open agency page"
       assert_includes response.body, "/agencies/501"
       assert_includes response.body, "/agents/11"
@@ -199,6 +211,28 @@ class EntitiesAgenciesIndexTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_equal '<div id="rightpanel-overlay"></div>', response.body.strip
+    end
+  end
+
+  test "agencies overlay pivot preserves applicable year/sort posture for agents lens" do
+    with_fake_connection do
+      get "/agencies/sidebar/501", params: { year: "2027", sort: "clients", dir: "asc" }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, "kind=agents"
+      assert_includes response.body, "agency_scope_id=501"
+      assert_includes response.body, "year=2027"
+      assert_includes response.body, "sort=clients"
+      assert_includes response.body, "dir=asc"
+
+      get "/agencies/sidebar/501", params: { year: "2026", sort: "agents", dir: "asc" }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, "kind=agents"
+      assert_includes response.body, "agency_scope_id=501"
+      assert_includes response.body, "year=2026"
+      assert_includes response.body, "sort=book"
+      assert_includes response.body, "dir=asc"
     end
   end
 

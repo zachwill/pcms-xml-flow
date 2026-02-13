@@ -3,6 +3,9 @@ module Entities
     BOOK_YEARS = [2025, 2026, 2027].freeze
     ACTIVITY_LENSES = %w[all active inactive inactive_live_book live_book_risk].freeze
     SORT_KEYS = %w[book clients agents teams max expirings options name].freeze
+    AGENT_LENS_SORT_KEYS = %w[book clients teams max expirings options name].freeze
+
+    helper_method :agents_lens_pivot_href, :agents_lens_pivot_sort_key
 
     # GET /agencies
     def index
@@ -25,6 +28,8 @@ module Entities
 
     # GET /agencies/sidebar/:id
     def sidebar
+      setup_index_filters!
+
       agency_id = Integer(params[:id])
       render partial: "entities/agencies/rightpanel_overlay_agency", locals: load_sidebar_agency_payload(agency_id)
     rescue ArgumentError
@@ -207,12 +212,42 @@ module Entities
       raise ActiveRecord::RecordNotFound
     end
 
+    def agents_lens_pivot_href(agency_id)
+      agency_id = agency_id.to_i
+      agency_id = nil unless agency_id.positive?
+
+      query = {
+        kind: "agents",
+        year: agents_lens_pivot_year,
+        sort: agents_lens_pivot_sort_key,
+        dir: agents_lens_pivot_sort_dir,
+        agency_scope: 1,
+        agency_scope_id: agency_id
+      }.compact
+
+      "/agents?#{query.to_query}"
+    end
+
+    def agents_lens_pivot_sort_key
+      sort_key = @sort_key.to_s
+      AGENT_LENS_SORT_KEYS.include?(sort_key) ? sort_key : "book"
+    end
+
     private
 
     def load_index_workspace_state!
       setup_index_filters!
       load_index_rows!
       build_sidebar_summary!
+    end
+
+    def agents_lens_pivot_year
+      year = @book_year.to_i
+      BOOK_YEARS.include?(year) ? year : BOOK_YEARS.first
+    end
+
+    def agents_lens_pivot_sort_dir
+      @sort_dir.to_s == "asc" ? "asc" : "desc"
     end
 
     def setup_index_filters!

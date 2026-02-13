@@ -12,6 +12,27 @@ module Entities
       render partial: "entities/transactions/results"
     end
 
+    # GET /transactions/sidebar/base
+    def sidebar_base
+      load_index_state!
+      render partial: "entities/transactions/rightpanel_base"
+    end
+
+    # GET /transactions/sidebar/:id
+    def sidebar
+      transaction_id = Integer(params[:id])
+      raise ActiveRecord::RecordNotFound if transaction_id <= 0
+
+      render partial: "entities/transactions/rightpanel_overlay_transaction", locals: load_sidebar_transaction_payload(transaction_id)
+    rescue ArgumentError
+      raise ActiveRecord::RecordNotFound
+    end
+
+    # GET /transactions/sidebar/clear
+    def sidebar_clear
+      render partial: "entities/transactions/rightpanel_clear"
+    end
+
     # GET /transactions/:id
     def show
       id = Integer(params[:id])
@@ -335,10 +356,19 @@ module Entities
 
       @daterange = params[:daterange].to_s.strip.presence || "season"
       @team = params[:team].to_s.strip.upcase.presence
+      @team = nil unless @team&.match?(/\A[A-Z]{3}\z/)
       @signings = params[:signings] != "0"
       @waivers = params[:waivers] != "0"
       @extensions = params[:extensions] != "0"
       @other = params[:other] == "1"
+
+      @team_options = conn.exec_query(<<~SQL).to_a
+        SELECT team_code, team_name
+        FROM pcms.teams
+        WHERE league_lk = 'NBA'
+          AND team_name NOT LIKE 'Non-NBA%'
+        ORDER BY team_code
+      SQL
 
       # Calculate date filters
       today = Date.today
@@ -389,8 +419,11 @@ module Entities
             t.transaction_date,
             t.transaction_type_lk,
             t.transaction_description_lk,
+            t.trade_id,
             t.player_id,
+            t.from_team_id,
             t.from_team_code,
+            t.to_team_id,
             t.to_team_code,
             t.signed_method_lk,
             t.contract_type_lk
@@ -404,20 +437,166 @@ module Entities
           t.transaction_date,
           t.transaction_type_lk,
           t.transaction_description_lk,
+          t.trade_id,
           t.player_id,
           COALESCE(
             NULLIF(TRIM(CONCAT_WS(' ', p.display_first_name, p.display_last_name)), ''),
             NULLIF(TRIM(CONCAT_WS(' ', p.first_name, p.last_name)), ''),
             t.player_id::text
           ) AS player_name,
+          t.from_team_id,
           t.from_team_code,
+          from_team.team_name AS from_team_name,
+          t.to_team_id,
           t.to_team_code,
+          to_team.team_name AS to_team_name,
           t.signed_method_lk,
           t.contract_type_lk
         FROM filtered_transactions t
-        LEFT JOIN pcms.people p ON p.person_id = t.player_id
+        LEFT JOIN pcms.people p
+          ON p.person_id = t.player_id
+        LEFT JOIN pcms.teams from_team
+          ON from_team.team_id = t.from_team_id
+        LEFT JOIN pcms.teams to_team
+          ON to_team.team_id = t.to_team_id
         ORDER BY t.transaction_date DESC, t.transaction_id DESC
       SQL
+
+      build_sidebar_summary!
+    end
+
+    def build_sidebar_summary!
+      rows = Array(@transactions)
+      bucket_counts = {
+        signings: rows.count { |row| transaction_bucket(row["transaction_type_lk"]) == :signings },
+        waivers: rows.count { |row| transaction_bucket(row["transaction_type_lk"]) == :waivers },
+        extensions: rows.count { |row| transaction_bucket(row["transaction_type_lk"]) == :extensions },
+        other: rows.count { |row| transaction_bucket(row["transaction_type_lk"]) == :other }
+      }
+
+      active_type_filters = []
+      active_type_filters << "Signings" if @signings
+      active_type_filters << "Waivers" if @waivers
+      active_type_filters << "Extensions" if @extensions
+      active_type_filters << "Other" if @other
+
+      filters = ["Date: #{daterange_label(@daterange)}"]
+      filters << "Team: #{@team}" if @team.present?
+      filters << "Types: #{active_type_filters.join(', ')}" if active_type_filters.any?
+
+      @sidebar_summary = {
+        row_count: rows.size,
+        daterange_label: daterange_label(@daterange),
+        filters:,
+        signings_count: bucket_counts[:signings],
+        waivers_count: bucket_counts[:waivers],
+        extensions_count: bucket_counts[:extensions],
+        other_count: bucket_counts[:other],
+        top_rows: rows.first(14)
+      }
+    end
+
+    def load_sidebar_transaction_payload(transaction_id)
+      conn = ActiveRecord::Base.connection
+      id_sql = conn.quote(transaction_id)
+
+      transaction = conn.exec_query(<<~SQL).first
+        SELECT
+          t.transaction_id,
+          t.transaction_date,
+          t.transaction_type_lk,
+          t.transaction_description_lk,
+          t.salary_year,
+          t.trade_id,
+          t.player_id,
+          COALESCE(
+            NULLIF(TRIM(CONCAT_WS(' ', p.display_first_name, p.display_last_name)), ''),
+            NULLIF(TRIM(CONCAT_WS(' ', p.first_name, p.last_name)), ''),
+            t.player_id::text
+          ) AS player_name,
+          t.from_team_id,
+          t.from_team_code,
+          from_team.team_name AS from_team_name,
+          t.to_team_id,
+          t.to_team_code,
+          to_team.team_name AS to_team_name,
+          t.signed_method_lk,
+          t.contract_type_lk
+        FROM pcms.transactions t
+        LEFT JOIN pcms.people p
+          ON p.person_id = t.player_id
+        LEFT JOIN pcms.teams from_team
+          ON from_team.team_id = t.from_team_id
+        LEFT JOIN pcms.teams to_team
+          ON to_team.team_id = t.to_team_id
+        WHERE t.transaction_id = #{id_sql}
+        LIMIT 1
+      SQL
+      raise ActiveRecord::RecordNotFound unless transaction
+
+      ledger_summary = conn.exec_query(<<~SQL).first || {}
+        SELECT
+          COUNT(*)::integer AS ledger_row_count,
+          SUM(COALESCE(le.cap_change, 0)) AS cap_change_total,
+          SUM(COALESCE(le.tax_change, 0)) AS tax_change_total,
+          SUM(COALESCE(le.apron_change, 0)) AS apron_change_total
+        FROM pcms.ledger_entries le
+        WHERE le.transaction_id = #{id_sql}
+      SQL
+
+      artifact_summary = conn.exec_query(<<~SQL).first || {}
+        SELECT
+          (SELECT COUNT(*)::integer FROM pcms.team_exception_usage teu WHERE teu.transaction_id = #{id_sql}) AS exception_usage_count,
+          (SELECT COUNT(*)::integer FROM pcms.transaction_waiver_amounts twa WHERE twa.transaction_id = #{id_sql}) AS dead_money_count,
+          (SELECT COUNT(*)::integer FROM pcms.team_budget_snapshots tbs WHERE tbs.transaction_id = #{id_sql}) AS budget_snapshot_count
+      SQL
+
+      trade_summary = nil
+      if transaction["trade_id"].present?
+        trade_sql = conn.quote(transaction["trade_id"])
+        trade_summary = conn.exec_query(<<~SQL).first
+          SELECT
+            tr.trade_id,
+            tr.trade_date,
+            COUNT(DISTINCT tt.team_id)::integer AS team_count,
+            COUNT(ttd.trade_team_detail_id) FILTER (WHERE ttd.player_id IS NOT NULL)::integer AS player_line_item_count,
+            COUNT(ttd.trade_team_detail_id) FILTER (WHERE ttd.draft_pick_year IS NOT NULL)::integer AS pick_line_item_count
+          FROM pcms.trades tr
+          LEFT JOIN pcms.trade_teams tt
+            ON tt.trade_id = tr.trade_id
+          LEFT JOIN pcms.trade_team_details ttd
+            ON ttd.trade_id = tr.trade_id
+          WHERE tr.trade_id = #{trade_sql}
+          GROUP BY tr.trade_id, tr.trade_date
+          LIMIT 1
+        SQL
+      end
+
+      {
+        transaction:,
+        ledger_summary:,
+        artifact_summary:,
+        trade_summary:
+      }
+    end
+
+    def transaction_bucket(type_code)
+      code = type_code.to_s.upcase
+      return :signings if %w[SIGN RSIGN].include?(code)
+      return :waivers if %w[WAIVE WAIVR].include?(code)
+      return :extensions if code == "EXTSN"
+
+      :other
+    end
+
+    def daterange_label(value)
+      case value.to_s
+      when "today" then "Today"
+      when "week" then "This week"
+      when "month" then "This month"
+      when "season" then "This season"
+      else "All dates"
+      end
     end
   end
 end

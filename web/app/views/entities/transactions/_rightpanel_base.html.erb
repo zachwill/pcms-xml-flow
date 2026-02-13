@@ -1,0 +1,60 @@
+<% summary = @sidebar_summary || {} %>
+<% top_rows = Array(summary[:top_rows]) %>
+
+<div id="rightpanel-base" class="space-y-4">
+  <div class="rounded-lg border border-border bg-background p-3 space-y-3">
+    <div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Workspace snapshot</div>
+      <div class="text-sm font-semibold text-foreground">
+        Transactions
+        <span class="text-muted-foreground font-medium">· <%= summary[:row_count].to_i %> rows</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-1.5">
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Signings", value: summary[:signings_count].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Waivers", value: summary[:waivers_count].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Extensions", value: summary[:extensions_count].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Other", value: summary[:other_count].to_i.to_s, class_name: "w-full" } %>
+    </div>
+
+    <% if Array(summary[:filters]).any? %>
+      <div class="pt-1 flex flex-wrap gap-1">
+        <% Array(summary[:filters]).each do |label| %>
+          <span class="entity-chip entity-chip--muted"><%= label %></span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if top_rows.any? %>
+    <div class="rounded-lg border border-border bg-background">
+      <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">Quick feed</div>
+      <div class="divide-y divide-border">
+        <% top_rows.each do |row| %>
+          <% row_id = row["transaction_id"].to_s %>
+          <% open_expr = "$overlaytype = 'transaction'; $overlayid = '#{row_id}'; @get('/transactions/sidebar/#{row_id}')" %>
+          <% type_code = row["transaction_type_lk"].to_s %>
+          <button
+            type="button"
+            class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+            data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'transaction' && $overlayid === '<%= row_id %>' }"
+            data-on:click="<%= open_expr %>"
+          >
+            <div class="entity-cell-two-line">
+              <div class="entity-cell-primary justify-between gap-2">
+                <span class="font-medium font-mono tabular-nums">#<%= row["transaction_id"] %></span>
+                <span class="text-[10px] text-muted-foreground"><%= row["transaction_date"].present? ? Date.parse(row["transaction_date"].to_s).strftime("%b %d") : "—" %></span>
+              </div>
+              <div class="entity-cell-secondary truncate"><%= type_code.presence || "—" %> · <%= row["player_name"].presence || "No player" %></div>
+            </div>
+          </button>
+        <% end %>
+      </div>
+    </div>
+  <% else %>
+    <div class="p-4 rounded-lg border border-border bg-muted/20 text-sm text-muted-foreground">
+      No transactions in the current filter set.
+    </div>
+  <% end %>
+</div>

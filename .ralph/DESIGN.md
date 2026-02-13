@@ -221,13 +221,17 @@ A bad task is broad cosmetic churn (for example, repo-wide class sweeps) with no
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P1] [INDEX] /transactions (`web/app/views/entities/transactions/index.html.erb`) — triage transaction feed in place
+- [x] [P1] [INDEX] /transactions (`web/app/views/entities/transactions/index.html.erb`) — triage transaction feed in place
   - Problem: Team filter is not visible in UI, and row inspection requires full-page navigation; triage is slower than necessary.
   - Hypothesis: Adding explicit team control and sidebar transaction drill-ins will support rapid feed triage while preserving list position.
   - Scope (files):
     - `web/app/views/entities/transactions/index.html.erb`
     - `web/app/views/entities/transactions/_results.html.erb`
+    - `web/app/views/entities/transactions/_rightpanel_base.html.erb`
+    - `web/app/views/entities/transactions/_rightpanel_overlay_transaction.html.erb`
+    - `web/app/views/entities/transactions/_rightpanel_clear.html.erb`
     - `web/app/controllers/entities/transactions_controller.rb`
+    - `web/app/controllers/entities/transactions_sse_controller.rb`
     - `web/config/routes.rb`
     - `web/test/integration/entities_pane_endpoints_test.rb`
   - Acceptance criteria:
@@ -235,12 +239,28 @@ A bad task is broad cosmetic churn (for example, repo-wide class sweeps) with no
     - Clicking a row opens transaction detail overlay (key facts + pivots to transaction/player/team pages) without leaving index.
     - Filter changes that affect both main results and sidebar context are delivered as one SSE response.
     - Interaction model keeps dense rows and predictable hover/selection behavior.
-  - Rubric (before → target):
-    - Scan speed: 3 → 4
-    - Information hierarchy: 3 → 4
-    - Interaction predictability: 3 → 4
-    - Density/readability: 3 → 4
-    - Navigation/pivots: 3 → 4
+  - Completion notes:
+    - What changed:
+      - Rebuilt `/transactions` into a full workbench shell (`commandbar + maincanvas + rightpanel base/overlay`) and added an explicit team selector (`#transactions-team-select`) next to date/type controls.
+      - Converted transaction feed rows into dense, selectable drill-ins in `entities/transactions/_results.html.erb`; row click now opens sidebar overlay while inline links still pivot canonically with `stopPropagation`.
+      - Added sidebar base + overlay surfaces (`_rightpanel_base`, `_rightpanel_overlay_transaction`) with workspace KPIs, quick-feed buttons, transaction key facts, ledger/artifact summaries, and canonical pivots (transaction/player/team/trade).
+      - Extended `TransactionsController` with sidebar endpoints and shared state loaders (`sidebar_base`, `sidebar`, `sidebar_clear`, `load_sidebar_transaction_payload`, `build_sidebar_summary!`) plus team option loading.
+      - Added `TransactionsSseController#refresh` and route wiring so filter changes patch `#transactions-results`, `#rightpanel-base`, clear `#rightpanel-overlay`, and sync signals in one ordered SSE response.
+      - Expanded integration coverage in `entities_pane_endpoints_test.rb` for commandbar team control presence, SSE multi-region response shape, and transaction sidebar open/clear endpoints.
+    - Why this improves the flow:
+      - Feed triage now stays in one place: users can filter by team/date/type and inspect transaction details in-panel without losing list context.
+      - Sidebar quick-feed buttons and row selected-state treatment improve orientation during sequential transaction review.
+      - SSE refresh behavior is atomic and predictable across main feed + sidebar context, removing split-refresh uncertainty.
+    - Rubric (before → after):
+      - Scan speed: 3 → 4
+      - Information hierarchy: 3 → 4
+      - Interaction predictability: 3 → 4
+      - Density/readability: 3 → 4
+      - Navigation/pivots: 3 → 4
+    - Follow-up tasks discovered:
+      - Preserve an open transaction overlay across refresh when the selected transaction remains in the filtered result set (current behavior intentionally clears overlay).
+      - Add sort controls (date/type/team route) if transaction triage shifts from “recent first” toward investigation workflows.
+      - Reuse the transaction sidebar pattern for `/trades` to keep cross-feed drill-in behavior consistent.
   - Guardrails:
     - Do not modify Salary Book files.
 

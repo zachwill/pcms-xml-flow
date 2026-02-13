@@ -105,6 +105,44 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
             [ 91001, 88001, "2025-02-07", "BOS", "POR", "BOS", false, true, true, "TOP4" ]
           ]
         )
+      elsif sql.include?("WITH filtered_transactions AS") && sql.include?("FROM pcms.transactions t")
+        ActiveRecord::Result.new(
+          [
+            "transaction_id", "transaction_date", "transaction_type_lk", "transaction_description_lk", "trade_id",
+            "player_id", "player_name", "from_team_id", "from_team_code", "from_team_name",
+            "to_team_id", "to_team_code", "to_team_name", "signed_method_lk", "contract_type_lk"
+          ],
+          [
+            [ 700001, "2025-02-07", "SIGN", "Signed to rest-of-season deal", 88001, 1629001, "Alpha Guard", 1610612737, "ATL", "Atlanta Hawks", 1610612738, "BOS", "Boston Celtics", "MIN", "STD" ],
+            [ 700002, "2025-02-06", "WAIVE", "Waived", nil, 1629002, "Beta Wing", 1610612757, "POR", "Portland Trail Blazers", nil, nil, nil, nil, nil ]
+          ]
+        )
+      elsif sql.include?("COUNT(*)::integer AS ledger_row_count") && sql.include?("FROM pcms.ledger_entries le")
+        ActiveRecord::Result.new(
+          [ "ledger_row_count", "cap_change_total", "tax_change_total", "apron_change_total" ],
+          [ [ 3, 2500000, -1800000, 1000000 ] ]
+        )
+      elsif sql.include?("FROM pcms.team_exception_usage teu") && sql.include?("AS exception_usage_count")
+        ActiveRecord::Result.new(
+          [ "exception_usage_count", "dead_money_count", "budget_snapshot_count" ],
+          [ [ 1, 0, 2 ] ]
+        )
+      elsif sql.include?("GROUP BY tr.trade_id, tr.trade_date") && sql.include?("FROM pcms.trades tr")
+        ActiveRecord::Result.new(
+          [ "trade_id", "trade_date", "team_count", "player_line_item_count", "pick_line_item_count" ],
+          [ [ 88001, "2025-02-07", 3, 2, 1 ] ]
+        )
+      elsif sql.include?("FROM pcms.transactions t") && sql.include?("WHERE t.transaction_id = 700001")
+        ActiveRecord::Result.new(
+          [
+            "transaction_id", "transaction_date", "transaction_type_lk", "transaction_description_lk", "salary_year", "trade_id",
+            "player_id", "player_name", "from_team_id", "from_team_code", "from_team_name",
+            "to_team_id", "to_team_code", "to_team_name", "signed_method_lk", "contract_type_lk"
+          ],
+          [
+            [ 700001, "2025-02-07", "SIGN", "Signed to rest-of-season deal", 2025, 88001, 1629001, "Alpha Guard", 1610612737, "ATL", "Atlanta Hawks", 1610612738, "BOS", "Boston Celtics", "MIN", "STD" ]
+          ]
+        )
       else
         ActiveRecord::Result.new([], [])
       end
@@ -195,6 +233,61 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_includes response.body, 'id="transactions-results"'
       assert_not_includes response.body, "DoubleRenderError"
+    end
+  end
+
+  test "transactions index exposes team filter and sidebar base" do
+    with_fake_connection do
+      get "/transactions", params: {
+        daterange: "season",
+        team: "",
+        signings: "1",
+        waivers: "1",
+        extensions: "1",
+        other: "0"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, 'id="transactions-team-select"'
+      assert_includes response.body, 'id="rightpanel-base"'
+      assert_includes response.body, 'id="rightpanel-overlay"'
+    end
+  end
+
+  test "transactions refresh uses one sse response for feed and sidebar" do
+    with_fake_connection do
+      get "/transactions/sse/refresh", params: {
+        daterange: "season",
+        team: "BOS",
+        signings: "1",
+        waivers: "1",
+        extensions: "1",
+        other: "0"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, "event: datastar-patch-elements"
+      assert_includes response.body, 'id="transactions-results"'
+      assert_includes response.body, 'id="rightpanel-base"'
+      assert_includes response.body, 'id="rightpanel-overlay"'
+      assert_includes response.body, "event: datastar-patch-signals"
+    end
+  end
+
+  test "transactions sidebar endpoints return overlay and clear works" do
+    with_fake_connection do
+      get "/transactions/sidebar/700001", headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, 'id="rightpanel-overlay"'
+      assert_includes response.body, "Open canonical transaction page"
+      assert_includes response.body, "Open trade #88001"
+
+      get "/transactions/sidebar/clear", headers: modern_headers
+
+      assert_response :success
+      assert_equal '<div id="rightpanel-overlay"></div>', response.body.strip
     end
   end
 

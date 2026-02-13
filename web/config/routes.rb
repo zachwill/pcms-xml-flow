@@ -119,6 +119,10 @@ Rails.application.routes.draw do
     # ---------------------------------------------------------------------
     get "transactions", to: "transactions#index"
     get "transactions/pane", to: "transactions#pane"
+    get "transactions/sidebar/base", to: "transactions#sidebar_base", as: :transactions_sidebar_base
+    get "transactions/sidebar/clear", to: "transactions#sidebar_clear", as: :transactions_sidebar_clear
+    get "transactions/sidebar/:id", to: "transactions#sidebar", constraints: { id: /\d+/ }
+    get "transactions/sse/refresh", to: "transactions_sse#refresh", as: :transactions_sse_refresh
     get "transactions/:id", to: "transactions#show", as: :transaction, constraints: { id: /\d+/ }
   end
 

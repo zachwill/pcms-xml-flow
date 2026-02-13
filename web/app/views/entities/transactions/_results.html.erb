@@ -1,90 +1,118 @@
-<div id="transactions-results">
-  <section class="space-y-3">
-    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-      Transactions
-      <% case @daterange
-         when "today" then %>— Today<%
-         when "week" then %>— This Week<%
-         when "month" then %>— This Month<%
-         when "season" then %>— This Season<%
-         end %>
-    </h2>
-
-    <% if @transactions.empty? %>
-      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">
-        No transactions found for this time period and filters.
-      </div>
-    <% else %>
-      <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="entity-table min-w-full text-xs">
-          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-            <tr>
-              <th class="text-left px-3 py-2 font-medium">Date</th>
-              <th class="text-left px-3 py-2 font-medium">Type</th>
-              <th class="text-left px-3 py-2 font-medium">Player</th>
-              <th class="text-left px-3 py-2 font-medium">From</th>
-              <th class="text-left px-3 py-2 font-medium">To</th>
-              <th class="text-left px-3 py-2 font-medium">Method</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <% @transactions.each do |txn| %>
-              <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                <td class="px-3 py-2">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary">
-                      <a href="<%= transaction_path(txn['transaction_id']) %>" class="font-medium font-mono tabular-nums hover:underline">
-                        <%= txn["transaction_date"].present? ? Date.parse(txn["transaction_date"].to_s).strftime("%b %d") : "—" %>
-                      </a>
-                    </div>
-                    <div class="entity-cell-secondary">id: <code class="font-mono tabular-nums"><%= txn["transaction_id"] %></code></div>
-                  </div>
-                </td>
-                <td class="px-3 py-2">
-                  <%
-                    type_code = txn["transaction_type_lk"].to_s
-                    chip_variant = case type_code
-                    when "SIGN", "RSIGN" then "entity-chip--success"
-                    when "WAIVE", "WAIVR" then "entity-chip--danger"
-                    when "EXTSN" then "entity-chip--accent"
-                    else "entity-chip--muted"
-                    end
-                  %>
-                  <span class="entity-chip <%= chip_variant %>"><%= type_code %></span>
-                </td>
-                <td class="px-3 py-2">
-                  <% if txn["player_id"].present? %>
-                    <a href="<%= player_href(txn['player_id']) %>" class="font-medium truncate hover:underline"><%= txn["player_name"] %></a>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2">
-                  <% if txn["from_team_code"].present? %>
-                    <a href="<%= team_href(team_code: txn['from_team_code']) %>" class="font-medium hover:underline"><%= txn["from_team_code"] %></a>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2">
-                  <% if txn["to_team_code"].present? %>
-                    <a href="<%= team_href(team_code: txn['to_team_code']) %>" class="font-medium hover:underline"><%= txn["to_team_code"] %></a>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2 text-muted-foreground text-[10px]">
-                  <%= txn["signed_method_lk"].presence || "—" %>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-
-      <p class="text-xs text-muted-foreground">
-        Showing <%= @transactions.size %> transaction<%= @transactions.size == 1 ? "" : "s" %>.
+<div id="transactions-results" class="space-y-3">
+  <div class="flex items-end justify-between gap-4">
+    <div>
+      <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        Transactions feed ·
+        <% case @daterange
+           when "today" then %>Today<%
+           when "week" then %>This week<%
+           when "month" then %>This month<%
+           when "season" then %>This season<%
+           else %>All dates<%
+           end %>
+      </h2>
+      <p class="text-[11px] text-muted-foreground mt-1">
+        Click a row to inspect key facts and pivots in the sidebar without leaving the feed.
       </p>
-    <% end %>
-  </section>
+    </div>
+
+    <div class="text-[11px] text-muted-foreground tabular-nums">
+      <span><%= @transactions.size %> rows</span>
+    </div>
+  </div>
+
+  <% if @transactions.empty? %>
+    <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">
+      No transactions found for this time period and filters.
+    </div>
+  <% else %>
+    <div class="overflow-x-auto rounded-lg border border-border">
+      <table class="entity-table min-w-full text-xs">
+        <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+          <tr>
+            <th class="text-left px-3 py-2 font-medium">Date</th>
+            <th class="text-left px-3 py-2 font-medium">Type</th>
+            <th class="text-left px-3 py-2 font-medium">Player</th>
+            <th class="text-left px-3 py-2 font-medium">Route</th>
+            <th class="text-left px-3 py-2 font-medium">Method</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          <% @transactions.each do |txn| %>
+            <% row_id = txn["transaction_id"].to_s %>
+            <% open_expr = "$overlaytype = 'transaction'; $overlayid = '#{row_id}'; @get('/transactions/sidebar/#{row_id}')" %>
+            <% type_code = txn["transaction_type_lk"].to_s %>
+            <% type_variant = case type_code
+               when "SIGN", "RSIGN" then "entity-chip--success"
+               when "WAIVE", "WAIVR" then "entity-chip--danger"
+               when "EXTSN" then "entity-chip--accent"
+               else "entity-chip--muted"
+               end %>
+            <tr
+              class="group cursor-pointer hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+              data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'transaction' && $overlayid === '<%= row_id %>' }"
+              data-on:click="<%= open_expr %>"
+            >
+              <td class="px-3 py-2">
+                <div class="entity-cell-two-line">
+                  <div class="entity-cell-primary">
+                    <a href="<%= transaction_path(txn['transaction_id']) %>" class="font-medium font-mono tabular-nums hover:underline" onclick="event.stopPropagation()">
+                      <%= txn["transaction_date"].present? ? Date.parse(txn["transaction_date"].to_s).strftime("%b %d") : "—" %>
+                    </a>
+                  </div>
+                  <div class="entity-cell-secondary">id: <code class="font-mono tabular-nums"><%= txn["transaction_id"] %></code></div>
+                </div>
+              </td>
+
+              <td class="px-3 py-2 align-top">
+                <div class="entity-cell-two-line">
+                  <div class="entity-cell-primary"><span class="entity-chip <%= type_variant %>"><%= type_code.presence || "—" %></span></div>
+                  <div class="entity-cell-secondary truncate"><%= txn["transaction_description_lk"].presence || "—" %></div>
+                </div>
+              </td>
+
+              <td class="px-3 py-2 align-top">
+                <div class="entity-cell-two-line">
+                  <div class="entity-cell-primary">
+                    <% if txn["player_id"].present? %>
+                      <a href="<%= player_href(txn['player_id']) %>" class="font-medium truncate hover:underline" onclick="event.stopPropagation()"><%= txn["player_name"] %></a>
+                    <% else %>
+                      <span class="text-muted-foreground">—</span>
+                    <% end %>
+                  </div>
+                  <div class="entity-cell-secondary">id: <code class="font-mono tabular-nums"><%= txn["player_id"].presence || "—" %></code></div>
+                </div>
+              </td>
+
+              <td class="px-3 py-2 align-top">
+                <div class="entity-cell-two-line">
+                  <div class="entity-cell-primary gap-1">
+                    <% if txn["from_team_code"].present? %>
+                      <a href="<%= team_href(team_code: txn['from_team_code']) %>" class="font-medium hover:underline" onclick="event.stopPropagation()"><%= txn["from_team_code"] %></a>
+                    <% else %>
+                      <span class="text-muted-foreground">—</span>
+                    <% end %>
+                    <span class="text-muted-foreground/60">→</span>
+                    <% if txn["to_team_code"].present? %>
+                      <a href="<%= team_href(team_code: txn['to_team_code']) %>" class="font-medium hover:underline" onclick="event.stopPropagation()"><%= txn["to_team_code"] %></a>
+                    <% else %>
+                      <span class="text-muted-foreground">—</span>
+                    <% end %>
+                  </div>
+                  <div class="entity-cell-secondary truncate"><%= [txn["from_team_name"], txn["to_team_name"]].compact.reject(&:blank?).join(" → ").presence || "No team route" %></div>
+                </div>
+              </td>
+
+              <td class="px-3 py-2 align-top">
+                <div class="entity-cell-two-line">
+                  <div class="entity-cell-primary"><span class="font-mono tabular-nums"><%= txn["signed_method_lk"].presence || "—" %></span></div>
+                  <div class="entity-cell-secondary"><%= txn["contract_type_lk"].presence || "—" %></div>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
 </div>

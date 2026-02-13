@@ -1,0 +1,112 @@
+<% prefetch_canonical_slugs(entity_type: "draft_selection", entity_ids: @results.map { |row| row["transaction_id"] }) %>
+<% prefetch_canonical_slugs(entity_type: "player", entity_ids: @results.map { |row| row["player_id"] }) %>
+
+<div id="draft-selections-maincanvas" class="px-4 py-4 space-y-4">
+  <div class="flex items-end justify-between gap-4">
+    <div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Draft selections workspace</div>
+      <h2 class="text-sm font-semibold text-foreground">
+        Historical pick explorer
+        <span class="text-muted-foreground font-medium">· <%= @results.size %> rows</span>
+      </h2>
+      <p class="text-[11px] text-muted-foreground mt-1">Open a row to trace pre-draft provenance and pivot to player, team, trade, or transaction pages without leaving the list.</p>
+    </div>
+
+    <div class="text-[11px] text-muted-foreground tabular-nums">
+      Year <%= @year_lens %>
+      <% if @round_lens != "all" %>
+        · R<%= @round_lens %>
+      <% end %>
+    </div>
+  </div>
+
+  <% if @results.empty? %>
+    <div class="p-6 rounded-lg border border-border bg-muted/20 text-sm text-muted-foreground italic text-center">
+      No draft selections match these lenses.
+    </div>
+  <% else %>
+    <div class="overflow-x-auto rounded-lg border border-border">
+      <table class="entity-table min-w-full text-xs">
+        <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+          <tr>
+            <th class="text-center px-3 py-2 font-medium">Pick</th>
+            <th class="text-left px-3 py-2 font-medium">Player</th>
+            <th class="text-left px-3 py-2 font-medium">Drafting team</th>
+            <th class="text-left px-3 py-2 font-medium">Transaction</th>
+            <th class="text-right px-3 py-2 font-medium">Provenance</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          <% @results.each do |row| %>
+            <% selection_id = row["transaction_id"].to_s %>
+            <% open_expr = "$overlaytype = 'selection'; $overlayid = '#{selection_id}'; @get('/draft-selections/sidebar/#{selection_id}')" %>
+
+            <tr
+              class="group cursor-pointer hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+              data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'selection' && $overlayid === '<%= selection_id %>' }"
+              data-on:click="<%= open_expr %>"
+            >
+              <td class="px-3 py-2 text-center font-mono tabular-nums">
+                <div class="text-sm font-medium"><%= row["pick_number"] %></div>
+                <div class="text-[10px] text-muted-foreground">R<%= row["draft_round"] %> · <%= row["draft_year"] %></div>
+              </td>
+
+              <td class="px-3 py-2">
+                <div class="entity-cell-two-line">
+                  <div class="entity-cell-primary">
+                    <% if row["player_id"].present? %>
+                      <a href="<%= player_href(row['player_id']) %>" class="font-medium truncate hover:underline" onclick="event.stopPropagation()"><%= row["player_name"] %></a>
+                    <% else %>
+                      <span class="text-muted-foreground">—</span>
+                    <% end %>
+                  </div>
+                  <div class="entity-cell-secondary">
+                    id: <code class="font-mono tabular-nums"><%= row["player_id"].presence || "—" %></code>
+                  </div>
+                </div>
+              </td>
+
+              <td class="px-3 py-2">
+                <div class="entity-cell-two-line">
+                  <div class="entity-cell-primary">
+                    <% if row["drafting_team_code"].present? %>
+                      <a href="<%= team_href(team_code: row['drafting_team_code'], team_id: row['drafting_team_id']) %>" class="font-medium hover:underline" onclick="event.stopPropagation()"><%= row["drafting_team_code"] %></a>
+                    <% else %>
+                      <span class="text-muted-foreground">—</span>
+                    <% end %>
+                  </div>
+                  <div class="entity-cell-secondary truncate"><%= row["drafting_team_name"].presence || "—" %></div>
+                </div>
+              </td>
+
+              <td class="px-3 py-2 text-muted-foreground">
+                <div class="entity-cell-two-line">
+                  <div class="entity-cell-primary">
+                    <a href="<%= transaction_href(row['transaction_id']) %>" class="font-mono tabular-nums hover:underline" onclick="event.stopPropagation()">#<%= row["transaction_id"] %></a>
+                    <% if row["trade_id"].present? %>
+                      <span class="px-1 text-muted-foreground/50">·</span>
+                      <a href="<%= trade_href(row['trade_id']) %>" class="font-mono tabular-nums hover:underline" onclick="event.stopPropagation()">T#<%= row["trade_id"] %></a>
+                    <% end %>
+                  </div>
+                  <div class="entity-cell-secondary"><%= row["transaction_date"].presence || "—" %></div>
+                </div>
+              </td>
+
+              <td class="px-3 py-2 text-right font-mono tabular-nums">
+                <% provenance_count = row["provenance_trade_count"].to_i %>
+                <% if provenance_count.positive? %>
+                  <div class="space-y-0.5">
+                    <div class="font-medium"><%= provenance_count %></div>
+                    <div class="text-[10px] leading-none text-muted-foreground">trade rows</div>
+                  </div>
+                <% else %>
+                  <span class="text-muted-foreground">—</span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>

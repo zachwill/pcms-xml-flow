@@ -1,0 +1,69 @@
+<% summary = @sidebar_summary || {} %>
+<% top_rows = Array(summary[:top_rows]) %>
+
+<div id="rightpanel-base" class="space-y-4">
+  <div class="rounded-lg border border-border bg-background p-3 space-y-3">
+    <div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Workspace snapshot</div>
+      <div class="text-sm font-semibold text-foreground">
+        Draft selections
+        <span class="text-muted-foreground font-medium">· <%= summary[:row_count].to_i %> rows</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-1.5">
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Rows", value: summary[:row_count].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "R1", value: summary[:first_round_count].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "With trade", value: summary[:with_trade_count].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Known player", value: summary[:known_player_count].to_i.to_s, class_name: "w-full" } %>
+    </div>
+
+    <div class="grid grid-cols-2 gap-1.5">
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Teams", value: summary[:unique_team_count].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Prov. rows", value: summary[:provenance_trade_total].to_i.to_s, class_name: "w-full" } %>
+    </div>
+
+    <% if Array(summary[:filters]).any? %>
+      <div class="pt-1 flex flex-wrap gap-1">
+        <% Array(summary[:filters]).each do |label| %>
+          <span class="entity-chip entity-chip--muted"><%= label %></span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if top_rows.any? %>
+    <div class="rounded-lg border border-border bg-background">
+      <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">Quick selections</div>
+      <div class="divide-y divide-border">
+        <% top_rows.each do |row| %>
+          <% row_id = row["transaction_id"].to_s %>
+          <button
+            type="button"
+            class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+            data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'selection' && $overlayid === '<%= row_id %>' }"
+            data-on:click="$overlaytype = 'selection'; $overlayid = '<%= row_id %>'; @get('/draft-selections/sidebar/<%= row_id %>')"
+          >
+            <div class="entity-cell-two-line">
+              <div class="entity-cell-primary justify-between gap-2">
+                <span class="font-medium"><%= row["draft_year"] %> R<%= row["draft_round"] %> P<%= row["pick_number"] %></span>
+                <span class="font-mono tabular-nums text-[11px]">#<%= row_id %></span>
+              </div>
+              <div class="entity-cell-secondary truncate">
+                <span><%= row["player_name"].presence || "Unknown player" %></span>
+                <% if row["drafting_team_code"].present? %>
+                  <span class="px-1 text-muted-foreground/50">·</span>
+                  <span><%= row["drafting_team_code"] %></span>
+                <% end %>
+              </div>
+            </div>
+          </button>
+        <% end %>
+      </div>
+    </div>
+  <% else %>
+    <div class="p-4 rounded-lg border border-border bg-muted/20 text-sm text-muted-foreground">
+      Use the table to open selection provenance details.
+    </div>
+  <% end %>
+</div>

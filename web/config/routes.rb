@@ -107,8 +107,14 @@ Rails.application.routes.draw do
     get "drafts/sse/refresh", to: "drafts_sse#refresh", as: :drafts_sse_refresh
 
     # ---------------------------------------------------------------------
-    # Draft selections (historical drafts) — show pages
+    # Draft selections (historical picks)
     # ---------------------------------------------------------------------
+    get "draft-selections", to: "draft_selections#index"
+    get "draft-selections/pane", to: "draft_selections#pane"
+    get "draft-selections/sidebar/base", to: "draft_selections#sidebar_base", as: :draft_selections_sidebar_base
+    get "draft-selections/sidebar/clear", to: "draft_selections#sidebar_clear", as: :draft_selections_sidebar_clear
+    get "draft-selections/sidebar/:id", to: "draft_selections#sidebar", constraints: { id: /\d+/ }
+    get "draft-selections/sse/refresh", to: "draft_selections_sse#refresh", as: :draft_selections_sse_refresh
     get "draft-selections/:id", to: "draft_selections#redirect", constraints: { id: /\d+/ }
     get "draft-selections/:slug", to: "draft_selections#show", as: :draft_selection, constraints: slug_route_constraint
 

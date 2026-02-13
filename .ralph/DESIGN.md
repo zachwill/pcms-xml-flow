@@ -46,10 +46,10 @@ Rubric (1-5):
     - Add explicit “with clients / with restrictions / with expirings” checkbox lenses if agency triage needs tighter pre-filtering.
     - Consider inline quick actions in agency rows (e.g., open top agent overlay) for even faster shortlist workflows.
 
-- [ ] [P1] [INDEX] /draft-selections (`web/app/views/entities/draft_selections/index.html.erb`) — find and trace draft selections without leaving the index flow
+- [x] [P1] [INDEX] /draft-selections (`web/app/views/entities/draft_selections/index.html.erb`) — find and trace draft selections without leaving the index flow
   - Problem: Draft selections discovery is legacy search-only and not workbench-oriented; provenance inspection requires context switching.
   - Hypothesis: Converging draft selections into a true index workbench (filters + dense rows + sidebar provenance) will speed historical pick investigation.
-  - Scope (files):
+  - What changed (files):
     - `web/app/controllers/entities/draft_selections_controller.rb`
     - `web/app/controllers/entities/draft_selections_sse_controller.rb`
     - `web/app/views/entities/draft_selections/index.html.erb`
@@ -59,19 +59,20 @@ Rubric (1-5):
     - `web/app/views/entities/draft_selections/_rightpanel_clear.html.erb`
     - `web/config/routes.rb`
     - `web/test/integration/entities_draft_selections_index_test.rb`
-  - Acceptance criteria:
-    - `/draft-selections` has commandbar knobs for query/year/round/team with URL-backed state.
-    - Dense rows remain table-first and open sidebar drill-ins with provenance + canonical pivots.
-    - Multi-region refreshes use one SSE response for results + sidebar base/overlay state.
-    - Overlay close preserves list context (no forced full navigation).
-  - Rubric (before → target):
+  - Why this improves the flow:
+    - `/draft-selections` is now a dedicated workbench shell (`#commandbar`, `#maincanvas`, `#rightpanel-base`, `#rightpanel-overlay`) with URL-backed query/year/round/team knobs.
+    - The main table is always scanable (not query-gated) and rows are dense, click-first pivots into an in-place provenance overlay.
+    - Sidebar overlays include full provenance rows plus canonical pivots (`/draft-selections/:slug|:id`, `/draft-picks/:team/:year/:round`, `/transactions/:id`, `/trades/:id`, `/players/:slug|:id`, `/teams/:slug|:id`).
+    - Filter changes now refresh main + sidebar base + overlay state in one ordered SSE response, preserving the selected overlay when that row remains visible.
+  - Rubric (before → after):
     - Scan speed: 1 → 4
     - Information hierarchy: 2 → 4
     - Interaction predictability: 2 → 4
     - Density/readability: 3 → 4
     - Navigation/pivots: 3 → 5
-  - Guardrails:
-    - Do not modify Salary Book files.
+  - Follow-up tasks discovered:
+    - Add a sortable lens (e.g., pick order vs most provenance events) for faster anomaly hunting within busy draft years.
+    - Consider an optional “include adjacent years” mode to trace late/early draft-window chains without changing pages.
 
 - [ ] [P1] [INDEX] /agents (`web/app/views/entities/agents/index.html.erb`) — jump directly to target agents/agencies while keeping current lens state
   - Problem: Agents workspace lacks a direct search flow; users must rely on sort/filter combinations for known-entity lookup.

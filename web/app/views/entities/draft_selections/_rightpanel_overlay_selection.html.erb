@@ -1,0 +1,153 @@
+<%
+  selection ||= {}
+  current_team ||= nil
+  provenance_rows ||= []
+
+  draft_year = selection["draft_year"]
+  draft_round = selection["draft_round"]
+  pick_number = selection["pick_number"]
+  drafting_team_code = selection["drafting_team_code"].to_s
+  transaction_id = selection["transaction_id"]
+  provenance_count = provenance_rows.size
+
+  draft_selection_page_href = draft_selection_href(transaction_id)
+  draft_pick_page_href = if drafting_team_code.match?(/\A[A-Z]{3}\z/) && draft_year.present? && draft_round.present?
+    draft_pick_path(team_code: drafting_team_code, year: draft_year, round: draft_round)
+  end
+%>
+
+<div id="rightpanel-overlay" class="h-full">
+  <div class="sticky top-0 z-20 h-10 px-4 flex items-center justify-between border-b border-border bg-background">
+    <button
+      type="button"
+      class="cursor-pointer flex items-center gap-1.5 text-sm transition-colors text-muted-foreground hover:text-foreground"
+      data-on:click="$overlaytype = 'none'; $overlayid = ''; @get('/draft-selections/sidebar/clear')"
+    >
+      <%= lucide_icon("arrow-left", class: "w-4 h-4", "aria-hidden": true) %>
+      <span class="font-medium">Back</span>
+    </button>
+
+    <a href="<%= draft_selection_page_href %>" class="text-xs text-muted-foreground hover:text-foreground hover:underline">Open draft-selection page</a>
+  </div>
+
+  <div class="px-4 pb-4 pt-4 space-y-5">
+    <div class="space-y-1">
+      <h2 class="text-lg font-semibold text-foreground truncate"><%= draft_year %> R<%= draft_round %> P<%= pick_number %></h2>
+      <div class="text-xs text-muted-foreground/80 tabular-nums">
+        <span><%= selection["player_name"].presence || "Unknown player" %></span>
+        <span class="text-muted-foreground/50 px-1">·</span>
+        <span>tx #<%= transaction_id %></span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-1.5 border-t border-border pt-4">
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Pick", value: pick_number.to_s, class_name: "w-full" } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Round", value: draft_round.to_s, class_name: "w-full" } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Trade", value: selection["trade_id"].present? ? "Yes" : "No", class_name: "w-full", variant: (selection["trade_id"].present? ? "default" : "muted") } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Prov rows", value: provenance_count.to_s, class_name: "w-full" } %>
+    </div>
+
+    <div class="border-t border-border pt-4 space-y-2">
+      <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Selection context</div>
+
+      <div class="space-y-0.5">
+        <div class="flex items-center justify-between py-1.5 gap-2">
+          <span class="text-sm text-muted-foreground">Player</span>
+          <% if selection["player_id"].present? %>
+            <a href="<%= player_href(selection['player_id']) %>" class="text-sm font-medium hover:underline"><%= selection["player_name"] %></a>
+          <% else %>
+            <span class="text-sm text-muted-foreground">—</span>
+          <% end %>
+        </div>
+
+        <div class="flex items-center justify-between py-1.5 gap-2">
+          <span class="text-sm text-muted-foreground">Drafting team</span>
+          <% if drafting_team_code.present? %>
+            <a href="<%= team_href(team_code: drafting_team_code, team_id: selection['drafting_team_id']) %>" class="text-sm font-medium hover:underline"><%= drafting_team_code %> · <%= selection["drafting_team_name"].presence || "—" %></a>
+          <% else %>
+            <span class="text-sm text-muted-foreground">—</span>
+          <% end %>
+        </div>
+
+        <div class="flex items-center justify-between py-1.5 gap-2">
+          <span class="text-sm text-muted-foreground">Current team</span>
+          <% if current_team.present? && current_team["team_code"].present? %>
+            <a href="<%= team_href(team_code: current_team['team_code'], team_id: current_team['team_id']) %>" class="text-sm font-medium hover:underline"><%= current_team["team_code"] %> · <%= current_team["team_name"].presence || "—" %></a>
+          <% else %>
+            <span class="text-sm text-muted-foreground">—</span>
+          <% end %>
+        </div>
+
+        <div class="flex items-center justify-between py-1.5 gap-2">
+          <span class="text-sm text-muted-foreground">Transaction date</span>
+          <span class="text-sm font-medium"><%= selection["transaction_date"].presence || "—" %></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="border-t border-border pt-4 space-y-2">
+      <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pre-draft provenance</div>
+      <% if provenance_rows.empty? %>
+        <div class="text-sm text-muted-foreground italic">No draft_pick_trades rows found for this pick context.</div>
+      <% else %>
+        <div class="overflow-x-auto rounded-lg border border-border/60">
+          <table class="min-w-full text-[11px]">
+            <thead class="bg-muted/20 text-[10px] uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th class="text-left px-2 py-1.5 font-medium">Trade</th>
+                <th class="text-left px-2 py-1.5 font-medium">Date</th>
+                <th class="text-left px-2 py-1.5 font-medium">From</th>
+                <th class="text-left px-2 py-1.5 font-medium">To</th>
+                <th class="text-left px-2 py-1.5 font-medium">Flags</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border/50">
+              <% provenance_rows.first(16).each do |row| %>
+                <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/25 transition-colors duration-75">
+                  <td class="px-2 py-1.5 font-mono tabular-nums">
+                    <% if row["trade_id"].present? %>
+                      <a href="<%= trade_href(row['trade_id']) %>" class="hover:underline">#<%= row["trade_id"] %></a>
+                    <% else %>
+                      —
+                    <% end %>
+                  </td>
+                  <td class="px-2 py-1.5 text-muted-foreground font-mono tabular-nums"><%= row["trade_date"].presence || "—" %></td>
+                  <td class="px-2 py-1.5 text-muted-foreground"><%= row["from_team_code"].presence || "—" %></td>
+                  <td class="px-2 py-1.5 text-muted-foreground"><%= row["to_team_code"].presence || "—" %></td>
+                  <td class="px-2 py-1.5 text-muted-foreground text-[10px]">
+                    <% flags = [] %>
+                    <% flags << "swap" if row["is_swap"] %>
+                    <% flags << "future" if row["is_future"] %>
+                    <% flags << "conditional" if row["is_conditional"] %>
+                    <% flags << row["conditional_type_lk"] if row["conditional_type_lk"].present? %>
+                    <%= flags.any? ? flags.join(" · ") : "—" %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="border-t border-border pt-4 space-y-2">
+      <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pivots</div>
+      <div class="flex flex-col gap-1.5 text-sm">
+        <a href="<%= draft_selection_page_href %>" class="text-muted-foreground hover:text-foreground hover:underline">Open canonical draft-selection page</a>
+        <% if draft_pick_page_href.present? %>
+          <a href="<%= draft_pick_page_href %>" class="text-muted-foreground hover:text-foreground hover:underline">Open canonical draft-pick page</a>
+        <% end %>
+        <a href="<%= transaction_href(transaction_id) %>" class="text-muted-foreground hover:text-foreground hover:underline">Open transaction #<%= transaction_id %></a>
+        <% if selection["trade_id"].present? %>
+          <a href="<%= trade_href(selection['trade_id']) %>" class="text-muted-foreground hover:text-foreground hover:underline">Open trade #<%= selection["trade_id"] %></a>
+        <% end %>
+        <% if drafting_team_code.present? %>
+          <a href="<%= team_href(team_code: drafting_team_code, team_id: selection['drafting_team_id']) %>" class="text-muted-foreground hover:text-foreground hover:underline">Open team page (<%= drafting_team_code %>)</a>
+        <% end %>
+        <% if selection["player_id"].present? %>
+          <a href="<%= player_href(selection['player_id']) %>" class="text-muted-foreground hover:text-foreground hover:underline">Open player page</a>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

@@ -53,11 +53,24 @@
                   <div class="entity-cell-primary">
                     <a href="<%= agency_href(agency_id) %>" class="font-medium hover:underline truncate" onclick="event.stopPropagation()"><%= agency["agency_name"] %></a>
                   </div>
-                  <div class="entity-cell-secondary">
-                    <% if agency["is_active"] == false %>
+                  <div class="entity-cell-secondary flex-wrap gap-1">
+                    <% live_book = agency["book_total"].to_i.positive? %>
+                    <% inactive_with_live_book = agency["is_active"] == false && live_book %>
+
+                    <% if inactive_with_live_book %>
+                      <span class="entity-chip entity-chip--danger">inactive + live</span>
+                    <% elsif agency["is_active"] == false %>
                       <span class="entity-chip entity-chip--muted">inactive</span>
                     <% else %>
                       <span class="entity-chip entity-chip--success">active</span>
+                    <% end %>
+
+                    <% if live_book %>
+                      <span class="entity-chip entity-chip--accent">live <%= format_compact_currency(agency["book_total"]) %></span>
+                    <% end %>
+
+                    <% if restrictions_count > 0 %>
+                      <span class="entity-chip entity-chip--warning"><%= restrictions_count %> restrictions</span>
                     <% end %>
                   </div>
                 </div>

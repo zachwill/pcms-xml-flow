@@ -63,10 +63,10 @@
         </div>
       </form>
 
-      <div class="min-w-[8.5rem] space-y-1">
-        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Activity</div>
+      <div class="min-w-[10rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Posture</div>
         <div class="space-y-1">
-          <% [["all", "All"], ["active", "Active"], ["inactive", "Inactive"]].each do |value, label| %>
+          <% [["all", "All"], ["active", "Active"], ["inactive", "Inactive"], ["inactive_live_book", "Inactive + live"], ["live_book_risk", "Live risk"]].each do |value, label| %>
             <label class="flex items-center gap-1.5 cursor-pointer">
               <input
                 type="radio"

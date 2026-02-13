@@ -426,7 +426,7 @@ Supervisor review — 2026-02-13 (pass 2):
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P3] [INDEX] /agencies — shortlist agencies by operating posture (active/inactive + live book risk) in one pass
+- [x] [P3] [INDEX] /agencies — shortlist agencies by operating posture (active/inactive + live book risk) in one pass
   - Problem: Agency activity lens is coarse; users can’t quickly isolate inactive-but-still-impactful books or high-risk agency posture.
   - Hypothesis: Purpose-built posture knobs and row cues will improve “who needs attention now?” scanning.
   - Scope (files):
@@ -434,18 +434,28 @@ Supervisor review — 2026-02-13 (pass 2):
     - web/app/views/entities/agencies/_workspace_main.html.erb
     - web/app/views/entities/agencies/_rightpanel_base.html.erb
     - web/app/controllers/entities/agencies_controller.rb
-    - web/app/controllers/entities/agencies_sse_controller.rb
     - web/test/integration/entities_agencies_index_test.rb
-  - Acceptance criteria:
-    - Commandbar adds a posture lens beyond active/inactive (e.g., inactive with live book / restrictions present).
-    - Row secondary lines make posture state immediately scannable without expanding overlays.
-    - Lens changes preserve selected overlay where valid, in one SSE response.
-    - Canonical pivots to agency, agents, and clients remain explicit.
-  - Rubric (before → target):
+  - What changed:
+    - Expanded `/agencies` commandbar posture lens beyond `active`/`inactive` with URL-backed options for `inactive_live_book` and `live_book_risk`.
+    - Extended `Entities::AgenciesController` filter SQL to support posture-specific constraints (`inactive + live book`, `live book + restrictions`) while keeping one existing `/agencies/sse/refresh` interaction path.
+    - Enriched agency row secondary lines with posture chips (`inactive + live`, live book amount, restriction count) so risk posture is visible at scan speed without opening overlays.
+    - Updated rightpanel base snapshot with posture KPIs (`Live books`, `Inactive+Live`, `Live risk`) and posture-aware top-row subtitles.
+    - Expanded integration tests for posture controls and overlay preserve/clear semantics under posture lens filtering.
+  - Why this improves the flow:
+    - Users can now isolate high-attention agency posture in one pass from commandbar controls (especially inactive books still carrying live cap exposure).
+    - The table now communicates operating posture directly in-row, reducing overlay churn for first-pass triage.
+    - Overlay behavior remains predictable because posture changes continue through one SSE refresh response with deterministic preserve/clear.
+  - Verification:
+    - `cd web && bundle exec rails test test/integration/entities_agencies_index_test.rb` *(fails in this environment: missing gem `lucide-rails-0.7.3`)*
+    - `cd web && ruby -c app/controllers/entities/agencies_controller.rb && ruby -c app/controllers/entities/agencies_sse_controller.rb && ruby -c test/integration/entities_agencies_index_test.rb && ruby -rerb -e "['app/views/entities/agencies/index.html.erb','app/views/entities/agencies/_workspace_main.html.erb','app/views/entities/agencies/_rightpanel_base.html.erb'].each { |p| ERB.new(File.read(p)).src }; puts 'ERB OK'"` *(syntax/ERB OK)*
+  - Rubric (before → after):
     - Scan speed: 4 → 5
     - Information hierarchy: 4 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Add explicit posture-threshold helper copy in commandbar (e.g., exact `live_book_risk` rule) to improve first-time trust.
+    - Consider a dedicated posture sort mode that prioritizes `inactive + live + restrictions` overlaps above pure book size.
   - Guardrails:
     - Do not modify Salary Book files.

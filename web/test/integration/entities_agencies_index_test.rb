@@ -31,12 +31,20 @@ class EntitiesAgenciesIndexTest < ActionDispatch::IntegrationTest
       elsif sql.include?("FROM pcms.agents a") && sql.include?("WHERE a.agency_id = 501")
         ActiveRecord::Result.new(top_clients_columns, [top_client_row])
       elsif sql.include?("FROM pcms.agencies_warehouse w")
-        rows = if sql.include?("COALESCE(w.is_active, true) = false")
-          [agency_index_row_inactive]
+        rows = [agency_index_row, agency_index_row_inactive]
+
+        if sql.include?("COALESCE(w.is_active, true) = false")
+          rows = rows.select { |row| row[2] == false }
         elsif sql.include?("COALESCE(w.is_active, true) = true")
-          [agency_index_row]
-        else
-          [agency_index_row, agency_index_row_inactive]
+          rows = rows.select { |row| row[2] == true }
+        end
+
+        if sql.match?(/COALESCE\(w\.cap_\d{4}_total, 0\) > 0/)
+          rows = rows.select { |row| row[8].to_i.positive? }
+        end
+
+        if sql.include?("(COALESCE(w.no_trade_count, 0) + COALESCE(w.trade_kicker_count, 0) + COALESCE(w.trade_restricted_count, 0)) > 0")
+          rows = rows.select { |row| (row[17].to_i + row[18].to_i + row[19].to_i).positive? }
         end
 
         ActiveRecord::Result.new(agency_index_columns, rows)
@@ -163,6 +171,8 @@ class EntitiesAgenciesIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="commandbar"'
       assert_includes response.body, 'id="agencies-search-input"'
       assert_includes response.body, 'id="agencies-activity-active"'
+      assert_includes response.body, 'id="agencies-activity-inactive_live_book"'
+      assert_includes response.body, 'id="agencies-activity-live_book_risk"'
       assert_includes response.body, 'id="agencies-year-2025"'
       assert_includes response.body, 'id="maincanvas"'
       assert_includes response.body, 'id="rightpanel-base"'
@@ -187,11 +197,11 @@ class EntitiesAgenciesIndexTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "agencies refresh preserves selected overlay when selected row remains visible" do
+  test "agencies refresh preserves selected overlay when posture lens still includes selected row" do
     with_fake_connection do
       get "/agencies/sse/refresh", params: {
         q: "",
-        activity: "all",
+        activity: "live_book_risk",
         year: "2025",
         sort: "book",
         dir: "desc",
@@ -208,15 +218,15 @@ class EntitiesAgenciesIndexTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "agencies refresh clears selected overlay when selected row no longer matches lens" do
+  test "agencies refresh clears selected overlay when selected row no longer matches posture lens" do
     with_fake_connection do
       get "/agencies/sse/refresh", params: {
         q: "",
-        activity: "inactive",
+        activity: "live_book_risk",
         year: "2025",
         sort: "book",
         dir: "desc",
-        selected_id: "501"
+        selected_id: "777"
       }, headers: modern_headers
 
       assert_response :success

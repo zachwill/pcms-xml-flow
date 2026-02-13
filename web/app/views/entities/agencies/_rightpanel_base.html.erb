@@ -44,6 +44,26 @@
 
     <div class="grid grid-cols-3 gap-1.5">
       <%= render partial: "tools/salary_book/kpi_cell", locals: {
+        label: "Live books",
+        value: summary[:live_book_count].to_i.to_s,
+        class_name: "w-full"
+      } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: {
+        label: "Inactive+Live",
+        value: summary[:inactive_live_book_count].to_i.to_s,
+        variant: (summary[:inactive_live_book_count].to_i.positive? ? "negative" : "muted"),
+        class_name: "w-full"
+      } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: {
+        label: "Live risk",
+        value: summary[:live_book_risk_count].to_i.to_s,
+        variant: (summary[:live_book_risk_count].to_i.positive? ? "option_eto" : "muted"),
+        class_name: "w-full"
+      } %>
+    </div>
+
+    <div class="grid grid-cols-3 gap-1.5">
+      <%= render partial: "tools/salary_book/kpi_cell", locals: {
         label: "Agents",
         value: summary[:agent_total].to_i.to_s,
         class_name: "w-full"

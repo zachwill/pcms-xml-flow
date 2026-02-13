@@ -56,7 +56,9 @@ Datastar behavior is driven by the response **Content-Type**:
 
 Rule of thumb:
 - Single-region update → `text/html`
-- Multi-region update from one interaction → short-lived `text/event-stream` (one-off SSE is fine)
+- Multi-region update:
+  - if you only need to patch elements and can return multiple **top-level** `id` roots → `text/html` morph-by-id patch set (see `reference/datastar/morph_by_id.md`)
+  - if you need signals, explicit modes/selectors, ordering, or streaming → short-lived `text/event-stream` (one-off SSE is fine)
 - Signal-only update → `application/json`
 
 ---

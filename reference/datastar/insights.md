@@ -85,6 +85,14 @@ Datastar’s morphing is good. Lean on it.
 
 When an interaction “commits”, stream the entire card/panel/drawer region (with stable IDs) instead of trying to surgically patch little spans.
 
+### 4.1.1 Morph-by-id patch sets (you don’t need a full page)
+
+Datastar can patch **multiple disjoint regions** from a single `text/html` response by returning **multiple top-level elements** with stable `id`s.
+
+Key constraint: the elements you want to patch must be **top-level siblings** in the response HTML. Wrapping them in a parent `<div>` will prevent morph-by-id from seeing them.
+
+Write-up + examples: `reference/datastar/morph_by_id.md`.
+
 ### 4.2 Keep IDs stable
 
 Stable `id` attributes are the simplest, most reliable contract for morphing.

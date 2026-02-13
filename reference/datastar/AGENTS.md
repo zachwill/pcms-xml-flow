@@ -20,6 +20,7 @@ This folder is the **Datastar reference pack** for this repo. Start here.
 | File | Purpose |
 |------|---------|
 | `insights.md` | **Start here.** Curated conventions, naming rules, patching strategy, gotchas. |
+| `morph_by_id.md` | How `text/html` responses patch multiple top-level `id` elements (morph-by-id patch sets). |
 | `rails.md` | Rails-specific: ActionController::Live, SSE framing, production checklists. |
 | `basecamp.md` | Synthesis: Basecamp-style Rails patterns translated to Datastar. |
 | `docs.md` | Vendor docs snapshot (large). Use for deep reference on attributes/actions. |

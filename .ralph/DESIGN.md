@@ -20,6 +20,20 @@ Audit reset — 2026-02-13:
 - Remaining work is flow-level parity/trust polish (not class-only churn).
 - This file is reset to only actionable unchecked design tasks.
 
+Supervisor review — 2026-02-13 (latest design loop audit):
+- Scope discipline: each recent commit mapped to one explicit INDEX surface + user flow (`/teams` overlay compare controls, `/agents` agency tie-back cues, `/players` why-matched emphasis, `/transactions` intent-match provenance).
+- Flow-level value: diffs changed interaction grammar/wayfinding in-row or in-overlay; no broad cosmetic sweep commits detected.
+- Patch contract: Datastar boundaries stayed canonical (`#maincanvas`, `#rightpanel-base`, `#rightpanel-overlay`) and multi-region refreshes remained SSE-backed.
+- Salary Book guardrail: no forbidden Salary Book files were touched.
+- Validation evidence:
+  - Known pre-existing env issue remains: full-file index tests can fail when `tailwind.css` is missing from test assets.
+  - Flow-focused assertions pass in this env:
+    - `entities_agents_index_test` (agency overlay preserved while scanning agents)
+    - `entities_players_index_test` (trade-kicker why-matched emphasis)
+    - `entities_teams_index_test` (overlay compare controls wiring)
+    - `entities_pane_endpoints_test` (transactions team intent provenance)
+- Next-loop constraint (tightened): pick exactly one unchecked task, deliver interaction-level outcome + rubric delta evidence, and avoid cross-surface restyling churn.
+
 - [x] [P1] [TOOL] /tools/system-values — make Rookie Scale drill-ins metric-cell specific
   - What changed (files):
     - web/app/views/tools/system_values/_rookie_scale_amounts_table.html.erb

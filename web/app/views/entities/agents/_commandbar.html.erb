@@ -1,0 +1,213 @@
+<%
+  pane_query_expr = "'q=' + encodeURIComponent($agentquery) +
+    '&kind=' + $entitykind +
+    '&active_only=' + ($activeonly ? '1' : '0') +
+    '&certified_only=' + ($certifiedonly ? '1' : '0') +
+    '&with_clients=' + ($withclients ? '1' : '0') +
+    '&with_book=' + ($withbook ? '1' : '0') +
+    '&with_restrictions=' + ($withrestrictions ? '1' : '0') +
+    '&with_expiring=' + ($withexpiring ? '1' : '0') +
+    '&year=' + $bookyear +
+    '&sort=' + $sortkey +
+    '&dir=' + $sortdir"
+
+  selected_overlay_query_expr = "'selected_type=' + encodeURIComponent($overlaytype) + '&selected_id=' + encodeURIComponent($overlayid)"
+
+  sse_get_expr = "@get('/agents/sse/refresh?' + (#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr}))"
+  update_url_expr = "window.history.replaceState({}, '', '/agents?' + (#{pane_query_expr}))"
+  refresh_expr = "#{sse_get_expr}; #{update_url_expr}"
+  clear_search_expr = "$agentquery = ''; #{refresh_expr}"
+
+  sort_options = if @directory_kind.to_s == "agencies"
+    [
+      ["book", "Book"],
+      ["clients", "Clients"],
+      ["agents", "Agents"],
+      ["teams", "Teams"],
+      ["max", "Max"],
+      ["expirings", "Exp"],
+      ["options", "Opts"],
+      ["name", "Name"]
+    ]
+  else
+    [
+      ["book", "Book"],
+      ["clients", "Clients"],
+      ["teams", "Teams"],
+      ["max", "Max"],
+      ["expirings", "Exp"],
+      ["options", "Opts"],
+      ["name", "Name"]
+    ]
+  end
+%>
+
+<%= render partial: "entities/shared/commandbar", locals: {
+  active_entity_scope: (@directory_kind.to_s == "agencies" ? "agencies" : "agents"),
+  header_knobs: [
+    {
+      label: "Search",
+      min_width_class: "min-w-[13rem]",
+      options: [
+        {
+          type: "search",
+          id: "agents-directory-search",
+          placeholder: "agent or agency",
+          value: @query,
+          bind: "agentquery",
+          on_submit: "evt.preventDefault(); #{refresh_expr}",
+          on_clear: clear_search_expr,
+          input_width_class: "w-40"
+        }
+      ]
+    },
+    {
+      label: "Directory",
+      options: [
+        {
+          type: "radio",
+          name: "agent-directory-kind",
+          id: "agent-directory-kind-agents",
+          value: "agents",
+          label: "Agents",
+          checked: @directory_kind == "agents",
+          bind: "entitykind",
+          on_change: refresh_expr
+        },
+        {
+          type: "radio",
+          name: "agent-directory-kind",
+          id: "agent-directory-kind-agencies",
+          value: "agencies",
+          label: "Agencies",
+          checked: @directory_kind == "agencies",
+          bind: "entitykind",
+          on_change: refresh_expr
+        }
+      ]
+    },
+    {
+      label: "Year",
+      options: [
+        {
+          type: "radio",
+          name: "agent-book-year",
+          id: "agent-book-year-2025",
+          value: "2025",
+          label: "2025",
+          checked: @book_year == 2025,
+          bind: "bookyear",
+          on_change: refresh_expr
+        },
+        {
+          type: "radio",
+          name: "agent-book-year",
+          id: "agent-book-year-2026",
+          value: "2026",
+          label: "2026",
+          checked: @book_year == 2026,
+          bind: "bookyear",
+          on_change: refresh_expr
+        },
+        {
+          type: "radio",
+          name: "agent-book-year",
+          id: "agent-book-year-2027",
+          value: "2027",
+          label: "2027",
+          checked: @book_year == 2027,
+          bind: "bookyear",
+          on_change: refresh_expr
+        }
+      ]
+    },
+    {
+      label: "Sort",
+      min_width_class: "min-w-[9rem]",
+      options: [
+        {
+          type: "select",
+          id: "agent-sort-key-select",
+          value: @sort_key,
+          bind: "sortkey",
+          on_change: refresh_expr,
+          width_class: "w-28",
+          choices: sort_options
+        },
+        {
+          type: "radio",
+          name: "agent-sort-direction",
+          id: "agent-sort-direction-desc",
+          value: "desc",
+          label: "↓ Desc",
+          checked: @sort_dir == "desc",
+          bind: "sortdir",
+          on_change: refresh_expr
+        },
+        {
+          type: "radio",
+          name: "agent-sort-direction",
+          id: "agent-sort-direction-asc",
+          value: "asc",
+          label: "↑ Asc",
+          checked: @sort_dir == "asc",
+          bind: "sortdir",
+          on_change: refresh_expr
+        }
+      ]
+    },
+    {
+      label: "Filters",
+      options: [
+        {
+          type: "checkbox",
+          id: "agent-filter-active-only",
+          label: "Active",
+          checked: @active_only,
+          bind: "activeonly",
+          on_change: refresh_expr
+        },
+        {
+          type: "checkbox",
+          id: "agent-filter-certified-only",
+          label: "Certified",
+          checked: @certified_only,
+          bind: "certifiedonly",
+          on_change: refresh_expr
+        },
+        {
+          type: "checkbox",
+          id: "agent-filter-with-clients",
+          label: "Clients > 0",
+          checked: @with_clients,
+          bind: "withclients",
+          on_change: refresh_expr
+        },
+        {
+          type: "checkbox",
+          id: "agent-filter-with-book",
+          label: "Book > 0",
+          checked: @with_book,
+          bind: "withbook",
+          on_change: refresh_expr
+        },
+        {
+          type: "checkbox",
+          id: "agent-filter-with-restrictions",
+          label: "Restricted",
+          checked: @with_restrictions,
+          bind: "withrestrictions",
+          on_change: refresh_expr
+        },
+        {
+          type: "checkbox",
+          id: "agent-filter-with-expiring",
+          label: "Expiring",
+          checked: @with_expiring,
+          bind: "withexpiring",
+          on_change: refresh_expr
+        }
+      ]
+    }
+  ]
+} %>

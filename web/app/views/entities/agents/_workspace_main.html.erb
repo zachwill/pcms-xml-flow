@@ -67,22 +67,23 @@
         No agents match these filters.
       </div>
     <% else %>
-      <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="entity-table min-w-full text-xs">
-          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-            <tr>
-              <th class="text-left px-3 py-2 font-medium">Agent</th>
-              <th class="text-left px-3 py-2 font-medium">Agency</th>
-              <th class="text-right px-3 py-2 font-medium">Clients</th>
-              <th class="text-right px-3 py-2 font-medium">Teams</th>
-              <th class="text-right px-3 py-2 font-medium">Book '<%= year_label %></th>
-              <th class="text-right px-3 py-2 font-medium">Max</th>
-              <th class="text-right px-3 py-2 font-medium">Expiring</th>
-              <th class="text-right px-3 py-2 font-medium">Restrictions</th>
-              <th class="text-right px-3 py-2 font-medium">Options</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
+      <div class="rounded-lg border border-border overflow-x-auto">
+        <div class="min-w-[66rem]">
+          <div class="sticky top-0 z-10 bg-muted/70 backdrop-blur-sm border-b border-border">
+            <div class="flex items-center px-3 h-8 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
+              <div class="w-72 shrink-0">Agent</div>
+              <div class="w-52 shrink-0">Agency</div>
+              <div class="w-20 shrink-0 text-right font-mono tabular-nums">Clients</div>
+              <div class="w-16 shrink-0 text-right font-mono tabular-nums">Teams</div>
+              <div class="w-24 shrink-0 text-right font-mono tabular-nums">Book '<%= year_label %></div>
+              <div class="w-16 shrink-0 text-right font-mono tabular-nums">Max</div>
+              <div class="w-20 shrink-0 text-right font-mono tabular-nums">Expiring</div>
+              <div class="w-20 shrink-0 text-right font-mono tabular-nums">Restr</div>
+              <div class="w-20 shrink-0 text-right font-mono tabular-nums">Options</div>
+            </div>
+          </div>
+
+          <div class="divide-y divide-border/50">
             <% @agents.each do |a| %>
               <%
                 client_count = a["client_count"].to_i
@@ -94,106 +95,140 @@
                 row_agency_id = a["agency_id"]
                 agency_overlay_match_expr = row_agency_id.present? ? "$overlaytype === 'agency' && $overlayid === '#{row_agency_id}'" : "false"
               %>
-              <tr
-                class="group cursor-pointer hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+
+              <div
+                class="group cursor-pointer transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10"
+                role="button"
+                tabindex="0"
                 data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'agent' && $overlayid === '<%= row_agent_id %>', 'bg-violet-50/50 dark:bg-violet-900/15': <%= agency_overlay_match_expr %> }"
                 data-on:click="$overlaytype = 'agent'; $overlayid = '<%= row_agent_id %>'; @get('/agents/sidebar/agent/<%= row_agent_id %>')"
+                data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); $overlaytype = 'agent'; $overlayid = '<%= row_agent_id %>'; @get('/agents/sidebar/agent/<%= row_agent_id %>') }"
               >
-                <td class="px-3 py-2">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary">
-                      <a href="<%= agent_href(row_agent_id) %>" class="font-medium hover:underline truncate" onclick="event.stopPropagation()"><%= a["full_name"] %></a>
-                    </div>
-                    <div class="entity-cell-secondary">
-                      <% if a["is_active"] == false %>
-                        <span class="entity-chip entity-chip--muted">inactive</span>
-                      <% end %>
-                      <% if a["is_certified"] %>
-                        <span class="entity-chip entity-chip--accent">certified</span>
-                      <% end %>
+                <div class="flex items-center px-3 min-h-[48px] text-xs">
+                  <div class="w-72 shrink-0">
+                    <div class="grid grid-cols-[30px_1fr] grid-rows-[24px_16px]">
+                      <div class="row-span-2 flex items-center justify-start">
+                        <div class="w-7 h-7 rounded border border-border bg-muted/40 flex items-center justify-center text-[10px] font-semibold uppercase text-muted-foreground"><%= a["full_name"].to_s.first(2) %></div>
+                      </div>
+                      <div class="h-[24px] flex items-end min-w-0 pl-2">
+                        <a href="<%= agent_href(row_agent_id) %>" class="truncate font-medium text-[14px] group-hover:text-primary transition-colors hover:underline" onclick="event.stopPropagation()"><%= a["full_name"] %></a>
+                      </div>
+                      <div class="h-[16px] -mt-px flex items-start gap-1.5 min-w-0 pl-2 leading-none text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden">
+                        <span>id: <%= row_agent_id %></span>
+                        <% if a["is_active"] == false %>
+                          <span class="entity-chip entity-chip--muted">inactive</span>
+                        <% end %>
+                        <% if a["is_certified"] %>
+                          <span class="entity-chip entity-chip--accent">certified</span>
+                        <% end %>
+                      </div>
                     </div>
                   </div>
-                </td>
-                <td class="px-3 py-2">
-                  <% if row_agency_id.present? && a["agency_name"].present? %>
-                    <div class="flex items-center gap-2 min-w-0">
-                      <button
-                        type="button"
-                        class="cursor-pointer min-w-0 truncate text-left text-muted-foreground hover:text-foreground hover:underline"
-                        data-on:click="evt.stopPropagation(); $overlaytype = 'agency'; $overlayid = '<%= row_agency_id %>'; @get('/agents/sidebar/agency/<%= row_agency_id %>')"
-                      ><%= a["agency_name"] %></button>
-                      <span
-                        class="shrink-0 text-[10px] uppercase tracking-wide text-violet-700 dark:text-violet-300"
-                        data-show="<%= agency_overlay_match_expr %>"
-                        style="display: none;"
-                      >overlay</span>
-                      <a
-                        href="<%= agency_href(row_agency_id) %>"
-                        class="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground/70 hover:text-foreground hover:underline"
-                        onclick="event.stopPropagation()"
-                      >Page</a>
-                    </div>
-                  <% elsif a["agency_name"].present? %>
-                    <span class="text-muted-foreground"><%= a["agency_name"] %></span>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums">
-                  <% if client_count > 0 %>
-                    <div class="space-y-0.5">
-                      <div><span class="font-medium"><%= standard_count %></span><% if two_way_count > 0 %><span class="text-muted-foreground/70 ml-1">+<%= two_way_count %></span><% end %></div>
-                      <% if representation_percentile_int(a["client_count_percentile"]).present? %>
-                        <div class="text-[10px] leading-none <%= representation_percentile_color_class(a['client_count_percentile']) %>">P<%= representation_percentile_int(a["client_count_percentile"]) %></div>
-                      <% end %>
-                    </div>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums">
-                  <% if a["team_count"].to_i > 0 %>
-                    <div class="space-y-0.5">
-                      <div><%= a["team_count"] %></div>
-                      <% if representation_percentile_int(a["team_count_percentile"]).present? %>
-                        <div class="text-[10px] leading-none <%= representation_percentile_color_class(a['team_count_percentile']) %>">P<%= representation_percentile_int(a["team_count_percentile"]) %></div>
-                      <% end %>
-                    </div>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums">
-                  <% if a["book_total"].to_i > 0 %>
-                    <div class="space-y-0.5">
-                      <div class="font-medium"><%= format_salary(a["book_total"]) %></div>
-                      <% if representation_percentile_int(a["book_total_percentile"]).present? %>
-                        <div class="text-[10px] leading-none <%= representation_percentile_color_class(a['book_total_percentile']) %>">P<%= representation_percentile_int(a["book_total_percentile"]) %></div>
-                      <% end %>
-                    </div>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums">
-                  <% if a["max_contract_count"].to_i > 0 %>
-                    <div class="space-y-0.5">
-                      <div><%= a["max_contract_count"] %></div>
-                      <% if representation_percentile_int(a["max_contract_count_percentile"]).present? %>
-                        <div class="text-[10px] leading-none <%= representation_percentile_color_class(a['max_contract_count_percentile']) %>">P<%= representation_percentile_int(a["max_contract_count_percentile"]) %></div>
-                      <% end %>
-                    </div>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= a["expiring_in_window"].to_i > 0 ? a["expiring_in_window"] : content_tag(:span, "—", class: "text-muted-foreground") %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= restrictions_count > 0 ? restrictions_count : content_tag(:span, "—", class: "text-muted-foreground") %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= options_count > 0 ? options_count : content_tag(:span, "—", class: "text-muted-foreground") %></td>
-              </tr>
+
+                  <div class="w-52 shrink-0 pr-2">
+                    <% if row_agency_id.present? && a["agency_name"].present? %>
+                      <div class="entity-cell-two-line">
+                        <div class="entity-cell-primary justify-start min-w-0">
+                          <button
+                            type="button"
+                            class="cursor-pointer min-w-0 truncate text-left text-muted-foreground hover:text-foreground hover:underline"
+                            data-on:click="evt.stopPropagation(); $overlaytype = 'agency'; $overlayid = '<%= row_agency_id %>'; @get('/agents/sidebar/agency/<%= row_agency_id %>')"
+                          ><%= a["agency_name"] %></button>
+                        </div>
+                        <div class="entity-cell-secondary justify-start gap-1.5">
+                          <span
+                            class="uppercase tracking-wide text-violet-700 dark:text-violet-300"
+                            data-show="<%= agency_overlay_match_expr %>"
+                            style="display: none;"
+                          >overlay</span>
+                          <a href="<%= agency_href(row_agency_id) %>" class="uppercase tracking-wide text-muted-foreground/70 hover:text-foreground hover:underline" onclick="event.stopPropagation()">Page</a>
+                        </div>
+                      </div>
+                    <% elsif a["agency_name"].present? %>
+                      <span class="text-muted-foreground"><%= a["agency_name"] %></span>
+                    <% else %>
+                      <span class="text-muted-foreground">—</span>
+                    <% end %>
+                  </div>
+
+                  <div class="w-20 shrink-0">
+                    <% if client_count > 0 %>
+                      <div class="entity-cell-two-line">
+                        <div class="entity-cell-primary justify-end font-mono tabular-nums">
+                          <span class="font-medium"><%= standard_count %></span><% if two_way_count > 0 %><span class="text-muted-foreground/70 ml-1">+<%= two_way_count %></span><% end %>
+                        </div>
+                        <div class="entity-cell-secondary justify-end font-mono tabular-nums">
+                          <% if representation_percentile_int(a["client_count_percentile"]).present? %>
+                            <span class="<%= representation_percentile_color_class(a['client_count_percentile']) %>">P<%= representation_percentile_int(a["client_count_percentile"]) %></span>
+                          <% else %>
+                            <span class="text-muted-foreground/40">—</span>
+                          <% end %>
+                        </div>
+                      </div>
+                    <% else %>
+                      <div class="text-right font-mono tabular-nums text-muted-foreground">—</div>
+                    <% end %>
+                  </div>
+
+                  <div class="w-16 shrink-0">
+                    <% if a["team_count"].to_i > 0 %>
+                      <div class="entity-cell-two-line">
+                        <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= a["team_count"] %></div>
+                        <div class="entity-cell-secondary justify-end font-mono tabular-nums">
+                          <% if representation_percentile_int(a["team_count_percentile"]).present? %>
+                            <span class="<%= representation_percentile_color_class(a['team_count_percentile']) %>">P<%= representation_percentile_int(a["team_count_percentile"]) %></span>
+                          <% else %>
+                            <span class="text-muted-foreground/40">—</span>
+                          <% end %>
+                        </div>
+                      </div>
+                    <% else %>
+                      <div class="text-right font-mono tabular-nums text-muted-foreground">—</div>
+                    <% end %>
+                  </div>
+
+                  <div class="w-24 shrink-0">
+                    <% if a["book_total"].to_i > 0 %>
+                      <div class="entity-cell-two-line">
+                        <div class="entity-cell-primary justify-end font-mono tabular-nums font-medium"><%= format_salary(a["book_total"]) %></div>
+                        <div class="entity-cell-secondary justify-end font-mono tabular-nums">
+                          <% if representation_percentile_int(a["book_total_percentile"]).present? %>
+                            <span class="<%= representation_percentile_color_class(a['book_total_percentile']) %>">P<%= representation_percentile_int(a["book_total_percentile"]) %></span>
+                          <% else %>
+                            <span class="text-muted-foreground/40">—</span>
+                          <% end %>
+                        </div>
+                      </div>
+                    <% else %>
+                      <div class="text-right font-mono tabular-nums text-muted-foreground">—</div>
+                    <% end %>
+                  </div>
+
+                  <div class="w-16 shrink-0">
+                    <% if a["max_contract_count"].to_i > 0 %>
+                      <div class="entity-cell-two-line">
+                        <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= a["max_contract_count"] %></div>
+                        <div class="entity-cell-secondary justify-end font-mono tabular-nums">
+                          <% if representation_percentile_int(a["max_contract_count_percentile"]).present? %>
+                            <span class="<%= representation_percentile_color_class(a['max_contract_count_percentile']) %>">P<%= representation_percentile_int(a["max_contract_count_percentile"]) %></span>
+                          <% else %>
+                            <span class="text-muted-foreground/40">—</span>
+                          <% end %>
+                        </div>
+                      </div>
+                    <% else %>
+                      <div class="text-right font-mono tabular-nums text-muted-foreground">—</div>
+                    <% end %>
+                  </div>
+
+                  <div class="w-20 shrink-0 text-right font-mono tabular-nums"><%= a["expiring_in_window"].to_i > 0 ? a["expiring_in_window"] : content_tag(:span, "—", class: "text-muted-foreground") %></div>
+                  <div class="w-20 shrink-0 text-right font-mono tabular-nums"><%= restrictions_count > 0 ? restrictions_count : content_tag(:span, "—", class: "text-muted-foreground") %></div>
+                  <div class="w-20 shrink-0 text-right font-mono tabular-nums"><%= options_count > 0 ? options_count : content_tag(:span, "—", class: "text-muted-foreground") %></div>
+                </div>
+              </div>
             <% end %>
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
     <% end %>
   <% else %>
@@ -202,101 +237,162 @@
         No agencies match these filters.
       </div>
     <% else %>
-      <div class="overflow-x-auto rounded-lg border border-border">
-        <table class="entity-table min-w-full text-xs">
-          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-            <tr>
-              <th class="text-left px-3 py-2 font-medium">Agency</th>
-              <th class="text-right px-3 py-2 font-medium">Agents</th>
-              <th class="text-right px-3 py-2 font-medium">Clients</th>
-              <th class="text-right px-3 py-2 font-medium">Teams</th>
-              <th class="text-right px-3 py-2 font-medium">Book '<%= year_label %></th>
-              <th class="text-right px-3 py-2 font-medium">Max</th>
-              <th class="text-right px-3 py-2 font-medium">Expiring</th>
-              <th class="text-right px-3 py-2 font-medium">Restrictions</th>
-              <th class="text-right px-3 py-2 font-medium">Options</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
+      <div class="rounded-lg border border-border overflow-x-auto">
+        <div class="min-w-[68rem]">
+          <div class="sticky top-0 z-10 bg-muted/70 backdrop-blur-sm border-b border-border">
+            <div class="flex items-center px-3 h-8 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
+              <div class="w-72 shrink-0">Agency</div>
+              <div class="w-52 shrink-0">Posture</div>
+              <div class="w-20 shrink-0 text-right font-mono tabular-nums">Agents</div>
+              <div class="w-20 shrink-0 text-right font-mono tabular-nums">Clients</div>
+              <div class="w-16 shrink-0 text-right font-mono tabular-nums">Teams</div>
+              <div class="w-24 shrink-0 text-right font-mono tabular-nums">Book '<%= year_label %></div>
+              <div class="w-16 shrink-0 text-right font-mono tabular-nums">Max</div>
+              <div class="w-20 shrink-0 text-right font-mono tabular-nums">Expiring</div>
+              <div class="w-20 shrink-0 text-right font-mono tabular-nums">Restr</div>
+              <div class="w-20 shrink-0 text-right font-mono tabular-nums">Options</div>
+            </div>
+          </div>
+
+          <div class="divide-y divide-border/50">
             <% @agencies.each do |a| %>
               <%
                 options_count = a["player_option_count"].to_i + a["team_option_count"].to_i
                 restrictions_count = a["no_trade_count"].to_i + a["trade_kicker_count"].to_i + a["trade_restricted_count"].to_i
                 row_agency_id = a["agency_id"]
+                live_book = a["book_total"].to_i.positive?
+                inactive_with_live_book = a["is_active"] == false && live_book
               %>
-              <tr
-                class="group cursor-pointer hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+
+              <div
+                class="group cursor-pointer transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10"
+                role="button"
+                tabindex="0"
                 data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'agency' && $overlayid === '<%= row_agency_id %>' }"
                 data-on:click="$overlaytype = 'agency'; $overlayid = '<%= row_agency_id %>'; @get('/agents/sidebar/agency/<%= row_agency_id %>')"
+                data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); $overlaytype = 'agency'; $overlayid = '<%= row_agency_id %>'; @get('/agents/sidebar/agency/<%= row_agency_id %>') }"
               >
-                <td class="px-3 py-2">
-                  <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary">
-                      <a href="<%= agency_href(row_agency_id) %>" class="font-medium hover:underline truncate" onclick="event.stopPropagation()"><%= a["agency_name"] %></a>
-                    </div>
-                    <div class="entity-cell-secondary">
-                      <% if a["is_active"] == false %>
-                        <span class="entity-chip entity-chip--muted">inactive</span>
-                      <% end %>
+                <div class="flex items-center px-3 min-h-[48px] text-xs">
+                  <div class="w-72 shrink-0">
+                    <div class="grid grid-cols-[30px_1fr] grid-rows-[24px_16px]">
+                      <div class="row-span-2 flex items-center justify-start">
+                        <div class="w-7 h-7 rounded border border-border bg-muted/40 flex items-center justify-center text-[10px] font-semibold uppercase text-muted-foreground"><%= a["agency_name"].to_s.first(2) %></div>
+                      </div>
+                      <div class="h-[24px] flex items-end min-w-0 pl-2">
+                        <a href="<%= agency_href(row_agency_id) %>" class="truncate font-medium text-[14px] group-hover:text-primary transition-colors hover:underline" onclick="event.stopPropagation()"><%= a["agency_name"] %></a>
+                      </div>
+                      <div class="h-[16px] -mt-px flex items-start gap-1.5 min-w-0 pl-2 leading-none text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden">
+                        <span>id: <%= row_agency_id %></span>
+                        <% if a["is_active"] == false %>
+                          <span class="entity-chip entity-chip--muted">inactive</span>
+                        <% end %>
+                      </div>
                     </div>
                   </div>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums">
-                  <% if a["agent_count"].to_i > 0 %>
-                    <div class="space-y-0.5">
-                      <div><%= a["agent_count"] %></div>
-                      <% if representation_percentile_int(a["agent_count_percentile"]).present? %>
-                        <div class="text-[10px] leading-none <%= representation_percentile_color_class(a['agent_count_percentile']) %>">P<%= representation_percentile_int(a["agent_count_percentile"]) %></div>
-                      <% end %>
+
+                  <div class="w-52 shrink-0 pr-2">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary justify-start gap-1 flex-wrap">
+                        <% if inactive_with_live_book %>
+                          <span class="entity-chip entity-chip--danger">inactive + live</span>
+                        <% elsif a["is_active"] == false %>
+                          <span class="entity-chip entity-chip--muted">inactive</span>
+                        <% else %>
+                          <span class="entity-chip entity-chip--success">active</span>
+                        <% end %>
+
+                        <% if live_book %>
+                          <span class="entity-chip entity-chip--accent">live <%= format_compact_currency(a["book_total"]) %></span>
+                        <% end %>
+                      </div>
+                      <div class="entity-cell-secondary justify-start gap-1">
+                        <% if restrictions_count > 0 %>
+                          <span class="entity-chip entity-chip--warning"><%= restrictions_count %> restrictions</span>
+                        <% else %>
+                          <span class="text-muted-foreground/50">—</span>
+                        <% end %>
+                      </div>
                     </div>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums">
-                  <% if a["client_count"].to_i > 0 %>
-                    <div class="space-y-0.5">
-                      <div><%= a["client_count"] %></div>
-                      <% if representation_percentile_int(a["client_count_percentile"]).present? %>
-                        <div class="text-[10px] leading-none <%= representation_percentile_color_class(a['client_count_percentile']) %>">P<%= representation_percentile_int(a["client_count_percentile"]) %></div>
-                      <% end %>
-                    </div>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= a["team_count"].to_i > 0 ? a["team_count"] : content_tag(:span, "—", class: "text-muted-foreground") %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums">
-                  <% if a["book_total"].to_i > 0 %>
-                    <div class="space-y-0.5">
-                      <div class="font-medium"><%= format_salary(a["book_total"]) %></div>
-                      <% if representation_percentile_int(a["book_total_percentile"]).present? %>
-                        <div class="text-[10px] leading-none <%= representation_percentile_color_class(a['book_total_percentile']) %>">P<%= representation_percentile_int(a["book_total_percentile"]) %></div>
-                      <% end %>
-                    </div>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums">
-                  <% if a["max_contract_count"].to_i > 0 %>
-                    <div class="space-y-0.5">
-                      <div><%= a["max_contract_count"] %></div>
-                      <% if representation_percentile_int(a["max_contract_count_percentile"]).present? %>
-                        <div class="text-[10px] leading-none <%= representation_percentile_color_class(a['max_contract_count_percentile']) %>">P<%= representation_percentile_int(a["max_contract_count_percentile"]) %></div>
-                      <% end %>
-                    </div>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= a["expiring_in_window"].to_i > 0 ? a["expiring_in_window"] : content_tag(:span, "—", class: "text-muted-foreground") %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= restrictions_count > 0 ? restrictions_count : content_tag(:span, "—", class: "text-muted-foreground") %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= options_count > 0 ? options_count : content_tag(:span, "—", class: "text-muted-foreground") %></td>
-              </tr>
+                  </div>
+
+                  <div class="w-20 shrink-0">
+                    <% if a["agent_count"].to_i > 0 %>
+                      <div class="entity-cell-two-line">
+                        <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= a["agent_count"] %></div>
+                        <div class="entity-cell-secondary justify-end font-mono tabular-nums">
+                          <% if representation_percentile_int(a["agent_count_percentile"]).present? %>
+                            <span class="<%= representation_percentile_color_class(a['agent_count_percentile']) %>">P<%= representation_percentile_int(a["agent_count_percentile"]) %></span>
+                          <% else %>
+                            <span class="text-muted-foreground/40">—</span>
+                          <% end %>
+                        </div>
+                      </div>
+                    <% else %>
+                      <div class="text-right font-mono tabular-nums text-muted-foreground">—</div>
+                    <% end %>
+                  </div>
+
+                  <div class="w-20 shrink-0">
+                    <% if a["client_count"].to_i > 0 %>
+                      <div class="entity-cell-two-line">
+                        <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= a["client_count"] %></div>
+                        <div class="entity-cell-secondary justify-end font-mono tabular-nums">
+                          <% if representation_percentile_int(a["client_count_percentile"]).present? %>
+                            <span class="<%= representation_percentile_color_class(a['client_count_percentile']) %>">P<%= representation_percentile_int(a["client_count_percentile"]) %></span>
+                          <% else %>
+                            <span class="text-muted-foreground/40">—</span>
+                          <% end %>
+                        </div>
+                      </div>
+                    <% else %>
+                      <div class="text-right font-mono tabular-nums text-muted-foreground">—</div>
+                    <% end %>
+                  </div>
+
+                  <div class="w-16 shrink-0 text-right font-mono tabular-nums"><%= a["team_count"].to_i > 0 ? a["team_count"] : content_tag(:span, "—", class: "text-muted-foreground") %></div>
+
+                  <div class="w-24 shrink-0">
+                    <% if a["book_total"].to_i > 0 %>
+                      <div class="entity-cell-two-line">
+                        <div class="entity-cell-primary justify-end font-mono tabular-nums font-medium"><%= format_salary(a["book_total"]) %></div>
+                        <div class="entity-cell-secondary justify-end font-mono tabular-nums">
+                          <% if representation_percentile_int(a["book_total_percentile"]).present? %>
+                            <span class="<%= representation_percentile_color_class(a['book_total_percentile']) %>">P<%= representation_percentile_int(a["book_total_percentile"]) %></span>
+                          <% else %>
+                            <span class="text-muted-foreground/40">—</span>
+                          <% end %>
+                        </div>
+                      </div>
+                    <% else %>
+                      <div class="text-right font-mono tabular-nums text-muted-foreground">—</div>
+                    <% end %>
+                  </div>
+
+                  <div class="w-16 shrink-0">
+                    <% if a["max_contract_count"].to_i > 0 %>
+                      <div class="entity-cell-two-line">
+                        <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= a["max_contract_count"] %></div>
+                        <div class="entity-cell-secondary justify-end font-mono tabular-nums">
+                          <% if representation_percentile_int(a["max_contract_count_percentile"]).present? %>
+                            <span class="<%= representation_percentile_color_class(a['max_contract_count_percentile']) %>">P<%= representation_percentile_int(a["max_contract_count_percentile"]) %></span>
+                          <% else %>
+                            <span class="text-muted-foreground/40">—</span>
+                          <% end %>
+                        </div>
+                      </div>
+                    <% else %>
+                      <div class="text-right font-mono tabular-nums text-muted-foreground">—</div>
+                    <% end %>
+                  </div>
+
+                  <div class="w-20 shrink-0 text-right font-mono tabular-nums"><%= a["expiring_in_window"].to_i > 0 ? a["expiring_in_window"] : content_tag(:span, "—", class: "text-muted-foreground") %></div>
+                  <div class="w-20 shrink-0 text-right font-mono tabular-nums"><%= restrictions_count > 0 ? restrictions_count : content_tag(:span, "—", class: "text-muted-foreground") %></div>
+                  <div class="w-20 shrink-0 text-right font-mono tabular-nums"><%= options_count > 0 ? options_count : content_tag(:span, "—", class: "text-muted-foreground") %></div>
+                </div>
+              </div>
             <% end %>
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
     <% end %>
   <% end %>

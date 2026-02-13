@@ -244,10 +244,12 @@ class EntitiesAgentsIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="agents-directory-search"'
       assert_includes response.body, 'id="agent-directory-kind-agents"'
       assert_includes response.body, 'id="maincanvas"'
+      assert_includes response.body, 'id="agent-sort-key-select"'
       assert_includes response.body, "$overlaytype === 'agent'"
       assert_includes response.body, "$overlaytype = 'agency'; $overlayid = '501'; @get('/agents/sidebar/agency/501')"
       assert_includes response.body, "bg-violet-50/50 dark:bg-violet-900/15"
       assert_includes response.body, 'data-show="$overlaytype === &#39;agency&#39; &amp;&amp; $overlayid === &#39;501&#39;"'
+      refute_includes response.body, '<table class="entity-table'
     end
   end
 
@@ -281,6 +283,8 @@ class EntitiesAgentsIndexTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, 'id="commandbar"'
+      assert_includes response.body, 'id="agent-sort-key-select"'
       assert_includes response.body, 'id="agents-maincanvas"'
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, "Open agent page"

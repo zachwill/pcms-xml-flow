@@ -11,6 +11,7 @@
   - knobs: Array[Hash] — filter groups, each with :label and :options
     - options: Array[Hash]
       - toggle options: :type (checkbox|radio), :id, :label, :name, :value, :checked, :bind, :on_change
+      - select option: :type (select), :id, :value, :choices, :bind, :on_change
       - search option: :type (search), :id, :placeholder, :value, :bind, :on_submit, :on_clear
 %>
 
@@ -71,10 +72,13 @@
           <div class="space-y-1">
             <% options.each_with_index do |option, option_idx| %>
               <% requested_type = option[:type].to_s.strip.presence || option["type"].to_s.strip.presence || "checkbox" %>
-              <% option_type = if requested_type == "radio"
+              <% option_type = case requested_type
+              when "radio"
                 "radio"
-              elsif requested_type == "search"
+              when "search"
                 "search"
+              when "select"
+                "select"
               else
                 "checkbox"
               end %>
@@ -118,6 +122,30 @@
                     ><%= option_clear_label %></button>
                   <% end %>
                 </form>
+              <% elsif option_type == "select" %>
+                <% option_value = option[:value].to_s %>
+                <% option_on_change = option[:on_change].to_s.strip.presence || option["on_change"].to_s.strip.presence %>
+                <% option_width_class = option[:width_class].to_s.strip.presence || option["width_class"].to_s.strip.presence || "w-32" %>
+                <% option_choices = Array(option[:choices] || option["choices"]) %>
+
+                <select
+                  id="<%= option_id %>"
+                  class="h-7 <%= option_width_class %> rounded border border-border bg-background px-2 text-xs text-foreground"
+                  <% if option_bind.present? %>data-bind="<%= option_bind %>"<% end %>
+                  <% if option_on_change.present? %>data-on:change="<%= option_on_change %>"<% end %>
+                >
+                  <% option_choices.each do |choice| %>
+                    <% choice_value, choice_label = if choice.is_a?(Array)
+                      [choice[0], choice[1]]
+                    else
+                      [choice[:value] || choice["value"], choice[:label] || choice["label"]]
+                    end %>
+                    <% choice_value_str = choice_value.to_s %>
+                    <% choice_label_str = choice_label.to_s.presence || choice_value_str %>
+
+                    <option value="<%= choice_value_str %>" <%= "selected" if option_value == choice_value_str %>><%= choice_label_str %></option>
+                  <% end %>
+                </select>
               <% else %>
                 <% option_name = option[:name].to_s.strip.presence || option["name"].to_s.strip.presence || "knob-#{group_idx}" %>
                 <% option_label = option[:label].to_s.strip.presence || option["label"].to_s.strip.presence || "Option" %>

@@ -19,27 +19,32 @@ Current focus reset (2026-02-12):
 - Two-Way Utility row anatomy is the nearest non-Salary-Book reference for this migration.
 - Salary Book Tankathon table-to-flex migration is now enabled as a strict exception (only the Tankathon frame partial; no other Salary Book files).
 
-- [ ] [P1] [INDEX] /agents — replace table rendering with flex-row workspace and compress Sort controls
+- [x] [P1] [INDEX] /agents — replace table rendering with flex-row workspace and compress Sort controls
   - Problem: `/agents` still uses table markup for both agents/agencies lenses, and the commandbar Sort cluster is too wide/noisy to scan quickly.
   - Hypothesis: A dense flex-row list plus a compact Sort selector + stacked Direction control will improve scan speed and reduce commandbar crowding.
-  - Scope (files):
-    - web/app/views/entities/agents/index.html.erb
-    - web/app/views/entities/agents/_workspace_main.html.erb
-    - web/app/views/entities/shared/commandbar.html.erb
-    - web/app/controllers/entities/agents_controller.rb
-    - web/app/controllers/entities/agents_sse_controller.rb
-    - web/test/integration/entities_agents_index_test.rb
-  - Acceptance criteria:
-    - Agents commandbar no longer shows an overlong Sort radio run; sort key is compact (select or split control), with Direction visually stacked below in the same knob column.
-    - Agents lens rows render as div-based flex rows (no `<table>` in `_workspace_main`) while preserving row click → overlay behavior.
-    - Agencies lens rows inside `/agents` use the same flex-row grammar and density as agents lens.
-    - SSE refresh keeps commandbar/maincanvas/sidebar state synchronized with selected overlay preserved when still in scope.
-  - Rubric (before → target):
+  - What changed:
+    - Added a dedicated agents commandbar partial (`web/app/views/entities/agents/_commandbar.html.erb`) and switched `index.html.erb` to render it so commandbar behavior/markup is shared between initial load and SSE refresh.
+    - Compressed Sort controls in `/agents` commandbar: replaced long sort-key radio run with a compact `select` (`#agent-sort-key-select`) and stacked direction radios in the same Sort knob column.
+    - Extended shared entity commandbar renderer (`web/app/views/entities/shared/_commandbar.html.erb`) with a `select` knob type (`choices`, `width_class`, `data-bind`, `on_change`) to support compact control patterns.
+    - Rebuilt `/agents` workspace main list (`web/app/views/entities/agents/_workspace_main.html.erb`) for both agents and agencies lenses as dense div/flex rows with sticky headers; removed table markup entirely while preserving row click/open-overlay behavior and overlay highlight states.
+    - Updated agents SSE refresh (`web/app/controllers/entities/agents_sse_controller.rb`) to patch `#commandbar` together with maincanvas/sidebar/overlay so knob markup and state stay synchronized after lens/sort changes.
+    - Updated integration coverage (`web/test/integration/entities_agents_index_test.rb`) to assert compact sort select presence, commandbar patching in SSE response, and no entity table markup in `/agents` index response.
+  - Why this improves the flow:
+    - Scan rhythm is now consistent with newer workbench surfaces: dense flex rows, fixed column grammar, and faster eye-tracking across rows.
+    - Sort control footprint is materially smaller, reducing commandbar crowding and making directional intent clearer in one stacked knob column.
+    - One SSE response now keeps commandbar + maincanvas + sidebar + overlay aligned, which improves interaction predictability during rapid filter/sort toggling.
+  - Verification:
+    - `cd web && bundle exec ruby -Itest test/integration/entities_agents_index_test.rb -i "/agents refresh|agency overlay exposes/"`
+    - `rg "<table" web/app/views/entities/agents/_workspace_main.html.erb`
+  - Rubric (before → after):
     - Scan speed: 3 → 5
     - Information hierarchy: 3 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Full-page `/agents` integration assertion path still hits the known `tailwind.css` test asset load-path issue; keep running targeted SSE/integration subsets until that harness issue is resolved.
+    - Consider extracting a shared entity flex-row metric cell partial once `/agencies` migrates to reduce duplicated percentile/value cell markup.
   - Guardrails:
     - Do not modify Salary Book files.
 

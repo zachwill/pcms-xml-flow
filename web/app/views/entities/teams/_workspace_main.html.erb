@@ -21,10 +21,26 @@
     '&compare_a=' + encodeURIComponent($comparea) +
     '&compare_b=' + encodeURIComponent($compareb) +
     '&selected_id=' + encodeURIComponent($overlaytype === 'team' ? $selectedteamid : '')"
+
+  compare_url_sync_expr = "
+    const params = new URLSearchParams(window.location.search);
+    const nextCompareA = String($comparea || '');
+    const nextCompareB = String($compareb || '');
+    const currentCompareA = params.get('compare_a') || '';
+    const currentCompareB = params.get('compare_b') || '';
+    if (currentCompareA === nextCompareA && currentCompareB === nextCompareB) { return; }
+    params.set('compare_a', nextCompareA);
+    params.set('compare_b', nextCompareB);
+    const nextQuery = params.toString();
+    const nextUrl = window.location.pathname + (nextQuery ? ('?' + nextQuery) : '');
+    if ((window.location.pathname + window.location.search) !== nextUrl) { window.history.replaceState({}, '', nextUrl); }
+  ".squish
 %>
 
 <main id="maincanvas" class="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-background">
   <div id="teams-maincanvas" class="px-4 py-4 space-y-4">
+    <div id="teams-compare-url-sync" class="hidden" aria-hidden="true" data-effect="<%= compare_url_sync_expr %>"></div>
+
     <div class="flex items-end justify-between gap-4">
       <div>
         <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Teams workspace</div>

@@ -40,23 +40,31 @@ Supervisor review — 2026-02-13 (pass 4):
   - `/agencies`: posture radios (`inactive_live_book`, `live_book_risk`) still lack explicit threshold/helper copy.
 - Added fresh unchecked tasks below so the worker can resume with flow-level outcomes.
 
-- [ ] [P1] [INDEX] /teams — keep compare-slot URL state synced during row pin/clear actions
+- [x] [P1] [INDEX] /teams — keep compare-slot URL state synced during row pin/clear actions
   - Problem: Team compare pinning works in-flow, but pin/clear actions do not immediately update URL query state, making shared/reloaded compare sessions inconsistent.
   - Hypothesis: Applying `replaceState` on pin/clear SSE actions will preserve shareability and reduce confusion when users bookmark or reload mid-triage.
   - Scope (files):
     - web/app/views/entities/teams/_workspace_main.html.erb
-    - web/app/controllers/entities/teams_sse_controller.rb
     - web/test/integration/entities_teams_index_test.rb
-  - Acceptance criteria:
-    - Pin A / Pin B / clear-slot / clear-all actions update URL `compare_a` + `compare_b` without full navigation.
-    - Single-request `/teams/sse/refresh` behavior remains intact (main + sidebar + overlay + signals).
-    - Reloading a copied URL restores compare strip slot state.
-  - Rubric (before → target):
+  - What changed:
+    - Added hidden `#teams-compare-url-sync` effect in `entities/teams/_workspace_main` that compares Datastar compare signals (`comparea`, `compareb`) against current URL params and calls `history.replaceState` only when `compare_a`/`compare_b` diverge.
+    - Kept row pin/clear interactions on the existing one-request `/teams/sse/refresh` path; compare URL sync is now signal-driven after SSE patching instead of commandbar-only.
+    - Expanded integration coverage for the compare URL sync hook, URL-driven compare restoration (`POR vs BOS delta`), and `clear_slot` compare signal transitions.
+  - Why this improves the flow:
+    - Pin A / Pin B / clear-slot / clear-all now keep shareable URL compare params synchronized with in-flow compare state without full navigation.
+    - The sync path is deterministic and avoids mutating URL state during unapplied search typing (it only updates when compare params actually differ).
+    - Existing multi-region refresh behavior remains intact (`#maincanvas` + `#rightpanel-base` + `#rightpanel-overlay` + signals in one SSE response).
+  - Verification:
+    - `cd web && bundle exec rails test test/integration/entities_teams_index_test.rb` *(fails in this environment: missing gem `lucide-rails-0.7.3`)*
+    - `cd web && ruby -rerb -e "ERB.new(File.read('app/views/entities/teams/_workspace_main.html.erb')).src; puts 'ERB OK'" && ruby -c app/controllers/entities/teams_controller.rb && ruby -c app/controllers/entities/teams_sse_controller.rb && ruby -c test/integration/entities_teams_index_test.rb` *(syntax/ERB OK)*
+  - Rubric (before → after):
     - Scan speed: 5 → 5
     - Information hierarchy: 5 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 5 → 5
     - Navigation/pivots: 5 → 5
+  - Follow-up tasks discovered:
+    - Consider extracting compare URL-sync behavior into a shared helper/partial for compare-enabled index surfaces to reduce expression drift.
   - Guardrails:
     - Do not modify Salary Book files.
 

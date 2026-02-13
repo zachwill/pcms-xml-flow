@@ -108,9 +108,25 @@ class EntitiesTeamsIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="teams-conference-eastern"'
       assert_includes response.body, 'id="maincanvas"'
       assert_includes response.body, 'id="teams-compare-strip"'
+      assert_includes response.body, 'id="teams-compare-url-sync"'
+      assert_includes response.body, "URLSearchParams(window.location.search)"
+      assert_includes response.body, "params.set('compare_a', nextCompareA)"
       assert_includes response.body, '>Pin A</button>'
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, "Compare slots"
+    end
+  end
+
+  test "teams index restores compare strip from compare params" do
+    with_fake_connection do
+      get "/teams", params: {
+        compare_a: "1610612738",
+        compare_b: "1610612757"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, 'id="teams-compare-strip"'
+      assert_includes response.body, "POR vs BOS delta"
     end
   end
 
@@ -154,10 +170,34 @@ class EntitiesTeamsIndexTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_includes response.media_type, "text/event-stream"
       assert_includes response.body, 'id="teams-compare-strip"'
+      assert_includes response.body, 'id="teams-compare-url-sync"'
       assert_includes response.body, "Boston Celtics"
       assert_includes response.body, '"comparea":"1610612738"'
       assert_includes response.body, '"selectedteamid":""'
       assert_includes response.body, 'id="rightpanel-overlay"></div>'
+    end
+  end
+
+  test "teams refresh clear-slot action updates compare signals" do
+    with_fake_connection do
+      get "/teams/sse/refresh", params: {
+        q: "",
+        conference: "ALL",
+        pressure: "all",
+        sort: "pressure_desc",
+        compare_a: "1610612738",
+        compare_b: "1610612757",
+        selected_id: "",
+        action: "clear_slot",
+        slot: "a"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, '"comparea":""'
+      assert_includes response.body, '"compareb":"1610612757"'
+      assert_not_includes response.body, "POR vs BOS delta"
+      assert_includes response.body, 'id="teams-compare-url-sync"'
     end
   end
 

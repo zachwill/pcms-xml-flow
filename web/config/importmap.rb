@@ -5,6 +5,7 @@ pin "application", preload: true
 
 # Salary Book tool
 pin "tools/salary_book", to: "tools/salary_book.js"
+pin "tools/team_summary", to: "tools/team_summary.js"
 
 # Entity workspace UX (scrollspy local nav)
 pin "entities/workspace", to: "entities/workspace.js"

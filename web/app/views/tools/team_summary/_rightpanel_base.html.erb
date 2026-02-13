@@ -1,0 +1,72 @@
+<%
+  quick_rows = @rows.first(8)
+%>
+
+<div id="rightpanel-base" class="space-y-4">
+  <div class="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+    <div>
+      <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">Team Summary workspace</div>
+      <div class="text-xs text-muted-foreground">Select a row for KPI drill-in, then pin teams into compare slots.</div>
+    </div>
+
+    <div class="flex flex-wrap gap-1.5 text-[10px]">
+      <span class="entity-chip entity-chip--muted">Year <%= format_year_label(@selected_year) %></span>
+      <span class="entity-chip entity-chip--muted">Conference <%= @conference == "all" ? "Both" : @conference %></span>
+      <span class="entity-chip entity-chip--muted">Pressure <%= @pressure.humanize %></span>
+      <span class="entity-chip entity-chip--muted"><%= @rows.size %> in view</span>
+    </div>
+  </div>
+
+  <div class="rounded-lg border border-border bg-background p-3 space-y-2">
+    <div class="flex items-center justify-between">
+      <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">Compare slots</div>
+      <% if @compare_a_code.present? || @compare_b_code.present? %>
+        <button
+          type="button"
+          class="cursor-pointer text-[10px] text-muted-foreground hover:text-foreground hover:underline"
+          data-on:click="@get('<%= tools_team_summary_sse_compare_path(@state_params.merge(action: "clear_all")) %>')"
+        >Clear all</button>
+      <% end %>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2 text-[11px]">
+      <div class="rounded border border-border px-2 py-1.5">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Slot A</div>
+        <div class="font-medium tabular-nums"><%= @compare_a_code.presence || "—" %></div>
+      </div>
+      <div class="rounded border border-border px-2 py-1.5">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Slot B</div>
+        <div class="font-medium tabular-nums"><%= @compare_b_code.presence || "—" %></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rounded-lg border border-border bg-background p-3 space-y-2">
+    <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">Quick drill-in</div>
+
+    <% if quick_rows.empty? %>
+      <div class="text-xs text-muted-foreground italic">No teams in current result set.</div>
+    <% else %>
+      <div class="space-y-1">
+        <% quick_rows.each do |row| %>
+          <% team_code = row["team_code"].to_s.upcase %>
+          <% sidebar_path = tools_team_summary_sidebar_path(team_code: team_code, **@state_params.merge(selected: team_code)) %>
+          <button
+            type="button"
+            class="cursor-pointer w-full rounded border border-border/70 px-2 py-1.5 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors"
+            data-on:click="$selectedteam = '<%= team_code %>'; @get('<%= sidebar_path %>')"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-medium truncate"><%= row["team_name"] %></span>
+              <span class="text-[10px] tabular-nums text-muted-foreground"><%= team_code %></span>
+            </div>
+            <div class="mt-0.5 flex items-center justify-between gap-2 text-[10px] tabular-nums text-muted-foreground/80">
+              <span>Cap <%= format_room_amount(row["cap_space"]) %></span>
+              <span>Tax <%= row["tax_overage"].to_f > 0 ? format_compact_currency(row["tax_overage"]) : '—' %></span>
+            </div>
+          </button>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

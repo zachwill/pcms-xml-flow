@@ -9,6 +9,9 @@ Rails.application.routes.draw do
     get "two-way-utility", to: "two_way_utility#show"
     get "system-values", to: "system_values#show"
     get "team-summary", to: "team_summary#show"
+    get "team-summary/sidebar/clear", to: "team_summary#sidebar_clear", as: :team_summary_sidebar_clear
+    get "team-summary/sidebar/:team_code", to: "team_summary#sidebar", as: :team_summary_sidebar, constraints: { team_code: /[A-Za-z]{3}/ }
+    get "team-summary/sse/compare", to: "team_summary#compare", as: :team_summary_sse_compare
 
     # Datastar HTML fragment endpoints (patch targets)
     get "salary-book/frame", to: "salary_book#frame", as: :salary_book_frame

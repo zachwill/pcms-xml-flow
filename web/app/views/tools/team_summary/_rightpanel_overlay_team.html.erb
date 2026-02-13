@@ -1,0 +1,133 @@
+<%
+  row = @selected_row
+  team_code = row["team_code"].to_s.upcase
+  logo_url = team_logo_url(row["team_id"])
+  conference_name = row["conference_name"].presence || "—"
+
+  cap_space = row["cap_space"].to_f
+  tax_overage = row["tax_overage"].to_f
+  room_tax = row["room_under_tax"]&.to_f
+  room_a1 = row["room_under_apron1"]&.to_f
+  room_a2 = row["room_under_apron2"]&.to_f
+  luxury_tax_owed = row["luxury_tax_owed"].to_f
+
+  has_compare = @compare_a_code.present? || @compare_b_code.present?
+
+  slot_configs = [
+    { key: "a", label: "Slot A", current: @compare_a_code, active_class: "border-indigo-500/60 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300" },
+    { key: "b", label: "Slot B", current: @compare_b_code, active_class: "border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" }
+  ]
+%>
+
+<div id="rightpanel-overlay" class="h-full bg-background border-l border-border/70">
+  <div class="sticky top-0 z-20 h-10 px-4 flex items-center justify-between border-b border-border bg-background">
+    <button
+      type="button"
+      class="cursor-pointer text-xs text-muted-foreground hover:text-foreground hover:underline"
+      data-team-summary-overlay-clear
+      data-on:click="$selectedteam = ''; @get('<%= tools_team_summary_sidebar_clear_path %>')"
+    >Close</button>
+
+    <a
+      class="text-xs text-muted-foreground hover:text-foreground hover:underline"
+      href="<%= team_href(team_code: team_code, team_id: row['team_id']) %>"
+    >Open team page</a>
+  </div>
+
+  <div class="px-4 py-4 space-y-4 overflow-y-auto h-[calc(100%-40px)]">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded border border-border bg-background overflow-hidden flex items-center justify-center shrink-0">
+        <% if logo_url.present? %>
+          <img
+            src="<%= logo_url %>"
+            alt="<%= row['team_name'] %> logo"
+            class="w-full h-full object-contain"
+            loading="lazy"
+            decoding="async"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+          />
+          <span class="hidden text-[10px] font-semibold text-muted-foreground"><%= team_code %></span>
+        <% else %>
+          <span class="text-[10px] font-semibold text-muted-foreground"><%= team_code %></span>
+        <% end %>
+      </div>
+
+      <div class="min-w-0">
+        <h2 class="text-base font-semibold truncate"><%= row["team_name"] %></h2>
+        <div class="text-[11px] text-muted-foreground/80 tabular-nums"><%= team_code %> · <%= conference_name %> · <%= format_year_label(@selected_year) %></div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2 text-[11px]">
+      <div class="rounded border border-border bg-muted/30 px-2 py-1.5">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Cap space</div>
+        <div class="font-medium tabular-nums <%= cap_space >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' %>"><%= format_room_amount(cap_space) %></div>
+      </div>
+      <div class="rounded border border-border bg-muted/30 px-2 py-1.5">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Tax overage</div>
+        <div class="font-medium tabular-nums <%= tax_overage > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground' %>"><%= tax_overage > 0 ? format_compact_currency(tax_overage) : '—' %></div>
+      </div>
+      <div class="rounded border border-border bg-muted/30 px-2 py-1.5">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Room tax</div>
+        <div class="font-medium tabular-nums <%= room_tax && room_tax < 0 ? 'text-red-600 dark:text-red-400' : '' %>"><%= room_tax.nil? ? '—' : format_room_amount(room_tax) %></div>
+      </div>
+      <div class="rounded border border-border bg-muted/30 px-2 py-1.5">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Luxury tax</div>
+        <div class="font-medium tabular-nums"><%= luxury_tax_owed > 0 ? format_compact_currency(luxury_tax_owed) : '—' %></div>
+      </div>
+    </div>
+
+    <div class="rounded border border-border bg-background px-3 py-2 space-y-2">
+      <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">Compare actions</div>
+      <div class="grid grid-cols-2 gap-2">
+        <% slot_configs.each do |slot| %>
+          <% slot_is_active = slot[:current] == team_code %>
+          <% slot_filled = slot[:current].present? %>
+          <% button_label = if slot_is_active
+            "Remove #{slot[:label]}"
+          elsif slot_filled
+            "Replace #{slot[:label]}"
+          else
+            "Pin #{slot[:label]}"
+          end %>
+
+          <% compare_params = @state_params.merge(slot: slot[:key], selected: team_code) %>
+          <% if slot_is_active %>
+            <% compare_params = compare_params.merge(action: "clear_slot") %>
+          <% else %>
+            <% compare_params = compare_params.merge(action: "pin", team_code: team_code) %>
+          <% end %>
+
+          <button
+            type="button"
+            class="cursor-pointer h-8 rounded border border-border text-[11px] font-medium hover:bg-muted transition-colors <%= slot_is_active ? slot[:active_class] : '' %>"
+            data-on:click="@get('<%= tools_team_summary_sse_compare_path(compare_params) %>')"
+          ><%= button_label %></button>
+        <% end %>
+      </div>
+
+      <% if has_compare %>
+        <button
+          type="button"
+          class="cursor-pointer h-7 px-2 rounded border border-border text-[11px] hover:bg-muted"
+          data-on:click="@get('<%= tools_team_summary_sse_compare_path(@state_params.merge(action: "clear_all", selected: team_code)) %>')"
+        >Clear compare board</button>
+      <% end %>
+    </div>
+
+    <div class="rounded border border-border bg-background px-3 py-2 space-y-1.5 text-[11px]">
+      <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">Pivots</div>
+      <a class="block text-blue-600 dark:text-blue-400 hover:underline" href="<%= team_href(team_code: team_code, team_id: row['team_id']) %>">Open canonical team page</a>
+      <a class="block text-blue-600 dark:text-blue-400 hover:underline" href="<%= tools_salary_book_path(team: team_code, year: @selected_year, view: "salary-book") %>">Open Salary Book at <%= team_code %></a>
+      <a class="block text-blue-600 dark:text-blue-400 hover:underline" href="<%= tools_team_summary_path(@state_params.merge(selected: team_code)) %>">Share this Team Summary state</a>
+    </div>
+
+    <div class="rounded border border-border bg-background px-3 py-2 text-[11px] tabular-nums space-y-1">
+      <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">Pressure lines</div>
+      <div class="flex items-center justify-between"><span class="text-muted-foreground">Room under Tax</span><span><%= room_tax.nil? ? '—' : format_room_amount(room_tax) %></span></div>
+      <div class="flex items-center justify-between"><span class="text-muted-foreground">Room under Apron 1</span><span><%= room_a1.nil? ? '—' : format_room_amount(room_a1) %></span></div>
+      <div class="flex items-center justify-between"><span class="text-muted-foreground">Room under Apron 2</span><span><%= room_a2.nil? ? '—' : format_room_amount(room_a2) %></span></div>
+      <div class="flex items-center justify-between"><span class="text-muted-foreground">Roster / 2W</span><span><%= row['roster_row_count'] %> / <%= row['two_way_row_count'] %></span></div>
+    </div>
+  </div>
+</div>

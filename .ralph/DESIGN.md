@@ -361,13 +361,19 @@ Supervisor TODOs for next cycle:
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P2] [TOOL] /tools/team-summary (`web/app/views/tools/team_summary/show.html.erb`) — compare teams in-place with sidebar-assisted drill-in
+- [x] [P2] [TOOL] /tools/team-summary (`web/app/views/tools/team_summary/show.html.erb`) — compare teams in-place with sidebar-assisted drill-in
   - Problem: Team Summary is strong for scanning but weak for in-context drill-in and side-by-side reasoning; users must context-switch to team pages.
   - Hypothesis: Adding rightpanel base/overlay behavior and lightweight compare state will make Team Summary a true workbench.
   - Scope (files):
     - `web/app/views/tools/team_summary/show.html.erb`
+    - `web/app/views/tools/team_summary/_workspace_main.html.erb`
+    - `web/app/views/tools/team_summary/_compare_strip.html.erb`
+    - `web/app/views/tools/team_summary/_rightpanel_base.html.erb`
+    - `web/app/views/tools/team_summary/_rightpanel_overlay_team.html.erb`
+    - `web/app/views/tools/team_summary/_rightpanel_clear.html.erb`
     - `web/app/controllers/tools/team_summary_controller.rb`
     - `web/config/routes.rb`
+    - `web/config/importmap.rb`
     - `web/app/javascript/tools/team_summary.js`
     - `web/test/integration/tools_team_summary_test.rb`
   - Acceptance criteria:
@@ -375,12 +381,30 @@ Supervisor TODOs for next cycle:
     - Users can pin/compare at least two teams without leaving current scroll context.
     - State transitions (select, replace, clear compare) are explicit and predictable.
     - Any multi-region update (main + sidebar + compare strip) uses one ordered SSE response.
-  - Rubric (before → target):
-    - Scan speed: 4 → 5
-    - Information hierarchy: 3 → 4
-    - Interaction predictability: 2 → 4
-    - Density/readability: 4 → 5
-    - Navigation/pivots: 3 → 4
+  - Completion notes:
+    - What changed:
+      - Reworked Team Summary into a Pattern-A workbench shell with `#maincanvas` + rightpanel base/overlay layering, while keeping dense table scanning intact.
+      - Added row-level sidebar drill-in behavior (click row opens `#rightpanel-overlay`) plus persistent selected/compare signal state (`selectedteam`, `comparea`, `compareb`).
+      - Added a compare strip (`#team-summary-compare-strip`) with two explicit slots, clear actions, and delta summaries for side-by-side reasoning.
+      - Added sidebar base context (`_rightpanel_base`) for quick drill-in + compare status, and team overlay (`_rightpanel_overlay_team`) with KPI snapshot, slot pin/replace/remove actions, and canonical pivots (team page + Salary Book).
+      - Extended `TeamSummaryController` with sidebar endpoints and `sse/compare` ordered multi-region patching for compare strip + rightpanel base + rightpanel overlay in one SSE response.
+      - Added focused integration coverage in `tools_team_summary_test.rb` for shell render, sidebar endpoint behavior, and SSE compare response shape.
+      - Added lightweight Team Summary JS (`tools/team_summary.js`) for Escape-to-close overlay behavior and pinned it in importmap.
+    - Why this improves the flow:
+      - Team-by-team inspection now stays in-context: users open details in-panel without abandoning scan position.
+      - Compare state is now explicit and controlled (slot A/B, replace, clear), reducing ambiguity during side-by-side reasoning.
+      - Multi-region compare transitions are atomic via one SSE transaction, so compare strip and sidebar stay synchronized.
+      - Pivots to canonical team pages and Salary Book are now available directly in drill-in context.
+    - Rubric (before → after):
+      - Scan speed: 4 → 5
+      - Information hierarchy: 3 → 4
+      - Interaction predictability: 2 → 4
+      - Density/readability: 4 → 5
+      - Navigation/pivots: 3 → 4
+    - Follow-up tasks discovered:
+      - Convert commandbar filter/sort changes to SSE refresh so compare/selection state can be preserved without full-page reload.
+      - Add explicit inline row controls for “Pin A / Pin B” to reduce one click for compare setup.
+      - Add optional compare-preservation policy when selected/pinned teams drop out of the filtered set (currently state persists by team code when resolvable for the selected year).
   - Guardrails:
     - Do not modify Salary Book files.
 

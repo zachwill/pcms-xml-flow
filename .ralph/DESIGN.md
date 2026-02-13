@@ -408,7 +408,7 @@ Supervisor TODOs for next cycle:
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P2] [TOOL] /tools/system-values (`web/app/views/tools/system_values/show.html.erb`) — compare rule shifts across seasons faster
+- [x] [P2] [TOOL] /tools/system-values (`web/app/views/tools/system_values/show.html.erb`) — compare rule shifts across seasons faster
   - Problem: System Values is dense but serial; users manually scan wide tables to infer year-over-year deltas and section transitions.
   - Hypothesis: Adding a comparison lens + clearer section wayfinding will speed analytical workflows without sacrificing density.
   - Scope (files):
@@ -422,12 +422,28 @@ Supervisor TODOs for next cycle:
     - Section wayfinding (System/Tax/Minimum/Rookie) is obvious and keeps orientation while scrolling.
     - Toggle/range changes have predictable patch behavior (single-region HTML or ordered SSE when multiple regions change).
     - Density remains table-first; no cardized replacements.
-  - Rubric (before → target):
-    - Scan speed: 3 → 4
-    - Information hierarchy: 3 → 4
-    - Interaction predictability: 3 → 4
-    - Density/readability: 4 → 4
-    - Navigation/pivots: 2 → 4
+  - Completion notes:
+    - What changed:
+      - Added a baseline-season lens to `/tools/system-values` (`baseline_year` control in commandbar) and wired controller state resolution in `SystemValuesController`.
+      - Added section-level shift chips (System/Tax/Minimum/Rookie) in a persistent wayfinding rail (`#system-values-wayfinding`) so users can keep orientation while scrolling and see headline deltas at a glance.
+      - Added active-section tracking on `#maincanvas` scroll and section-jump controls that keep navigation anchored to the four table sections.
+      - Updated `league_system_values` and `league_tax_rates` tables with baseline-aware delta treatment per row/cell (numeric + color, with explicit baseline-row labeling).
+      - Added focused integration coverage in `tools_system_values_test.rb` for baseline controls, wayfinding render, and delta/baseline row treatment.
+    - Why this improves the flow:
+      - Baseline comparison is now first-class instead of implicit: users can immediately quantify how each season shifts vs a chosen reference year.
+      - Wayfinding stays visible outside the scroll surface, reducing section hunting when moving between System/Tax/Minimum/Rookie blocks.
+      - Delta encoding is explicit in-table (not inferred mentally), which reduces serial eye-scanning across wide rows.
+      - The surface remains table-first and dense while becoming faster to interpret for cross-season rule analysis.
+    - Rubric (before → after):
+      - Scan speed: 3 → 4
+      - Information hierarchy: 3 → 4
+      - Interaction predictability: 3 → 4
+      - Density/readability: 4 → 4
+      - Navigation/pivots: 2 → 4
+    - Follow-up tasks discovered:
+      - Add optional “delta-on/off” lens for users who want pure absolute-value scanning in large ranges.
+      - Consider SSE refresh for range/baseline changes if we later need to preserve scroll position and section focus during compare tweaks.
+      - Extend baseline delta treatment to minimum-salary and rookie-scale table rows (currently summarized in wayfinding chips).
   - Guardrails:
     - Do not modify Salary Book files.
 

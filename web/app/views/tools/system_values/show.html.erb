@@ -1,10 +1,12 @@
 <% content_for :title, "System Values" %>
 
+<% comparison_label = "Comparing #{format_year_label(@selected_year)} against #{format_year_label(@baseline_year)} baseline" %>
+
 <div
   id="system-values"
   class="h-screen w-full flex flex-col overflow-hidden bg-background"
   style="height: 100dvh;"
-  data-signals="{ showsystemvalues: true, showtaxrates: true, showsalaryscales: true, showrookiescales: true }"
+  data-signals="{ showsystemvalues: true, showtaxrates: true, showsalaryscales: true, showrookiescales: true, activesection: 'system' }"
 >
   <header id="commandbar" class="shrink-0 border-b border-border bg-background h-[130px] px-4 pt-3 flex items-start gap-4 select-none">
     <div class="flex-1 min-w-0 space-y-3">
@@ -15,8 +17,8 @@
 
       <form method="get" action="<%= tools_system_values_path %>" class="flex flex-wrap items-end gap-3" role="group" aria-label="System Values controls">
         <div class="space-y-1">
-          <label class="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Season</label>
-          <select name="year" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs">
+          <label class="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70" for="system-values-year-select">Season</label>
+          <select id="system-values-year-select" name="year" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs">
             <% @available_years.each do |candidate_year| %>
               <option value="<%= candidate_year %>" <%= "selected" if candidate_year == @selected_year %>><%= format_year_label(candidate_year) %></option>
             <% end %>
@@ -24,8 +26,17 @@
         </div>
 
         <div class="space-y-1">
-          <label class="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">From</label>
-          <select name="from_year" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs font-mono tabular-nums">
+          <label class="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70" for="system-values-baseline-year-select">Baseline</label>
+          <select id="system-values-baseline-year-select" name="baseline_year" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs">
+            <% @available_years.each do |candidate_year| %>
+              <option value="<%= candidate_year %>" <%= "selected" if candidate_year == @baseline_year %>><%= format_year_label(candidate_year) %></option>
+            <% end %>
+          </select>
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70" for="system-values-from-year-select">From</label>
+          <select id="system-values-from-year-select" name="from_year" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs font-mono tabular-nums">
             <% @available_years.each do |candidate_year| %>
               <option value="<%= candidate_year %>" <%= "selected" if candidate_year == @from_year %>><%= candidate_year %></option>
             <% end %>
@@ -33,8 +44,8 @@
         </div>
 
         <div class="space-y-1">
-          <label class="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">To</label>
-          <select name="to_year" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs font-mono tabular-nums">
+          <label class="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70" for="system-values-to-year-select">To</label>
+          <select id="system-values-to-year-select" name="to_year" class="h-7 rounded border border-border bg-muted/50 px-2 text-xs font-mono tabular-nums">
             <% @available_years.each do |candidate_year| %>
               <option value="<%= candidate_year %>" <%= "selected" if candidate_year == @to_year %>><%= candidate_year %></option>
             <% end %>
@@ -66,6 +77,8 @@
             </label>
           </div>
         </div>
+
+        <div class="text-[10px] font-medium text-muted-foreground/80 self-end pb-1"><%= comparison_label %></div>
       </form>
     </div>
 
@@ -73,7 +86,87 @@
     <%= render partial: "shared/commandbar_navigation", locals: { active_destination: "system_values" } %>
   </header>
 
-  <main class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-8">
+  <% section_meta = [
+    { key: "system", label: "System", target: "section-system", visibility: "$showsystemvalues" },
+    { key: "tax", label: "Tax", target: "section-tax", visibility: "$showtaxrates" },
+    { key: "minimum", label: "Minimum", target: "section-minimum", visibility: "$showsalaryscales" },
+    { key: "rookie", label: "Rookie", target: "section-rookie", visibility: "$showrookiescales" }
+  ] %>
+
+  <nav id="system-values-wayfinding" class="shrink-0 h-10 border-b border-border bg-muted/20 px-4 flex items-center gap-2">
+    <% section_meta.each do |section| %>
+      <button
+        type="button"
+        class="cursor-pointer h-6 px-2 rounded border border-transparent text-[10px] uppercase tracking-wide font-medium transition-colors"
+        data-show="<%= section[:visibility] %>"
+        data-class="{
+          'border-border bg-background text-foreground': $activesection === '<%= section[:key] %>',
+          'text-muted-foreground hover:text-foreground hover:border-border/70': $activesection !== '<%= section[:key] %>'
+        }"
+        data-on:click="
+          const target = document.getElementById('<%= section[:target] %>');
+          const scroller = document.getElementById('maincanvas');
+          if (target && scroller) {
+            scroller.scrollTo({ top: Math.max(target.offsetTop - 8, 0), behavior: 'smooth' });
+            $activesection = '<%= section[:key] %>';
+          }
+        "
+      ><%= section[:label] %></button>
+    <% end %>
+
+    <div class="ml-auto flex items-center gap-1.5">
+      <% @section_shift_cards.each do |card| %>
+        <% card_class = case card[:variant]
+        when "positive"
+          "text-emerald-700 dark:text-emerald-300 border-emerald-300/70 dark:border-emerald-500/40 bg-emerald-50/60 dark:bg-emerald-900/20"
+        when "negative"
+          "text-red-700 dark:text-red-300 border-red-300/70 dark:border-red-500/40 bg-red-50/60 dark:bg-red-900/20"
+        when "neutral"
+          "text-foreground border-border/80 bg-background"
+        else
+          "text-muted-foreground border-border/70 bg-background"
+        end %>
+
+        <% visibility_signal = section_meta.find { |section| section[:key] == card[:key] }&.dig(:visibility) || "true" %>
+        <div data-show="<%= visibility_signal %>" class="h-6 px-2 rounded border text-[10px] font-mono tabular-nums inline-flex items-center gap-1 <%= card_class %>">
+          <span class="font-semibold"><%= card[:label] %></span>
+          <span><%= card[:metric_label] %> <%= card[:delta_label] %></span>
+        </div>
+      <% end %>
+    </div>
+  </nav>
+
+  <main
+    id="maincanvas"
+    class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-8"
+    data-on:scroll="
+      const sections = [
+        { key: 'system', id: 'section-system', visible: $showsystemvalues },
+        { key: 'tax', id: 'section-tax', visible: $showtaxrates },
+        { key: 'minimum', id: 'section-minimum', visible: $showsalaryscales },
+        { key: 'rookie', id: 'section-rookie', visible: $showrookiescales }
+      ];
+
+      let active = '';
+      for (const section of sections) {
+        if (!section.visible) { continue; }
+        const node = document.getElementById(section.id);
+        if (!node || node.offsetParent === null) { continue; }
+        if (el.scrollTop + 28 >= node.offsetTop) {
+          active = section.key;
+        }
+      }
+
+      if (active === '') {
+        const firstVisible = sections.find((section) => section.visible);
+        active = firstVisible ? firstVisible.key : '';
+      }
+
+      if ($activesection !== active) {
+        $activesection = active;
+      }
+    "
+  >
     <% if @boot_error %>
       <div class="p-4">
         <div class="p-4 rounded-lg border border-border bg-muted/20">
@@ -83,25 +176,37 @@
       </div>
     <% else %>
       <div class="divide-y divide-border/60">
-        <%= render partial: "tools/system_values/league_system_values_table", locals: {
-          rows: @league_system_values,
-          selected_year: @selected_year
-        } %>
+        <div id="section-system" class="scroll-mt-2">
+          <%= render partial: "tools/system_values/league_system_values_table", locals: {
+            rows: @league_system_values,
+            selected_year: @selected_year,
+            baseline_year: @baseline_year,
+            baseline_row: @baseline_system_values_row
+          } %>
+        </div>
 
-        <%= render partial: "tools/system_values/league_tax_rates_table", locals: {
-          rows: @league_tax_rates,
-          selected_year: @selected_year
-        } %>
+        <div id="section-tax" class="scroll-mt-2">
+          <%= render partial: "tools/system_values/league_tax_rates_table", locals: {
+            rows: @league_tax_rates,
+            selected_year: @selected_year,
+            baseline_year: @baseline_year,
+            baseline_rows: @baseline_tax_rate_rows
+          } %>
+        </div>
 
-        <%= render partial: "tools/system_values/league_salary_scales_table", locals: {
-          rows: @league_salary_scales,
-          selected_year: @selected_year
-        } %>
+        <div id="section-minimum" class="scroll-mt-2">
+          <%= render partial: "tools/system_values/league_salary_scales_table", locals: {
+            rows: @league_salary_scales,
+            selected_year: @selected_year
+          } %>
+        </div>
 
-        <%= render partial: "tools/system_values/rookie_scale_amounts_table", locals: {
-          rows: @rookie_scale_amounts,
-          selected_year: @selected_year
-        } %>
+        <div id="section-rookie" class="scroll-mt-2">
+          <%= render partial: "tools/system_values/rookie_scale_amounts_table", locals: {
+            rows: @rookie_scale_amounts,
+            selected_year: @selected_year
+          } %>
+        </div>
       </div>
     <% end %>
   </main>

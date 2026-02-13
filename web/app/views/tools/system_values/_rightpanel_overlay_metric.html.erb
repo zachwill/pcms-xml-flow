@@ -23,6 +23,13 @@ else
 end %>
 
 <% rookie_detail_rows = Array(payload[:rookie_detail_rows]) %>
+<% tax_overlay = payload[:section].to_s == "tax" %>
+<% tax_metric_is_rate = payload[:metric].to_s.start_with?("tax_rate_") %>
+<% tax_metric_interpretation_line = if tax_metric_is_rate
+  "This metric is the per-$1 multiplier for dollars that land inside the active bracket."
+else
+  "This metric is the carry-forward subtotal from lower brackets before this step's incremental charge is applied."
+end %>
 
 <div id="rightpanel-overlay" class="h-full bg-background border-l border-border/70">
   <div class="sticky top-0 z-20 h-10 px-4 flex items-center justify-between border-b border-border bg-background">
@@ -46,6 +53,15 @@ end %>
       <div class="font-medium"><%= payload[:summary_line] %></div>
       <div class="text-muted-foreground"><%= payload[:focus_line] %></div>
     </div>
+
+    <% if tax_overlay %>
+      <div class="rounded border border-border bg-background px-3 py-2 space-y-1 text-[10px]">
+        <div class="uppercase tracking-wide font-semibold text-muted-foreground/80">Tax step interpretation</div>
+        <div class="text-muted-foreground">Brackets are incremental: only dollars inside the selected band use this step&apos;s rate.</div>
+        <div class="text-muted-foreground"><%= tax_metric_interpretation_line %></div>
+        <div class="font-mono tabular-nums text-muted-foreground/90">Tax due at this step = base charge + (amount in bracket × rate).</div>
+      </div>
+    <% end %>
 
     <div class="grid grid-cols-2 gap-2 text-[11px]">
       <div class="rounded border border-border bg-background px-2 py-1.5">

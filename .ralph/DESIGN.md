@@ -200,21 +200,26 @@ Supervisor review — 2026-02-13 (latest design loop audit):
     - Consider reusing this risk-source sentence grammar in the player overlay compare controls so Slot cards and overlay copy stay perfectly aligned.
     - Full-file `tools_two_way_utility_test.rb` still inherits the known missing `tailwind.css` layout-asset issue in this environment; SSE-focused coverage for this flow passes and is the active guardrail.
 
-- [ ] [P3] [TOOL] /tools/system-values — add tax-bracket step interpretation notes in overlay
-  - Problem: Tax bracket overlays show values/deltas but not a quick reminder of incremental step interpretation for first-pass readers.
-  - Hypothesis: A compact overlay note for tax-step interpretation will improve readability/trust without changing data density.
-  - Scope (files):
+- [x] [P3] [TOOL] /tools/system-values — add tax-bracket step interpretation notes in overlay
+  - What changed (files):
     - web/app/views/tools/system_values/_rightpanel_overlay_metric.html.erb
+      - Added a tax-only interpretation module in the overlay (`Tax step interpretation`) that explains incremental bracket behavior in compact copy.
+      - Added metric-aware guidance so tax-rate overlays explain marginal per-$1 multipliers while base-charge overlays explain carry-forward subtotal behavior.
+      - Added a concise formula line (`base charge + (amount in bracket × rate)`) without changing selected/baseline/focused value cards.
     - web/test/integration/tools_system_values_test.rb
-  - Acceptance criteria:
-    - Tax-section overlays include concise, non-intrusive interpretation copy specific to bracketed tax rates.
-    - Note appears only for tax overlays (not system/minimum/rookie).
-    - Existing selected-vs-baseline and focused-row context remains unchanged.
-  - Rubric (before → target):
+      - Added a tax overlay endpoint test that asserts interpretation note content is rendered for tax bracket drill-ins.
+      - Added non-tax assertions (system/minimum/rookie) to ensure the interpretation note does not appear outside tax overlays.
+      - Extended SSE refresh tax-overlay assertion coverage to include the interpretation note text in streamed overlay payloads.
+  - Why this improves the flow:
+    - First-pass users now get immediate “how to read this bracket step” context directly where tax deltas are evaluated.
+    - Metric-aware wording reduces ambiguity between rate cells and base-charge cells while keeping the panel dense.
+    - Overlay remains predictable: note is scoped to tax context only and does not alter existing selected-vs-baseline interaction grammar.
+  - Rubric (before → after):
     - Scan speed: 5 → 5
     - Information hierarchy: 5 → 5
     - Interaction predictability: 5 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 5 → 5
-  - Guardrails:
-    - Do not modify Salary Book files.
+  - Follow-up tasks discovered:
+    - Consider adding a matching one-line incremental-tax reminder near the tax table header so users get the same interpretation cue before opening any overlay.
+    - Full `tools_system_values_test.rb` runs in this env still inherit known layout-asset (`tailwind.css`) and broader SSE harness issues; focused sidebar drill-in coverage for this task passes.

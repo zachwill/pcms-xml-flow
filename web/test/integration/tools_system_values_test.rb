@@ -294,6 +294,33 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "Salary Cap"
       assert_includes response.body, "Source table: pcms.league_system_values"
       assert_includes response.body, "Open Team Summary"
+      assert_not_includes response.body, "Tax step interpretation"
+    end
+  end
+
+  test "system values tax sidebar drill-in renders bracket step interpretation notes" do
+    with_fake_connection do
+      get "/tools/system-values/sidebar/metric", params: {
+        year: "2026",
+        baseline_year: "2024",
+        from_year: "2024",
+        to_year: "2026",
+        overlay_section: "tax",
+        overlay_metric: "tax_rate_non_repeater",
+        overlay_year: "2026",
+        overlay_lower: "5000000",
+        overlay_upper: ""
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_equal "text/html", response.media_type
+      assert_includes response.body, 'id="rightpanel-overlay"'
+      assert_includes response.body, "League Tax Rates"
+      assert_includes response.body, "Tax Rate (Non-Repeater)"
+      assert_includes response.body, "Tax step interpretation"
+      assert_includes response.body, "Brackets are incremental"
+      assert_includes response.body, "Tax due at this step = base charge + (amount in bracket × rate)."
+      assert_includes response.body, "Source table: pcms.league_tax_rates"
     end
   end
 
@@ -319,6 +346,7 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "YOS 1"
       assert_includes response.body, "Source table: pcms.league_salary_scales"
       assert_includes response.body, "Open canonical System Values view"
+      assert_not_includes response.body, "Tax step interpretation"
     end
   end
 
@@ -346,6 +374,7 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "Year 1 Salary"
       assert_includes response.body, "border-amber-500/70"
       assert_includes response.body, "Source table: pcms.rookie_scale_amounts"
+      assert_not_includes response.body, "Tax step interpretation"
     end
   end
 
@@ -370,6 +399,7 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "selector #maincanvas"
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, 'id="rightpanel-overlay"'
+      assert_includes response.body, "Tax step interpretation"
       assert_includes response.body, "event: datastar-patch-signals"
       assert_includes response.body, '"svoverlaysection":"tax"'
       assert_includes response.body, '"svoverlaymetric":"tax_rate_non_repeater"'

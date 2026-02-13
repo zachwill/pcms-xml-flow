@@ -33,6 +33,8 @@ module Entities
           sse,
           tradedaterange: @daterange,
           tradeteam: @team.to_s,
+          tradesort: @sort,
+          tradelens: @lens,
           overlaytype: resolved_overlay_type,
           overlayid: resolved_overlay_id
         )

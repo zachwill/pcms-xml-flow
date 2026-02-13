@@ -329,6 +329,15 @@ module Entities
       @team = params[:team].to_s.strip.upcase.presence
       @team = nil unless @team&.match?(/\A[A-Z]{3}\z/)
 
+      @sort = params[:sort].to_s.strip.presence || "newest"
+      @sort = "newest" unless %w[newest most_teams most_assets].include?(@sort)
+
+      @lens = params[:lens].to_s.strip.presence || "all"
+      @lens = "all" unless %w[all complex mega].include?(@lens)
+
+      @sort_label = trades_sort_label(@sort)
+      @lens_label = trades_lens_label(@lens)
+
       @team_options = conn.exec_query(<<~SQL).to_a
         SELECT team_code, team_name
         FROM pcms.teams
@@ -365,6 +374,24 @@ module Entities
 
       where_sql = where_clauses.any? ? where_clauses.join(" AND ") : "1=1"
 
+      lens_sql = case @lens
+      when "complex"
+        "(ranked_trades.team_count >= 3 OR ranked_trades.complexity_asset_count >= 4)"
+      when "mega"
+        "(ranked_trades.team_count >= 4 OR ranked_trades.complexity_asset_count >= 6)"
+      else
+        "1=1"
+      end
+
+      order_sql = case @sort
+      when "most_teams"
+        "ranked_trades.team_count DESC, ranked_trades.complexity_asset_count DESC, ranked_trades.trade_date DESC, ranked_trades.trade_id DESC"
+      when "most_assets"
+        "ranked_trades.complexity_asset_count DESC, ranked_trades.team_count DESC, ranked_trades.trade_date DESC, ranked_trades.trade_id DESC"
+      else
+        "ranked_trades.trade_date DESC, ranked_trades.trade_id DESC"
+      end
+
       @trades = conn.exec_query(<<~SQL).to_a
         WITH filtered_trades AS (
           SELECT
@@ -374,50 +401,71 @@ module Entities
             tr.trade_comments
           FROM pcms.trades tr
           WHERE #{where_sql}
-          ORDER BY tr.trade_date DESC, tr.trade_id DESC
-          LIMIT 200
+        ),
+        trade_rollup AS (
+          SELECT
+            ft.trade_id,
+            ft.trade_date,
+            ft.trade_finalized_date,
+            ft.trade_comments,
+            (
+              SELECT string_agg(tt.team_code, ', ' ORDER BY tt.seqno)
+              FROM pcms.trade_teams tt
+              WHERE tt.trade_id = ft.trade_id
+            ) AS teams_involved,
+            (
+              SELECT COUNT(DISTINCT tt.team_id)::integer
+              FROM pcms.trade_teams tt
+              WHERE tt.trade_id = ft.trade_id
+            ) AS team_count,
+            (
+              SELECT COUNT(DISTINCT ttd.player_id)::integer
+              FROM pcms.trade_team_details ttd
+              WHERE ttd.trade_id = ft.trade_id
+                AND ttd.player_id IS NOT NULL
+            ) AS player_count,
+            (
+              SELECT COUNT(*)::integer
+              FROM pcms.trade_team_details ttd
+              WHERE ttd.trade_id = ft.trade_id
+                AND ttd.draft_pick_year IS NOT NULL
+            ) AS pick_count,
+            (
+              SELECT COUNT(*)::integer
+              FROM pcms.trade_team_details ttd
+              WHERE ttd.trade_id = ft.trade_id
+                AND (ttd.trade_entry_lk = 'CASH' OR COALESCE(ttd.cash_amount, 0) <> 0)
+            ) AS cash_line_count,
+            (
+              SELECT COUNT(*)::integer
+              FROM pcms.trade_team_details ttd
+              WHERE ttd.trade_id = ft.trade_id
+                AND ttd.trade_entry_lk = 'TREX'
+            ) AS tpe_line_count
+          FROM filtered_trades ft
+        ),
+        ranked_trades AS (
+          SELECT
+            trade_rollup.*,
+            (trade_rollup.player_count + trade_rollup.pick_count + trade_rollup.cash_line_count + trade_rollup.tpe_line_count)::integer AS complexity_asset_count
+          FROM trade_rollup
         )
         SELECT
-          ft.trade_id,
-          ft.trade_date,
-          ft.trade_finalized_date,
-          ft.trade_comments,
-          (
-            SELECT string_agg(tt.team_code, ', ' ORDER BY tt.seqno)
-            FROM pcms.trade_teams tt
-            WHERE tt.trade_id = ft.trade_id
-          ) AS teams_involved,
-          (
-            SELECT COUNT(DISTINCT tt.team_id)::integer
-            FROM pcms.trade_teams tt
-            WHERE tt.trade_id = ft.trade_id
-          ) AS team_count,
-          (
-            SELECT COUNT(DISTINCT ttd.player_id)::integer
-            FROM pcms.trade_team_details ttd
-            WHERE ttd.trade_id = ft.trade_id
-              AND ttd.player_id IS NOT NULL
-          ) AS player_count,
-          (
-            SELECT COUNT(*)::integer
-            FROM pcms.trade_team_details ttd
-            WHERE ttd.trade_id = ft.trade_id
-              AND ttd.draft_pick_year IS NOT NULL
-          ) AS pick_count,
-          (
-            SELECT COUNT(*)::integer
-            FROM pcms.trade_team_details ttd
-            WHERE ttd.trade_id = ft.trade_id
-              AND (ttd.trade_entry_lk = 'CASH' OR COALESCE(ttd.cash_amount, 0) <> 0)
-          ) AS cash_line_count,
-          (
-            SELECT COUNT(*)::integer
-            FROM pcms.trade_team_details ttd
-            WHERE ttd.trade_id = ft.trade_id
-              AND ttd.trade_entry_lk = 'TREX'
-          ) AS tpe_line_count
-        FROM filtered_trades ft
-        ORDER BY ft.trade_date DESC, ft.trade_id DESC
+          ranked_trades.trade_id,
+          ranked_trades.trade_date,
+          ranked_trades.trade_finalized_date,
+          ranked_trades.trade_comments,
+          ranked_trades.teams_involved,
+          ranked_trades.team_count,
+          ranked_trades.player_count,
+          ranked_trades.pick_count,
+          ranked_trades.cash_line_count,
+          ranked_trades.tpe_line_count,
+          ranked_trades.complexity_asset_count
+        FROM ranked_trades
+        WHERE #{lens_sql}
+        ORDER BY #{order_sql}
+        LIMIT 200
       SQL
 
       build_sidebar_summary!
@@ -427,13 +475,15 @@ module Entities
       rows = Array(@trades)
       filters = ["Date: #{daterange_label(@daterange)}"]
       filters << "Team: #{@team}" if @team.present?
+      filters << "Lens: #{@lens_label}" unless @lens == "all"
+      filters << "Sort: #{@sort_label}"
 
       @sidebar_summary = {
         row_count: rows.size,
         player_assets_total: rows.sum { |row| row["player_count"].to_i },
         pick_assets_total: rows.sum { |row| row["pick_count"].to_i },
-        cash_line_total: rows.sum { |row| row["cash_line_count"].to_i },
-        multi_team_count: rows.count { |row| row["team_count"].to_i >= 3 },
+        complexity_asset_total: rows.sum { |row| row["complexity_asset_count"].to_i },
+        complex_deal_count: rows.count { |row| row["team_count"].to_i >= 3 || row["complexity_asset_count"].to_i >= 4 },
         filters:,
         top_rows: rows.first(14)
       }
@@ -584,6 +634,22 @@ module Entities
       when "month" then "This month"
       when "season" then "This season"
       else "All dates"
+      end
+    end
+
+    def trades_sort_label(value)
+      case value.to_s
+      when "most_teams" then "Most teams"
+      when "most_assets" then "Most assets"
+      else "Newest"
+      end
+    end
+
+    def trades_lens_label(value)
+      case value.to_s
+      when "complex" then "3+ teams or 4+ assets"
+      when "mega" then "4+ teams or 6+ assets"
+      else "All deals"
       end
     end
   end

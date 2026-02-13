@@ -312,26 +312,28 @@ Next-loop guardrails (tightened):
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P3] [INDEX] /trades (`web/app/views/entities/trades/index.html.erb`) — prioritize high-complexity deals faster with explicit sort/lens controls
-  - Problem: Trades feed is date-first only; users cannot quickly surface multi-asset/multi-team complexity patterns.
-  - Hypothesis: Adding complexity-oriented sort/lenses will improve first-pass triage speed for trade analysis.
-  - Scope (files):
+- [x] [P3] [INDEX] /trades (`web/app/views/entities/trades/index.html.erb`) — prioritize high-complexity deals faster with explicit sort/lens controls
+  - What changed (files):
     - `web/app/controllers/entities/trades_controller.rb`
     - `web/app/controllers/entities/trades_sse_controller.rb`
     - `web/app/views/entities/trades/index.html.erb`
     - `web/app/views/entities/trades/_results.html.erb`
     - `web/app/views/entities/trades/_rightpanel_base.html.erb`
     - `web/test/integration/entities_pane_endpoints_test.rb`
-  - Acceptance criteria:
-    - Commandbar includes a discoverable sort/lens control for complexity (e.g., newest, most teams, most assets).
-    - Selecting a lens reorders list and quick-deals sidebar consistently via one SSE refresh.
-    - Selected overlay preserve/clear behavior remains deterministic under new sort/lens changes.
-    - URL state captures the active sort/lens.
-  - Rubric (before → target):
+  - Why this improves the flow:
+    - Trades commandbar now exposes explicit complexity controls: sort (`Newest`, `Most teams`, `Most assets`) and lens (`All deals`, `3+ teams or 4+ assets`, `4+ teams or 6+ assets`).
+    - Trades index query now computes `complexity_asset_count` and applies complexity lens + ordering server-side, so the main table and sidebar quick-deals list stay in the same ranking model.
+    - One SSE refresh still patches `#trades-results`, `#rightpanel-base`, and `#rightpanel-overlay` together; overlay preserve/clear remains deterministic via existing selected-row visibility checks.
+    - URL/signal state now persists `sort` + `lens` (`tradesort`, `tradelens`) across knob changes, so shared links and back/forward navigation retain complexity triage context.
+    - Row and sidebar summaries now surface complexity explicitly (asset-count chips + complexity KPIs), improving first-pass scanability of dense/multi-asset trades.
+  - Rubric (before → after):
     - Scan speed: 4 → 5
     - Information hierarchy: 4 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 4 → 4
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Add optional hybrid sort presets (e.g., `Most complex this week`) to reduce multi-control changes for common triage workflows.
+    - Consider a compact per-row complexity decomposition popover (players/picks/cash/TPE) to compare equally ranked deals faster without opening overlay.
   - Guardrails:
     - Do not modify Salary Book files.

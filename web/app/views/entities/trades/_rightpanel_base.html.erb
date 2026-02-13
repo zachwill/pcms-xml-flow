@@ -14,8 +14,8 @@
     <div class="grid grid-cols-2 gap-1.5">
       <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Players", value: summary[:player_assets_total].to_i.to_s, class_name: "w-full" } %>
       <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Picks", value: summary[:pick_assets_total].to_i.to_s, class_name: "w-full" } %>
-      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Cash", value: summary[:cash_line_total].to_i.to_s, class_name: "w-full" } %>
-      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "3+ Teams", value: summary[:multi_team_count].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Assets", value: summary[:complexity_asset_total].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "tools/salary_book/kpi_cell", locals: { label: "Complex", value: summary[:complex_deal_count].to_i.to_s, class_name: "w-full" } %>
     </div>
 
     <% if Array(summary[:filters]).any? %>
@@ -29,7 +29,7 @@
 
   <% if top_rows.any? %>
     <div class="rounded-lg border border-border bg-background">
-      <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">Quick deals</div>
+      <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">Quick deals · <%= @sort_label %></div>
       <div class="divide-y divide-border">
         <% top_rows.each do |row| %>
           <% row_id = row["trade_id"].to_s %>
@@ -46,7 +46,7 @@
                 <span class="font-medium font-mono tabular-nums">#<%= row["trade_id"] %></span>
                 <span class="text-[10px] text-muted-foreground"><%= row["trade_date"].present? ? Date.parse(row["trade_date"].to_s).strftime("%b %d") : "—" %></span>
               </div>
-              <div class="entity-cell-secondary truncate"><%= teams_label %> · <%= row["player_count"].to_i %>P / <%= row["pick_count"].to_i %>K</div>
+              <div class="entity-cell-secondary truncate"><%= teams_label %> · <%= row["team_count"].to_i %>T · <%= row["complexity_asset_count"].to_i %> assets</div>
             </div>
           </button>
         <% end %>

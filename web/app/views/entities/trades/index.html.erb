@@ -2,7 +2,9 @@
 
 <%
   pane_query_expr = "'daterange=' + encodeURIComponent($tradedaterange) +
-    '&team=' + encodeURIComponent($tradeteam)"
+    '&team=' + encodeURIComponent($tradeteam) +
+    '&sort=' + encodeURIComponent($tradesort) +
+    '&lens=' + encodeURIComponent($tradelens)"
 
   refresh_query_expr = "(#{pane_query_expr}) +
     '&selected_type=' + encodeURIComponent($overlaytype) +
@@ -10,7 +12,7 @@
 
   refresh_expr = "@get('/trades/sse/refresh?' + (#{refresh_query_expr})); window.history.replaceState({}, '', '/trades?' + (#{pane_query_expr}))"
 
-  signals_literal = "{ tradedaterange: #{@daterange.to_json}, tradeteam: #{(@team || '').to_json}, overlaytype: 'none', overlayid: '' }"
+  signals_literal = "{ tradedaterange: #{@daterange.to_json}, tradeteam: #{(@team || '').to_json}, tradesort: #{@sort.to_json}, tradelens: #{@lens.to_json}, overlaytype: 'none', overlayid: '' }"
 %>
 
 <div id="trades-workspace" class="h-screen w-screen flex flex-col overflow-hidden bg-background" data-signals="<%= signals_literal %>">
@@ -68,6 +70,34 @@
             <% code = team["team_code"].to_s.upcase %>
             <option value="<%= code %>" <%= "selected" if @team == code %>><%= code %> · <%= team["team_name"] %></option>
           <% end %>
+        </select>
+      </div>
+
+      <div class="min-w-[11rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Sort</div>
+        <select
+          id="trades-sort-select"
+          class="h-7 w-48 rounded border border-border bg-background px-2 text-xs text-foreground"
+          data-bind="tradesort"
+          data-on:change="<%= refresh_expr %>"
+        >
+          <option value="newest" <%= "selected" if @sort == "newest" %>>Newest</option>
+          <option value="most_teams" <%= "selected" if @sort == "most_teams" %>>Most teams</option>
+          <option value="most_assets" <%= "selected" if @sort == "most_assets" %>>Most assets</option>
+        </select>
+      </div>
+
+      <div class="min-w-[13rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Complexity lens</div>
+        <select
+          id="trades-lens-select"
+          class="h-7 w-56 rounded border border-border bg-background px-2 text-xs text-foreground"
+          data-bind="tradelens"
+          data-on:change="<%= refresh_expr %>"
+        >
+          <option value="all" <%= "selected" if @lens == "all" %>>All deals</option>
+          <option value="complex" <%= "selected" if @lens == "complex" %>>3+ teams or 4+ assets</option>
+          <option value="mega" <%= "selected" if @lens == "mega" %>>4+ teams or 6+ assets</option>
         </select>
       </div>
     </div>

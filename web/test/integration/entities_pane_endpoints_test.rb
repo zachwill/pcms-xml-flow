@@ -119,21 +119,21 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       elsif sql.include?("WITH filtered_trades AS") && sql.include?("FROM pcms.trades tr")
         rows = if sql.include?("tt.team_code = 'LAL'")
           [
-            [ 88002, "2025-01-15", nil, "Three-team balancing move", "LAL, DAL, HOU", 3, 1, 2, 1, 0 ]
+            [ 88002, "2025-01-15", nil, "Three-team balancing move", "LAL, DAL, HOU", 3, 1, 2, 1, 0, 4 ]
           ]
         elsif sql.include?("tt.team_code = 'BOS'")
           [
-            [ 88001, "2025-02-07", "2025-02-08", "Deadline consolidation", "BOS, POR, ATL", 3, 2, 1, 1, 1 ]
+            [ 88001, "2025-02-07", "2025-02-08", "Deadline consolidation", "BOS, POR, ATL", 3, 2, 1, 1, 1, 5 ]
           ]
         else
           [
-            [ 88001, "2025-02-07", "2025-02-08", "Deadline consolidation", "BOS, POR, ATL", 3, 2, 1, 1, 1 ],
-            [ 88002, "2025-01-15", nil, "Three-team balancing move", "LAL, DAL, HOU", 3, 1, 2, 1, 0 ]
+            [ 88001, "2025-02-07", "2025-02-08", "Deadline consolidation", "BOS, POR, ATL", 3, 2, 1, 1, 1, 5 ],
+            [ 88002, "2025-01-15", nil, "Three-team balancing move", "LAL, DAL, HOU", 3, 1, 2, 1, 0, 4 ]
           ]
         end
 
         ActiveRecord::Result.new(
-          [ "trade_id", "trade_date", "trade_finalized_date", "trade_comments", "teams_involved", "team_count", "player_count", "pick_count", "cash_line_count", "tpe_line_count" ],
+          [ "trade_id", "trade_date", "trade_finalized_date", "trade_comments", "teams_involved", "team_count", "player_count", "pick_count", "cash_line_count", "tpe_line_count", "complexity_asset_count" ],
           rows
         )
       elsif sql.include?("FROM pcms.trades tr") && sql.include?("WHERE tr.trade_id = 88001") && sql.include?("AS teams_involved")
@@ -354,22 +354,26 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "trades index exposes team filter and sidebar surfaces" do
+  test "trades index exposes team and complexity controls plus sidebar surfaces" do
     with_fake_connection do
       get "/trades", params: { daterange: "season", team: "" }, headers: modern_headers
 
       assert_response :success
       assert_includes response.body, 'id="trades-team-select"'
+      assert_includes response.body, 'id="trades-sort-select"'
+      assert_includes response.body, 'id="trades-lens-select"'
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, 'id="rightpanel-overlay"'
     end
   end
 
-  test "trades refresh preserves selected overlay when selected row remains visible" do
+  test "trades refresh preserves selected overlay and patches active sort/lens signals" do
     with_fake_connection do
       get "/trades/sse/refresh", params: {
         daterange: "season",
         team: "",
+        sort: "most_assets",
+        lens: "complex",
         selected_type: "trade",
         selected_id: "88001"
       }, headers: modern_headers
@@ -379,6 +383,8 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="trades-results"'
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, "Trade #88001"
+      assert_includes response.body, '"tradesort":"most_assets"'
+      assert_includes response.body, '"tradelens":"complex"'
       assert_includes response.body, '"overlaytype":"trade"'
       assert_includes response.body, '"overlayid":"88001"'
     end
@@ -546,6 +552,8 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       signals = root["data-signals"]
       assert_includes signals, "tradedaterange: \"season\""
       assert_includes signals, 'tradeteam: ""'
+      assert_includes signals, 'tradesort: "newest"'
+      assert_includes signals, 'tradelens: "all"'
     end
   end
 

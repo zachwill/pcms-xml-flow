@@ -10,9 +10,13 @@
            when "season" then %>This season<%
            else %>All dates<%
            end %>
+        · <%= @sort_label %>
       </h2>
       <p class="text-[11px] text-muted-foreground mt-1">
         Click a trade row to inspect team-in/team-out anatomy and assets without leaving the list.
+        <% if @lens != "all" %>
+          <span class="font-medium text-foreground">Lens: <%= @lens_label %></span>
+        <% end %>
       </p>
     </div>
 
@@ -62,6 +66,7 @@
                 <div class="entity-cell-two-line">
                   <div class="entity-cell-primary gap-1.5">
                     <span class="entity-chip entity-chip--muted"><%= trade["team_count"].to_i %> teams</span>
+                    <span class="entity-chip entity-chip--warning"><%= trade["complexity_asset_count"].to_i %> assets</span>
                     <% if trade["trade_finalized_date"].present? %>
                       <span class="entity-chip entity-chip--accent">finalized</span>
                     <% end %>
@@ -89,7 +94,7 @@
                     <span class="entity-chip entity-chip--accent"><%= trade["pick_count"].to_i %> picks</span>
                   </div>
                   <div class="entity-cell-secondary">
-                    <%= trade["cash_line_count"].to_i %> cash lines · <%= trade["tpe_line_count"].to_i %> TPE
+                    <%= trade["cash_line_count"].to_i %> cash lines · <%= trade["tpe_line_count"].to_i %> TPE · <span class="font-mono tabular-nums text-foreground"><%= trade["complexity_asset_count"].to_i %></span> total assets
                   </div>
                 </div>
               </td>

@@ -86,47 +86,176 @@
 
       <section id="provenance" class="scroll-mt-24 space-y-3">
         <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pick provenance</h2>
-        <% if @pick_provenance_rows.empty? %>
-          <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No pre-draft trade chain rows found for this pick context.</div>
-        <% else %>
-          <div class="overflow-x-auto rounded-lg border border-border">
-            <table class="entity-table min-w-full text-xs">
-              <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-                <tr>
-                  <th class="text-left px-3 py-2 font-medium">Trade</th>
-                  <th class="text-left px-3 py-2 font-medium">Date</th>
-                  <th class="text-left px-3 py-2 font-medium">From</th>
-                  <th class="text-left px-3 py-2 font-medium">To</th>
-                  <th class="text-left px-3 py-2 font-medium">Flags</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-border">
-                <% @pick_provenance_rows.each do |row| %>
-                  <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                    <td class="px-3 py-2 font-mono tabular-nums">
-                      <% if row["trade_id"].present? %>
-                        <a href="<%= trade_href(row['trade_id']) %>" class="hover:underline">#<%= row["trade_id"] %></a>
-                      <% else %>
-                        —
-                      <% end %>
-                    </td>
-                    <td class="px-3 py-2 font-mono tabular-nums text-muted-foreground"><%= row["trade_date"] || "—" %></td>
-                    <td class="px-3 py-2 text-muted-foreground"><%= row["from_team_code"] || "—" %></td>
-                    <td class="px-3 py-2 text-muted-foreground"><%= row["to_team_code"] || "—" %></td>
-                    <td class="px-3 py-2 text-muted-foreground">
-                      <% flags = [] %>
-                      <% flags << "swap" if row["is_swap"] %>
-                      <% flags << "future" if row["is_future"] %>
-                      <% flags << "conditional" if row["is_conditional"] %>
-                      <% flags << row["conditional_type_lk"] if row["conditional_type_lk"].present? %>
-                      <%= flags.any? ? flags.join(" · ") : "—" %>
-                    </td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
+
+        <% provenance_rows = Array(@pick_provenance_rows) %>
+        <% provenance_depth = provenance_rows.size %>
+        <% provenance_severity = if provenance_depth >= 2
+          "deep_chain"
+        elsif provenance_depth == 1
+          "with_trade"
+        else
+          "clean"
+        end %>
+
+        <% severity_label = lambda do |severity|
+          case severity.to_s
+          when "deep_chain"
+            "Deep chain"
+          when "with_trade"
+            "With trade"
+          else
+            "Clean"
+          end
+        end %>
+
+        <% severity_chip_class = lambda do |severity|
+          case severity.to_s
+          when "deep_chain"
+            "entity-chip entity-chip--danger"
+          when "with_trade"
+            "entity-chip entity-chip--warning"
+          else
+            "entity-chip entity-chip--muted"
+          end
+        end %>
+
+        <% lane_container_class = lambda do |severity|
+          case severity.to_s
+          when "deep_chain"
+            "border-red-300/70 bg-red-50/60 dark:border-red-800/60 dark:bg-red-950/25"
+          when "with_trade"
+            "border-amber-300/70 bg-amber-50/60 dark:border-amber-800/60 dark:bg-amber-950/20"
+          else
+            "border-border/60 bg-background"
+          end
+        end %>
+
+        <% lane_definitions = [
+          {
+            key: "deep_chain",
+            title: "Deep chain",
+            help: "P2+ provenance hops · highest ownership complexity",
+            rows: (provenance_depth > 1 ? provenance_rows.drop(1) : [])
+          },
+          {
+            key: "with_trade",
+            title: "With trade",
+            help: "First ownership reroute before draft night",
+            rows: (provenance_depth.positive? ? provenance_rows.first(1) : [])
+          },
+          {
+            key: "clean",
+            title: "Clean",
+            help: "No pre-draft reroute required",
+            rows: []
+          }
+        ] %>
+
+        <div class="rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
+          <div class="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">Severity-first chain lanes</div>
+          <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
+            <span class="<%= severity_chip_class.call(provenance_severity) %>"><%= severity_label.call(provenance_severity) %></span>
+            <span class="entity-chip entity-chip--muted">Chain depth · <span class="font-mono tabular-nums">P<%= provenance_depth %></span></span>
+            <span>Scan order: Deep chain → With trade → Clean.</span>
           </div>
-        <% end %>
+        </div>
+
+        <div class="space-y-2">
+          <% lane_definitions.each do |lane| %>
+            <% lane_rows = Array(lane[:rows]) %>
+            <% lane_active = lane[:key] == "clean" ? provenance_depth.zero? : lane_rows.any? %>
+            <% lane_count = lane[:key] == "clean" ? (provenance_depth.zero? ? 1 : 0) : lane_rows.size %>
+
+            <article class="rounded-lg border p-3 <%= lane_container_class.call(lane[:key]) %>">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+                  <span class="<%= severity_chip_class.call(lane[:key]) %>"><%= lane[:title] %></span>
+                  <span class="font-mono tabular-nums text-muted-foreground">rows: <%= lane_count %></span>
+                </div>
+                <div class="text-[10px] text-muted-foreground"><%= lane[:help] %></div>
+              </div>
+
+              <% if lane[:key] == "clean" %>
+                <div class="mt-2 text-sm text-muted-foreground">
+                  <% if lane_active %>
+                    Pick ownership remained direct to draft night (no pre-draft trade rows).
+                  <% else %>
+                    Not active: this pick has provenance trade hops and is routed in higher-severity lanes.
+                  <% end %>
+                </div>
+              <% elsif lane_rows.any? %>
+                <div class="mt-2 rounded-lg border border-border/60 divide-y divide-border/50">
+                  <% lane_rows.each_with_index do |row, lane_index| %>
+                    <% hop_number = lane[:key] == "with_trade" ? 1 : lane_index + 2 %>
+                    <% flags = [] %>
+                    <% flags << "swap" if row["is_swap"] %>
+                    <% flags << "future" if row["is_future"] %>
+                    <% flags << "conditional" if row["is_conditional"] %>
+                    <% flags << row["conditional_type_lk"] if row["conditional_type_lk"].present? %>
+
+                    <div class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                      <div class="flex flex-wrap items-start gap-3">
+                        <div class="w-24 shrink-0">
+                          <div class="entity-cell-two-line">
+                            <div class="entity-cell-primary font-mono tabular-nums">P<%= hop_number %></div>
+                            <div class="entity-cell-secondary font-mono tabular-nums"><%= row["trade_date"].presence || "—" %></div>
+                          </div>
+                        </div>
+
+                        <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                          <div class="entity-cell-two-line xl:col-span-2">
+                            <div class="entity-cell-primary justify-start gap-1.5 flex-wrap">
+                              <% if row["from_team_code"].present? %>
+                                <a href="<%= team_href(team_code: row['from_team_code'], team_id: row['from_team_id']) %>" class="hover:underline font-medium"><%= row["from_team_code"] %></a>
+                              <% else %>
+                                <span class="text-muted-foreground/60">—</span>
+                              <% end %>
+
+                              <span class="text-muted-foreground/50">→</span>
+
+                              <% if row["to_team_code"].present? %>
+                                <a href="<%= team_href(team_code: row['to_team_code'], team_id: row['to_team_id']) %>" class="hover:underline font-medium"><%= row["to_team_code"] %></a>
+                              <% else %>
+                                <span class="text-muted-foreground/60">—</span>
+                              <% end %>
+                            </div>
+                            <div class="entity-cell-secondary justify-start">From → To · Original <%= row["original_team_code"].presence || "—" %></div>
+                          </div>
+
+                          <div class="entity-cell-two-line">
+                            <div class="entity-cell-primary justify-start font-mono tabular-nums">
+                              <% if row["trade_id"].present? %>
+                                <a href="<%= trade_href(row['trade_id']) %>" class="hover:underline">#<%= row["trade_id"] %></a>
+                              <% else %>
+                                <span class="text-muted-foreground/60">—</span>
+                              <% end %>
+                            </div>
+                            <div class="entity-cell-secondary justify-start">Trade pivot</div>
+                          </div>
+
+                          <div class="entity-cell-two-line xl:col-span-2">
+                            <div class="entity-cell-primary justify-start gap-1.5 flex-wrap">
+                              <% if flags.any? %>
+                                <% flags.each do |flag| %>
+                                  <span class="entity-chip <%= flag == 'conditional' ? 'entity-chip--warning' : 'entity-chip--muted' %>"><%= flag %></span>
+                                <% end %>
+                              <% else %>
+                                <span class="text-muted-foreground/60">No conditional/swap modifiers</span>
+                              <% end %>
+                            </div>
+                            <div class="entity-cell-secondary justify-start">Flags</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+              <% else %>
+                <div class="mt-2 text-sm text-muted-foreground italic">No rows in this lane for this pick context.</div>
+              <% end %>
+            </article>
+          <% end %>
+        </div>
 
         <div class="rounded-lg border border-border bg-background p-3 text-xs text-muted-foreground">
           Transaction: <a href="<%= transaction_href(ds['transaction_id']) %>" class="hover:underline font-mono tabular-nums">#<%= ds["transaction_id"] %></a>

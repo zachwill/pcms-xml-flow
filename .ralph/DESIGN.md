@@ -329,22 +329,32 @@ Corrective TODOs for next worker cycle (mandatory):
   - Guardrails:
     - Do not modify Salary Book files.
 
-- [ ] [P2] [ENTITY] /draft-selections/:slug — convert provenance section to severity-first chain lanes
+- [x] [P2] [ENTITY] /draft-selections/:slug — convert provenance section to severity-first chain lanes
   - Problem: Draft selection detail still buries provenance complexity in a table.
   - Hypothesis: Severity-first chain lanes (clean / with trade / deep chain) will make ownership risk obvious immediately.
   - Scope (files):
     - web/app/views/entities/draft_selections/show.html.erb
     - web/test/integration/entities_draft_selections_show_test.rb
-  - Acceptance criteria:
-    - Provenance section renders as dense chain lanes with severity cues.
-    - Trade/date/from→to details remain legible and linkable without table scanning.
-    - Transaction/trade pivots remain one click.
-  - Rubric (before → target):
+  - Patch targets: `#maincanvas` (`#provenance` section on entity show)
+  - Response type: full-page `text/html` show render (`Entities::DraftSelectionsController#show`)
+  - What changed (files):
+    - Rebuilt `web/app/views/entities/draft_selections/show.html.erb` provenance section from table markup into severity-first chain lanes ordered as `Deep chain → With trade → Clean`, with a top risk snapshot chip row (`Clean/With trade/Deep chain`) and chain depth signal (`P0+`).
+    - Added lane-level chain rendering with hop markers (`P1`, `P2`, ...), explicit `From → To` route cells, one-click trade pivots, date visibility, and inline flag chips (`swap`, `future`, `conditional`, conditional type).
+    - Preserved and foregrounded transaction/trade pivots at section footer so canonical transaction context remains one click from provenance scan.
+    - Added focused integration coverage in `web/test/integration/entities_draft_selections_show_test.rb` asserting severity lane labels, absence of `<table>` in `#provenance`, route legibility (`From → To`), and preserved `/transactions`, `/trades`, and `/teams` pivots.
+  - Why this improves the flow:
+    - Provenance complexity is now triaged by severity first, so contested ownership chains surface immediately instead of requiring horizontal table parsing.
+    - Chain hops now read as a vertical causal story (hop/date/route/flags) with direct links, reducing back-and-forth interpretation effort.
+    - The same section now supports both quick risk scan (lane headers/chips) and detailed audit (hop rows) without leaving page context.
+  - Rubric (before → after):
     - Scan speed: 3 → 5
     - Information hierarchy: 3 → 5
     - Interaction predictability: 4 → 5
     - Density/readability: 3 → 4
     - Navigation/pivots: 4 → 5
+  - Follow-up tasks discovered:
+    - Add optional lane filter chips (`all`, `deep only`, `conditional only`) with URL-stable state for very long historical chains.
+    - Add cross-highlight between provenance hops and matching trade rows on `/trades/:id` once shared chain identifiers are exposed in the detail payload.
   - Guardrails:
     - Do not modify Salary Book files.
 

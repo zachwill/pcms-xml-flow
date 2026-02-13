@@ -15,7 +15,7 @@ Rubric (1-5):
 4) Density/readability balance
 5) Navigation/pivots
 
-## Supervisor review — 2026-02-13
+## Supervisor review — 2026-02-13 (pass 2)
 
 Scope reviewed:
 - `git log --oneline -8`
@@ -26,16 +26,24 @@ Scope reviewed:
 - `reference/sites/INTERACTION_MODELS.md`
 
 Findings:
-- Last four commits stay in one clear track: **INDEX convergence** (`/agencies`, `/draft-selections`, `/agents`, `/players`).
-- Each commit is tied to an explicit explorer flow (lookup/filter scan + rightpanel drill-in continuity), not broad style churn.
-- Datastar response rules remain aligned: multi-region knob refreshes use one SSE response and patch canonical boundaries (`#maincanvas`, `#rightpanel-base`, `#rightpanel-overlay`) with explicit overlay preserve/clear semantics.
+- Last four commits are flow-scoped and surface-scoped:
+  - **[INDEX]** `/drafts` overlay preservation under view/year/team/round knob changes.
+  - **[INDEX]** `/transactions` overlay preservation under daterange/team/type knob changes.
+  - **[TOOL]** `/tools/team-summary` commandbar converted to one-request SSE refresh flow.
+  - **[TOOL]** `/tools/two-way-utility` selected-player overlay preservation under risk/team/conference lens changes.
+- Work remains meaningful UX/design evolution (interaction hierarchy + state continuity), not cosmetic class churn.
+- Datastar contracts remain correct: multi-region interactions patch canonical boundaries (`#maincanvas`, `#rightpanel-base`, `#rightpanel-overlay`) in one ordered SSE response with explicit preserve/clear semantics.
 - No forbidden Salary Book files were touched.
-- `.ralph/DESIGN.md` has before/after rubric scoring evidence for each completed item.
+- `.ralph/DESIGN.md` contains before/after rubric evidence for completed items.
+
+Drift check:
+- No drift requiring revert.
+- Minor coordination risk detected: recent work alternates INDEX and TOOL tracks across consecutive commits. Keep each next loop constrained to one explicit track.
 
 Next-loop guardrails (tightened):
-- Keep the next task to **one surface + one user flow** (recommended: `/teams` overlay-preservation flow already in backlog).
-- Avoid shared partial rewrites unless directly required by that flow; prefer page-local changes.
-- Preserve the canonical workbench shell (`commandbar + maincanvas + rightpanel-base + rightpanel-overlay`) and one-request SSE updates for multi-region interactions.
+- Pick **one surface + one user flow + one track** per loop (recommended next: `/tools/system-values` baseline-delta extension in Minimum Salary + Rookie Scale sections).
+- Avoid shared partial rewrites unless directly required by that selected flow; prefer page-local changes.
+- Preserve canonical workbench shell (`commandbar + maincanvas + rightpanel-base + rightpanel-overlay`) and one-request SSE updates for multi-region interactions.
 
 ## Backlog
 

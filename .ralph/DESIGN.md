@@ -87,27 +87,25 @@ Audit note (2026-02-14) — completed [P2] [TOOL] Tool overlay behavior parity (
 - Follow-up discovered:
   - Consider extracting a small shared keyboard utility for overlay-close + finder-shortcut guards to reduce duplicated inline keydown expressions across tool shells.
 
-- [ ] [P1] [ENTITY] teams/show — convert roster + cap horizon table islands into dossier lane flow
-  - Problem: `teams/show` still relies on legacy table-heavy blocks for roster accounting and cap horizon, which breaks lane-style dossier continuity and slows scan-to-pivot decision flow.
-  - Hypothesis: Recasting roster/cap horizon into lane-native dense rows with explicit pivots will align this dossier with upgraded entity/tool grammar and reduce context switching.
-  - Scope (files):
-    - `web/app/views/entities/teams/_roster_breakdown.html.erb`
-    - `web/app/views/entities/teams/_section_roster.html.erb`
-    - `web/app/views/entities/teams/_cap_horizon_table.html.erb`
-    - `web/app/views/entities/teams/_section_cap_horizon.html.erb`
-  - Acceptance criteria:
-    - Roster and cap-horizon sections use lane-native, scannable row treatment with clear primary/secondary hierarchy.
-    - Standard/two-way/accounting buckets remain numerically complete and preserve canonical player/team/agent pivots.
-    - Cap horizon keeps multi-year fidelity while surfacing current-year pressure posture with concise chips.
-    - `/teams/:slug` and `/teams/:slug/sse/bootstrap` continue to patch/morph cleanly by section ids.
-  - Rubric (before → target):
-    - Scan speed: 2 → 4
-    - Information hierarchy: 3 → 5
-    - Interaction predictability: 3 → 4
-    - Density/readability: 2 → 4
-    - Navigation/pivots: 4 → 4
-  - Guardrails:
-    - No Salary Book edits outside the Tankathon allow-list.
+Audit note (2026-02-14) — completed [P1] [ENTITY] teams/show roster + cap horizon dossier lanes
+- What changed (files):
+  - `web/app/views/entities/teams/_roster_breakdown.html.erb`
+  - `web/app/views/entities/teams/_section_roster.html.erb`
+  - `web/app/views/entities/teams/_cap_horizon_table.html.erb`
+  - `web/test/integration/entities_teams_show_test.rb`
+- Why this improves flow:
+  - Replaced roster/cap horizon table islands with lane-native row treatment (`entity-cell-two-line`, dense identity rows, chip-based status) so scan and pivots are consistent with other upgraded dossier sections.
+  - Standard + two-way + accounting buckets now stay numerically complete while keeping canonical player/agent/team pivots visible in-row.
+  - Cap horizon now foregrounds current-year pressure posture and keeps full multi-year fidelity in compact lanes, with direct jump links to constraints/activity context.
+  - Added bootstrap integration assertions to lock the no-table lane rendering and section-id morph stability for roster + cap horizon.
+- Rubric (before → after):
+  - Scan speed: 2 → 4
+  - Information hierarchy: 3 → 5
+  - Interaction predictability: 3 → 4
+  - Density/readability: 2 → 4
+  - Navigation/pivots: 4 → 4
+- Follow-up discovered:
+  - Consider adding lightweight sort/lens toggles within roster accounting buckets (amount/type/expiry) once query-param restoration patterns are defined for entity detail sections.
 
 - [ ] [P1] [INDEX] drafts/index — make rightpanel provenance drill-ins lane-native + URL-restorable
   - Problem: Draft pick/selection overlays still present provenance in table islands and index boot does not restore overlay-open state from query params, reducing continuity in contested-pick review.

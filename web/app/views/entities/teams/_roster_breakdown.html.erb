@@ -1,127 +1,66 @@
 <%#
-  Roster Breakdown Table — PuckPedia-style roster with cap figures.
+  Roster breakdown as dossier lanes (no table islands).
 
   locals:
-  - roster: (Array) roster rows from salary_book_warehouse
+  - roster: (Array) salary book roster rows
   - cap_holds: (Array) cap hold rows
   - exceptions: (Array) exception rows
   - dead_money: (Array) dead money rows
+  - team_code: (String) optional team code for Salary Book pivot
 %>
 
 <% roster = Array(local_assigns[:roster]) %>
 <% cap_holds = Array(local_assigns[:cap_holds]) %>
 <% exceptions = Array(local_assigns[:exceptions]) %>
 <% dead_money = Array(local_assigns[:dead_money]) %>
+<% team_code = local_assigns[:team_code].to_s.upcase %>
 
 <% standard_players = roster.reject { |p| p["is_two_way"] } %>
 <% two_way_players = roster.select { |p| p["is_two_way"] } %>
 
-<section class="space-y-4">
-  <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Roster breakdown</h2>
+<% standard_cap_total = standard_players.sum { |p| p["cap_2025"].to_f } %>
+<% standard_total_contract = standard_players.sum { |p| p["total_salary_from_2025"].to_f } %>
+<% two_way_cap_total = two_way_players.sum { |p| p["cap_2025"].to_f } %>
+<% cap_hold_total = cap_holds.sum { |r| r["cap_2025"].to_f } %>
+<% exception_total = exceptions.sum { |r| r["remaining_2025"].to_f } %>
+<% dead_money_total = dead_money.sum { |r| r["cap_2025"].to_f } %>
 
-  <%# Standard contracts %>
-  <div class="rounded-lg border border-border overflow-hidden">
-    <div class="bg-muted/50 px-3 py-2 border-b border-border flex items-center justify-between">
-      <span class="text-sm font-medium">Standard contracts</span>
-      <span class="text-xs text-muted-foreground font-mono"><%= standard_players.size %>/15</span>
+<section class="space-y-3">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Roster breakdown</h2>
+
+    <div class="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground tabular-nums">
+      <span class="entity-chip entity-chip--muted">Std <%= standard_players.size %>/15</span>
+      <span class="entity-chip entity-chip--success">2W <%= two_way_players.size %>/3</span>
+      <% if team_code.match?(/\A[A-Z]{3}\z/) %>
+        <a href="/tools/salary-book?team=<%= team_code %>#<%= team_code %>" class="entity-chip entity-chip--accent hover:underline">Open in Salary Book</a>
+      <% end %>
     </div>
-    <% if standard_players.empty? %>
-      <div class="p-4 text-sm text-muted-foreground italic">No standard contracts.</div>
-    <% else %>
-      <div class="overflow-x-auto">
-        <table class="entity-table min-w-full text-xs">
-          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-            <tr>
-              <th class="text-left px-3 py-2 font-medium w-48">Player</th>
-              <th class="text-left px-3 py-2 font-medium w-40">Agent</th>
-              <th class="text-right px-3 py-2 font-medium">2025 Cap</th>
-              <th class="text-right px-3 py-2 font-medium">Total</th>
-              <th class="text-left px-3 py-2 font-medium">Notes</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <% standard_players.each do |p| %>
-              <tr class="group hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                <td class="px-3 py-2">
-                  <div class="grid grid-cols-[28px_1fr] grid-rows-[20px_14px] min-h-[34px]">
-                    <div class="row-span-2 flex items-center justify-start">
-                      <div class="w-6 h-6 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
-                        <img
-                          src="<%= player_headshot_url(p['player_id']) %>"
-                          alt="<%= p['player_name'] %>"
-                          class="w-full h-full object-cover object-top"
-                          loading="lazy"
-                          decoding="async"
-                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                        />
-                        <span class="hidden text-[9px] font-semibold text-muted-foreground">NBA</span>
-                      </div>
-                    </div>
-
-                    <div class="h-[20px] flex items-end min-w-0 pl-1 pr-1 text-[13px]">
-                      <a href="<%= player_href(p['player_id']) %>" class="font-medium truncate hover:underline group-hover:text-primary"><%= p["player_name"] %></a>
-                    </div>
-                    <div class="h-[14px] -mt-px flex items-start min-w-0 pl-1 pr-1 text-[10px] text-muted-foreground/80 font-mono tabular-nums">id: <%= p["player_id"] %></div>
-                  </div>
-                </td>
-                <td class="px-3 py-2">
-                  <% if p["agent_id"].present? && p["agent_name"].present? %>
-                    <a href="<%= agent_href(p['agent_id']) %>" class="text-muted-foreground hover:underline hover:text-foreground truncate block max-w-[140px]"><%= p["agent_name"] %></a>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(p["cap_2025"]) %></td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums font-medium"><%= format_salary(p["total_salary_from_2025"]) %></td>
-                <td class="px-3 py-2 text-muted-foreground">
-                  <div class="flex gap-1">
-                    <% if p["is_min_contract"] %><span class="entity-chip entity-chip--muted">MIN</span><% end %>
-                    <% if p["is_trade_restricted_now"] %><span class="entity-chip entity-chip--warning">RESTRICTED</span><% end %>
-                  </div>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-          <tfoot class="bg-muted/20">
-            <tr>
-              <td class="px-3 py-2 font-medium">Total (<%= standard_players.size %>)</td>
-              <td></td>
-              <td class="px-3 py-2 text-right font-mono tabular-nums font-medium"><%= format_salary(standard_players.sum { |p| p["cap_2025"].to_f }) %></td>
-              <td class="px-3 py-2 text-right font-mono tabular-nums font-medium"><%= format_salary(standard_players.sum { |p| p["total_salary_from_2025"].to_f }) %></td>
-              <td></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    <% end %>
   </div>
 
-  <%# Two-way contracts %>
-  <% if two_way_players.any? %>
-    <div class="rounded-lg border border-border overflow-hidden">
-      <div class="bg-emerald-50/50 dark:bg-emerald-900/10 px-3 py-2 border-b border-border flex items-center justify-between">
-        <span class="text-sm font-medium">Two-way contracts</span>
-        <span class="text-xs text-muted-foreground font-mono"><%= two_way_players.size %>/3</span>
+  <div class="space-y-2">
+    <div class="rounded-lg border border-border bg-background">
+      <div class="px-3 py-2 border-b border-border bg-muted/30 flex flex-wrap items-center justify-between gap-2">
+        <div class="text-sm font-medium">Standard contract lane</div>
+        <div class="text-[11px] text-muted-foreground font-mono tabular-nums">
+          2025 <%= format_salary(standard_cap_total) %> · Total <%= format_salary(standard_total_contract) %>
+        </div>
       </div>
-      <div class="overflow-x-auto">
-        <table class="entity-table min-w-full text-xs">
-          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-            <tr>
-              <th class="text-left px-3 py-2 font-medium w-48">Player</th>
-              <th class="text-left px-3 py-2 font-medium w-40">Agent</th>
-              <th class="text-right px-3 py-2 font-medium">2025 Cap</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <% two_way_players.each do |p| %>
-              <tr class="group hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                <td class="px-3 py-2">
-                  <div class="grid grid-cols-[28px_1fr] grid-rows-[20px_14px] min-h-[34px]">
+
+      <% if standard_players.empty? %>
+        <div class="p-3 text-sm text-muted-foreground italic">No standard contracts.</div>
+      <% else %>
+        <div class="divide-y divide-border/60">
+          <% standard_players.each do |player| %>
+            <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+              <div class="flex flex-wrap items-start gap-3">
+                <div class="w-52 shrink-0">
+                  <div class="grid grid-cols-[34px_1fr] grid-rows-[24px_16px] min-h-[40px]">
                     <div class="row-span-2 flex items-center justify-start">
-                      <div class="w-6 h-6 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
+                      <div class="w-8 h-8 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
                         <img
-                          src="<%= player_headshot_url(p['player_id']) %>"
-                          alt="<%= p['player_name'] %>"
+                          src="<%= player_headshot_url(player['player_id']) %>"
+                          alt="<%= player['player_name'] %>"
                           class="w-full h-full object-cover object-top"
                           loading="lazy"
                           decoding="async"
@@ -131,124 +70,250 @@
                       </div>
                     </div>
 
-                    <div class="h-[20px] flex items-end min-w-0 pl-1 pr-1 text-[13px]">
-                      <a href="<%= player_href(p['player_id']) %>" class="font-medium truncate hover:underline group-hover:text-primary"><%= p["player_name"] %></a>
+                    <div class="h-[24px] flex items-end min-w-0 pl-2">
+                      <a href="<%= player_href(player['player_id']) %>" class="truncate font-medium text-[14px] group-hover:text-primary transition-colors hover:underline"><%= player["player_name"] %></a>
                     </div>
-                    <div class="h-[14px] -mt-px flex items-start min-w-0 pl-1 pr-1 text-[10px] text-muted-foreground/80">
-                      <span class="entity-chip entity-chip--success">2W</span>
+
+                    <div class="h-[16px] -mt-px flex items-start gap-1.5 min-w-0 pl-2 text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden whitespace-nowrap">
+                      <span>ID <%= player["player_id"] %></span>
+                      <% if player["is_min_contract"] %>
+                        <span class="entity-chip entity-chip--muted">MIN</span>
+                      <% end %>
+                      <% if player["is_trade_restricted_now"] %>
+                        <span class="entity-chip entity-chip--warning">Restricted</span>
+                      <% end %>
                     </div>
                   </div>
-                </td>
-                <td class="px-3 py-2">
-                  <% if p["agent_id"].present? && p["agent_name"].present? %>
-                    <a href="<%= agent_href(p['agent_id']) %>" class="text-muted-foreground hover:underline hover:text-foreground truncate block max-w-[140px]"><%= p["agent_name"] %></a>
-                  <% else %>
-                    <span class="text-muted-foreground">—</span>
-                  <% end %>
-                </td>
-                <td class="px-3 py-2 text-right font-mono tabular-nums text-muted-foreground"><%= format_salary(p["cap_2025"]) %></td>
-              </tr>
+                </div>
+
+                <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(player["cap_2025"]) %></div>
+                    <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= format_year_label(2025) %> cap</div>
+                  </div>
+
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(player["total_salary_from_2025"]) %></div>
+                    <div class="entity-cell-secondary justify-end font-mono tabular-nums">Total from 2025</div>
+                  </div>
+
+                  <div class="entity-cell-two-line xl:col-span-2">
+                    <div class="entity-cell-primary gap-1.5 flex-wrap">
+                      <% if player["agent_id"].present? && player["agent_name"].present? %>
+                        <a href="<%= agent_href(player['agent_id']) %>" class="entity-chip entity-chip--accent hover:underline"><%= player["agent_name"] %></a>
+                      <% elsif player["agent_name"].present? %>
+                        <span class="entity-chip entity-chip--muted"><%= player["agent_name"] %></span>
+                      <% else %>
+                        <span class="entity-chip entity-chip--muted">No agent listed</span>
+                      <% end %>
+                    </div>
+                    <div class="entity-cell-secondary">
+                      <a href="<%= player_href(player['player_id']) %>" class="hover:underline">Open player dossier</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="rounded-lg border border-border bg-background">
+      <div class="px-3 py-2 border-b border-border bg-emerald-50/40 dark:bg-emerald-900/10 flex flex-wrap items-center justify-between gap-2">
+        <div class="text-sm font-medium">Two-way lane</div>
+        <div class="text-[11px] text-muted-foreground font-mono tabular-nums">
+          <%= two_way_players.size %>/3 · <%= format_year_label(2025) %> <%= format_salary(two_way_cap_total) %>
+        </div>
+      </div>
+
+      <% if two_way_players.empty? %>
+        <div class="p-3 text-sm text-muted-foreground italic">No two-way contracts.</div>
+      <% else %>
+        <div class="divide-y divide-border/60">
+          <% two_way_players.each do |player| %>
+            <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+              <div class="flex flex-wrap items-start gap-3">
+                <div class="w-52 shrink-0">
+                  <div class="grid grid-cols-[34px_1fr] grid-rows-[24px_16px] min-h-[40px]">
+                    <div class="row-span-2 flex items-center justify-start">
+                      <div class="w-8 h-8 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
+                        <img
+                          src="<%= player_headshot_url(player['player_id']) %>"
+                          alt="<%= player['player_name'] %>"
+                          class="w-full h-full object-cover object-top"
+                          loading="lazy"
+                          decoding="async"
+                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        />
+                        <span class="hidden text-[9px] font-semibold text-muted-foreground">NBA</span>
+                      </div>
+                    </div>
+
+                    <div class="h-[24px] flex items-end min-w-0 pl-2">
+                      <a href="<%= player_href(player['player_id']) %>" class="truncate font-medium text-[14px] group-hover:text-primary transition-colors hover:underline"><%= player["player_name"] %></a>
+                    </div>
+
+                    <div class="h-[16px] -mt-px flex items-start gap-1.5 min-w-0 pl-2 text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden whitespace-nowrap">
+                      <span class="entity-chip entity-chip--success">2W</span>
+                      <span>ID <%= player["player_id"] %></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(player["cap_2025"]) %></div>
+                    <div class="entity-cell-secondary justify-end font-mono tabular-nums"><%= format_year_label(2025) %> cap</div>
+                  </div>
+
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(player["total_salary_from_2025"]) %></div>
+                    <div class="entity-cell-secondary justify-end font-mono tabular-nums">Total from 2025</div>
+                  </div>
+
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary gap-1.5 flex-wrap justify-end">
+                      <% if player["agent_id"].present? && player["agent_name"].present? %>
+                        <a href="<%= agent_href(player['agent_id']) %>" class="entity-chip entity-chip--accent hover:underline"><%= player["agent_name"] %></a>
+                      <% elsif player["agent_name"].present? %>
+                        <span class="entity-chip entity-chip--muted"><%= player["agent_name"] %></span>
+                      <% else %>
+                        <span class="text-muted-foreground/70">No agent listed</span>
+                      <% end %>
+                    </div>
+                    <div class="entity-cell-secondary justify-end">
+                      <a href="#two-way" class="hover:underline">View two-way lane</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="space-y-2">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Accounting buckets</div>
+      <div class="text-[11px] text-muted-foreground tabular-nums">Cap holds <%= format_salary(cap_hold_total) %> · Exceptions <%= format_salary(exception_total) %> · Dead money <%= format_salary(dead_money_total) %></div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <section class="rounded-lg border border-border bg-background overflow-hidden">
+        <header class="px-3 py-2 border-b border-border bg-muted/30 flex items-center justify-between gap-2">
+          <h3 class="text-sm font-medium">Cap holds</h3>
+          <span class="text-[11px] text-muted-foreground font-mono tabular-nums"><%= cap_holds.size %> · <%= format_salary(cap_hold_total) %></span>
+        </header>
+
+        <% if cap_holds.empty? %>
+          <div class="p-3 text-sm text-muted-foreground italic">None</div>
+        <% else %>
+          <div class="max-h-80 overflow-y-auto divide-y divide-border/60">
+            <% cap_holds.each do |row| %>
+              <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <% if row["player_id"].present? %>
+                      <a href="<%= player_href(row['player_id']) %>" class="text-sm font-medium truncate block hover:underline"><%= row["player_name"].presence || "Player ##{row['player_id']}" %></a>
+                    <% else %>
+                      <span class="text-sm font-medium text-muted-foreground truncate block"><%= row["player_name"].presence || "Unknown player" %></span>
+                    <% end %>
+                    <div class="text-[10px] text-muted-foreground/80 uppercase tracking-wide"><%= row["amount_type_lk"].presence || "Cap hold" %></div>
+                  </div>
+
+                  <div class="text-right shrink-0">
+                    <div class="font-mono tabular-nums text-sm"><%= format_salary(row["cap_2025"]) %></div>
+                    <div class="text-[10px] text-muted-foreground"><%= format_year_label(2025) %></div>
+                  </div>
+                </div>
+              </article>
             <% end %>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  <% end %>
+          </div>
+        <% end %>
+      </section>
 
-  <%# Accounting buckets (compact grid) %>
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
-    <%# Cap holds %>
-    <div class="rounded-lg border border-border bg-background overflow-hidden">
-      <div class="bg-muted/40 px-3 py-2 border-b border-border flex items-center justify-between">
-        <span class="text-sm font-medium">Cap holds</span>
-        <span class="text-xs text-muted-foreground font-mono"><%= cap_holds.size %></span>
-      </div>
-      <% if cap_holds.empty? %>
-        <div class="p-3 text-sm text-muted-foreground italic">None</div>
-      <% else %>
-        <div class="max-h-48 overflow-y-auto">
-          <table class="entity-table min-w-full text-xs">
-            <tbody class="divide-y divide-border/60">
-              <% cap_holds.first(8).each do |r| %>
-                <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                  <td class="px-3 py-1.5">
-                    <% if r["player_id"].present? %>
-                      <a href="<%= player_href(r['player_id']) %>" class="hover:underline truncate block max-w-[120px]"><%= r["player_name"] %></a>
+      <section class="rounded-lg border border-border bg-background overflow-hidden">
+        <header class="px-3 py-2 border-b border-border bg-muted/30 flex items-center justify-between gap-2">
+          <h3 class="text-sm font-medium">Exceptions</h3>
+          <span class="text-[11px] text-muted-foreground font-mono tabular-nums"><%= exceptions.size %> · <%= format_salary(exception_total) %></span>
+        </header>
+
+        <% if exceptions.empty? %>
+          <div class="p-3 text-sm text-muted-foreground italic">None</div>
+        <% else %>
+          <div class="max-h-80 overflow-y-auto divide-y divide-border/60">
+            <% exceptions.each do |row| %>
+              <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="text-sm font-medium truncate"><%= exception_label(row) %></div>
+                    <div class="text-[10px] text-muted-foreground/80 uppercase tracking-wide flex flex-wrap items-center gap-1.5">
+                      <% if row["expiration_date"].present? %>
+                        <span>Expires <%= format_plain_date(row["expiration_date"]) %></span>
+                      <% else %>
+                        <span>No expiry date</span>
+                      <% end %>
+
+                      <% if row["trade_exception_player_id"].present? %>
+                        <a href="<%= player_href(row['trade_exception_player_id']) %>" class="entity-chip entity-chip--accent hover:underline">Linked player</a>
+                      <% elsif row["trade_exception_player_name"].present? %>
+                        <span class="entity-chip entity-chip--muted"><%= row["trade_exception_player_name"] %></span>
+                      <% end %>
+                    </div>
+                  </div>
+
+                  <div class="text-right shrink-0">
+                    <div class="font-mono tabular-nums text-sm"><%= format_salary(row["remaining_2025"]) %></div>
+                    <div class="text-[10px] text-muted-foreground">Remaining <%= format_year_label(2025) %></div>
+                  </div>
+                </div>
+              </article>
+            <% end %>
+          </div>
+        <% end %>
+      </section>
+
+      <section class="rounded-lg border border-border bg-background overflow-hidden">
+        <header class="px-3 py-2 border-b border-border bg-muted/30 flex items-center justify-between gap-2">
+          <h3 class="text-sm font-medium">Dead money</h3>
+          <span class="text-[11px] text-muted-foreground font-mono tabular-nums"><%= dead_money.size %> · <%= format_salary(dead_money_total) %></span>
+        </header>
+
+        <% if dead_money.empty? %>
+          <div class="p-3 text-sm text-muted-foreground italic">None</div>
+        <% else %>
+          <div class="max-h-80 overflow-y-auto divide-y divide-border/60">
+            <% dead_money.each do |row| %>
+              <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <% if row["player_id"].present? %>
+                      <a href="<%= player_href(row['player_id']) %>" class="text-sm font-medium truncate block hover:underline"><%= row["player_name"].presence || "Player ##{row['player_id']}" %></a>
                     <% else %>
-                      <span class="text-muted-foreground truncate block max-w-[120px]"><%= r["player_name"] || "—" %></span>
+                      <span class="text-sm font-medium text-muted-foreground truncate block"><%= row["player_name"].presence || "Unknown player" %></span>
                     <% end %>
-                  </td>
-                  <td class="px-3 py-1.5 text-right font-mono tabular-nums"><%= format_salary(r["cap_2025"]) %></td>
-                </tr>
-              <% end %>
-              <% if cap_holds.size > 8 %>
-                <tr><td colspan="2" class="px-3 py-1 text-xs text-muted-foreground italic">…and <%= cap_holds.size - 8 %> more</td></tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      <% end %>
-    </div>
+                    <div class="text-[10px] text-muted-foreground/80 uppercase tracking-wide">
+                      <% if row["waive_date"].present? %>
+                        Waived <%= format_plain_date(row["waive_date"]) %>
+                      <% else %>
+                        Waiver date unavailable
+                      <% end %>
+                    </div>
+                  </div>
 
-    <%# Exceptions %>
-    <div class="rounded-lg border border-border bg-background overflow-hidden">
-      <div class="bg-muted/40 px-3 py-2 border-b border-border flex items-center justify-between">
-        <span class="text-sm font-medium">Exceptions</span>
-        <span class="text-xs text-muted-foreground font-mono"><%= exceptions.size %></span>
-      </div>
-      <% if exceptions.empty? %>
-        <div class="p-3 text-sm text-muted-foreground italic">None</div>
-      <% else %>
-        <div class="max-h-48 overflow-y-auto">
-          <table class="entity-table min-w-full text-xs">
-            <tbody class="divide-y divide-border/60">
-              <% exceptions.first(8).each do |r| %>
-                <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                  <td class="px-3 py-1.5 truncate max-w-[120px]"><%= exception_label(r) %></td>
-                  <td class="px-3 py-1.5 text-right font-mono tabular-nums"><%= format_salary(r["remaining_2025"]) %></td>
-                  <td class="px-3 py-1.5 text-xs text-muted-foreground font-mono tabular-nums"><%= format_plain_date(r["expiration_date"]) %></td>
-                </tr>
-              <% end %>
-              <% if exceptions.size > 8 %>
-                <tr><td colspan="3" class="px-3 py-1 text-xs text-muted-foreground italic">…and <%= exceptions.size - 8 %> more</td></tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      <% end %>
-    </div>
-
-    <%# Dead money %>
-    <div class="rounded-lg border border-border bg-background overflow-hidden">
-      <div class="bg-muted/40 px-3 py-2 border-b border-border flex items-center justify-between">
-        <span class="text-sm font-medium">Dead money</span>
-        <span class="text-xs text-muted-foreground font-mono"><%= dead_money.size %></span>
-      </div>
-      <% if dead_money.empty? %>
-        <div class="p-3 text-sm text-muted-foreground italic">None</div>
-      <% else %>
-        <div class="max-h-48 overflow-y-auto">
-          <table class="entity-table min-w-full text-xs">
-            <tbody class="divide-y divide-border/60">
-              <% dead_money.first(8).each do |r| %>
-                <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-                  <td class="px-3 py-1.5">
-                    <% if r["player_id"].present? %>
-                      <a href="<%= player_href(r['player_id']) %>" class="hover:underline truncate block max-w-[120px]"><%= r["player_name"] %></a>
-                    <% else %>
-                      <span class="text-muted-foreground truncate block max-w-[120px]"><%= r["player_name"] || "—" %></span>
-                    <% end %>
-                  </td>
-                  <td class="px-3 py-1.5 text-right font-mono tabular-nums"><%= format_salary(r["cap_2025"]) %></td>
-                </tr>
-              <% end %>
-              <% if dead_money.size > 8 %>
-                <tr><td colspan="2" class="px-3 py-1 text-xs text-muted-foreground italic">…and <%= dead_money.size - 8 %> more</td></tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      <% end %>
+                  <div class="text-right shrink-0">
+                    <div class="font-mono tabular-nums text-sm"><%= format_salary(row["cap_2025"]) %></div>
+                    <div class="text-[10px] text-muted-foreground"><%= format_year_label(2025) %> hit</div>
+                  </div>
+                </div>
+              </article>
+            <% end %>
+          </div>
+        <% end %>
+      </section>
     </div>
   </div>
 </section>

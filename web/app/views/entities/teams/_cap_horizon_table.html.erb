@@ -1,67 +1,165 @@
 <%#
-  Cap Horizon Table — multi-year cap totals + thresholds.
+  Cap horizon as dossier lanes (no table island).
 
   locals:
   - team_salary_rows: (Array) rows from team_salary_warehouse (2025-2031)
 %>
 
-<% rows = Array(local_assigns[:team_salary_rows]) %>
+<% rows = Array(local_assigns[:team_salary_rows]).sort_by { |row| row["salary_year"].to_i } %>
+<% current_row = rows.find { |row| row["salary_year"].to_i == 2025 } || rows.first %>
+
+<%
+  pressure_chip = lambda do |row|
+    room_a2 = row["room_under_apron2"]
+    room_a1 = row["room_under_apron1"]
+    room_tax = row["room_under_tax"]
+
+    if room_a2.present? && room_a2.to_f < 0
+      ["Over Apron 2", "entity-chip entity-chip--danger"]
+    elsif room_a1.present? && room_a1.to_f < 0
+      ["Over Apron 1", "entity-chip entity-chip--danger"]
+    elsif room_tax.present? && room_tax.to_f < 0
+      ["Over tax", "entity-chip entity-chip--warning"]
+    elsif row["salary_cap_amount"].present? && (row["salary_cap_amount"].to_f - (row["cap_total_hold"] || row["cap_total"]).to_f) < 0
+      ["Over cap", "entity-chip entity-chip--muted"]
+    else
+      ["Under cap", "entity-chip entity-chip--success"]
+    end
+  end
+%>
 
 <section class="space-y-3">
-  <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cap horizon (2025–2031)</h2>
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cap horizon (2025–2031)</h2>
+    <div class="text-[11px] text-muted-foreground tabular-nums"><%= rows.size %> seasons loaded</div>
+  </div>
 
   <% if rows.empty? %>
     <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No team salary rows found.</div>
   <% else %>
-    <div class="overflow-x-auto rounded-lg border border-border">
-      <table class="entity-table min-w-full text-xs">
-        <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-          <tr>
-            <th class="text-left px-3 py-2 font-medium">Year</th>
-            <th class="text-right px-3 py-2 font-medium">Cap total</th>
-            <th class="text-right px-3 py-2 font-medium">Tax room</th>
-            <th class="text-right px-3 py-2 font-medium">A1 room</th>
-            <th class="text-right px-3 py-2 font-medium">A2 room</th>
-            <th class="text-right px-3 py-2 font-medium">Luxury tax</th>
-            <th class="text-left px-3 py-2 font-medium">Status</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-border">
-          <% rows.each do |r| %>
-            <% is_current = r["salary_year"].to_i == 2025 %>
-            <tr class="<%= is_current ? 'bg-primary/5 font-medium' : '' %> hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75">
-              <td class="px-3 py-2 font-mono tabular-nums">
-                <%= r["salary_year"] %>
-                <% if is_current %><span class="ml-1 text-[10px] text-primary">(current)</span><% end %>
-              </td>
-              <td class="px-3 py-2 text-right font-mono tabular-nums"><%= format_salary(r["cap_total_hold"] || r["cap_total"]) %></td>
-              <td class="px-3 py-2 text-right font-mono tabular-nums <%= room_amount_color(r['room_under_tax']) %>"><%= format_room_amount(r["room_under_tax"]) %></td>
-              <td class="px-3 py-2 text-right font-mono tabular-nums <%= room_amount_color(r['room_under_apron1']) %>"><%= format_room_amount(r["room_under_apron1"]) %></td>
-              <td class="px-3 py-2 text-right font-mono tabular-nums <%= room_amount_color(r['room_under_apron2']) %>"><%= format_room_amount(r["room_under_apron2"]) %></td>
-              <td class="px-3 py-2 text-right font-mono tabular-nums">
-                <% lux = r["luxury_tax_owed"] %>
-                <% if lux.present? && lux.to_f > 0 %>
-                  <span class="text-red-600 dark:text-red-400"><%= format_salary(lux) %></span>
-                <% else %>
-                  <span class="text-muted-foreground">—</span>
-                <% end %>
-              </td>
-              <td class="px-3 py-2 text-xs">
-                <div class="flex flex-wrap gap-1">
-                  <% if r["is_repeater_taxpayer"] %>
-                    <span class="entity-chip entity-chip--danger">repeater</span>
-                  <% elsif r["is_taxpayer"] %>
-                    <span class="entity-chip entity-chip--warning">taxpayer</span>
-                  <% end %>
-                  <% if r["apron_level_lk"].present? && r["apron_level_lk"] != "NONE" %>
-                    <span class="entity-chip entity-chip--muted"><%= r["apron_level_lk"] %></span>
+    <% current_pressure_label, current_pressure_class = pressure_chip.call(current_row) %>
+
+    <article class="rounded-lg border border-border bg-muted/20 px-3 py-3 space-y-2">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Current-year pressure posture</div>
+          <div class="text-sm font-medium"><%= current_row["salary_year"] %> lane</div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span class="<%= current_pressure_class %>"><%= current_pressure_label %></span>
+          <% if current_row["is_repeater_taxpayer"] %>
+            <span class="entity-chip entity-chip--danger">Repeater</span>
+          <% elsif current_row["is_taxpayer"] %>
+            <span class="entity-chip entity-chip--warning">Taxpayer</span>
+          <% else %>
+            <span class="entity-chip entity-chip--success">Under tax</span>
+          <% end %>
+          <% if current_row["apron_level_lk"].present? && current_row["apron_level_lk"] != "NONE" %>
+            <span class="entity-chip entity-chip--muted"><%= current_row["apron_level_lk"] %></span>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+        <div class="entity-cell-two-line">
+          <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(current_row["cap_total_hold"] || current_row["cap_total"]) %></div>
+          <div class="entity-cell-secondary justify-end font-mono tabular-nums">Cap total</div>
+        </div>
+
+        <div class="entity-cell-two-line">
+          <div class="entity-cell-primary justify-end font-mono tabular-nums <%= room_amount_color(current_row['room_under_tax']) %>"><%= format_room_amount(current_row["room_under_tax"]) %></div>
+          <div class="entity-cell-secondary justify-end font-mono tabular-nums">Tax room</div>
+        </div>
+
+        <div class="entity-cell-two-line">
+          <div class="entity-cell-primary justify-end font-mono tabular-nums <%= room_amount_color(current_row['room_under_apron1']) %>"><%= format_room_amount(current_row["room_under_apron1"]) %></div>
+          <div class="entity-cell-secondary justify-end font-mono tabular-nums">A1 room</div>
+        </div>
+
+        <div class="entity-cell-two-line">
+          <div class="entity-cell-primary justify-end font-mono tabular-nums <%= room_amount_color(current_row['room_under_apron2']) %>"><%= format_room_amount(current_row["room_under_apron2"]) %></div>
+          <div class="entity-cell-secondary justify-end font-mono tabular-nums">A2 room</div>
+        </div>
+
+        <div class="entity-cell-two-line">
+          <div class="entity-cell-primary justify-end font-mono tabular-nums <%= current_row['luxury_tax_owed'].to_f > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground' %>"><%= current_row["luxury_tax_owed"].to_f > 0 ? format_salary(current_row["luxury_tax_owed"]) : "—" %></div>
+          <div class="entity-cell-secondary justify-end font-mono tabular-nums">Luxury tax</div>
+        </div>
+      </div>
+    </article>
+
+    <div class="rounded-lg border border-border divide-y divide-border/60 bg-background">
+      <% rows.each do |row| %>
+        <% year = row["salary_year"].to_i %>
+        <% is_current = year == 2025 %>
+        <% pressure_label, pressure_class = pressure_chip.call(row) %>
+
+        <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 <%= is_current ? 'bg-primary/5' : '' %>">
+          <div class="flex flex-wrap items-start gap-3">
+            <div class="w-40 shrink-0">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary font-mono tabular-nums gap-1.5">
+                  <span><%= year %></span>
+                  <% if is_current %>
+                    <span class="entity-chip entity-chip--accent">Current</span>
                   <% end %>
                 </div>
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
+                <div class="entity-cell-secondary">
+                  <span class="<%= pressure_class %>"><%= pressure_label %></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(row["cap_total_hold"] || row["cap_total"]) %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums">Cap total</div>
+              </div>
+
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums <%= room_amount_color(row['room_under_tax']) %>"><%= format_room_amount(row["room_under_tax"]) %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums">Tax room</div>
+              </div>
+
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums <%= room_amount_color(row['room_under_apron1']) %>"><%= format_room_amount(row["room_under_apron1"]) %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums">A1 room</div>
+              </div>
+
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums <%= room_amount_color(row['room_under_apron2']) %>"><%= format_room_amount(row["room_under_apron2"]) %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums">A2 room</div>
+              </div>
+
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums <%= row['luxury_tax_owed'].to_f > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground' %>"><%= row["luxury_tax_owed"].to_f > 0 ? format_salary(row["luxury_tax_owed"]) : "—" %></div>
+                <div class="entity-cell-secondary justify-end font-mono tabular-nums">Luxury tax</div>
+              </div>
+
+              <div class="entity-cell-two-line xl:col-span-1">
+                <div class="entity-cell-primary gap-1.5 flex-wrap justify-end">
+                  <% if row["is_repeater_taxpayer"] %>
+                    <span class="entity-chip entity-chip--danger">Repeater</span>
+                  <% elsif row["is_taxpayer"] %>
+                    <span class="entity-chip entity-chip--warning">Taxpayer</span>
+                  <% else %>
+                    <span class="entity-chip entity-chip--success">Under tax</span>
+                  <% end %>
+
+                  <% if row["apron_level_lk"].present? && row["apron_level_lk"] != "NONE" %>
+                    <span class="entity-chip entity-chip--muted"><%= row["apron_level_lk"] %></span>
+                  <% end %>
+                </div>
+                <div class="entity-cell-secondary justify-end gap-2">
+                  <a href="#constraints" class="hover:underline">Constraints</a>
+                  <a href="#activity" class="hover:underline">Activity</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      <% end %>
     </div>
   <% end %>
 </section>

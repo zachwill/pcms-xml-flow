@@ -56,6 +56,35 @@ class EntitiesTeamsShowTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "team bootstrap renders roster and cap horizon as dossier lanes" do
+    with_stubbed_team_workspace_data do
+      get "/teams/por/sse/bootstrap", headers: modern_headers
+
+      assert_response :success
+
+      roster = section_fragment(response.body, "roster")
+      cap_horizon = section_fragment(response.body, "cap-horizon")
+
+      assert roster.present?
+      assert cap_horizon.present?
+
+      assert_no_match(/<table/i, roster)
+      assert_no_match(/<table/i, cap_horizon)
+
+      assert_includes roster, "Standard contract lane"
+      assert_includes roster, "Two-way lane"
+      assert_includes roster, "Accounting buckets"
+      assert_match(%r{href="/players/301"}, roster)
+      assert_match(%r{href="/agents/401"}, roster)
+      assert_match(%r{href="/tools/salary-book\?team=POR#POR"}, roster)
+
+      assert_includes cap_horizon, "Current-year pressure posture"
+      assert_includes cap_horizon, "Over Apron 1"
+      assert_includes cap_horizon, "Constraints"
+      assert_includes cap_horizon, "Activity"
+    end
+  end
+
   private
 
   def section_fragment(body, section_id)
@@ -128,10 +157,60 @@ class EntitiesTeamsShowTest < ActionDispatch::IntegrationTest
           }
         ]
 
-        @roster = []
-        @cap_holds = []
-        @exceptions = []
-        @dead_money = []
+        @roster = [
+          {
+            "player_id" => 301,
+            "player_name" => "Lane Starter",
+            "agent_id" => 401,
+            "agent_name" => "Case Agent",
+            "is_two_way" => false,
+            "is_min_contract" => false,
+            "is_trade_restricted_now" => true,
+            "cap_2025" => 18_500_000,
+            "total_salary_from_2025" => 57_000_000
+          },
+          {
+            "player_id" => 302,
+            "player_name" => "Depth Two-Way",
+            "agent_id" => 402,
+            "agent_name" => "Support Agent",
+            "is_two_way" => true,
+            "is_min_contract" => true,
+            "is_trade_restricted_now" => false,
+            "cap_2025" => 636_000,
+            "total_salary_from_2025" => 1_100_000
+          }
+        ]
+
+        @cap_holds = [
+          {
+            "player_id" => 303,
+            "player_name" => "Cap Hold Wing",
+            "amount_type_lk" => "BIRD",
+            "cap_2025" => 7_200_000
+          }
+        ]
+
+        @exceptions = [
+          {
+            "exception_type_lk" => "TMLE",
+            "exception_type_name" => "Taxpayer MLE",
+            "trade_exception_player_id" => 304,
+            "trade_exception_player_name" => "Linked Exception Guard",
+            "expiration_date" => "2026-07-01",
+            "remaining_2025" => 5_000_000
+          }
+        ]
+
+        @dead_money = [
+          {
+            "player_id" => 305,
+            "player_name" => "Stretched Veteran",
+            "waive_date" => "2025-09-01",
+            "cap_2025" => 2_250_000
+          }
+        ]
+
         @draft_assets = []
 
         @recent_ledger_entries = [

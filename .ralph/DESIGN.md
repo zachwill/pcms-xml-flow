@@ -46,26 +46,24 @@ Audit note (2026-02-14) — completed [P1] [INDEX] Entity navigation pivots (Dra
   - Consider migrating `entities/draft_selections/index` commandbar entity grid to the shared entity commandbar partial to remove duplicated nav markup.
 
 
-- [ ] [P2] [TOOL] Team Summary — add rapid team-find/jump flow in commandbar
-  - Problem: Team Summary currently relies on manual table scanning + scroll for team targeting, with no direct team intent input unlike other tool surfaces with quick-jump affordances.
-  - Hypothesis: A lightweight team-find/jump control (code/name intent) will speed compare setup and sidebar drill-in without reducing table density.
-  - Scope (files):
-    - `web/app/views/tools/team_summary/show.html.erb`
-    - `web/app/views/tools/team_summary/_workspace_main.html.erb`
-    - `web/app/controllers/tools/team_summary_controller.rb`
-    - `web/app/javascript/tools/team_summary.js`
-  - Acceptance criteria:
-    - Users can target a specific team from commandbar intent input and jump/open sidebar with minimal interaction.
-    - Jump behavior preserves existing compare pins and selected-team signal semantics.
-    - URL/state sync remains canonical and refresh/step/compare SSE flows keep patch boundaries intact.
-  - Rubric (before → target):
-    - Scan speed: 3 → 5
-    - Information hierarchy: 4 → 4
-    - Interaction predictability: 3 → 4
-    - Density/readability: 4 → 4
-    - Navigation/pivots: 3 → 4
-  - Guardrails:
-    - No Salary Book edits outside the Tankathon allow-list.
+Audit note (2026-02-14) — completed [P2] [TOOL] Team Summary commandbar team-find/jump
+- What changed (files):
+  - `web/app/views/tools/team_summary/show.html.erb`
+  - `web/app/views/tools/team_summary/_workspace_main.html.erb`
+  - `web/app/controllers/tools/team_summary_controller.rb`
+  - `web/test/integration/tools_team_summary_test.rb`
+- Why this improves flow:
+  - Added commandbar Team Finder (code/name intent + Cmd/Ctrl+K focus + Enter/Jump) so users can target/open a team sidebar directly without table scan/scroll.
+  - Team jump keeps compare slot state intact and writes through canonical `selectedteam` semantics.
+  - URL/query sync now carries `team_finder_query`, and refresh/sort/compare/sidebar flows preserve this state while keeping existing Datastar patch boundaries.
+- Rubric (before → after):
+  - Scan speed: 3 → 5
+  - Information hierarchy: 4 → 4
+  - Interaction predictability: 3 → 4
+  - Density/readability: 4 → 4
+  - Navigation/pivots: 3 → 4
+- Follow-up discovered:
+  - Consider upgrading Team Finder from datalist matching to ranked shortlist chips (+ arrow-key cursor) if team filters/lenses expand further.
 
 - [ ] [P2] [TOOL] Tool overlay behavior parity — unify keyboard close semantics across tools
   - Problem: Team Summary has explicit Escape-to-close behavior, while System Values and Two-Way Utility overlays rely on click-only close, creating inconsistent overlay control expectations.

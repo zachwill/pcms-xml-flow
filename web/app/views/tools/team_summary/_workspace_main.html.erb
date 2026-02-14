@@ -12,12 +12,13 @@
     "sort=#{ERB::Util.url_encode(@sort.to_s)}"
   ].join("&")
 
-  compare_signal_query_expr = "&selected=' + encodeURIComponent($selectedteam || '') + '&compare_a=' + encodeURIComponent($comparea || '') + '&compare_b=' + encodeURIComponent($compareb || '')"
+  compare_signal_query_expr = "&team_finder_query=' + encodeURIComponent($tsteamfinderquery || '') + '&selected=' + encodeURIComponent($selectedteam || '') + '&compare_a=' + encodeURIComponent($comparea || '') + '&compare_b=' + encodeURIComponent($compareb || '')"
 
   header_sort_state_query_expr = "'year=' + encodeURIComponent($tsyear) +
     '&conference=' + encodeURIComponent(($tsconferenceeast && $tsconferencewest) ? 'all' : ($tsconferenceeast ? 'Eastern' : ($tsconferencewest ? 'Western' : 'all'))) +
     '&pressure=' + encodeURIComponent($tspressure) +
     '&sort=' + encodeURIComponent(($tssortmetric === 'team' ? 'team_asc' : ($tssortmetric === 'tax_overage' ? ($tssortasc ? 'tax_overage_asc' : 'tax_overage_desc') : ($tssortasc ? 'cap_space_asc' : 'cap_space_desc')))) +
+    '&team_finder_query=' + encodeURIComponent($tsteamfinderquery || '') +
     '&selected=' + encodeURIComponent($selectedteam || '') +
     '&compare_a=' + encodeURIComponent($comparea || '') +
     '&compare_b=' + encodeURIComponent($compareb || '')"
@@ -129,8 +130,8 @@
           role="button"
           tabindex="0"
           data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $selectedteam === '<%= team_code %>', 'ring-1 ring-inset ring-indigo-500/50': $comparea === '<%= team_code %>' || $compareb === '<%= team_code %>' }"
-          data-on:click="$selectedteam = '<%= team_code %>'; @get('<%= sidebar_path %>?<%= sidebar_state_query %>&selected=<%= team_code %>&compare_a=' + encodeURIComponent($comparea || '') + '&compare_b=' + encodeURIComponent($compareb || ''))"
-          data-on:keydown="if ((evt.key === 'Enter' || evt.key === ' ') && !(evt.target && evt.target.closest('a,button,input,select,textarea'))) { evt.preventDefault(); $selectedteam = '<%= team_code %>'; @get('<%= sidebar_path %>?<%= sidebar_state_query %>&selected=<%= team_code %>&compare_a=' + encodeURIComponent($comparea || '') + '&compare_b=' + encodeURIComponent($compareb || '')); }"
+          data-on:click="$selectedteam = '<%= team_code %>'; @get('<%= sidebar_path %>?<%= sidebar_state_query %>&team_finder_query=' + encodeURIComponent($tsteamfinderquery || '') + '&selected=<%= team_code %>&compare_a=' + encodeURIComponent($comparea || '') + '&compare_b=' + encodeURIComponent($compareb || ''))"
+          data-on:keydown="if ((evt.key === 'Enter' || evt.key === ' ') && !(evt.target && evt.target.closest('a,button,input,select,textarea'))) { evt.preventDefault(); $selectedteam = '<%= team_code %>'; @get('<%= sidebar_path %>?<%= sidebar_state_query %>&team_finder_query=' + encodeURIComponent($tsteamfinderquery || '') + '&selected=<%= team_code %>&compare_a=' + encodeURIComponent($comparea || '') + '&compare_b=' + encodeURIComponent($compareb || '')); }"
         >
           <div
             class="w-52 shrink-0 pl-4 sticky left-0 z-20 relative bg-background transition-colors duration-75

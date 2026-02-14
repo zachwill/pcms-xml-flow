@@ -30,6 +30,7 @@ module Tools
       @compare_b_row = nil
       @selected_team_code = nil
       @selected_row = nil
+      @team_finder_query = ""
       @state_params = {
         year: @selected_year,
         conference: @conference,
@@ -163,6 +164,7 @@ module Tools
           tssortasc: sort_ascending_for(@sort),
           tsconferenceeast: @conference != "Western",
           tsconferencewest: @conference != "Eastern",
+          tsteamfinderquery: @team_finder_query.to_s,
           selectedteam: @selected_team_code.to_s,
           comparea: @compare_a_code.to_s,
           compareb: @compare_b_code.to_s
@@ -285,6 +287,10 @@ module Tools
       code.match?(/\A[A-Z]{3}\z/) ? code : nil
     end
 
+    def resolve_team_finder_query(value)
+      value.to_s.strip.tr("\u0000", "")[0, 80]
+    end
+
     def resolve_compare_action(value)
       normalized = value.to_s.strip
       return normalized if %w[pin clear_slot clear_all].include?(normalized)
@@ -338,6 +344,7 @@ module Tools
       @conference = resolve_conference_from_params
       @pressure = resolve_pressure(params[:pressure])
       @sort = resolve_sort_from_params
+      @team_finder_query = resolve_team_finder_query(params[:team_finder_query])
 
       @rows = fetch_team_summary_rows(
         year: @selected_year,
@@ -380,6 +387,7 @@ module Tools
         conference: @conference,
         pressure: @pressure,
         sort: @sort,
+        team_finder_query: @team_finder_query.presence,
         selected: @selected_team_code.presence,
         compare_a: @compare_a_code.presence,
         compare_b: @compare_b_code.presence
@@ -387,8 +395,11 @@ module Tools
     end
 
     def apply_compare_action!
-      action = resolve_compare_action(params[:action])
-      slot = resolve_compare_slot(params[:slot])
+      compare_action_param = params[:compare_action].presence || request.query_parameters["action"]
+      compare_slot_param = params[:compare_slot].presence || request.query_parameters["slot"]
+
+      action = resolve_compare_action(compare_action_param)
+      slot = resolve_compare_slot(compare_slot_param)
       team_code = resolve_team_code(params[:team_code])
 
       case action

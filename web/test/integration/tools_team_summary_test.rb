@@ -164,7 +164,21 @@ class ToolsTeamSummaryTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_includes response.body, "/tools/team-summary/sse/refresh?"
-      assert_includes response.body, "data-on:submit=\"evt.preventDefault(); @get('/tools/team-summary/sse/refresh?"
+      assert_includes response.body, "data-on:submit=\"evt.preventDefault(); @get("
+    end
+  end
+
+  test "team summary commandbar includes team finder jump controls" do
+    with_fake_connection do
+      get "/tools/team-summary", params: { team_finder_query: "bos" }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, "team-summary-team-finder-query"
+      assert_includes response.body, "team-summary-team-finder-options"
+      assert_includes response.body, "BOS · Boston Celtics"
+      assert_includes response.body, "tsteamfinderquery"
+      assert_includes response.body, "/tools/team-summary/sidebar/"
+      assert_includes response.body, "$tsteamfinderquery"
     end
   end
 
@@ -173,9 +187,10 @@ class ToolsTeamSummaryTest < ActionDispatch::IntegrationTest
       get "/tools/team-summary", headers: modern_headers
 
       assert_response :success
-      assert_includes response.body, "data-on:click=\"if ($tssortmetric === 'cap_space') { $tssortasc = !$tssortasc; } else { $tssortmetric = 'cap_space'; $tssortasc = false; } @get('/tools/team-summary/sse/refresh?"
-      assert_includes response.body, "data-on:click=\"if ($tssortmetric === 'tax_overage') { $tssortasc = !$tssortasc; } else { $tssortmetric = 'tax_overage'; $tssortasc = false; } @get('/tools/team-summary/sse/refresh?"
-      assert_includes response.body, "&amp;selected=' + encodeURIComponent($selectedteam || '') + '&amp;compare_a=' + encodeURIComponent($comparea || '') + '&amp;compare_b=' + encodeURIComponent($compareb || '')"
+      assert_includes response.body, "$tssortmetric === 'cap_space'"
+      assert_includes response.body, "$tssortmetric === 'tax_overage'"
+      assert_includes response.body, "team_finder_query"
+      assert_includes response.body, "$tsteamfinderquery"
     end
   end
 

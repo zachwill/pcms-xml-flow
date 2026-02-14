@@ -18,10 +18,25 @@
   conference_east_checked = @conference != "Western"
   conference_west_checked = @conference != "Eastern"
 
+  team_finder_options = @rows.each_with_object([]) do |row, acc|
+    code = row["team_code"].to_s.upcase
+    next unless code.match?(/\A[A-Z]{3}\z/)
+
+    acc << { code:, name: row["team_name"].to_s }
+  end.uniq { |option| option[:code] }
+
+  team_finder_lookup_json = team_finder_options.map do |option|
+    {
+      code: option[:code],
+      name: option[:name]
+    }
+  end.to_json
+
   state_query_expr = "'year=' + encodeURIComponent($tsyear) +
     '&conference=' + encodeURIComponent(($tsconferenceeast && $tsconferencewest) ? 'all' : ($tsconferenceeast ? 'Eastern' : ($tsconferencewest ? 'Western' : 'all'))) +
     '&pressure=' + encodeURIComponent($tspressure) +
     '&sort=' + encodeURIComponent(($tssortmetric === 'team' ? 'team_asc' : ($tssortmetric === 'tax_overage' ? ($tssortasc ? 'tax_overage_asc' : 'tax_overage_desc') : ($tssortasc ? 'cap_space_asc' : 'cap_space_desc')))) +
+    '&team_finder_query=' + encodeURIComponent($tsteamfinderquery || '') +
     '&selected=' + encodeURIComponent($selectedteam || '') +
     '&compare_a=' + encodeURIComponent($comparea || '') +
     '&compare_b=' + encodeURIComponent($compareb || '')"
@@ -30,7 +45,48 @@
   submit_refresh_expr = "evt.preventDefault(); #{refresh_expr}"
   sync_url_expr = "const nextUrl = '#{tools_team_summary_path}?' + (#{state_query_expr}); if ((window.location.pathname + window.location.search) !== nextUrl) { window.history.replaceState({}, '', nextUrl); }"
 
-  signals_literal = "{ tsyear: #{@selected_year.to_json}, tspressure: #{@pressure.to_json}, tssortmetric: #{sort_metric.to_json}, tssortasc: #{sort_ascending.to_json}, tsconferenceeast: #{conference_east_checked.to_json}, tsconferencewest: #{conference_west_checked.to_json}, selectedteam: #{@selected_team_code.to_s.to_json}, comparea: #{@compare_a_code.to_s.to_json}, compareb: #{@compare_b_code.to_s.to_json} }"
+  shortcut_focus_expr = "const isShortcut = (evt.metaKey || evt.ctrlKey) && !evt.shiftKey && !evt.altKey && String(evt.key || '').toLowerCase() === 'k'; if (!isShortcut) { return; } const finder = document.getElementById('team-summary-team-finder-query'); if (!finder) { return; } evt.preventDefault(); finder.focus(); finder.select();"
+
+  team_finder_jump_expr = <<~JS.squish
+    const rawQuery = String($tsteamfinderquery || '').trim();
+    if (!rawQuery) { return; }
+
+    const options = #{team_finder_lookup_json};
+    const queryUpper = rawQuery.toUpperCase();
+    const queryLower = rawQuery.toLowerCase();
+    const normalize = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const normalizedQuery = normalize(rawQuery);
+
+    let match = options.find((option) => option.code === queryUpper);
+
+    if (!match) {
+      match = options.find((option) => String(option.name || '').toLowerCase() === queryLower);
+    }
+
+    if (!match) {
+      match = options.find((option) => option.code.startsWith(queryUpper) || String(option.name || '').toLowerCase().startsWith(queryLower));
+    }
+
+    if (!match && normalizedQuery.length > 0) {
+      match = options.find((option) => normalize(option.name).includes(normalizedQuery));
+    }
+
+    if (!match) { return; }
+
+    const teamCode = String(match.code || '').toUpperCase();
+    if (!teamCode.match(/^[A-Z]{3}$/)) { return; }
+
+    $selectedteam = teamCode;
+    $tsteamfinderquery = teamCode;
+    @get('/tools/team-summary/sidebar/' + teamCode + '?' + (#{state_query_expr}));
+
+    const row = document.getElementById('team-summary-row-' + teamCode.toLowerCase());
+    if (row && row.scrollIntoView) {
+      row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  JS
+
+  signals_literal = "{ tsyear: #{@selected_year.to_json}, tspressure: #{@pressure.to_json}, tssortmetric: #{sort_metric.to_json}, tssortasc: #{sort_ascending.to_json}, tsconferenceeast: #{conference_east_checked.to_json}, tsconferencewest: #{conference_west_checked.to_json}, tsteamfinderquery: #{@team_finder_query.to_s.to_json}, selectedteam: #{@selected_team_code.to_s.to_json}, comparea: #{@compare_a_code.to_s.to_json}, compareb: #{@compare_b_code.to_s.to_json} }"
 %>
 
 <div
@@ -39,6 +95,7 @@
   style="height: 100dvh;"
   data-signals="<%= signals_literal %>"
   data-effect="<%= sync_url_expr %>"
+  data-on:keydown="<%= shortcut_focus_expr %>"
 >
   <div id="flash"></div>
 
@@ -180,6 +237,50 @@
             </label>
           </div>
         </div>
+      </div>
+
+      <div class="h-20 w-px bg-border self-center shrink-0 mx-1"></div>
+
+      <div class="min-w-[16rem] space-y-1">
+        <div class="flex items-center justify-between gap-2">
+          <label class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70" for="team-summary-team-finder-query">Team finder</label>
+          <span class="inline-flex items-center rounded border border-border/70 bg-background px-1.5 py-0.5 text-[9px] font-mono tabular-nums text-muted-foreground/80">Cmd/Ctrl+K</span>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <input
+            id="team-summary-team-finder-query"
+            type="search"
+            name="team_finder_query"
+            list="team-summary-team-finder-options"
+            placeholder="BOS or Celtics"
+            autocomplete="off"
+            class="h-7 w-44 rounded border border-border bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground/70"
+            value="<%= @team_finder_query %>"
+            data-bind="tsteamfinderquery"
+            data-on:keydown="if (evt.key === 'Enter') { evt.preventDefault(); <%= team_finder_jump_expr %>; }"
+          />
+
+          <button
+            type="button"
+            class="cursor-pointer h-7 px-2 rounded border border-border bg-muted/40 text-[11px] text-foreground hover:bg-muted transition-colors"
+            data-on:click="<%= team_finder_jump_expr %>"
+          >Jump</button>
+
+          <button
+            type="button"
+            class="cursor-pointer h-7 px-2 rounded border border-border bg-background text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            data-on:click="$tsteamfinderquery = ''"
+          >Clear</button>
+        </div>
+
+        <datalist id="team-summary-team-finder-options">
+          <% team_finder_options.each do |option| %>
+            <option value="<%= option[:code] %>"><%= option[:code] %> · <%= option[:name] %></option>
+          <% end %>
+        </datalist>
+
+        <div class="text-[10px] text-muted-foreground/70">Type code/name, then Enter to jump and open team sidebar.</div>
       </div>
     </form>
 

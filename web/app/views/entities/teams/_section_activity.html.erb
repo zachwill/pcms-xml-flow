@@ -29,6 +29,8 @@ end %>
         <a href="#two-way" class="normal-case tracking-normal hover:underline">Two-way follow-through</a>
         <span class="text-muted-foreground/50">·</span>
         <a href="#apron-provenance" class="normal-case tracking-normal hover:underline">Apron provenance</a>
+        <span class="text-muted-foreground/50">·</span>
+        <span class="normal-case tracking-normal text-foreground/80">Hover/focus Txn links to cross-highlight apron rows</span>
       </div>
 
       <% if ledger_preview.empty? %>
@@ -38,8 +40,13 @@ end %>
           <% ledger_preview.each do |r| %>
             <% event_label = [r["transaction_type_lk"], r["transaction_description_lk"]].compact.reject(&:blank?).join(" · ") %>
             <% player_name = r["player_name"].presence || "—" %>
+            <% transaction_id = r["transaction_id"].presence&.to_s %>
+            <% row_highlight_expr = transaction_id.present? ? "{ 'bg-amber-100/70 dark:bg-amber-900/25 ring-1 ring-amber-300/80 dark:ring-amber-700/60': $txhoverid !== '' && $txhoverid === '#{transaction_id}' }" : nil %>
 
-            <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+            <article
+              class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10"
+              <% if row_highlight_expr.present? %>data-class="<%= row_highlight_expr %>"<% end %>
+            >
               <div class="flex flex-wrap items-start gap-3">
                 <div class="w-44 shrink-0">
                   <div class="entity-cell-two-line">
@@ -61,8 +68,16 @@ end %>
                 <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
                   <div class="entity-cell-two-line">
                     <div class="entity-cell-primary gap-1.5 font-mono tabular-nums">
-                      <% if r["transaction_id"].present? %>
-                        <a href="<%= transaction_href(r['transaction_id']) %>" class="hover:underline">Txn #<%= r["transaction_id"] %></a>
+                      <% if transaction_id.present? %>
+                        <a
+                          href="<%= transaction_href(r['transaction_id']) %>"
+                          class="hover:underline transition-colors"
+                          data-on:mouseenter="$txhoverid = '<%= transaction_id %>'"
+                          data-on:mouseleave="if ($txhoverid === '<%= transaction_id %>') { $txhoverid = ''; }"
+                          data-on:focus="$txhoverid = '<%= transaction_id %>'"
+                          data-on:blur="if ($txhoverid === '<%= transaction_id %>') { $txhoverid = ''; }"
+                          data-class="{ 'text-amber-700 dark:text-amber-300 underline decoration-2 underline-offset-2': $txhoverid === '<%= transaction_id %>' }"
+                        >Txn #<%= transaction_id %></a>
                       <% else %>
                         <span class="text-muted-foreground/60">Txn —</span>
                       <% end %>
@@ -115,8 +130,13 @@ end %>
               <% action_label = [r["exception_action_lk"], r["transaction_type_lk"]].compact.reject(&:blank?).join(" · ") %>
               <% exception_label = r["exception_type_lk"].presence || "Exception" %>
               <% player_name = r["player_name"].presence || "—" %>
+              <% transaction_id = r["transaction_id"].presence&.to_s %>
+              <% row_highlight_expr = transaction_id.present? ? "{ 'bg-amber-100/70 dark:bg-amber-900/25 ring-1 ring-amber-300/80 dark:ring-amber-700/60': $txhoverid !== '' && $txhoverid === '#{transaction_id}' }" : nil %>
 
-              <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+              <article
+                class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10"
+                <% if row_highlight_expr.present? %>data-class="<%= row_highlight_expr %>"<% end %>
+              >
                 <div class="flex flex-wrap items-start gap-3">
                   <div class="w-44 shrink-0">
                     <div class="entity-cell-two-line">
@@ -141,8 +161,16 @@ end %>
                           <span class="truncate text-muted-foreground/70"><%= player_name %></span>
                         <% end %>
 
-                        <% if r["transaction_id"].present? %>
-                          <a href="<%= transaction_href(r['transaction_id']) %>" class="entity-chip entity-chip--warning hover:underline">Txn #<%= r["transaction_id"] %></a>
+                        <% if transaction_id.present? %>
+                          <a
+                            href="<%= transaction_href(r['transaction_id']) %>"
+                            class="entity-chip entity-chip--warning hover:underline transition-colors"
+                            data-on:mouseenter="$txhoverid = '<%= transaction_id %>'"
+                            data-on:mouseleave="if ($txhoverid === '<%= transaction_id %>') { $txhoverid = ''; }"
+                            data-on:focus="$txhoverid = '<%= transaction_id %>'"
+                            data-on:blur="if ($txhoverid === '<%= transaction_id %>') { $txhoverid = ''; }"
+                            data-class="{ 'ring-1 ring-amber-500/80 dark:ring-amber-400/70': $txhoverid === '<%= transaction_id %>' }"
+                          >Txn #<%= transaction_id %></a>
                         <% end %>
 
                         <% if r["trade_id"].present? %>

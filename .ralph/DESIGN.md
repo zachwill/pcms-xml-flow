@@ -104,7 +104,7 @@ Supervisor override: ENTITY
     - Follow-up tasks discovered:
       - Consider adding a compact "N hidden by lens" indicator when a lens returns fewer than the default row cap to make filtered context explicit.
 
-- [ ] [P1] [ENTITY] /teams/:slug — add transaction-id cross-highlighting between activity and apron provenance
+- [x] [P1] [ENTITY] /teams/:slug — add transaction-id cross-highlighting between activity and apron provenance
   - Problem: users still manually correlate apron trigger transactions with activity rows.
   - Hypothesis: shared transaction-id highlighting will make causal tracing nearly instant.
   - Scope (files):
@@ -126,6 +126,22 @@ Supervisor override: ENTITY
     - Navigation/pivots: 4 → 5
   - Guardrails:
     - Do not modify Salary Book files.
+  - Completed (2026-02-14):
+    - What changed (files):
+      - `web/app/views/entities/teams/show.html.erb`: introduced a page-level Datastar signal (`txhoverid`) for transient cross-section transaction hover/focus state.
+      - `web/app/views/entities/teams/_section_activity.html.erb`: added tx-link hover/focus signal emitters plus row-level highlight bindings for both ledger and exception lanes; also added explicit cross-highlight wayfinding copy in the lane header.
+      - `web/app/views/entities/teams/_section_apron_provenance.html.erb`: added matching A1/A2 tx-link emitters and row-level highlight bindings that react to shared transaction IDs from activity lanes.
+      - `web/test/integration/entities_teams_show_test.rb`: expanded bootstrap assertions to verify new cross-highlight instructions and Datastar tx-hover bindings in both activity and apron provenance sections.
+    - Why this improves the flow:
+      - Users can now causal-trace apron trigger references without manual ID matching: hovering or focusing a transaction link in either section immediately reveals all related lanes in both modules, preserving existing pivots and anchor navigation.
+    - Rubric (before → after):
+      - Scan speed: 4 → 5
+      - Information hierarchy: 4 → 5
+      - Interaction predictability: 4 → 5
+      - Density/readability: 4 → 4
+      - Navigation/pivots: 4 → 5
+    - Follow-up tasks discovered:
+      - Consider adding a compact "active transaction: #id" chip near section headers while highlighting is active to improve keyboard-only wayfinding across long sections.
 
 - [ ] [P1] [ENTITY] /agents/:slug — add cohort filters and URL-synced cohort state
   - Problem: cohort lanes exist but large books still need quick cohort-only narrowing.

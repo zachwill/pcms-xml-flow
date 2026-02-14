@@ -24,6 +24,8 @@ end %>
         <a href="#activity" class="normal-case tracking-normal hover:underline">Open activity</a>
         <span class="text-muted-foreground/50">·</span>
         <a href="#two-way" class="normal-case tracking-normal hover:underline">Open two-way</a>
+        <span class="text-muted-foreground/50">·</span>
+        <span class="normal-case tracking-normal text-foreground/80">Hover/focus A1/A2 transaction links to cross-highlight activity lanes</span>
       </div>
 
       <% if provenance_rows.empty? %>
@@ -35,8 +37,17 @@ end %>
             <% reason_label = r["subject_to_apron_reason_label"].presence || r["subject_to_apron_reason_lk"].presence || "No explicit apron trigger reason" %>
             <% apron_level = r["apron_level_lk"].presence || "NONE" %>
             <% subject_label = r["is_subject_to_apron"] ? "Subject" : "Not subject" %>
+            <% apron1_transaction_id = r["apron1_transaction_id"].presence&.to_s %>
+            <% apron2_transaction_id = r["apron2_transaction_id"].presence&.to_s %>
+            <% row_match_clauses = [] %>
+            <% row_match_clauses << "$txhoverid === '#{apron1_transaction_id}'" if apron1_transaction_id.present? %>
+            <% row_match_clauses << "$txhoverid === '#{apron2_transaction_id}'" if apron2_transaction_id.present? %>
+            <% row_highlight_expr = row_match_clauses.any? ? "{ 'bg-amber-100/70 dark:bg-amber-900/25 ring-1 ring-amber-300/80 dark:ring-amber-700/60': $txhoverid !== '' && (#{row_match_clauses.join(' || ')}) }" : nil %>
 
-            <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+            <article
+              class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10"
+              <% if row_highlight_expr.present? %>data-class="<%= row_highlight_expr %>"<% end %>
+            >
               <div class="flex flex-wrap items-start gap-3">
                 <div class="w-44 shrink-0">
                   <div class="entity-cell-two-line">
@@ -56,14 +67,30 @@ end %>
 
                   <div class="entity-cell-two-line">
                     <div class="entity-cell-primary gap-1.5 font-mono tabular-nums">
-                      <% if r["apron1_transaction_id"].present? %>
-                        <a href="<%= transaction_href(r['apron1_transaction_id']) %>" class="hover:underline">A1 #<%= r["apron1_transaction_id"] %></a>
+                      <% if apron1_transaction_id.present? %>
+                        <a
+                          href="<%= transaction_href(r['apron1_transaction_id']) %>"
+                          class="hover:underline transition-colors"
+                          data-on:mouseenter="$txhoverid = '<%= apron1_transaction_id %>'"
+                          data-on:mouseleave="if ($txhoverid === '<%= apron1_transaction_id %>') { $txhoverid = ''; }"
+                          data-on:focus="$txhoverid = '<%= apron1_transaction_id %>'"
+                          data-on:blur="if ($txhoverid === '<%= apron1_transaction_id %>') { $txhoverid = ''; }"
+                          data-class="{ 'text-amber-700 dark:text-amber-300 underline decoration-2 underline-offset-2': $txhoverid === '<%= apron1_transaction_id %>' }"
+                        >A1 #<%= apron1_transaction_id %></a>
                       <% else %>
                         <span class="text-muted-foreground/60">A1 —</span>
                       <% end %>
 
-                      <% if r["apron2_transaction_id"].present? %>
-                        <a href="<%= transaction_href(r['apron2_transaction_id']) %>" class="hover:underline">A2 #<%= r["apron2_transaction_id"] %></a>
+                      <% if apron2_transaction_id.present? %>
+                        <a
+                          href="<%= transaction_href(r['apron2_transaction_id']) %>"
+                          class="hover:underline transition-colors"
+                          data-on:mouseenter="$txhoverid = '<%= apron2_transaction_id %>'"
+                          data-on:mouseleave="if ($txhoverid === '<%= apron2_transaction_id %>') { $txhoverid = ''; }"
+                          data-on:focus="$txhoverid = '<%= apron2_transaction_id %>'"
+                          data-on:blur="if ($txhoverid === '<%= apron2_transaction_id %>') { $txhoverid = ''; }"
+                          data-class="{ 'text-amber-700 dark:text-amber-300 underline decoration-2 underline-offset-2': $txhoverid === '<%= apron2_transaction_id %>' }"
+                        >A2 #<%= apron2_transaction_id %></a>
                       <% else %>
                         <span class="text-muted-foreground/60">A2 —</span>
                       <% end %>

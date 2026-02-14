@@ -29,11 +29,14 @@ class EntitiesTeamsShowTest < ActionDispatch::IntegrationTest
 
       assert_includes activity, "Event → cap/tax/apron consequence lanes"
       assert_includes activity, "Exception mechanism → remaining runway lanes"
+      assert_includes activity, "Hover/focus Txn links to cross-highlight apron rows"
       assert_includes activity, "Txn #7001"
       assert_includes activity, "Cap Δ"
       assert_includes activity, "Apron Δ"
       assert_match(%r{href="/players/101"}, activity)
       assert_match(%r{href="/transactions/7001"}, activity)
+      assert_match(/\$txhoverid[^\n]*7001/, activity)
+      assert_match(/data-on:mouseenter="\$txhoverid = '7001'"/, activity)
 
       assert_includes two_way, "Capacity posture lane"
       assert_includes two_way, "Watchlist usage → remaining lanes"
@@ -42,9 +45,12 @@ class EntitiesTeamsShowTest < ActionDispatch::IntegrationTest
       assert_match(%r{href="/tools/two-way-utility\?team=POR"}, two_way)
 
       assert_includes apron, "Trigger reason → apron level → active constraints"
+      assert_includes apron, "Hover/focus A1/A2 transaction links to cross-highlight activity lanes"
       assert_includes apron, "A1 #7001"
       assert_includes apron, "Aggregated salary in trades"
       assert_includes apron, "Constraint count"
+      assert_match(/\$txhoverid[^\n]*7001/, apron)
+      assert_match(/data-on:mouseenter="\$txhoverid = '7001'"/, apron)
 
       assert_includes response.body, "id=\"rightpanel-base\""
     end

@@ -6,6 +6,7 @@ module Entities
     PLAYER_CONSTRAINT_LENSES = %w[all lock_now options non_guaranteed trade_kicker expiring].freeze
     PLAYER_URGENCY_LENSES = %w[all urgent upcoming stable].freeze
     PLAYER_SORT_LENSES = %w[cap_desc cap_asc name_asc name_desc].freeze
+    PLAYER_DECISION_LENSES = %w[all urgent upcoming later].freeze
 
     PLAYER_URGENCY_DEFINITIONS = {
       "urgent" => {
@@ -55,6 +56,7 @@ module Entities
     # Canonical route.
     def show
       @defer_heavy_load = params[:full].to_s != "1"
+      load_player_decision_lens!
 
       resolve_player_from_slug!(params[:slug])
       return if performed?
@@ -624,6 +626,11 @@ module Entities
       selected_id.positive? ? selected_id : nil
     rescue ArgumentError, TypeError
       nil
+    end
+
+    def load_player_decision_lens!
+      requested_lens = params[:decision_lens].to_s.strip.downcase
+      @decision_lens = PLAYER_DECISION_LENSES.include?(requested_lens) ? requested_lens : "all"
     end
 
     def selected_overlay_visible?(overlay_id:)

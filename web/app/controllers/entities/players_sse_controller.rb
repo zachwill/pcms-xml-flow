@@ -64,6 +64,7 @@ module Entities
       resolve_player_from_slug!(params[:slug], redirect_on_canonical_miss: false)
       return head(:not_found) if performed?
 
+      load_player_decision_lens!
       load_player_workspace_data!
 
       html_parts = []

@@ -63,6 +63,31 @@ class EntitiesPlayersShowTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "Jump to next decisions"
       assert_includes response.body, "Decision rail"
       assert_includes response.body, "entity-cell-two-line"
+      assert_includes next_decisions, "decision_lens=urgent#next-decisions"
+      assert_includes next_decisions, "decision_lens=upcoming#next-decisions"
+      assert_includes next_decisions, "decision_lens=later#next-decisions"
+    end
+  end
+
+  test "player next decisions lens query filters the decision rail" do
+    with_stubbed_player_workspace_data do
+      get "/players/lebron-james/sse/bootstrap?decision_lens=upcoming", headers: modern_headers
+
+      assert_response :success
+
+      next_decisions = section_fragment(response.body, "next-decisions")
+      assert next_decisions.present?
+
+      assert_includes next_decisions, "Potential free-agency branch"
+      assert_includes next_decisions, "decision_lens=upcoming#next-decisions"
+      assert_includes next_decisions, "/players/lebron-james#next-decisions"
+      assert_includes next_decisions, "Team LAL"
+      assert_includes next_decisions, "Txn #5001"
+      assert_includes next_decisions, "Trade #901"
+
+      refute_includes next_decisions, "PO decision window"
+      refute_includes next_decisions, "Partial guarantee trigger"
+      refute_includes next_decisions, "Midseason guarantee"
     end
   end
 

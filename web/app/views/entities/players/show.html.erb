@@ -34,6 +34,7 @@
 <% header_meta << current_team_name || current_team_code if current_team_code.present? %>
 
 <% salary_book_href = (@salary_book_row&.fetch("team_code", nil).present? ? "/tools/salary-book?team=#{@salary_book_row['team_code']}##{@salary_book_row['team_code']}" : "/tools/salary-book") %>
+<% bootstrap_decision_query = (@decision_lens.to_s == "all" ? "" : "?decision_lens=#{ERB::Util.url_encode(@decision_lens.to_s)}") %>
 
 <% header_links = [] %>
 <% header_links << ["Open in Salary Book", salary_book_href] if salary_book_href.present? %>
@@ -64,7 +65,7 @@
       id="player-bootstrap"
       class="hidden"
       aria-hidden="true"
-      data-init="@get('/players/<%= @player_slug %>/sse/bootstrap')"
+      data-init="@get('/players/<%= @player_slug %>/sse/bootstrap<%= bootstrap_decision_query %>')"
     ></div>
   <% end %>
 

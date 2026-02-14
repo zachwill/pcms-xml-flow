@@ -63,7 +63,7 @@ Supervisor override: ENTITY
     - Follow-up tasks discovered:
       - Consider extracting shared lane-row partials for trade detail sections to reduce repeated OUT/IN chip + metadata patterns.
 
-- [ ] [P1] [ENTITY] /players/:slug — add decision-lens chips (`urgent/upcoming/later`) with URL-stable state
+- [x] [P1] [ENTITY] /players/:slug — add decision-lens chips (`urgent/upcoming/later`) with URL-stable state
   - Problem: decision rail is strong but long lists still require manual scanning.
   - Hypothesis: lens chips + URL persistence will improve repeat decision workflows.
   - Scope (files):
@@ -85,6 +85,24 @@ Supervisor override: ENTITY
     - Navigation/pivots: 5 → 5
   - Guardrails:
     - Do not modify Salary Book files.
+  - Completed (2026-02-14):
+    - What changed (files):
+      - `web/app/views/entities/players/_section_next_decisions.html.erb`: added decision-lens chips (`all/urgent/upcoming/later`), query-backed link state, filtered lane rendering, and empty-lens fallback copy while preserving existing pivot chips.
+      - `web/app/helpers/entities_helper.rb`: added decision-lens normalization/filter/count helpers and extended decision urgency payloads with a stable lens key used by filtering.
+      - `web/app/controllers/entities/players_controller.rb`: normalized `decision_lens` query state for player show renders.
+      - `web/app/views/entities/players/show.html.erb`: persisted active `decision_lens` into deferred bootstrap URL so skeleton → hydrated sections keep the same lens state.
+      - `web/app/controllers/entities/players_sse_controller.rb`: applied show-state lens normalization in bootstrap responses.
+      - `web/test/integration/entities_players_show_test.rb`: added assertions for lens URL links and query-driven filtering behavior in the next-decisions section.
+    - Why this improves the flow:
+      - Analysts can now jump straight to urgent/upcoming/later decision slices without rescanning the full rail, and the selected lens survives reload/share because the state is captured in URL query params.
+    - Rubric (before → after):
+      - Scan speed: 4 → 5
+      - Information hierarchy: 4 → 5
+      - Interaction predictability: 4 → 5
+      - Density/readability: 4 → 4
+      - Navigation/pivots: 5 → 5
+    - Follow-up tasks discovered:
+      - Consider adding a compact "N hidden by lens" indicator when a lens returns fewer than the default row cap to make filtered context explicit.
 
 - [ ] [P1] [ENTITY] /teams/:slug — add transaction-id cross-highlighting between activity and apron provenance
   - Problem: users still manually correlate apron trigger transactions with activity rows.

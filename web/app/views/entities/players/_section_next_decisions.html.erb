@@ -5,6 +5,10 @@
     ledger_entries: @ledger_entries
   )
 
+  active_lens = normalize_player_decision_lens(@decision_lens)
+  filtered_items = filter_player_decision_items(decision_items: decision_items, lens: active_lens)
+  lens_rows = player_decision_lens_rows(decision_items: decision_items, active_lens: active_lens)
+
   chip_class_for = lambda do |variant|
     case variant.to_s
     when "danger"
@@ -19,18 +23,50 @@
       "entity-chip entity-chip--muted"
     end
   end
+
+  lens_chip_class_for = lambda do |lens_row|
+    return "entity-chip entity-chip--muted opacity-80 hover:opacity-100" unless lens_row[:active]
+
+    case lens_row[:key]
+    when "urgent"
+      "entity-chip entity-chip--danger"
+    when "upcoming"
+      "entity-chip entity-chip--accent"
+    when "later"
+      "entity-chip entity-chip--warning"
+    else
+      "entity-chip entity-chip--success"
+    end
+  end
 %>
 
 <section id="next-decisions" class="space-y-3">
   <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Next decisions</h2>
 
+  <% if decision_items.any? %>
+    <div class="flex flex-wrap gap-1.5">
+      <% lens_rows.each do |lens_row| %>
+        <% lens_href = player_path(@player_slug, decision_lens: (lens_row[:key] == "all" ? nil : lens_row[:key]), anchor: "next-decisions") %>
+        <a href="<%= lens_href %>" class="<%= lens_chip_class_for.call(lens_row) %> hover:underline">
+          <span><%= lens_row[:label] %></span>
+          <span class="font-mono tabular-nums text-[10px]"><%= lens_row[:count] %></span>
+        </a>
+      <% end %>
+    </div>
+  <% end %>
+
   <% if decision_items.empty? %>
     <div class="rounded-lg border border-border bg-muted/20 p-3 text-sm text-muted-foreground italic">
       No option / expiry / guarantee triggers detected in the active horizon.
     </div>
+  <% elsif filtered_items.empty? %>
+    <div class="rounded-lg border border-border bg-muted/20 p-3 text-sm text-muted-foreground italic">
+      No <%= active_lens %> decisions in the active horizon.
+      <a href="<%= player_path(@player_slug, anchor: "next-decisions") %>" class="not-italic hover:underline">Show all</a>
+    </div>
   <% else %>
     <div class="rounded-lg border border-border divide-y divide-border/60">
-      <% decision_items.first(10).each do |item| %>
+      <% filtered_items.first(10).each do |item| %>
         <% urgency = item[:urgency] || {} %>
 
         <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">

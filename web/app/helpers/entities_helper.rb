@@ -112,6 +112,41 @@ module EntitiesHelper
     team_href(team_code: team_code)
   end
 
+  PLAYER_DECISION_LENS_ORDER = %w[all urgent upcoming later].freeze
+
+  def normalize_player_decision_lens(raw_lens)
+    lens = raw_lens.to_s.strip.downcase
+    PLAYER_DECISION_LENS_ORDER.include?(lens) ? lens : "all"
+  end
+
+  def filter_player_decision_items(decision_items:, lens:)
+    normalized_lens = normalize_player_decision_lens(lens)
+    items = Array(decision_items)
+    return items if normalized_lens == "all"
+
+    items.select { |item| item.dig(:urgency, :key).to_s == normalized_lens }
+  end
+
+  def player_decision_lens_rows(decision_items:, active_lens:)
+    items = Array(decision_items)
+    normalized_active_lens = normalize_player_decision_lens(active_lens)
+
+    PLAYER_DECISION_LENS_ORDER.map do |lens_key|
+      count = if lens_key == "all"
+        items.size
+      else
+        items.count { |item| item.dig(:urgency, :key).to_s == lens_key }
+      end
+
+      {
+        key: lens_key,
+        label: lens_key == "all" ? "All" : lens_key.titleize,
+        count: count,
+        active: normalized_active_lens == lens_key
+      }
+    end
+  end
+
   # Decision rail model for player entity pages.
   #
   # Outputs dense, link-ready items used by:
@@ -276,19 +311,26 @@ module EntitiesHelper
 
   def decision_urgency_for_year(year:, base_year:, kind:)
     distance = year.to_i - base_year.to_i
+    lens_key = if distance <= 1
+      "urgent"
+    elsif distance == 2
+      "upcoming"
+    else
+      "later"
+    end
 
     if distance <= 1
       if kind.to_s == "option"
-        return { label: "Next", variant: "warning" }
+        return { key: lens_key, label: "Next", variant: "warning" }
       end
 
-      return { label: "Urgent", variant: "danger" }
+      return { key: lens_key, label: "Urgent", variant: "danger" }
     end
 
     if distance == 2
-      return { label: "Upcoming", variant: "accent" }
+      return { key: lens_key, label: "Upcoming", variant: "accent" }
     end
 
-    { label: "Later", variant: "muted" }
+    { key: lens_key, label: "Later", variant: "muted" }
   end
 end

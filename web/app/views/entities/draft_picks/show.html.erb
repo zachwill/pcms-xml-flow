@@ -80,7 +80,7 @@
     lane_class: "border-border/60 bg-background"
   },
   {
-    key: "flags",
+    key: "flagged",
     title: "Forfeiture / review",
     help: "Rows that include forfeiture or review flags.",
     rows: flagged_assets,
@@ -88,6 +88,16 @@
     lane_class: "border-red-300/70 bg-red-50/60 dark:border-red-800/60 dark:bg-red-950/20"
   }
 ] %>
+
+<% rule_lens_options = [
+  { key: "all", label: "All rules", count: assets.size, help: "Show all rule lanes" },
+  { key: "conditional", label: "Conditional", count: conditional_assets.size, help: "Only condition-based protections" },
+  { key: "swap", label: "Swap", count: swap_assets.size, help: "Only swap-right protections" },
+  { key: "flagged", label: "Flagged", count: flagged_assets.size, help: "Forfeiture/review rows" }
+] %>
+<% rule_lens_keys = rule_lens_options.map { |option| option[:key] } %>
+<% active_rule_lane = params[:rule_lane].to_s.strip.downcase %>
+<% active_rule_lane = "all" unless rule_lens_keys.include?(active_rule_lane) %>
 
 <% conditional_chain_rows = trade_chain_rows.select { |row| row["is_conditional"] } %>
 <% swap_chain_rows = trade_chain_rows.select { |row| row["is_swap"] && !row["is_conditional"] } %>
@@ -131,12 +141,31 @@
 <% chain_nodes << team_code if chain_nodes.empty? %>
 <% chain_depth = [chain_nodes.length - 1, 0].max %>
 
+<% chain_hops = trade_chain_rows.each_with_index.map do |row, idx|
+  from_code = row["from_team_code"].to_s.strip.upcase.presence
+  to_code = row["to_team_code"].to_s.strip.upcase.presence
+  is_conditional = row["is_conditional"] || row["conditional_type_lk"].present?
+  is_swap = !!row["is_swap"]
+  is_flagged = is_conditional || is_swap || !!row["is_future"]
+
+  {
+    hop_number: idx + 1,
+    from_code:,
+    to_code:,
+    from_team_id: row["from_team_id"],
+    to_team_id: row["to_team_id"],
+    is_conditional:,
+    is_swap:,
+    is_flagged:
+  }
+end %>
+
 <div id="entity-directory" class="min-h-screen w-full bg-background">
   <%= render partial: "entities/shared/commandbar", locals: {
     active_entity_scope: "drafts"
   } %>
 
-  <main class="px-4 pb-8 space-y-6" data-entity-workspace>
+  <main id="maincanvas" class="px-4 pb-8 space-y-6" data-entity-workspace>
     <%= render partial: "entities/shared/workspace_header", locals: {
       breadcrumbs: [["Teams", "/teams"], [team_code, team_href(team_code: team_code)], ["#{year} R#{round} draft pick", nil]],
       title: "#{team_code} — #{year} Round #{round}",
@@ -144,7 +173,7 @@
       right_links: [["Open in Salary Book", "/tools/salary-book?team=#{team_code}##{team_code}"], ["Draft selections", "/draft-selections"]]
     } %>
 
-    <div class="lg:flex lg:gap-8">
+    <div id="draft-pick-workspace" class="lg:flex lg:gap-8" data-signals="{ rulelane: '<%= active_rule_lane %>' }">
       <%= render partial: "entities/shared/local_nav", locals: {
         sections: [
           ["vitals", "Vitals"],
@@ -195,13 +224,41 @@
             </div>
           </div>
 
+          <div class="rounded-lg border border-border/60 bg-background px-3 py-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Rule filters</span>
+              <% rule_lens_options.each do |option| %>
+                <button
+                  type="button"
+                  class="cursor-pointer inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors"
+                  data-on:click="$rulelane = '<%= option[:key] %>'; const url = new URL(window.location.href); if ('<%= option[:key] %>' === 'all') { url.searchParams.delete('rule_lane'); } else { url.searchParams.set('rule_lane', '<%= option[:key] %>'); } window.history.replaceState({}, '', url.pathname + url.search + url.hash);"
+                  data-class="{ 'bg-primary text-primary-foreground border-primary': $rulelane === '<%= option[:key] %>', 'bg-background text-muted-foreground border-border hover:text-foreground hover:border-foreground/25': $rulelane !== '<%= option[:key] %>' }"
+                  title="<%= option[:help] %>"
+                >
+                  <span><%= option[:label] %></span>
+                  <span class="entity-chip <%= option[:key] == 'conditional' ? 'entity-chip--warning' : (option[:key] == 'swap' ? 'entity-chip--accent' : (option[:key] == 'flagged' ? 'entity-chip--danger' : 'entity-chip--muted')) %>"><%= option[:count] %></span>
+                </button>
+              <% end %>
+              <span class="text-[10px] text-muted-foreground">Filtering lanes also highlights matching chain hops below.</span>
+            </div>
+          </div>
+
           <% if assets.empty? %>
             <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No asset rows found.</div>
           <% else %>
             <div class="space-y-2">
               <% protection_lanes.each do |lane| %>
                 <% lane_rows = Array(lane[:rows]) %>
-                <article class="rounded-lg border p-3 <%= lane[:lane_class] %>">
+                <% lane_visible = if lane[:key] == "clean"
+                  active_rule_lane == "all"
+                else
+                  active_rule_lane == "all" || active_rule_lane == lane[:key]
+                end %>
+                <article
+                  class="rounded-lg border p-3 <%= lane[:lane_class] %>"
+                  data-show="<%= lane[:key] == 'clean' ? "$rulelane === 'all'" : "$rulelane === 'all' || $rulelane === '#{lane[:key]}'" %>"
+                  <% unless lane_visible %>style="display: none;"<% end %>
+                >
                   <div class="flex flex-wrap items-center justify-between gap-2">
                     <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
                       <span class="<%= lane[:chip_class] %>"><%= lane[:title] %></span>
@@ -336,6 +393,41 @@
               <span class="entity-chip entity-chip--muted">Hops · <span class="font-mono tabular-nums"><%= chain_depth %></span></span>
               <span>Original owner: <a href="<%= team_href(team_code: original_owner_code, team_id: original_owner_team['team_id']) %>" class="hover:underline font-medium"><%= original_owner_code %></a></span>
               <span>Current owner: <a href="<%= team_href(team_code: team_code, team_id: @team&.dig('team_id')) %>" class="hover:underline font-medium"><%= team_code %></a></span>
+            </div>
+
+            <% if chain_hops.any? %>
+              <div id="rule-hop-map" class="mt-2 flex flex-wrap gap-1.5 text-[10px]">
+                <% chain_hops.each do |hop| %>
+                  <% hop_match_js = "(($rulelane === 'conditional' && #{hop[:is_conditional]}) || ($rulelane === 'swap' && #{hop[:is_swap]}) || ($rulelane === 'flagged' && #{hop[:is_flagged]}))" %>
+                  <span
+                    id="chain-hop-<%= hop[:hop_number] %>"
+                    data-rule-hop="<%= hop[:hop_number] %>"
+                    class="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background px-2 py-0.5 transition-colors"
+                    data-class="{ 'border-amber-400/80 bg-amber-100/70 text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200': $rulelane === 'conditional' && <%= hop[:is_conditional] %>, 'border-blue-400/80 bg-blue-100/70 text-blue-800 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-200': $rulelane === 'swap' && <%= hop[:is_swap] %>, 'border-red-400/80 bg-red-100/70 text-red-800 dark:border-red-700 dark:bg-red-950/40 dark:text-red-200': $rulelane === 'flagged' && <%= hop[:is_flagged] %>, 'opacity-45': $rulelane !== 'all' && !(<%= hop_match_js %>) }"
+                  >
+                    <span class="font-mono tabular-nums">H<%= hop[:hop_number] %></span>
+                    <% if hop[:from_code].present? %>
+                      <a href="<%= team_href(team_code: hop[:from_code], team_id: hop[:from_team_id]) %>" class="hover:underline"><%= hop[:from_code] %></a>
+                    <% else %>
+                      <span class="text-muted-foreground/60">—</span>
+                    <% end %>
+                    <span class="text-muted-foreground/60">→</span>
+                    <% if hop[:to_code].present? %>
+                      <a href="<%= team_href(team_code: hop[:to_code], team_id: hop[:to_team_id]) %>" class="hover:underline"><%= hop[:to_code] %></a>
+                    <% else %>
+                      <span class="text-muted-foreground/60">—</span>
+                    <% end %>
+                  </span>
+                <% end %>
+              </div>
+            <% end %>
+
+            <div
+              class="mt-1 text-[10px] text-muted-foreground"
+              data-show="$rulelane !== 'all'"
+              <% if active_rule_lane == "all" %>style="display: none;"<% end %>
+            >
+              Active rule filter highlights matching hops in the chain map.
             </div>
           </div>
 

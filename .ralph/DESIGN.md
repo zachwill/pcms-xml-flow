@@ -299,7 +299,7 @@ Supervisor review (2026-02-14):
     - Follow-up tasks discovered:
       - Consider mirroring the same lane-filter state + exposure chips in the draft-selection rightpanel overlay to keep provenance triage consistent between index drill-ins and full entity pages.
 
-- [ ] [P2] [ENTITY] /draft-picks/:slug — add rule-lane filters and chain-map hop highlighting
+- [x] [P2] [ENTITY] /draft-picks/:slug — add rule-lane filters and chain-map hop highlighting
   - Problem: new rule lanes are clearer, but large rule sets still need faster narrowing and hop tracing.
   - Hypothesis: rule filters + hop highlighting will shorten protection interpretation loops.
   - Scope (files):
@@ -319,6 +319,20 @@ Supervisor review (2026-02-14):
     - Navigation/pivots: 4 → 5
   - Guardrails:
     - Do not modify Salary Book files.
+  - Completed (2026-02-14):
+    - What changed (files):
+      - `web/app/views/entities/draft_picks/show.html.erb`: added `#maincanvas` anchoring plus workspace-level `rulelane` signal state; introduced `all/conditional/swap/flagged` rule filter chips with URL-synced `rule_lane` query behavior; applied lane visibility filtering in `#protections`; added `#rule-hop-map` hop chips in `#trade-chain` that highlight/dim by active rule lane while preserving team/trade pivots.
+      - `web/test/integration/entities_draft_picks_show_test.rb`: expanded assertions for rule-filter controls, `rulelane` bootstrap state (`all` + query-driven `swap`), chain-hop highlight bindings, and invalid `rule_lane` fallback to `all`.
+    - Why this improves the flow:
+      - Analysts can now narrow to the exact protection rule family in one click and immediately see which trade-chain hops are implicated, eliminating manual cross-scanning between rule text and hop chronology.
+    - Rubric (before → after):
+      - Scan speed: 4 → 5
+      - Information hierarchy: 4 → 5
+      - Interaction predictability: 4 → 5
+      - Density/readability: 4 → 4
+      - Navigation/pivots: 4 → 5
+    - Follow-up tasks discovered:
+      - Consider mirroring `rule_lane` state into draft-related rightpanel overlays (draft index drill-ins) so filters and hop highlights stay consistent between workspace and entity detail contexts.
 
 - [ ] [P2] [INDEX] /players — add secondary urgency sub-lenses (`option-only`, `expiring-only`, `non-guaranteed-only`)
   - Problem: urgency lanes are strong, but analysts still need narrower follow-up controls.

@@ -14,17 +14,22 @@ class EntitiesDraftPicksShowTest < ActionDispatch::IntegrationTest
       get "/draft-picks/por/2028/1", headers: modern_headers
 
       assert_response :success
+      assert_includes response.body, "id=\"maincanvas\""
+      assert_includes response.body, "data-signals=\"{ rulelane: 'all' }\""
 
       protections = section_fragment(response.body, "protections")
       assert protections.present?
       assert_no_match(/<table/i, protections)
       assert_includes protections, "Rule lanes"
+      assert_includes protections, "Rule filters"
+      assert_includes protections, "All rules"
       assert_includes protections, "Conditional protections"
       assert_includes protections, "Swap rights"
       assert_includes protections, "Counterparty route"
       assert_includes protections, "Original owner context"
       assert_includes protections, "conditional"
       assert_includes protections, "swap"
+      assert_includes protections, "url.searchParams.set('rule_lane', 'swap')"
       assert_match(%r{href="/teams/lal"}, protections)
       assert_match(%r{href="/teams/mia"}, protections)
       assert_match(%r{href="/trades/88001"}, protections)
@@ -33,6 +38,12 @@ class EntitiesDraftPicksShowTest < ActionDispatch::IntegrationTest
       assert trade_chain.present?
       assert_no_match(/<table/i, trade_chain)
       assert_includes trade_chain, "Chain map"
+      assert_includes trade_chain, "id=\"rule-hop-map\""
+      assert_includes trade_chain, "id=\"chain-hop-1\""
+      assert_includes trade_chain, "Active rule filter highlights matching hops in the chain map."
+      assert_includes trade_chain, "$rulelane === 'conditional'"
+      assert_includes trade_chain, "$rulelane === 'swap'"
+      assert_includes trade_chain, "$rulelane === 'flagged'"
       assert_includes trade_chain, "Conditional hops"
       assert_includes trade_chain, "Swap hops"
       assert_includes trade_chain, "Direct hops"
@@ -43,6 +54,22 @@ class EntitiesDraftPicksShowTest < ActionDispatch::IntegrationTest
       assert_match(%r{href="/teams/por"}, trade_chain)
       assert_match(%r{href="/trades/88002"}, trade_chain)
       assert_match(%r{href="/trades/88003"}, trade_chain)
+    end
+  end
+
+  test "draft pick show bootstraps rule_lane query into filter state" do
+    with_stubbed_draft_pick_show do
+      get "/draft-picks/por/2028/1?rule_lane=swap", headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, "data-signals=\"{ rulelane: 'swap' }\""
+      assert_includes response.body, "data-show=\"$rulelane === &#39;all&#39; || $rulelane === &#39;swap&#39;\""
+      assert_includes response.body, "data-show=\"$rulelane !== 'all'\""
+
+      get "/draft-picks/por/2028/1?rule_lane=unknown", headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, "data-signals=\"{ rulelane: 'all' }\""
     end
   end
 

@@ -142,6 +142,7 @@ class EntitiesDraftSelectionsIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="maincanvas"'
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, 'id="rightpanel-overlay"'
+      assert_match(%r{<option value="/draft-selections" selected>Draft Selections</option>}, response.body)
     end
   end
 

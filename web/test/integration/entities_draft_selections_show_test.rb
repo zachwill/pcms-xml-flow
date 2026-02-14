@@ -14,6 +14,8 @@ class EntitiesDraftSelectionsShowTest < ActionDispatch::IntegrationTest
       get "/draft-selections/draft-2028-r1-p8-flow-guard", headers: modern_headers
 
       assert_response :success
+      assert_match(%r{id="entity-nav-draft_selections"[^>]*bg-primary text-primary-foreground border-primary shadow-sm}, response.body)
+      assert_match(%r{<option value="/draft-selections" selected>Draft Selections</option>}, response.body)
 
       provenance = section_fragment(response.body, "provenance")
       assert provenance.present?

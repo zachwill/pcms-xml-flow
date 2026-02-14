@@ -25,26 +25,26 @@ Backlog hygiene policy (active-only):
 
 ---
 
-- [ ] [P1] [INDEX] Entity navigation pivots — make Draft Selections first-class in global/entity nav
-  - Problem: `draft-selections` is a standalone entity surface, but shared entity navigation omits it, forcing indirect pivots through Drafts and reducing wayfinding speed.
-  - Hypothesis: Adding a first-class Selections destination in shared nav patterns will reduce pivot friction between picks/trades/transactions and historical selection provenance.
-  - Scope (files):
-    - `web/app/views/entities/shared/_commandbar.html.erb`
-    - `web/app/views/shared/_commandbar_navigation.html.erb`
-    - `web/app/views/entities/draft_selections/index.html.erb`
-    - `web/app/views/entities/draft_selections/show.html.erb`
-  - Acceptance criteria:
-    - Entity commandbar grid exposes a direct Selections destination with stable active-state behavior.
-    - Global commandbar navigation includes Draft Selections as a direct option.
-    - Draft selections index/detail surfaces show predictable active nav context without regressing existing Draft workspace links.
-  - Rubric (before → target):
-    - Scan speed: 3 → 4
-    - Information hierarchy: 4 → 4
-    - Interaction predictability: 3 → 4
-    - Density/readability: 5 → 5
-    - Navigation/pivots: 2 → 4
-  - Guardrails:
-    - No Salary Book edits outside the Tankathon allow-list.
+Audit note (2026-02-14) — completed [P1] [INDEX] Entity navigation pivots (Draft Selections first-class nav)
+- What changed (files):
+  - `web/app/views/entities/shared/_commandbar.html.erb`
+  - `web/app/views/shared/_commandbar_navigation.html.erb`
+  - `web/app/views/entities/draft_selections/index.html.erb`
+  - `web/app/views/entities/draft_selections/show.html.erb`
+  - `web/test/integration/entities_draft_selections_index_test.rb`
+  - `web/test/integration/entities_draft_selections_show_test.rb`
+- Why this improves flow:
+  - Draft Selections is now a first-class destination in both shared entity commandbar and global navigation, reducing indirect pivots through Drafts.
+  - Draft Selections index + detail now carry consistent active-nav context (`Selections` active) while keeping direct `Draft` links available.
+- Rubric (before → after):
+  - Scan speed: 3 → 4
+  - Information hierarchy: 4 → 4
+  - Interaction predictability: 3 → 4
+  - Density/readability: 5 → 5
+  - Navigation/pivots: 2 → 4
+- Follow-up discovered:
+  - Consider migrating `entities/draft_selections/index` commandbar entity grid to the shared entity commandbar partial to remove duplicated nav markup.
+
 
 - [ ] [P2] [TOOL] Team Summary — add rapid team-find/jump flow in commandbar
   - Problem: Team Summary currently relies on manual table scanning + scroll for team targeting, with no direct team intent input unlike other tool surfaces with quick-jump affordances.

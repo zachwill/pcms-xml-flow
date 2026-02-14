@@ -7,7 +7,7 @@
   Each entity type button is same-width, arranged in a grid.
 
   locals:
-  - active_entity_scope: agents|agencies|drafts|players|teams|trades|transactions
+  - active_entity_scope: agents|agencies|drafts|draft_selections|players|teams|trades|transactions
   - knobs: Array[Hash] — filter groups, each with :label and :options
     - options: Array[Hash]
       - toggle options: :type (checkbox|radio), :id, :label, :name, :value, :checked, :bind, :on_change
@@ -18,6 +18,7 @@
 <%
   active_entity_scope = local_assigns[:active_entity_scope].to_s.strip.presence || "players"
   active_entity_scope = "drafts" if active_entity_scope == "draft"
+  active_entity_scope = "draft_selections" if %w[draft-selection draft-selections draft_selection selections].include?(active_entity_scope)
   active_entity_scope = "teams" if active_entity_scope == "team"
 
   knobs = Array(local_assigns[:knobs].presence || local_assigns[:header_knobs])
@@ -27,6 +28,7 @@
     ["agents", "Agents", "/agents"],
     ["agencies", "Agencies", "/agencies"],
     ["drafts", "Drafts", "/drafts"],
+    ["draft_selections", "Selections", "/draft-selections"],
     ["players", "Players", "/players"],
     ["teams", "Teams", "/teams"],
     ["trades", "Trades", "/trades"],
@@ -184,6 +186,7 @@
   <%# Global navigation + theme controls %>
   <% navigation_destination = case active_entity_scope
      when "drafts" then "draft"
+     when "draft_selections" then "draft_selections"
      when "agencies" then "agents"
      when "agents", "players", "teams", "trades", "transactions" then active_entity_scope
      else "players"

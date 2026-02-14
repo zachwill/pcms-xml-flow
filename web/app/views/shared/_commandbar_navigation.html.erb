@@ -1,6 +1,6 @@
 <%
   active_destination = local_assigns[:active_destination].to_s
-  valid_destinations = %w[salary_book system_values team_summary two_way_utility agents draft players teams trades transactions noah]
+  valid_destinations = %w[salary_book system_values team_summary two_way_utility agents draft draft_selections players teams trades transactions noah]
   active_destination = "salary_book" unless valid_destinations.include?(active_destination)
 %>
 
@@ -24,6 +24,7 @@
       <optgroup label="NBA">
         <option value="/agents" <%= "selected" if active_destination == "agents" %>>Agents</option>
         <option value="/drafts" <%= "selected" if active_destination == "draft" %>>Draft</option>
+        <option value="/draft-selections" <%= "selected" if active_destination == "draft_selections" %>>Draft Selections</option>
         <option value="/players" <%= "selected" if active_destination == "players" %>>Players</option>
         <option value="/teams" <%= "selected" if active_destination == "teams" %>>Teams</option>
         <option value="/trades" <%= "selected" if active_destination == "trades" %>>Trades</option>

@@ -26,6 +26,17 @@ Execution mode:
 Supervisor override: ENTITY
 [ENTITY-OVERRIDE]
 
+Supervisor review (2026-02-14):
+- Audit scope: last 4 web commits (`teams`, `agents`, `agencies`, `transactions`) plus DESIGN rubric updates.
+- Guardrail check: no forbidden Salary Book files touched; commit titles conform to `design: [TRACK] /surface flow-outcome`; ENTITY override marker present.
+- Flow-value check: all reviewed commits add explorer/dossier behavior (filters, cross-highlighting, lane pivots, URL-stable state), not cosmetic class sweeps.
+- Verification: targeted integration specs pass via `bundle exec ruby -Itest` for
+  - `web/test/integration/entities_teams_show_test.rb`
+  - `web/test/integration/entities_agents_show_test.rb`
+  - `web/test/integration/entities_agencies_show_test.rb`
+  - `web/test/integration/entities_transactions_show_test.rb`
+- Next-loop constraint: continue single-surface flow outcomes only; reject broad style-only churn unless tied to an active task acceptance criterion.
+
 ---
 
 - [x] [P0] [ENTITY] /trades/:id — remove remaining table islands and finish full lane grammar

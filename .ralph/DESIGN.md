@@ -37,6 +37,19 @@ Supervisor review (2026-02-14):
   - `web/test/integration/entities_transactions_show_test.rb`
 - Next-loop constraint: continue single-surface flow outcomes only; reject broad style-only churn unless tied to an active task acceptance criterion.
 
+Supervisor review (2026-02-14, loop 2):
+- Audit scope: last 4 web commits (`draft-picks`, `players index`, `system-values`, `two-way-utility`) plus DESIGN rubric evidence updates.
+- Track check: one explicit surface+flow per commit; tracks are cleanly split across ENTITY (approved override), INDEX, and TOOL.
+- Guardrail check: no forbidden Salary Book files touched; no Salary Book controllers/helpers/tests modified; commit titles still match `design: [TRACK] /surface flow-outcome`.
+- Flow-value check: changes are interaction-level (rule-lane filters + hop highlighting, urgency sub-lens narrowing, global shortcut focus, shortlist rationale/cursor persistence) and not cosmetic class churn.
+- Datastar contract check: multi-region updates remain one SSE response (`players`, `system-values`, `two-way-utility`) with canonical patch boundaries preserved (`#commandbar`, `#maincanvas`, `#rightpanel-base`, `#rightpanel-overlay`).
+- Verification: targeted integration specs pass via `bundle exec ruby -Itest` for
+  - `web/test/integration/entities_draft_picks_show_test.rb`
+  - `web/test/integration/entities_players_index_test.rb`
+  - `web/test/integration/tools_system_values_test.rb`
+  - `web/test/integration/tools_two_way_utility_test.rb`
+- Corrective action: none required; continue rejecting broad style-only sweeps and keep commits single-surface flow outcomes.
+
 ---
 
 - [x] [P0] [ENTITY] /trades/:id — remove remaining table islands and finish full lane grammar

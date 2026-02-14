@@ -24,17 +24,34 @@ class EntitiesTransactionsShowTest < ActionDispatch::IntegrationTest
       assert_no_match(/<table/i, timeline)
       assert_no_match(/<table/i, trade_context)
 
+      assert_includes timeline, "id=\"causal-timeline\""
       assert_includes timeline, "Causal timeline"
+      assert_includes timeline, "Phase filters"
+      assert_includes timeline, "Facts"
+      assert_includes timeline, "Parties"
+      assert_includes timeline, "Ledger"
+      assert_includes timeline, "Artifacts"
       assert_includes timeline, "1 · Transaction facts"
       assert_includes timeline, "2 · Parties + routing"
       assert_includes timeline, "3 · Ledger deltas"
       assert_includes timeline, "4 · Cap artifacts"
+      assert_includes timeline, "Show raw rows"
+      assert_includes timeline, "Raw transaction row"
+      assert_includes timeline, "Raw party row"
+      assert_includes timeline, "Raw ledger row"
+      assert_includes timeline, "Raw budget row"
       assert_includes timeline, "Cap Δ"
       assert_includes timeline, "Tax Δ"
       assert_includes timeline, "Apron Δ"
       assert_includes timeline, "Exception usage"
       assert_includes timeline, "Dead money"
       assert_includes timeline, "Budget snapshot"
+
+      assert_match(/data-signals="\{ timelinephase: 'all',/, timeline)
+      assert_match(/data-show="\$timelinephase === 'all' \|\| \$timelinephase === 'facts'"/, timeline)
+      assert_match(/data-show="\$timelinephase === 'all' \|\| \$timelinephase === 'parties'"/, timeline)
+      assert_match(/data-show="\$timelinephase === 'all' \|\| \$timelinephase === 'ledger'"/, timeline)
+      assert_match(/data-show="\$timelinephase === 'all' \|\| \$timelinephase === 'artifacts'"/, timeline)
 
       assert_match(%r{href="/players/101"}, timeline)
       assert_match(%r{href="/teams/}, timeline)
@@ -46,6 +63,24 @@ class EntitiesTransactionsShowTest < ActionDispatch::IntegrationTest
 
       assert_includes response.body, "Route POR → BOS"
       assert_includes response.body, "Linked trade"
+    end
+  end
+
+  test "transaction show seeds timeline phase from query and normalizes invalid values" do
+    with_stubbed_transaction_show do
+      get "/transactions/700001?phase=ledger", headers: modern_headers
+
+      assert_response :success
+      timeline = section_fragment(response.body, "timeline")
+      assert timeline.present?
+      assert_match(/data-signals="\{ timelinephase: 'ledger',/, timeline)
+
+      get "/transactions/700001?phase=not-a-phase", headers: modern_headers
+
+      assert_response :success
+      timeline = section_fragment(response.body, "timeline")
+      assert timeline.present?
+      assert_match(/data-signals="\{ timelinephase: 'all',/, timeline)
     end
   end
 

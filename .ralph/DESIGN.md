@@ -218,7 +218,7 @@ Supervisor override: ENTITY
     - Follow-up tasks discovered:
       - Consider adding cohort chips to local-nav anchor links (or a persistent active-slice badge near local nav) so context remains visible after deep scroll into the team distribution module.
 
-- [ ] [P2] [ENTITY] /transactions/:id — add timeline phase filters and optional raw-row expansion
+- [x] [P2] [ENTITY] /transactions/:id — add timeline phase filters and optional raw-row expansion
   - Problem: causal timeline is strong, but very dense transactions still need lightweight narrowing.
   - Hypothesis: phase filters + raw expanders will keep default readability while preserving audit depth.
   - Scope (files):
@@ -238,6 +238,20 @@ Supervisor override: ENTITY
     - Navigation/pivots: 5 → 5
   - Guardrails:
     - Do not modify Salary Book files.
+  - Completed (2026-02-14):
+    - What changed (files):
+      - `web/app/views/entities/transactions/show.html.erb`: added `#causal-timeline` phase filter chips (`all/facts/parties/ledger/artifacts`) with Datastar in-page filtering, URL-stable `phase` query syncing, and per-phase collapsed raw-row expanders for facts/parties/ledger/artifacts lanes.
+      - `web/test/integration/entities_transactions_show_test.rb`: expanded coverage for phase filter/render wiring, raw-row expander presence, and query-driven phase bootstrapping (including invalid-phase fallback to `all`).
+    - Why this improves the flow:
+      - Analysts can now narrow dense transaction timelines to one causal phase without losing context, then opt into raw-row audit detail only when needed, preserving default readability while keeping investigative depth one click away.
+    - Rubric (before → after):
+      - Scan speed: 4 → 5
+      - Information hierarchy: 4 → 5
+      - Interaction predictability: 4 → 5
+      - Density/readability: 4 → 4
+      - Navigation/pivots: 5 → 5
+    - Follow-up tasks discovered:
+      - Consider per-row raw toggles for extremely dense artifact phases so users can expand just one row without opening all raw rows in that phase.
 
 - [ ] [P2] [ENTITY] /draft-selections/:slug — add provenance lane filters (`deep/conditional/swap`) and team exposure summary
   - Problem: provenance lanes are improved but long chains still require full-scroll parsing.

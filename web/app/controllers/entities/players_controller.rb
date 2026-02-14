@@ -5,6 +5,7 @@ module Entities
     PLAYER_STATUS_LENSES = %w[all two_way restricted no_trade].freeze
     PLAYER_CONSTRAINT_LENSES = %w[all lock_now options non_guaranteed trade_kicker expiring].freeze
     PLAYER_URGENCY_LENSES = %w[all urgent upcoming stable].freeze
+    PLAYER_URGENCY_SUB_LENSES = %w[all option_only expiring_only non_guaranteed_only].freeze
     PLAYER_SORT_LENSES = %w[cap_desc cap_asc name_asc name_desc].freeze
     PLAYER_DECISION_LENSES = %w[all urgent upcoming later].freeze
 
@@ -142,6 +143,9 @@ module Entities
 
       requested_urgency = params[:urgency].to_s.strip
       @urgency_lens = PLAYER_URGENCY_LENSES.include?(requested_urgency) ? requested_urgency : "all"
+
+      requested_urgency_sub = params[:urgency_sub].to_s.strip
+      @urgency_sub_lens = PLAYER_URGENCY_SUB_LENSES.include?(requested_urgency_sub) ? requested_urgency_sub : "all"
 
       requested_horizon = normalize_cap_horizon_param(params[:horizon])
       @cap_horizon = requested_horizon || INDEX_CAP_HORIZONS.first
@@ -314,6 +318,7 @@ module Entities
 
       annotate_player_urgency!(rows: @players)
       apply_urgency_filter!
+      apply_urgency_sub_filter!
     end
 
     def build_index_compare_state!
@@ -335,6 +340,7 @@ module Entities
       active_filters << "Status: #{status_lens_label(@status_lens)}" unless @status_lens == "all"
       active_filters << "Constraint: #{constraint_lens_label(@constraint_lens)}" unless @constraint_lens == "all"
       active_filters << "Urgency: #{urgency_lens_label(@urgency_lens)}" unless @urgency_lens == "all"
+      active_filters << "Urgency focus: #{urgency_sub_lens_label(@urgency_sub_lens)}" unless @urgency_sub_lens == "all"
       active_filters << "Horizon: #{cap_horizon_label(@cap_horizon)}" unless @cap_horizon == INDEX_CAP_HORIZONS.first
       active_filters << "Sort: #{sort_lens_label(@sort_lens)}" unless @sort_lens == "cap_desc"
 
@@ -368,6 +374,8 @@ module Entities
         cap_horizon_label: cap_horizon_label(@cap_horizon),
         urgency_lens: @urgency_lens,
         urgency_lens_label: urgency_lens_label(@urgency_lens),
+        urgency_sub_lens: @urgency_sub_lens,
+        urgency_sub_lens_label: urgency_sub_lens_label(@urgency_sub_lens),
         constraint_lens: @constraint_lens,
         constraint_lens_label: constraint_lens_label(@constraint_lens),
         constraint_lens_match_key: constraint_lens_match_key(@constraint_lens),
@@ -419,6 +427,15 @@ module Entities
       when "upcoming" then "Upcoming pressure"
       when "stable" then "Stable commitments"
       else "All urgency lanes"
+      end
+    end
+
+    def urgency_sub_lens_label(urgency_sub_lens)
+      case urgency_sub_lens.to_s
+      when "option_only" then "Option-only"
+      when "expiring_only" then "Expiring-only"
+      when "non_guaranteed_only" then "Non-guaranteed-only"
+      else "All triggers"
       end
     end
 
@@ -555,6 +572,25 @@ module Entities
       return if @urgency_lens == "all"
 
       @players = Array(@players).select { |row| row["urgency_key"].to_s == @urgency_lens }
+    end
+
+    def apply_urgency_sub_filter!
+      return if @urgency_sub_lens == "all"
+
+      @players = Array(@players).select { |row| matches_urgency_sub_lens?(row, lens: @urgency_sub_lens) }
+    end
+
+    def matches_urgency_sub_lens?(row, lens:)
+      case lens.to_s
+      when "option_only"
+        truthy_row_value?(row["has_next_horizon_option"]) || truthy_row_value?(row["has_future_option"])
+      when "expiring_only"
+        truthy_row_value?(row["expires_after_horizon"])
+      when "non_guaranteed_only"
+        truthy_row_value?(row["has_next_horizon_non_guaranteed"]) || truthy_row_value?(row["has_non_guaranteed"])
+      else
+        true
+      end
     end
 
     def player_row_urgency(row, next_horizon_year:)

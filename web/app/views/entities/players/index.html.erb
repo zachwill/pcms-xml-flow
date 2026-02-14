@@ -6,6 +6,7 @@
     '&status=' + encodeURIComponent($playerstatus) +
     '&constraint=' + encodeURIComponent($playerconstraint) +
     '&urgency=' + encodeURIComponent($playerurgency) +
+    '&urgency_sub=' + encodeURIComponent($playerurgencysub) +
     '&horizon=' + encodeURIComponent($playerhorizon) +
     '&sort=' + encodeURIComponent($playersort) +
     '&compare_a=' + encodeURIComponent($comparea) +
@@ -18,7 +19,7 @@
   submit_search_expr = "evt.preventDefault(); #{refresh_expr}"
   clear_search_expr = "$playerquery = ''; #{refresh_expr}"
 
-  signals_literal = "{ playerquery: #{@query.to_json}, playerteam: #{@team_lens.to_json}, playerstatus: #{@status_lens.to_json}, playerconstraint: #{@constraint_lens.to_json}, playerurgency: #{@urgency_lens.to_json}, playerhorizon: #{@cap_horizon.to_s.to_json}, playersort: #{@sort_lens.to_json}, comparea: #{@compare_a_id.to_s.to_json}, compareb: #{@compare_b_id.to_s.to_json}, selectedplayerid: #{@selected_player_id.to_s.to_json}, overlaytype: #{@selected_player_id.present? ? 'player'.to_json : 'none'.to_json} }"
+  signals_literal = "{ playerquery: #{@query.to_json}, playerteam: #{@team_lens.to_json}, playerstatus: #{@status_lens.to_json}, playerconstraint: #{@constraint_lens.to_json}, playerurgency: #{@urgency_lens.to_json}, playerurgencysub: #{@urgency_sub_lens.to_json}, playerhorizon: #{@cap_horizon.to_s.to_json}, playersort: #{@sort_lens.to_json}, comparea: #{@compare_a_id.to_s.to_json}, compareb: #{@compare_b_id.to_s.to_json}, selectedplayerid: #{@selected_player_id.to_s.to_json}, overlaytype: #{@selected_player_id.present? ? 'player'.to_json : 'none'.to_json} }"
 %>
 
 <div id="players-workspace" class="h-screen w-screen flex flex-col overflow-hidden bg-background" data-signals="<%= signals_literal %>">
@@ -144,6 +145,21 @@
             </label>
           <% end %>
         </div>
+      </div>
+
+      <div class="min-w-[11rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Urgency focus</div>
+        <select
+          id="players-urgency-sub-lens"
+          class="h-7 w-44 rounded border border-border bg-background px-2 text-xs text-foreground"
+          data-bind="playerurgencysub"
+          data-on:change="<%= refresh_expr %>"
+        >
+          <option value="all" <%= "selected" if @urgency_sub_lens == "all" %>>All triggers</option>
+          <option value="option_only" <%= "selected" if @urgency_sub_lens == "option_only" %>>Option-only</option>
+          <option value="expiring_only" <%= "selected" if @urgency_sub_lens == "expiring_only" %>>Expiring-only</option>
+          <option value="non_guaranteed_only" <%= "selected" if @urgency_sub_lens == "non_guaranteed_only" %>>Non-guaranteed-only</option>
+        </select>
       </div>
 
       <div class="min-w-[9rem] space-y-1">

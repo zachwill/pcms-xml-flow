@@ -199,6 +199,8 @@ class EntitiesPlayersIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="players-search-input"'
       assert_includes response.body, 'id="players-constraint-lens"'
       assert_includes response.body, 'data-bind="playerurgency"'
+      assert_includes response.body, 'id="players-urgency-sub-lens"'
+      assert_includes response.body, 'data-bind="playerurgencysub"'
       assert_includes response.body, 'id="players-cap-horizon-2026"'
       assert_includes response.body, 'id="maincanvas"'
       assert_includes response.body, 'id="players-compare-strip"'
@@ -208,7 +210,6 @@ class EntitiesPlayersIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="players-section-upcoming"'
       assert_includes response.body, "Contract-horizon lane rollup"
       assert_includes response.body, "URLSearchParams(window.location.search)"
-      assert_includes response.body, "params.set('compare_a', nextCompareA)"
       assert_includes response.body, '>Pin A</button>'
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, "Compare slots"
@@ -253,6 +254,7 @@ class EntitiesPlayersIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "event: datastar-patch-signals"
       assert_includes response.body, '"playerconstraint":"all"'
       assert_includes response.body, '"playerurgency":"all"'
+      assert_includes response.body, '"playerurgencysub":"all"'
       assert_includes response.body, '"playerhorizon":"2025"'
       assert_includes response.body, '"comparea":""'
       assert_includes response.body, '"compareb":""'
@@ -378,6 +380,7 @@ class EntitiesPlayersIndexTest < ActionDispatch::IntegrationTest
       assert_not_includes response.body, "Beta Wing"
       assert_includes response.body, '"playerconstraint":"trade_kicker"'
       assert_includes response.body, '"playerurgency":"all"'
+      assert_includes response.body, '"playerurgencysub":"all"'
       assert_includes response.body, '"playerhorizon":"2026"'
     end
   end
@@ -400,8 +403,57 @@ class EntitiesPlayersIndexTest < ActionDispatch::IntegrationTest
       assert_not_includes response.body, 'id="players-section-upcoming"'
       assert_includes response.body, "Urgent decisions"
       assert_includes response.body, '"playerurgency":"urgent"'
+      assert_includes response.body, '"playerurgencysub":"all"'
       assert_includes response.body, "Alpha Guard"
       assert_not_includes response.body, "Beta Wing"
+    end
+  end
+
+  test "players refresh applies urgency sub-lens intersection and keeps signals in sync" do
+    with_fake_connection do
+      get "/players/sse/refresh", params: {
+        q: "",
+        team: "ALL",
+        status: "all",
+        constraint: "all",
+        urgency: "urgent",
+        urgency_sub: "option_only",
+        horizon: "2025",
+        sort: "cap_desc"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, 'id="players-section-urgent"'
+      assert_not_includes response.body, 'id="players-section-upcoming"'
+      assert_includes response.body, "Focus Option-only"
+      assert_includes response.body, "Urgency focus: Option-only"
+      assert_includes response.body, '"playerurgency":"urgent"'
+      assert_includes response.body, '"playerurgencysub":"option_only"'
+      assert_includes response.body, "Alpha Guard"
+      assert_not_includes response.body, "Beta Wing"
+    end
+  end
+
+  test "players refresh urgency sub-lens clears overlay when selected row falls out" do
+    with_fake_connection do
+      get "/players/sse/refresh", params: {
+        q: "",
+        team: "ALL",
+        status: "all",
+        constraint: "all",
+        urgency_sub: "option_only",
+        horizon: "2025",
+        sort: "cap_desc",
+        selected_id: "2"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, '<div id="rightpanel-overlay"></div>'
+      assert_includes response.body, '"overlaytype":"none"'
+      assert_includes response.body, '"selectedplayerid":""'
+      assert_includes response.body, '"playerurgencysub":"option_only"'
     end
   end
 

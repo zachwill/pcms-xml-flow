@@ -5,6 +5,8 @@
 <% active_constraint_key = @sidebar_summary&.dig(:constraint_lens_match_key).to_s.presence %>
 <% active_constraint_reason = @sidebar_summary&.dig(:constraint_lens_match_reason).to_s.presence %>
 <% active_constraint_chip_label = @sidebar_summary&.dig(:constraint_lens_match_chip_label).to_s.presence %>
+<% active_urgency_sub_lens = @sidebar_summary&.dig(:urgency_sub_lens).to_s.presence || "all" %>
+<% active_urgency_sub_label = @sidebar_summary&.dig(:urgency_sub_lens_label).to_s.presence || "All triggers" %>
 
 <%
   urgency_chip_class = lambda do |key|
@@ -36,6 +38,7 @@
     '&status=' + encodeURIComponent($playerstatus) +
     '&constraint=' + encodeURIComponent($playerconstraint) +
     '&urgency=' + encodeURIComponent($playerurgency) +
+    '&urgency_sub=' + encodeURIComponent($playerurgencysub) +
     '&horizon=' + encodeURIComponent($playerhorizon) +
     '&sort=' + encodeURIComponent($playersort) +
     '&compare_a=' + encodeURIComponent($comparea) +
@@ -86,6 +89,9 @@
       <span class="<%= urgency_chip_class.call('upcoming') %>">Upcoming <%= @sidebar_summary[:upcoming_count].to_i %></span>
       <span class="<%= urgency_chip_class.call('stable') %>">Stable <%= @sidebar_summary[:stable_count].to_i %></span>
       <span class="entity-chip entity-chip--muted">Horizon <%= cap_horizon_label %></span>
+      <% if active_urgency_sub_lens != "all" %>
+        <span class="entity-chip entity-chip--accent">Focus <%= active_urgency_sub_label %></span>
+      <% end %>
     </div>
 
     <div id="players-compare-strip" class="rounded-lg border border-border bg-muted/20 px-3 py-3 space-y-2">

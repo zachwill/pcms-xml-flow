@@ -34,6 +34,7 @@
     '&status=' + encodeURIComponent($playerstatus) +
     '&constraint=' + encodeURIComponent($playerconstraint) +
     '&urgency=' + encodeURIComponent($playerurgency) +
+    '&urgency_sub=' + encodeURIComponent($playerurgencysub) +
     '&horizon=' + encodeURIComponent($playerhorizon) +
     '&sort=' + encodeURIComponent($playersort) +
     '&compare_a=' + encodeURIComponent($comparea) +
@@ -97,6 +98,9 @@
         <span class="<%= urgency_chip_class.call('urgent') %>">Urgent <%= summary[:urgent_count].to_i %></span>
         <span class="<%= urgency_chip_class.call('upcoming') %>">Upcoming <%= summary[:upcoming_count].to_i %></span>
         <span class="<%= urgency_chip_class.call('stable') %>">Stable <%= summary[:stable_count].to_i %></span>
+        <% if summary[:urgency_sub_lens].to_s != "all" %>
+          <span class="entity-chip entity-chip--accent"><%= summary[:urgency_sub_lens_label].presence || "Focused" %></span>
+        <% end %>
       </div>
 
       <% if Array(summary[:filters]).any? %>

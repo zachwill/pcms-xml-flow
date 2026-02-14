@@ -334,7 +334,7 @@ Supervisor review (2026-02-14):
     - Follow-up tasks discovered:
       - Consider mirroring `rule_lane` state into draft-related rightpanel overlays (draft index drill-ins) so filters and hop highlights stay consistent between workspace and entity detail contexts.
 
-- [ ] [P2] [INDEX] /players — add secondary urgency sub-lenses (`option-only`, `expiring-only`, `non-guaranteed-only`)
+- [x] [P2] [INDEX] /players — add secondary urgency sub-lenses (`option-only`, `expiring-only`, `non-guaranteed-only`)
   - Problem: urgency lanes are strong, but analysts still need narrower follow-up controls.
   - Hypothesis: sub-lenses on top of urgency will reduce false-positive scanning in large result sets.
   - Scope (files):
@@ -357,6 +357,27 @@ Supervisor review (2026-02-14):
     - Navigation/pivots: 5 → 5
   - Guardrails:
     - Do not modify Salary Book files.
+  - Completed (2026-02-14):
+    - What changed (files):
+      - `web/app/controllers/entities/players_controller.rb`: added normalized `urgency_sub` filter state (`all/option_only/expiring_only/non_guaranteed_only`), applied secondary filtering after primary urgency filtering, and surfaced sub-lens labels in sidebar summary/filter chips.
+      - `web/app/controllers/entities/players_sse_controller.rb`: patched new `playerurgencysub` signal in refresh SSE payloads.
+      - `web/app/views/entities/players/index.html.erb`: added discoverable commandbar control (`#players-urgency-sub-lens`), URL query wiring (`urgency_sub`), and initial Datastar signal bootstrap for the sub-lens.
+      - `web/app/views/entities/players/_workspace_main.html.erb`: preserved `urgency_sub` in all refresh interactions (compare/pin/clear) and added a visible focus chip so active sub-lens context is obvious while scanning lanes.
+      - `web/app/views/entities/players/_rightpanel_base.html.erb`: preserved `urgency_sub` across rightpanel compare actions and surfaced active sub-lens context in snapshot chips.
+      - `web/app/views/entities/players/_rightpanel_overlay_player.html.erb`: preserved `urgency_sub` when pin/clear compare actions originate from the overlay.
+      - `web/test/integration/entities_players_index_test.rb`: added coverage for sub-lens control wiring, SSE signal sync, urgency+sub-lens intersection behavior, and overlay-clear behavior when sub-lens filters out the selected row.
+    - Why this improves the flow:
+      - Analysts can now stack a secondary urgency trigger focus (option/expiring/non-guaranteed) on top of urgency lanes to remove false positives quickly, while keeping compare slots, overlay behavior, and URL-sharable state stable.
+    - Verification:
+      - `cd web && bundle exec ruby -Itest test/integration/entities_players_index_test.rb`
+    - Rubric (before → after):
+      - Scan speed: 5 → 5
+      - Information hierarchy: 5 → 5
+      - Interaction predictability: 5 → 5
+      - Density/readability: 4 → 4
+      - Navigation/pivots: 5 → 5
+    - Follow-up tasks discovered:
+      - Consider optional multi-select urgency sub-lenses (e.g., option + non-guaranteed) if analysts need compound trigger boards beyond single-focus narrowing.
 
 - [ ] [P2] [TOOL] /tools/system-values — add global shortcut focus (`Cmd/Ctrl+K`) and match-reason badges
   - Problem: keyboard shortlist exists, but first focus and result rationale are still implicit.

@@ -89,6 +89,8 @@ const GENERATE_COMMIT_TITLE = "design: [PROCESS] /backlog generate evolution bac
 const ENTITY_OVERRIDE_PATTERN =
   /\[ENTITY-OVERRIDE\]|supervisor\s+override\s*:\s*entity|entity\s+override\s*:\s*allowed/i;
 
+const COMPLETED_TASK_PATTERN = /^- \[x\] \[P\d\] \[(INDEX|TOOL|PROCESS|ENTITY)\]/im;
+
 const SALARY_BOOK_FORBIDDEN_EXACT = new Set<string>([
   "web/app/controllers/tools/salary_book_controller.rb",
   "web/app/controllers/tools/salary_book_sse_controller.rb",
@@ -125,6 +127,10 @@ function readTaskFileContent(): string {
 
 function hasEntityOverride(taskContent: string): boolean {
   return ENTITY_OVERRIDE_PATTERN.test(taskContent);
+}
+
+function hasCompletedTaskBlocks(taskContent: string): boolean {
+  return COMPLETED_TASK_PATTERN.test(taskContent);
 }
 
 function workerCommitRegex(allowEntity: boolean): RegExp {
@@ -170,6 +176,13 @@ function evaluateDesignGuards(state: { hasTodos: boolean; nextTodo: string | nul
   const errors: string[] = [];
   const taskContent = readTaskFileContent();
   const entityOverrideEnabled = hasEntityOverride(taskContent);
+
+  if (hasCompletedTaskBlocks(taskContent)) {
+    errors.push(
+      `${TASK_FILE} must remain active-only: remove completed task blocks (- [x] [P*] [TRACK] ...). ` +
+        "Archive completion details in git history and keep at most a short audit note."
+    );
+  }
 
   if (state.hasTodos && /\[ENTITY\]/i.test(state.nextTodo ?? "") && !entityOverrideEnabled) {
     errors.push(
@@ -263,7 +276,8 @@ SUPERVISOR CHECKLIST:
 - Did the worker avoid broad grep-only style chores unless directly supporting a flow fix?
 - Are Datastar patch boundaries and response rules still correct?
 - Did they avoid touching forbidden Salary Book files (anything outside the approved Tankathon file)?
-- Did ${TASK_FILE} get updated with before/after rubric scoring evidence?
+- Is ${TASK_FILE} active-only (no completed task blocks reintroduced)?
+- If a task was completed, was completion evidence captured briefly and archived to git history?
 
 IF DRIFT IS DETECTED:
 - Revert low-value cosmetic churn
@@ -348,6 +362,7 @@ HARD RULES:
 8) Keep changes coherent and shippable (avoid sprawling refactors).
 9) Commit titles must follow: ${COMMIT_TITLE_SCHEMA}.
 10) [ENTITY] track is forbidden unless ${TASK_FILE} contains explicit supervisor override marker ([ENTITY-OVERRIDE] or "supervisor override: ENTITY").
+11) Keep ${TASK_FILE} active-only: do not leave completed task blocks in the file.
 
 ANTI-PATTERNS (avoid):
 - Repo-wide grep/replace for style-only classes
@@ -357,12 +372,12 @@ ANTI-PATTERNS (avoid):
 REQUIRED TASK COMPLETION STEPS:
 1) Implement the flow-level improvement.
 2) Run focused verification (tests or targeted checks).
-3) Update the task block in ${TASK_FILE} with:
+3) Update the current task block in ${TASK_FILE} with:
    - What changed (files)
    - Why this improves the flow
    - Before → after rubric scores (all 5 dimensions)
    - Any follow-up tasks discovered
-4) Check off the task in ${TASK_FILE}.
+4) Check off the task, then immediately archive/remove the completed block so ${TASK_FILE} remains active-only (optional: keep one short audit note).
 5) Commit:
    git add -A && git commit -m "design: [TRACK] /surface flow-outcome"
         `,
@@ -423,6 +438,7 @@ BACKLOG RULES:
    - P2: Tool evolution (Team Summary, System Values, Two-Way Utility, and Salary Book Tankathon-only)
    - P3: Lower-leverage polish/supporting tasks
 9) Do not starve tool evolution: top 10 tasks should include at least 3 tool tasks.
+10) Keep ${TASK_FILE} active-only: output unchecked tasks only, and do not include completed ([x]) blocks.
 
 TASK BLOCK FORMAT (required):
 - [ ] [P1|P2|P3] [INDEX|TOOL] <surface> — <flow outcome>

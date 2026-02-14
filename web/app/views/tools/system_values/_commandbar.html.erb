@@ -167,7 +167,10 @@
         @get('<%= tools_system_values_sidebar_metric_path %>?' + (<%= overlay_query_expr %>));
       "
     >
-      <label class="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70" for="system-values-metric-finder-query">Metric finder</label>
+      <div class="flex items-center justify-between gap-2">
+        <label class="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70" for="system-values-metric-finder-query">Metric finder</label>
+        <span class="inline-flex items-center rounded border border-border/70 bg-background px-1.5 py-0.5 text-[9px] font-mono tabular-nums text-muted-foreground/80">Cmd/Ctrl+K</span>
+      </div>
       <div class="flex items-center gap-1.5">
         <input
           id="system-values-metric-finder-query"
@@ -193,14 +196,23 @@
         >Clear</button>
       </div>
 
-      <div class="flex items-center gap-1.5 min-h-[18px]">
+      <div class="flex items-center gap-1.5 min-h-[20px]">
         <% if metric_shortlist.any? %>
           <div id="system-values-metric-shortlist" class="flex items-center gap-1.5 overflow-x-auto pr-1">
             <% metric_shortlist.each_with_index do |option, idx| %>
               <% cursor_value = option[:value].to_s %>
+              <% match_reason = option[:match_reason].to_s.presence || "context" %>
+              <% reason_badge_classes = case match_reason
+              when "exact"
+                "border-emerald-300/70 dark:border-emerald-500/50 bg-emerald-50/70 dark:bg-emerald-900/25 text-emerald-700 dark:text-emerald-300"
+              when "prefix"
+                "border-blue-300/70 dark:border-blue-500/50 bg-blue-50/70 dark:bg-blue-900/25 text-blue-700 dark:text-blue-300"
+              else
+                "border-amber-300/70 dark:border-amber-500/50 bg-amber-50/70 dark:bg-amber-900/25 text-amber-700 dark:text-amber-300"
+              end %>
               <button
                 type="button"
-                class="cursor-pointer h-4 px-1.5 rounded border border-border/70 bg-background text-[10px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors whitespace-nowrap"
+                class="cursor-pointer h-5 px-1.5 rounded border border-border/70 bg-background text-[10px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors whitespace-nowrap"
                 data-class="{ 'border-foreground/40 bg-yellow-50/70 dark:bg-yellow-900/20 text-foreground': $svmetricfindercursor === '<%= cursor_value %>' }"
                 data-on:mouseenter="$svmetricfindercursorindex=<%= idx %>; $svmetricfindercursor='<%= cursor_value %>'"
                 data-on:focus="$svmetricfindercursorindex=<%= idx %>; $svmetricfindercursor='<%= cursor_value %>'"
@@ -211,6 +223,8 @@
                 <span class="font-medium text-foreground"><%= option[:metric_label] %></span>
                 <span class="mx-1">·</span>
                 <span><%= option[:context_label] %></span>
+                <span class="mx-1">·</span>
+                <span data-system-values-match-reason="<%= match_reason %>" class="inline-flex items-center rounded border px-1 py-0.5 text-[9px] uppercase tracking-wide <%= reason_badge_classes %>"><%= match_reason %></span>
               </button>
             <% end %>
           </div>
@@ -221,9 +235,9 @@
 
       <div class="text-[10px] text-muted-foreground/70 tabular-nums">
         <% if @metric_finder_query.present? %>
-          <span><%= metric_shortlist.size %> shortlist rows · ↑/↓ pick · Enter opens overlay</span>
+          <span><%= metric_shortlist.size %> shortlist rows · exact/prefix/context badges · ↑/↓ pick · Enter opens overlay · Cmd/Ctrl+K focus</span>
         <% else %>
-          <span>Type intent to get ranked shortlist and open with Enter.</span>
+          <span>Cmd/Ctrl+K focuses finder · type intent for ranked shortlist · Enter opens overlay.</span>
         <% end %>
       </div>
     </div>

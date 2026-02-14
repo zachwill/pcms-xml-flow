@@ -20,10 +20,10 @@
     <% if @metric_finder_query.present? %>
       <div class="rounded border border-border/70 bg-muted/20 px-2 py-1.5 text-xs">
         <div class="font-medium text-foreground">Query: <span class="font-mono tabular-nums"><%= @metric_finder_query %></span></div>
-        <div class="mt-0.5 text-muted-foreground"><%= Array(@metric_finder_shortlist).size %> ranked shortlist rows · Enter opens the highlighted row.</div>
+        <div class="mt-0.5 text-muted-foreground"><%= Array(@metric_finder_shortlist).size %> ranked shortlist rows · reason badges (exact/prefix/context) · Enter opens the highlighted row.</div>
       </div>
     <% else %>
-      <div class="text-xs text-muted-foreground">Type intent in Metric finder to get a ranked shortlist, then use ↑/↓ + Enter for one-keystroke drill-in.</div>
+      <div class="text-xs text-muted-foreground">Use Cmd/Ctrl+K to focus Metric finder, then type intent and use ↑/↓ + Enter for one-keystroke drill-in.</div>
     <% end %>
 
     <% if @active_metric_finder_option.present? %>

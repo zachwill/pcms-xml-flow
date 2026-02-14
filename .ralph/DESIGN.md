@@ -379,7 +379,7 @@ Supervisor review (2026-02-14):
     - Follow-up tasks discovered:
       - Consider optional multi-select urgency sub-lenses (e.g., option + non-guaranteed) if analysts need compound trigger boards beyond single-focus narrowing.
 
-- [ ] [P2] [TOOL] /tools/system-values — add global shortcut focus (`Cmd/Ctrl+K`) and match-reason badges
+- [x] [P2] [TOOL] /tools/system-values — add global shortcut focus (`Cmd/Ctrl+K`) and match-reason badges
   - Problem: keyboard shortlist exists, but first focus and result rationale are still implicit.
   - Hypothesis: explicit shortcut + reason badges will speed confident metric selection.
   - Scope (files):
@@ -401,6 +401,25 @@ Supervisor review (2026-02-14):
     - Navigation/pivots: 5 → 5
   - Guardrails:
     - Do not modify Salary Book files.
+  - Completed (2026-02-14):
+    - What changed (files):
+      - `web/app/views/tools/system_values/show.html.erb`: added page-level `data-on:keydown` shortcut handling so `Cmd/Ctrl+K` focuses and selects `#system-values-metric-finder-query` from any workspace region.
+      - `web/app/views/tools/system_values/_commandbar.html.erb`: added visible `Cmd/Ctrl+K` affordance near Metric finder, introduced shortlist match-reason badges (`exact/prefix/context`) on each shortlist row, and updated helper copy to explain badges + shortcut behavior.
+      - `web/app/views/tools/system_values/_rightpanel_base.html.erb`: mirrored shortcut and reason-badge wayfinding text in sidebar base context so keyboard and rationale cues remain visible outside the commandbar.
+      - `web/app/controllers/tools/system_values_controller.rb`: replaced boolean shortlist matching with scored match-detail classification, carrying `match_reason` (`exact/prefix/context`) through shortlist ranking and render payloads.
+      - `web/test/integration/tools_system_values_test.rb`: expanded coverage for global shortcut wiring on show, and for shortlist reason badges across prefix/exact/context match paths in SSE refresh responses.
+    - Why this improves the flow:
+      - Users can now invoke metric search intent instantly with `Cmd/Ctrl+K`, and shortlist chips explain *why* each result surfaced, reducing ambiguity before opening overlays while preserving existing overlay/query synchronization.
+    - Verification:
+      - `cd web && bundle exec ruby -Itest test/integration/tools_system_values_test.rb`
+    - Rubric (before → after):
+      - Scan speed: 5 → 5
+      - Information hierarchy: 5 → 5
+      - Interaction predictability: 5 → 5
+      - Density/readability: 4 → 4
+      - Navigation/pivots: 5 → 5
+    - Follow-up tasks discovered:
+      - Consider extracting a shared tool-level keyboard-shortcut helper (for `Cmd/Ctrl+K` focus patterns) before applying the same interaction grammar to Two-Way Utility.
 
 - [ ] [P2] [TOOL] /tools/two-way-utility — add global intent focus shortcut and match rationale labels
   - Problem: shortlist open works, but intent initiation and ranking rationale remain opaque for edge queries.

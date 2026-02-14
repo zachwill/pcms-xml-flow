@@ -23,6 +23,8 @@
 
   normalize_active_section_expr = "const visibleSections = [ { key: 'system', visible: $showsystemvalues }, { key: 'tax', visible: $showtaxrates }, { key: 'minimum', visible: $showsalaryscales }, { key: 'rookie', visible: $showrookiescales } ]; const activeStillVisible = visibleSections.find((section) => section.key === $activesection && section.visible); if (!activeStillVisible) { const firstVisible = visibleSections.find((section) => section.visible); const nextActive = firstVisible ? firstVisible.key : ''; if ($activesection !== nextActive) { $activesection = nextActive; } }"
 
+  shortcut_focus_expr = "const isShortcut = (evt.metaKey || evt.ctrlKey) && !evt.shiftKey && !evt.altKey && String(evt.key || '').toLowerCase() === 'k'; if (!isShortcut) { return; } const finder = document.getElementById('system-values-metric-finder-query'); if (!finder) { return; } evt.preventDefault(); finder.focus(); finder.select();"
+
   root_effect_expr = "#{normalize_active_section_expr} #{sync_url_expr}"
 
   signals_literal = {
@@ -53,6 +55,7 @@
   style="height: 100dvh;"
   data-signals='<%= signals_literal %>'
   data-effect="<%= root_effect_expr %>"
+  data-on:keydown="<%= shortcut_focus_expr %>"
 >
   <div id="flash"></div>
 

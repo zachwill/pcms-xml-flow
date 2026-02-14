@@ -276,8 +276,10 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="system-values-metric-shortlist"'
       assert_includes response.body, "salary_cap_amount|2026|||sv-row-system-2026"
       assert_includes response.body, "Salary Cap"
+      assert_includes response.body, 'data-system-values-match-reason="prefix"'
       assert_includes response.body, "ArrowDown"
       assert_includes response.body, "Enter opens overlay"
+      assert_includes response.body, "Cmd/Ctrl+K"
       assert_includes response.body, "data-on:system-values-jump"
       assert_includes response.body, "$svoverlaysection='minimum'; $svoverlaymetric='minimum_salary_amount'"
       assert_includes response.body, "$svoverlaylower='0'"
@@ -292,6 +294,53 @@ class ToolsSystemValuesTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "show_tax_rates=0"
       assert_includes response.body, "show_salary_scales=1"
       assert_includes response.body, "show_rookie_scales=0"
+    end
+  end
+
+  test "system values show wires cmd ctrl+k metric finder focus" do
+    with_fake_connection do
+      get "/tools/system-values", params: {
+        year: "2026",
+        baseline_year: "2024",
+        from_year: "2024",
+        to_year: "2026"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_equal "text/html", response.media_type
+      assert_includes response.body, 'id="system-values"'
+      assert_includes response.body, "toLowerCase() ==="
+      assert_includes response.body, "finder.focus(); finder.select();"
+      assert_includes response.body, 'id="system-values-metric-finder-query"'
+      assert_includes response.body, "Cmd/Ctrl+K"
+    end
+  end
+
+  test "system values metric finder labels exact and context shortlist matches" do
+    with_fake_connection do
+      get "/tools/system-values/sse/refresh", params: {
+        year: "2026",
+        baseline_year: "2024",
+        from_year: "2024",
+        to_year: "2026",
+        metric_finder_query: "salary cap"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, 'data-system-values-match-reason="exact"'
+
+      get "/tools/system-values/sse/refresh", params: {
+        year: "2026",
+        baseline_year: "2024",
+        from_year: "2024",
+        to_year: "2026",
+        metric_finder_query: "pick"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, 'data-system-values-match-reason="context"'
     end
   end
 

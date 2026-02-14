@@ -838,13 +838,14 @@ module Tools
       end
 
       ranked = @metric_finder_options.each_with_index.filter_map do |option, index|
-        next unless metric_shortlist_match?(option:, query:)
+        match = metric_shortlist_match_details(option:, query:)
+        next unless match
 
         [
-          metric_shortlist_score(option:, query:),
+          match.fetch(:score),
           METRIC_FINDER_SECTION_RANK.fetch(option[:section].to_s, 99),
           index,
-          option
+          option.merge(match_reason: match.fetch(:reason))
         ]
       end
 
@@ -867,30 +868,20 @@ module Tools
       @metric_finder_cursor_index = shortlist.find_index { |option| option[:value] == @metric_finder_cursor_value } || 0
     end
 
-    def metric_shortlist_match?(option:, query:)
-      haystacks = [
-        option[:metric_label],
-        option[:context_label],
-        option[:label]
-      ].compact.map { |value| value.to_s.downcase }
-
-      haystacks.any? { |value| value.include?(query) }
-    end
-
-    def metric_shortlist_score(option:, query:)
+    def metric_shortlist_match_details(option:, query:)
       metric_label = option[:metric_label].to_s.downcase
       context_label = option[:context_label].to_s.downcase
       full_label = option[:label].to_s.downcase
 
-      return 0 if metric_label == query
-      return 1 if metric_label.start_with?(query)
+      return { score: 0, reason: "exact" } if [metric_label, context_label, full_label].include?(query)
+      return { score: 1, reason: "prefix" } if metric_label.start_with?(query)
 
       metric_tokens = metric_label.split(/[^a-z0-9%]+/)
-      return 2 if metric_tokens.any? { |token| token.start_with?(query) }
-      return 3 if context_label.start_with?(query)
-      return 4 if full_label.include?(query)
+      return { score: 2, reason: "prefix" } if metric_tokens.any? { |token| token.start_with?(query) }
+      return { score: 3, reason: "context" } if context_label.start_with?(query)
+      return { score: 4, reason: "context" } if [metric_label, context_label, full_label].any? { |value| value.include?(query) }
 
-      5
+      nil
     end
 
     def build_metric_finder_options

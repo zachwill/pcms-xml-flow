@@ -24,7 +24,7 @@ module Tools
     private
 
     def build_switch_team_sections(team_code:, year:, view:)
-      payload = fetch_team_support_payload(team_code, base_year: year)
+      payload = SalaryBookQueries.fetch_team_support_payload(team_code, base_year: year, salary_years: SALARY_YEARS)
       summaries_by_year = payload[:team_summaries]
       summary = summaries_by_year[year] || {}
       team_meta = payload[:team_meta]
@@ -34,7 +34,7 @@ module Tools
       elsif view == "injuries"
         build_injuries_main_html(team_code:, year:)
       else
-        players = fetch_team_players(team_code)
+        players = SalaryBookQueries.fetch_team_players(team_code)
         build_salary_book_main_html(
           team_code:,
           year:,
@@ -139,7 +139,7 @@ module Tools
     end
 
     def build_tankathon_main_html(team_code:, year:)
-      tankathon_payload = fetch_tankathon_payload(year)
+      tankathon_payload = SalaryBookQueries.fetch_tankathon_payload(year)
 
       without_view_annotations do
         render_to_string(
@@ -158,9 +158,9 @@ module Tools
     end
 
     def build_injuries_main_html(team_code:, year:)
-      team_rows = fetch_team_index_rows(year)
+      team_rows = SalaryBookQueries.fetch_team_index_rows(year)
       team_codes = team_rows.map { |row| row["team_code"] }.compact
-      _, team_meta_by_code = build_team_maps(team_rows)
+      _, team_meta_by_code = SalaryBookQueries.build_team_maps(team_rows)
 
       without_view_annotations do
         render_to_string(

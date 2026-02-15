@@ -1,5 +1,3 @@
-require "json"
-
 class SalaryBookQueries
   CURRENT_SALARY_YEAR = 2025
   SALARY_YEARS = (2025..2030).to_a.freeze

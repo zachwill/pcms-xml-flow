@@ -58,47 +58,95 @@
 <% else %>
   <div class="divide-y divide-border/60">
     <div id="section-system" class="scroll-mt-2">
-      <%= render partial: "tools/system_values/league_system_values_table", locals: {
-        rows: @league_system_values,
-        selected_year: @selected_year,
-        baseline_year: @baseline_year,
-        baseline_row: @baseline_system_values_row,
-        overlay_query_expr:,
-        sidebar_metric_path: tools_system_values_sidebar_metric_path
-      } %>
+      <div
+        data-system-values-table-scroll
+        class="relative overflow-x-auto overflow-y-visible overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      >
+        <div
+          data-system-values-sticky-shadow
+          class="absolute top-0 bottom-0 pointer-events-none z-[25] transition-opacity duration-150 opacity-0"
+          style="left: 144px; width: 6px; background: linear-gradient(to right, rgba(0, 0, 0, 0.06), transparent);"
+          aria-hidden="true"
+        ></div>
+
+        <%= render partial: "tools/system_values/league_system_values_table", locals: {
+          rows: @league_system_values,
+          selected_year: @selected_year,
+          baseline_year: @baseline_year,
+          baseline_row: @baseline_system_values_row,
+          overlay_query_expr:,
+          sidebar_metric_path: tools_system_values_sidebar_metric_path
+        } %>
+      </div>
     </div>
 
     <div id="section-tax" class="scroll-mt-2">
-      <%= render partial: "tools/system_values/league_tax_rates_table", locals: {
-        rows: @league_tax_rates,
-        selected_year: @selected_year,
-        baseline_year: @baseline_year,
-        baseline_rows: @baseline_tax_rate_rows,
-        overlay_query_expr:,
-        sidebar_metric_path: tools_system_values_sidebar_metric_path
-      } %>
+      <div
+        data-system-values-table-scroll
+        class="relative overflow-x-auto overflow-y-visible overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      >
+        <div
+          data-system-values-sticky-shadow
+          class="absolute top-0 bottom-0 pointer-events-none z-[25] transition-opacity duration-150 opacity-0"
+          style="left: 144px; width: 6px; background: linear-gradient(to right, rgba(0, 0, 0, 0.06), transparent);"
+          aria-hidden="true"
+        ></div>
+
+        <%= render partial: "tools/system_values/league_tax_rates_table", locals: {
+          rows: @league_tax_rates,
+          selected_year: @selected_year,
+          baseline_year: @baseline_year,
+          baseline_rows: @baseline_tax_rate_rows,
+          overlay_query_expr:,
+          sidebar_metric_path: tools_system_values_sidebar_metric_path
+        } %>
+      </div>
     </div>
 
     <div id="section-minimum" class="scroll-mt-2">
-      <%= render partial: "tools/system_values/league_salary_scales_table", locals: {
-        rows: @league_salary_scales,
-        selected_year: @selected_year,
-        baseline_year: @baseline_year,
-        baseline_rows: @baseline_salary_scale_rows,
-        overlay_query_expr:,
-        sidebar_metric_path: tools_system_values_sidebar_metric_path
-      } %>
+      <div
+        data-system-values-table-scroll
+        class="relative overflow-x-auto overflow-y-visible overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      >
+        <div
+          data-system-values-sticky-shadow
+          class="absolute top-0 bottom-0 pointer-events-none z-[25] transition-opacity duration-150 opacity-0"
+          style="left: 144px; width: 6px; background: linear-gradient(to right, rgba(0, 0, 0, 0.06), transparent);"
+          aria-hidden="true"
+        ></div>
+
+        <%= render partial: "tools/system_values/league_salary_scales_table", locals: {
+          rows: @league_salary_scales,
+          selected_year: @selected_year,
+          baseline_year: @baseline_year,
+          baseline_rows: @baseline_salary_scale_rows,
+          overlay_query_expr:,
+          sidebar_metric_path: tools_system_values_sidebar_metric_path
+        } %>
+      </div>
     </div>
 
     <div id="section-rookie" class="scroll-mt-2">
-      <%= render partial: "tools/system_values/rookie_scale_amounts_table", locals: {
-        rows: @rookie_scale_amounts,
-        selected_year: @selected_year,
-        baseline_year: @baseline_year,
-        baseline_rows: @baseline_rookie_scale_rows,
-        overlay_query_expr:,
-        sidebar_metric_path: tools_system_values_sidebar_metric_path
-      } %>
+      <div
+        data-system-values-table-scroll
+        class="relative overflow-x-auto overflow-y-visible overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      >
+        <div
+          data-system-values-sticky-shadow
+          class="absolute top-0 bottom-0 pointer-events-none z-[25] transition-opacity duration-150 opacity-0"
+          style="left: 144px; width: 6px; background: linear-gradient(to right, rgba(0, 0, 0, 0.06), transparent);"
+          aria-hidden="true"
+        ></div>
+
+        <%= render partial: "tools/system_values/rookie_scale_amounts_table", locals: {
+          rows: @rookie_scale_amounts,
+          selected_year: @selected_year,
+          baseline_year: @baseline_year,
+          baseline_rows: @baseline_rookie_scale_rows,
+          overlay_query_expr:,
+          sidebar_metric_path: tools_system_values_sidebar_metric_path
+        } %>
+      </div>
     </div>
   </div>
 <% end %>

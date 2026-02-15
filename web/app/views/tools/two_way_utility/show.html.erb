@@ -20,7 +20,7 @@
   id="two-way-utility-workspace"
   class="h-screen w-full flex flex-col overflow-hidden bg-background"
   style="height: 100dvh;"
-  data-signals='<%= signals_literal %>'
+  data-signals='<%= raw(signals_literal) %>'
   data-effect="<%= sync_url_expr %>"
 >
   <div id="flash"></div>
@@ -45,3 +45,9 @@
     </aside>
   </div>
 </div>
+
+<% content_for :head_scripts do %>
+  <script type="module">
+    import "tools/two_way_utility";
+  </script>
+<% end %>

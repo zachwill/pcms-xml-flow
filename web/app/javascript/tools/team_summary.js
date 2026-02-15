@@ -3,6 +3,51 @@ const isEditableTarget = (target) => {
   return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable;
 };
 
+const initTeamSummaryTableSync = (tableEl) => {
+  if (!tableEl) return;
+  if (tableEl.dataset.teamSummaryTableInit === "true") return;
+
+  const headerEl = tableEl.querySelector("[data-team-summary-table-header-scroll]");
+  const bodyEl = tableEl.querySelector("[data-team-summary-table-body-scroll]");
+  const shadowEl = tableEl.querySelector("[data-team-summary-sticky-shadow]");
+
+  if (!headerEl || !bodyEl) return;
+
+  tableEl.dataset.teamSummaryTableInit = "true";
+
+  let syncing = null;
+
+  const setShadow = (scrollLeft) => {
+    if (!shadowEl) return;
+
+    const showShadow = scrollLeft > 2;
+    shadowEl.classList.toggle("opacity-0", !showShadow);
+    shadowEl.classList.toggle("opacity-100", showShadow);
+  };
+
+  const syncScroll = (source) => {
+    if (syncing && syncing !== source) return;
+    syncing = source;
+
+    if (source === "body") {
+      headerEl.scrollLeft = bodyEl.scrollLeft;
+      setShadow(bodyEl.scrollLeft);
+    } else {
+      bodyEl.scrollLeft = headerEl.scrollLeft;
+      setShadow(headerEl.scrollLeft);
+    }
+
+    requestAnimationFrame(() => {
+      syncing = null;
+    });
+  };
+
+  headerEl.addEventListener("scroll", () => syncScroll("header"), { passive: true });
+  bodyEl.addEventListener("scroll", () => syncScroll("body"), { passive: true });
+
+  setShadow(bodyEl.scrollLeft);
+};
+
 const init = () => {
   const root = document.getElementById("team-summary");
   if (!root) return;
@@ -28,43 +73,49 @@ const init = () => {
   const maincanvas = document.getElementById("maincanvas");
   let rafId = null;
 
-  const updateStickyShadow = () => {
-    const shadow = root.querySelector("[data-team-summary-sticky-shadow]");
-    if (!shadow || !maincanvas) return;
+  const initAndSyncTable = () => {
+    const tableEl = root.querySelector("[data-team-summary-table]");
+    if (!tableEl) return;
 
-    const showShadow = maincanvas.scrollLeft > 2;
-    shadow.classList.toggle("opacity-0", !showShadow);
-    shadow.classList.toggle("opacity-100", showShadow);
+    initTeamSummaryTableSync(tableEl);
+
+    const headerEl = tableEl.querySelector("[data-team-summary-table-header-scroll]");
+    const bodyEl = tableEl.querySelector("[data-team-summary-table-body-scroll]");
+    const shadowEl = tableEl.querySelector("[data-team-summary-sticky-shadow]");
+
+    if (!headerEl || !bodyEl) return;
+
+    headerEl.scrollLeft = bodyEl.scrollLeft;
+
+    if (!shadowEl) return;
+    const showShadow = bodyEl.scrollLeft > 2;
+    shadowEl.classList.toggle("opacity-0", !showShadow);
+    shadowEl.classList.toggle("opacity-100", showShadow);
   };
 
-  const scheduleStickyShadowUpdate = () => {
+  const scheduleTableUpdate = () => {
     if (rafId) return;
 
     rafId = window.requestAnimationFrame(() => {
       rafId = null;
-      updateStickyShadow();
+      initAndSyncTable();
     });
   };
 
-  const maincanvasMutationObserver = new MutationObserver(scheduleStickyShadowUpdate);
+  const maincanvasMutationObserver = new MutationObserver(scheduleTableUpdate);
 
   if (maincanvas) {
-    maincanvas.addEventListener("scroll", scheduleStickyShadowUpdate, { passive: true });
-    maincanvasMutationObserver.observe(maincanvas, { childList: true });
+    maincanvasMutationObserver.observe(maincanvas, { childList: true, subtree: true });
   }
 
-  window.addEventListener("resize", scheduleStickyShadowUpdate);
+  window.addEventListener("resize", scheduleTableUpdate);
   document.addEventListener("keydown", handleKeydown);
 
-  scheduleStickyShadowUpdate();
+  scheduleTableUpdate();
 
   root.__teamSummaryCleanup = () => {
     document.removeEventListener("keydown", handleKeydown);
-    window.removeEventListener("resize", scheduleStickyShadowUpdate);
-
-    if (maincanvas) {
-      maincanvas.removeEventListener("scroll", scheduleStickyShadowUpdate);
-    }
+    window.removeEventListener("resize", scheduleTableUpdate);
 
     maincanvasMutationObserver.disconnect();
 

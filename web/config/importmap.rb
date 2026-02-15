@@ -3,9 +3,11 @@
 # Pin npm packages by running ./bin/importmap
 pin "application", preload: true
 
-# Salary Book tool
+# Tool UI glue
 pin "tools/salary_book", to: "tools/salary_book.js"
 pin "tools/team_summary", to: "tools/team_summary.js"
+pin "tools/two_way_utility", to: "tools/two_way_utility.js"
+pin "tools/system_values", to: "tools/system_values.js"
 
 # Entity workspace UX (scrollspy local nav)
 pin "entities/workspace", to: "entities/workspace.js"

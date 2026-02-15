@@ -151,6 +151,7 @@ Ownership map:
 
 | Doc | What it covers |
 |-----|----------------|
+| `web/RAILS_RESTRUCTURING_ROADMAP.md` | High-level sequencing and structural refactor priorities for Rails controllers/views/helpers/tests |
 | `web/docs/design_guide.md` | Concrete visual patterns (shells, row/cell anatomy, table conventions, checklist) |
 | `web/docs/datastar_sse_playbook.md` | SSE response templates, Rails `ActionController::Live` patterns |
 | `reference/sites/INTERACTION_MODELS.md` | Scroll-driven tools, entity workspaces, catalog surfaces |

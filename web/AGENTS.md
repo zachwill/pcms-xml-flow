@@ -133,10 +133,10 @@ These are the stable `id`s Datastar targets:
 | `#rightpanel-overlay` | Entity overlay layer (player, agent, pick detail). |
 
 Ownership map:
-- Shell: `web/app/views/tools/salary_book/show.html.erb`
-- Team section partials: `web/app/views/tools/salary_book/_team_section.html.erb`
-- Sidebar partials: `web/app/views/tools/salary_book/_sidebar_*.html.erb`
-- Team switch controller: `web/app/controllers/tools/salary_book_switch_controller.rb`
+- Shell: `web/app/views/salary_book/show.html.erb`
+- Team section partials: `web/app/views/salary_book/_team_section.html.erb`
+- Sidebar partials: `web/app/views/salary_book/_sidebar_*.html.erb`
+- Team switch controller: `web/app/controllers/salary_book_switch_controller.rb`
 
 ### Patch guidance
 
@@ -148,6 +148,8 @@ Ownership map:
 ---
 
 ## Deep dives (read when needed)
+
+For non-trivial refactors, read `reference/rails-architecture.md` before extracting new layers.
 
 | Doc | What it covers |
 |-----|----------------|
@@ -186,17 +188,19 @@ ruby -v  # should be 3.4.x
 
 | What | Where |
 |------|-------|
-| Entity pages | `web/app/controllers/entities/*`, `web/app/views/entities/*` |
-| Tools | `web/app/controllers/tools/*`, `web/app/views/tools/*` |
-| Shared partials | `web/app/views/shared/*`, `web/app/views/entities/shared/*` |
+| Controllers | `web/app/controllers/*` |
+| Feature views | `web/app/views/*` (e.g. `salary_book/*`, `teams/*`, `players/*`) |
+| Shared partials | `web/app/views/shared/*` |
 | Client JS (minimal) | `web/app/javascript/` |
 | Styles | `web/app/assets/tailwind/application.css` |
 
 ### URL structure
 
+- Root: `/` (Salary Book canonical)
+- Salary Book direct: `/salary-book`
+- Tools: `/two-way-utility`, `/system-values`, `/team-summary`, `/drafts`, `/trades`, `/transactions`
 - Entities: `/players/lebron`, `/teams/bos`, `/agents/rich-paul` (slug-first, canonical)
-- Tools: `/tools/salary-book`, `/tools/trade-machine`
-- Tool fragments: `/tools/salary-book/sidebar/player/:id` (nested under tool)
+- Tool fragments: `/salary-book/sidebar/player/:id`, `/salary-book/sidebar/agent/:id`, `/salary-book/sidebar/pick`
 
 ### Page layout pattern (mandatory — three layers)
 

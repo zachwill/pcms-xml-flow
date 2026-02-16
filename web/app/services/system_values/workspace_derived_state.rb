@@ -418,11 +418,11 @@ module SystemValues
         pivot_links: [
           {
             label: "Open Team Summary (#{selected_year_label})",
-            href: routes.tools_team_summary_path(year: @selected_year, conference: "all", pressure: pivot_pressure, sort: "cap_space_desc")
+            href: routes.team_summary_path(year: @selected_year, conference: "all", pressure: pivot_pressure, sort: "cap_space_desc")
           },
           {
             label: "Open canonical System Values view",
-            href: routes.tools_system_values_path(@state_params)
+            href: routes.system_values_path(@state_params)
           }
         ],
         overlay_lower:,

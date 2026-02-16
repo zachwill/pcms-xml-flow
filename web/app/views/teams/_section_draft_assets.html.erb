@@ -1,0 +1,8 @@
+<% team_code = @team&.fetch("team_code", nil).to_s %>
+
+<section id="draft-assets">
+  <%= render partial: "teams/draft_pick_provenance", locals: {
+    draft_assets: @draft_assets,
+    team_code: team_code
+  } %>
+</section>

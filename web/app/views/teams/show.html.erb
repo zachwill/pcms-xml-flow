@@ -1,0 +1,129 @@
+<% content_for :title, @team&.fetch("team_name", nil) || "Team" %>
+
+<% team_code = @team&.fetch("team_code", nil).to_s %>
+<% team_name = @team&.fetch("team_name", nil).to_s %>
+<% conference = @team&.fetch("conference_name", nil).to_s %>
+<% city = @team&.fetch("city", nil).to_s %>
+<% division = @team&.fetch("division_name", nil).to_s %>
+
+<% prefetch_canonical_slugs(entity_type: "player", entity_ids: @roster.map { |r| r["player_id"] } + @cap_holds.map { |r| r["player_id"] } + @dead_money.map { |r| r["player_id"] } + @recent_ledger_entries.map { |r| r["player_id"] } + @two_way_watchlist_rows.map { |r| r["player_id"] }) %>
+<% prefetch_canonical_slugs(entity_type: "agent", entity_ids: @roster.map { |r| r["agent_id"] }) %>
+
+<% current_year_row = @team_salary_rows.find { |r| r["salary_year"].to_i == 2025 } || {} %>
+
+<%# Header badges %>
+<% header_badges = [] %>
+<% if current_year_row.present? %>
+  <% if current_year_row["apron_level_lk"].present? && current_year_row["apron_level_lk"] != "NONE" %>
+    <% header_badges << { label: current_year_row["apron_level_lk"], variant: "warning" } %>
+  <% elsif current_year_row["is_taxpayer"] %>
+    <% header_badges << { label: "Taxpayer", variant: "warning" } %>
+  <% else %>
+    <% header_badges << { label: "Under tax", variant: "success" } %>
+  <% end %>
+  <% header_badges << { label: "Repeater", variant: "danger" } if current_year_row["is_repeater_taxpayer"] %>
+<% else %>
+  <% header_badges << { label: "No cap snapshot", variant: "muted" } %>
+<% end %>
+
+<%# Header meta %>
+<% header_meta = [] %>
+<% header_meta << "Roster #{current_year_row['roster_row_count']}/15" if current_year_row.key?("roster_row_count") %>
+<% header_meta << "2W #{current_year_row['two_way_row_count']}/3" if current_year_row.key?("two_way_row_count") %>
+<% header_meta << "Tax room #{format_room_amount(current_year_row['room_under_tax'])}" if current_year_row.key?("room_under_tax") %>
+<% header_meta << "A1 #{format_room_amount(current_year_row['room_under_apron1'])}" if current_year_row.key?("room_under_apron1") %>
+<% header_meta << city if city.present? %>
+<% header_meta << conference if conference.present? %>
+<% header_meta << division if division.present? %>
+
+<% salary_book_href = (team_code.present? ? "/?team=#{team_code}##{team_code}" : "/") %>
+
+<%# Header links %>
+<% header_links = [] %>
+<% header_links << ["Open in Salary Book", salary_book_href] if salary_book_href.present? %>
+<% header_links << ["Browse draft assets", "/drafts"] %>
+<% header_links << ["Find a player", "/players"] %>
+
+<div
+  id="team-show"
+  class="min-h-screen w-full bg-background"
+  data-signals="{ txhoverid: '' }"
+>
+  <%= render partial: "shared/commandbar", locals: {
+    active_entity_scope: "teams"
+  } %>
+
+  <% if @defer_heavy_load %>
+    <noscript>
+      <meta http-equiv="refresh" content="0;url=<%= team_path(@team_slug, full: 1) %>">
+      <p class="px-4 py-2 text-sm text-muted-foreground">
+        JavaScript is disabled. <a href="<%= team_path(@team_slug, full: 1) %>" class="hover:underline">Load full team page</a>.
+      </p>
+    </noscript>
+
+    <div
+      id="team-bootstrap"
+      class="hidden"
+      aria-hidden="true"
+      data-init="@get('/teams/<%= @team_slug %>/sse/bootstrap')"
+    ></div>
+  <% end %>
+
+  <main id="maincanvas" class="px-4 pb-8" data-entity-workspace data-scroll-offset-extra="64">
+    <%= render partial: "teams/sticky_header", locals: {
+      image_url: team_logo_url(@team_id),
+      image_alt: team_name.presence || team_code,
+      image_fallback: team_code.presence || "NBA",
+      title: team_name.presence || team_code.presence || "Team",
+      badges: header_badges,
+      meta: header_meta,
+      links: header_links,
+      team_code: team_code,
+      cap_total: current_year_row["cap_total"],
+      room_under_tax: current_year_row["room_under_tax"],
+      room_under_apron1: current_year_row["room_under_apron1"],
+      room_under_apron2: current_year_row["room_under_apron2"]
+    } %>
+
+    <div class="lg:flex lg:gap-8">
+      <div class="min-w-0 flex-1 space-y-8">
+        <% if @defer_heavy_load %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "vitals", title: "Vitals", rows: 5 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "constraints", title: "Constraint posture", rows: 4 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "roster", title: "Roster", rows: 8 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "draft-assets", title: "Draft assets", rows: 6 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "cap-horizon", title: "Cap horizon", rows: 5 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "activity", title: "Transaction activity", rows: 6 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "two-way", title: "Two-way capacity", rows: 4 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "apron-provenance", title: "Apron provenance", rows: 6 } %>
+        <% else %>
+          <%= render partial: "teams/section_vitals" %>
+          <%= render partial: "teams/section_constraints" %>
+          <%= render partial: "teams/section_roster" %>
+          <%= render partial: "teams/section_draft_assets" %>
+          <%= render partial: "teams/section_cap_horizon" %>
+          <%= render partial: "teams/section_activity" %>
+          <%= render partial: "teams/section_two_way" %>
+          <%= render partial: "teams/section_apron_provenance" %>
+        <% end %>
+      </div>
+
+      <%= render partial: "shared/local_nav", locals: {
+        sticky_top_class: "top-[196px]",
+        sections: [
+          ["vitals", "Vitals"],
+          ["constraints", "Constraint posture"],
+          ["roster", "Roster"],
+          ["draft-assets", "Draft assets"],
+          ["cap-horizon", "Cap horizon"],
+          ["activity", "Activity"],
+          ["two-way", "Two-way"],
+          ["apron-provenance", "Apron provenance"]
+        ]
+      } %>
+    </div>
+
+    <%= render partial: "teams/rightpanel_base" %>
+    <div id="rightpanel-overlay"></div>
+  </main>
+</div>

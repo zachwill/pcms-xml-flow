@@ -1,0 +1,32 @@
+<main id="maincanvas" class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-background relative overscroll-y-contain scroll-touch isolate pb-8">
+  <% if @boot_error %>
+    <div class="p-6">
+      <div class="text-sm font-medium text-destructive">Warehouse not available</div>
+      <div class="mt-2 text-xs text-muted-foreground">
+        Booted Rails, but querying <code>pcms.two_way_utility_warehouse</code> failed:
+      </div>
+      <pre class="mt-3 p-3 rounded-lg bg-muted/30 border border-border/50 text-xs overflow-auto"><%= @boot_error %></pre>
+    </div>
+  <% elsif @rows.empty? %>
+    <div class="p-6">
+      <div class="p-4 rounded-lg border border-border bg-muted/20 text-sm text-muted-foreground italic">
+        No two-way contracts match the current team/risk lens.
+      </div>
+    </div>
+  <% else %>
+    <% prefetch_canonical_slugs(entity_type: "player", entity_ids: @rows.map { |row| row["player_id"] }) %>
+    <% prefetch_canonical_slugs(entity_type: "agent", entity_ids: @rows.map { |row| row["agent_id"] }.compact) %>
+
+    <div class="divide-y divide-border/60">
+      <% @team_codes.each do |team_code| %>
+        <%= render partial: "two_way_utility/team_section", locals: {
+          team_code: team_code,
+          players: (@rows_by_team[team_code] || []),
+          team_meta: (@team_meta_by_code[team_code] || {}),
+          team_capacity: (@team_capacity_by_code[team_code] || {}),
+          state_query: @state_query
+        } %>
+      <% end %>
+    </div>
+  <% end %>
+</main>

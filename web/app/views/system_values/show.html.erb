@@ -1,0 +1,129 @@
+<% content_for :title, "System Values" %>
+
+<%
+  state_query_expr = "'year=' + encodeURIComponent($svyear) +
+    '&baseline_year=' + encodeURIComponent($svbaseline) +
+    '&from_year=' + encodeURIComponent($svfrom) +
+    '&to_year=' + encodeURIComponent($svto) +
+    '&show_system_values=' + encodeURIComponent($showsystemvalues ? '1' : '0') +
+    '&show_tax_rates=' + encodeURIComponent($showtaxrates ? '1' : '0') +
+    '&show_salary_scales=' + encodeURIComponent($showsalaryscales ? '1' : '0') +
+    '&show_rookie_scales=' + encodeURIComponent($showrookiescales ? '1' : '0') +
+    '&metric_finder_query=' + encodeURIComponent($svmetricfinderquery || '') +
+    '&metric_finder_cursor=' + encodeURIComponent($svmetricfindercursor || '')"
+
+  overlay_query_expr = "(#{state_query_expr}) +
+    '&overlay_section=' + encodeURIComponent($svoverlaysection || '') +
+    '&overlay_metric=' + encodeURIComponent($svoverlaymetric || '') +
+    '&overlay_year=' + encodeURIComponent($svoverlayyear || '') +
+    '&overlay_lower=' + encodeURIComponent($svoverlaylower || '') +
+    '&overlay_upper=' + encodeURIComponent($svoverlayupper || '')"
+
+  sync_url_expr = "const nextUrl = '#{system_values_path}?' + (#{overlay_query_expr}); if ((window.location.pathname + window.location.search) !== nextUrl) { window.history.replaceState({}, '', nextUrl); }"
+
+  normalize_active_section_expr = "const visibleSections = [ { key: 'system', visible: $showsystemvalues }, { key: 'tax', visible: $showtaxrates }, { key: 'minimum', visible: $showsalaryscales }, { key: 'rookie', visible: $showrookiescales } ]; const activeStillVisible = visibleSections.find((section) => section.key === $activesection && section.visible); if (!activeStillVisible) { const firstVisible = visibleSections.find((section) => section.visible); const nextActive = firstVisible ? firstVisible.key : ''; if ($activesection !== nextActive) { $activesection = nextActive; } }"
+
+  root_effect_expr = "#{normalize_active_section_expr} #{sync_url_expr}"
+
+  signals_literal = {
+    showsystemvalues: @show_system_values,
+    showtaxrates: @show_tax_rates,
+    showsalaryscales: @show_salary_scales,
+    showrookiescales: @show_rookie_scales,
+    activesection: "system",
+    svyear: @selected_year.to_s,
+    svbaseline: @baseline_year.to_s,
+    svfrom: @from_year.to_s,
+    svto: @to_year.to_s,
+    svmetricfinder: @active_metric_finder_value.to_s,
+    svmetricfinderquery: @metric_finder_query.to_s,
+    svmetricfindercursor: @metric_finder_cursor_value.to_s,
+    svmetricfindercursorindex: @metric_finder_cursor_index.to_i,
+    svoverlaysection: @overlay_signals.fetch(:section, ""),
+    svoverlaymetric: @overlay_signals.fetch(:metric, ""),
+    svoverlayyear: @overlay_signals.fetch(:year, ""),
+    svoverlaylower: @overlay_signals.fetch(:lower, ""),
+    svoverlayupper: @overlay_signals.fetch(:upper, "")
+  }.to_json
+%>
+
+<div
+  id="system-values"
+  class="h-screen w-full flex flex-col overflow-hidden bg-background"
+  style="height: 100dvh;"
+  data-signals='<%= signals_literal %>'
+  data-effect="<%= root_effect_expr %>"
+>
+  <div id="flash"></div>
+
+  <header id="commandbar" class="shrink-0 border-b border-border bg-background h-[130px] px-4 pt-3 flex items-start gap-4 select-none">
+    <%= render partial: "system_values/commandbar", locals: {
+      state_query_expr:,
+      overlay_query_expr:
+    } %>
+  </header>
+
+  <div id="viewport" class="flex flex-1 overflow-hidden relative">
+    <main
+      id="maincanvas"
+      class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-background relative overscroll-y-contain scroll-touch isolate pb-8"
+      data-on:scroll="
+        const sections = [
+          { key: 'system', id: 'section-system', visible: $showsystemvalues },
+          { key: 'tax', id: 'section-tax', visible: $showtaxrates },
+          { key: 'minimum', id: 'section-minimum', visible: $showsalaryscales },
+          { key: 'rookie', id: 'section-rookie', visible: $showrookiescales }
+        ];
+
+        let active = '';
+        for (const section of sections) {
+          if (!section.visible) { continue; }
+          const node = document.getElementById(section.id);
+          if (!node || node.offsetParent === null) { continue; }
+          if (el.scrollTop + 28 >= node.offsetTop) {
+            active = section.key;
+          }
+        }
+
+        if (active === '') {
+          const firstVisible = sections.find((section) => section.visible);
+          active = firstVisible ? firstVisible.key : '';
+        }
+
+        if ($activesection !== active) {
+          $activesection = active;
+        }
+      "
+    >
+      <%= render partial: "system_values/workspace_main", locals: {
+        overlay_query_expr:
+      } %>
+    </main>
+
+    <aside
+      id="rightpanel"
+      class="w-[30%] min-w-[320px] max-w-[480px] border-l border-border bg-background overflow-hidden relative"
+    >
+      <div
+        id="rightpanel-base-layer"
+        class="absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-contain scroll-touch pt-2 px-4 pb-4"
+      >
+        <%= render partial: "system_values/rightpanel_base", locals: {
+          overlay_query_expr:
+        } %>
+      </div>
+
+      <% if @overlay_payload.present? %>
+        <%= render partial: "system_values/rightpanel_overlay_metric" %>
+      <% else %>
+        <%= render partial: "system_values/rightpanel_clear" %>
+      <% end %>
+    </aside>
+  </div>
+</div>
+
+<% content_for :head_scripts do %>
+  <script type="module">
+    import "system_values";
+  </script>
+<% end %>

@@ -1,0 +1,130 @@
+<%
+  summary = @sidebar_summary || {}
+  top_row_lanes = Array(summary[:top_row_lanes])
+
+  severity_chip_class = lambda do |key|
+    case key.to_s
+    when "critical" then "entity-chip entity-chip--danger"
+    when "high" then "entity-chip entity-chip--warning"
+    when "medium" then "entity-chip entity-chip--accent"
+    else "entity-chip entity-chip--muted"
+    end
+  end
+
+  type_chip_class = lambda do |type_code|
+    case type_code.to_s
+    when "SIGN", "RSIGN" then "entity-chip entity-chip--success"
+    when "WAIVE", "WAIVR" then "entity-chip entity-chip--danger"
+    when "EXTSN" then "entity-chip entity-chip--accent"
+    else "entity-chip entity-chip--muted"
+    end
+  end
+
+  delta_class_for = lambda do |value|
+    amount = value.to_f
+    if amount.positive?
+      "text-emerald-600 dark:text-emerald-400"
+    elsif amount.negative?
+      "text-red-500"
+    else
+      "text-muted-foreground"
+    end
+  end
+%>
+
+<div id="rightpanel-base" class="space-y-4">
+  <div class="rounded-lg border border-border bg-background p-3 space-y-3">
+    <div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Workspace snapshot</div>
+      <div class="text-sm font-semibold text-foreground">
+        Transactions
+        <span class="text-muted-foreground font-medium">· <%= summary[:row_count].to_i %> rows · <%= summary[:severity_lane_count].to_i %> impact lanes</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-1.5">
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Signings", value: summary[:signings_count].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Waivers", value: summary[:waivers_count].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Extensions", value: summary[:extensions_count].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Other", value: summary[:other_count].to_i.to_s, class_name: "w-full" } %>
+    </div>
+
+    <div class="grid grid-cols-2 gap-1.5">
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Critical", value: summary[:critical_count].to_i.to_s, class_name: "w-full", variant: (summary[:critical_count].to_i.positive? ? "negative" : "muted") } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "High", value: summary[:high_count].to_i.to_s, class_name: "w-full", variant: (summary[:high_count].to_i.positive? ? "default" : "muted") } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Medium", value: summary[:medium_count].to_i.to_s, class_name: "w-full", variant: (summary[:medium_count].to_i.positive? ? "default" : "muted") } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Low", value: summary[:low_count].to_i.to_s, class_name: "w-full", variant: (summary[:low_count].to_i.positive? ? "default" : "muted") } %>
+    </div>
+
+    <% if Array(summary[:filters]).any? %>
+      <div class="pt-1 flex flex-wrap gap-1">
+        <% Array(summary[:filters]).each do |label| %>
+          <span class="entity-chip entity-chip--muted"><%= label %></span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if top_row_lanes.any? %>
+    <div class="rounded-lg border border-border bg-background">
+      <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">Severity quick feed</div>
+
+      <div class="divide-y divide-border/70">
+        <% top_row_lanes.each do |lane| %>
+          <section id="transactions-quick-lane-<%= lane[:key].to_s.parameterize.presence || 'all' %>">
+            <div class="px-3 py-1.5 border-b border-border/60 bg-muted/30">
+              <div class="flex items-center justify-between gap-2 text-[10px] uppercase tracking-wide text-muted-foreground/80">
+                <span class="<%= severity_chip_class.call(lane[:key]) %>"><%= lane[:headline] %></span>
+                <span class="font-mono tabular-nums"><%= lane[:row_count] %></span>
+              </div>
+              <div class="text-[10px] text-muted-foreground/80"><%= lane[:subline] %></div>
+            </div>
+
+            <div class="divide-y divide-border/50">
+              <% Array(lane[:date_groups]).each do |group| %>
+                <div class="px-3 py-1 text-[10px] uppercase tracking-wide text-muted-foreground/70 bg-background border-b border-border/40">
+                  <span class="font-semibold text-foreground/80"><%= group[:headline] %></span>
+                  <% if group[:relative_label].present? %>
+                    <span class="text-muted-foreground/50"> · </span>
+                    <span><%= group[:relative_label] %></span>
+                  <% end %>
+                </div>
+
+                <% Array(group[:rows]).each do |row| %>
+                  <% row_id = row["transaction_id"].to_s %>
+                  <% open_expr = "$overlaytype = 'transaction'; $overlayid = '#{row_id}'; @get('/transactions/sidebar/#{row_id}')" %>
+                  <button
+                    type="button"
+                    class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+                    data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'transaction' && $overlayid === '<%= row_id %>' }"
+                    data-on:click="<%= open_expr %>"
+                  >
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary justify-between gap-2">
+                        <span class="font-medium font-mono tabular-nums">#<%= row["transaction_id"] %></span>
+                        <span class="<%= type_chip_class.call(row['transaction_type_lk']) %>"><%= row["transaction_type_lk"].presence || "—" %></span>
+                      </div>
+                      <div class="entity-cell-secondary truncate"><%= row["player_name"].presence || "No player" %> · <%= format_plain_date(row["transaction_date"]) %></div>
+                    </div>
+
+                    <div class="mt-1 text-[10px] tabular-nums leading-none flex items-center gap-1.5 min-w-0 overflow-hidden">
+                      <span class="<%= delta_class_for.call(row['cap_change_total']) %>">Cap <%= format_salary(row["cap_change_total"]) %></span>
+                      <span class="text-muted-foreground/50">·</span>
+                      <span class="<%= delta_class_for.call(row['tax_change_total']) %>">Tax <%= format_salary(row["tax_change_total"]) %></span>
+                      <span class="text-muted-foreground/50">·</span>
+                      <span class="<%= delta_class_for.call(row['apron_change_total']) %>">Apron <%= format_salary(row["apron_change_total"]) %></span>
+                    </div>
+                  </button>
+                <% end %>
+              <% end %>
+            </div>
+          </section>
+        <% end %>
+      </div>
+    </div>
+  <% else %>
+    <div class="p-4 rounded-lg border border-border bg-muted/20 text-sm text-muted-foreground">
+      No transactions in the current filter set.
+    </div>
+  <% end %>
+</div>

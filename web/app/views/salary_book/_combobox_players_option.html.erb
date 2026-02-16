@@ -1,0 +1,83 @@
+<% player_id = player["player_id"] %>
+<% player_name = player["player_name"] %>
+<% team_code = player["team_code"].presence || "—" %>
+<% team_logo = team_logo_url(player["team_id"]) %>
+<% agent_name = player["agent_name"].presence || "No agent" %>
+<% age_yos = player_age_yos_display(player) %>
+<% cap_2025 = player["cap_2025"] %>
+
+<button
+  id="sbplayercb-option-<%= index %>"
+  type="button"
+  role="option"
+  data-combobox-option
+  data-option-index="<%= index %>"
+  data-player-id="<%= player_id %>"
+  class="w-full cursor-pointer px-2 py-1.5 text-left border-b border-border/35 last:border-b-0 transition-colors duration-75"
+  data-attr:aria-selected="Number($_sbplayercbactiveindex) === <%= index %> ? 'true' : 'false'"
+  data-class="{
+    'bg-yellow-100/70 dark:bg-yellow-900/35': Number($_sbplayercbactiveindex) === <%= index %>,
+    'hover:bg-yellow-50/70 dark:hover:bg-yellow-900/25': Number($_sbplayercbactiveindex) !== <%= index %>
+  }"
+  data-on:mouseenter="$_sbplayercbactiveindex = <%= index %>"
+  data-on:click="
+    @get('<%= salary_book_sidebar_player_path(id: player_id) %>');
+    $_sbplayercmdkopen = false;
+    $_sbplayercbopen = false;
+    $_sbplayercbquery = '';
+    $_sbplayercbactiveindex = -1;
+  "
+>
+
+  <div class="grid grid-cols-[46px_1fr] grid-rows-[22px_14px] min-w-0">
+    <div class="row-span-2 flex items-center justify-start">
+      <div class="flex items-center gap-1">
+        <div class="w-5 h-5 rounded-full border border-border bg-background overflow-hidden flex items-center justify-center">
+          <% if team_logo.present? %>
+            <img
+              src="<%= team_logo %>"
+              alt=""
+              class="w-full h-full object-contain p-[1px]"
+              loading="lazy"
+              decoding="async"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            />
+            <span class="hidden w-full h-full items-center justify-center text-[8px] font-semibold text-muted-foreground"><%= team_code %></span>
+          <% else %>
+            <span class="w-full h-full flex items-center justify-center text-[8px] font-semibold text-muted-foreground"><%= team_code %></span>
+          <% end %>
+        </div>
+
+        <div class="w-5 h-5 rounded border border-border bg-background overflow-hidden">
+          <img
+            src="<%= player_headshot_url(player_id) %>"
+            alt="<%= player_name %>"
+            class="w-full h-full object-cover object-top bg-muted"
+            loading="lazy"
+            decoding="async"
+            onerror="if (this.src !== '<%= fallback_headshot_data_uri %>') { this.src = '<%= fallback_headshot_data_uri %>'; }"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="h-[22px] flex items-end min-w-0 pl-1 pr-1.5">
+      <span class="truncate text-[13px] font-medium text-foreground"><%= player_name %></span>
+      <% if player["is_two_way"] %>
+        <span class="ml-1.5 inline-flex items-center rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide bg-zinc-100 text-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300">2W</span>
+      <% end %>
+    </div>
+
+    <div class="h-[14px] -mt-px flex items-start gap-1 min-w-0 pl-1 pr-1.5 leading-none text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden whitespace-nowrap">
+      <span><%= team_code %></span>
+      <span class="text-muted-foreground/50">·</span>
+      <span class="font-mono tabular-nums"><%= format_salary(cap_2025) %></span>
+      <% if age_yos.present? %>
+        <span class="text-muted-foreground/50">·</span>
+        <span class="truncate"><%= age_yos %></span>
+      <% end %>
+      <span class="text-muted-foreground/50">·</span>
+      <span class="truncate"><%= agent_name %></span>
+    </div>
+  </div>
+</button>

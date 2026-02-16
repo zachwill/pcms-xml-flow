@@ -1,0 +1,158 @@
+<%#
+  Player sticky header — compact, Salary Book-inspired context strip.
+
+  locals:
+  - image_url, image_alt, image_fallback
+  - title
+  - badges: [{ label:, variant: }] or Array[String]
+  - meta: Array[String]
+  - links: [[label, href], ...]
+  - team_code
+  - cap_2025
+  - total_from_2025
+  - trade_restricted_now
+%>
+
+<%
+  image_url = local_assigns[:image_url].to_s.strip.presence
+  image_alt = local_assigns[:image_alt].to_s.strip.presence || ""
+  image_fallback = local_assigns[:image_fallback].to_s.strip.presence || "—"
+  title = local_assigns[:title].to_s.strip.presence || "Player"
+
+  badges = Array(local_assigns[:badges]).filter_map do |b|
+    if b.is_a?(Hash)
+      label = (b[:label] || b["label"]).to_s.strip
+      variant = (b[:variant] || b["variant"]).to_s.strip.presence || "muted"
+      next if label.blank?
+      { label: label, variant: variant }
+    else
+      label = b.to_s.strip
+      next if label.blank?
+      { label: label, variant: "muted" }
+    end
+  end
+
+  meta = Array(local_assigns[:meta]).map { |m| m.to_s.strip }.reject(&:blank?)
+
+  links = Array(local_assigns[:links]).filter_map do |entry|
+    if entry.is_a?(Array)
+      label = entry[0].to_s.strip
+      href = entry[1].to_s.strip
+      next if label.blank? || href.blank?
+      [label, href]
+    elsif entry.is_a?(Hash)
+      label = (entry[:label] || entry["label"]).to_s.strip
+      href = (entry[:href] || entry["href"]).to_s.strip
+      next if label.blank? || href.blank?
+      [label, href]
+    end
+  end
+
+  team_code = local_assigns[:team_code].to_s.strip.presence
+  cap_2025 = local_assigns[:cap_2025]
+  total_from_2025 = local_assigns[:total_from_2025]
+
+  trade_known = !local_assigns[:trade_restricted_now].nil?
+  trade_restricted_now = !!local_assigns[:trade_restricted_now]
+  trade_label = if !trade_known
+    "—"
+  elsif trade_restricted_now
+    "Restricted"
+  else
+    "Available"
+  end
+  trade_variant = if !trade_known
+    "muted"
+  elsif trade_restricted_now
+    "negative"
+  else
+    "positive"
+  end
+%>
+
+<header
+  id="player-header"
+  class="sticky top-[130px] z-40 -mx-4 px-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-[0_1px_3px_0_rgb(0_0_0/0.1),0_1px_2px_-1px_rgb(0_0_0/0.1)]"
+>
+  <div class="h-16 flex items-center gap-3">
+    <div class="min-w-0 flex flex-1 items-center gap-3">
+      <div class="w-10 h-10 rounded border border-border bg-background overflow-hidden flex items-center justify-center shrink-0">
+        <% if image_url.present? %>
+          <img
+            src="<%= image_url %>"
+            alt="<%= image_alt %>"
+            class="w-full h-full object-cover object-top"
+            loading="eager"
+            decoding="sync"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+          />
+          <span class="hidden text-[10px] font-semibold text-muted-foreground"><%= image_fallback %></span>
+        <% else %>
+          <span class="text-[10px] font-semibold text-muted-foreground"><%= image_fallback %></span>
+        <% end %>
+      </div>
+
+      <div class="min-w-0 grid grid-rows-[24px_16px]">
+        <div class="h-[24px] flex items-end gap-2 min-w-0 overflow-hidden">
+          <h1 class="text-[16px] font-semibold leading-tight truncate"><%= title %></h1>
+          <% badges.each do |badge| %>
+            <% variant_class = case badge[:variant]
+              when "danger" then "entity-chip--danger"
+              when "warning" then "entity-chip--warning"
+              when "success" then "entity-chip--success"
+              when "accent" then "entity-chip--accent"
+              else "entity-chip--muted"
+            end %>
+            <span class="hidden sm:inline-flex entity-chip <%= variant_class %>"><%= badge[:label] %></span>
+          <% end %>
+        </div>
+
+        <div class="h-[16px] -mt-px flex items-start min-w-0">
+          <% if meta.any? %>
+            <span class="truncate text-[10px] leading-none text-muted-foreground/85 tabular-nums"><%= meta.join(" · ") %></span>
+          <% else %>
+            <span class="truncate text-[10px] leading-none text-muted-foreground/60">No profile metadata</span>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <% if links.any? %>
+      <div class="hidden lg:flex items-center gap-3 shrink-0 text-[11px]">
+        <% links.first(3).each do |label, href| %>
+          <a href="<%= href %>" class="text-muted-foreground hover:text-foreground hover:underline whitespace-nowrap"><%= label %></a>
+        <% end %>
+      </div>
+    <% end %>
+
+    <div class="hidden xl:flex items-center gap-1.5 shrink-0">
+      <%= render partial: "salary_book/kpi_cell", locals: {
+        label: "Cap 25",
+        value: cap_2025.present? ? format_salary(cap_2025) : "—",
+        variant: cap_2025.present? ? "default" : "muted",
+        class_name: "bg-muted/70 dark:bg-muted/60"
+      } %>
+
+      <%= render partial: "salary_book/kpi_cell", locals: {
+        label: "Total",
+        value: total_from_2025.present? ? format_salary(total_from_2025) : "—",
+        variant: total_from_2025.present? ? "default" : "muted",
+        class_name: "bg-muted/70 dark:bg-muted/60"
+      } %>
+
+      <%= render partial: "salary_book/kpi_cell", locals: {
+        label: "Team",
+        value: team_code.presence || "—",
+        variant: team_code.present? ? "default" : "muted",
+        class_name: "bg-muted/70 dark:bg-muted/60"
+      } %>
+
+      <%= render partial: "salary_book/kpi_cell", locals: {
+        label: "Trade",
+        value: trade_label,
+        variant: trade_variant,
+        class_name: "bg-muted/70 dark:bg-muted/60"
+      } %>
+    </div>
+  </div>
+</header>

@@ -1,0 +1,187 @@
+<%
+  player = @sidebar_player || {}
+  team_meta = @sidebar_team_meta || {}
+
+  player_id = player["player_id"]
+  player_name = player["player_name"].presence || "Unknown player"
+  team_code = player["team_code"].to_s.upcase
+  team_name = player["team_name"].presence || team_meta["team_name"].presence || team_code
+  team_id = team_meta["team_id"]
+  team_logo = team_logo_url(team_id)
+
+  games_used = player["games_on_active_list"]
+  games_limit = player["active_list_games_limit"]
+  games_remaining = player["remaining_active_list_games"]
+  games_used_pct = player["games_used_pct"]&.to_f
+  used_pct_label = games_used_pct.present? ? "#{(games_used_pct * 100).round}%" : "—"
+  used_blocks = games_used_pct.present? ? pct_cap_blocks(games_used_pct) : nil
+
+  remain_ratio = if games_remaining.present? && games_limit.present? && games_limit.to_f.positive?
+    games_remaining.to_f / games_limit.to_f
+  end
+  remain_pct_label = remain_ratio.present? ? "#{(remain_ratio * 100).round}%" : "—"
+  remain_blocks = remain_ratio.present? ? pct_cap_blocks(remain_ratio) : nil
+
+  risk_tier = player["risk_tier"].to_s
+  risk_chip_classes = case risk_tier
+  when "critical"
+    "entity-chip entity-chip--danger"
+  when "warning"
+    "entity-chip entity-chip--warning"
+  when "estimate"
+    "entity-chip entity-chip--muted"
+  else
+    "entity-chip entity-chip--muted"
+  end
+  risk_label = case risk_tier
+  when "critical" then "Critical (≤10 left)"
+  when "warning" then "Warning (≤20 left)"
+  when "estimate" then "Estimated limit"
+  else "Stable"
+  end
+
+  status_chips = []
+  status_chips << { label: "2W", classes: "entity-chip entity-chip--muted" } if player["is_two_way"]
+  status_chips << { label: "NTC", classes: "entity-chip entity-chip--danger" } if player["is_no_trade"]
+  status_chips << { label: "Consent", classes: "entity-chip entity-chip--danger" } if player["is_trade_consent_required_now"]
+  status_chips << { label: "Restricted", classes: "entity-chip entity-chip--danger" } if player["is_trade_restricted_now"]
+  status_chips << { label: "Poison Pill", classes: "entity-chip entity-chip--danger" } if player["is_poison_pill"]
+  status_chips << { label: "Trade Kicker", classes: "entity-chip entity-chip--warning" } if player["is_trade_bonus"]
+  status_chips << { label: "EST", classes: "entity-chip entity-chip--muted" } if player["limit_status_chip"].present?
+
+  last_game_label = format_date_short(player["last_game_date_est"])
+  signing_label = format_date_short(player["signing_date"])
+
+  cap_2025 = player["cap_2025"]
+  cap_2026 = player["cap_2026"]
+
+  current_year = SalaryBookHelper::SALARY_YEARS.first
+  next_year = SalaryBookHelper::SALARY_YEARS[1]
+
+  agent_sidebar_path = nil
+  agent_sidebar_open_expr = nil
+  if player["agent_id"].present?
+    agent_sidebar_path = "/two-way-utility/sidebar/agent/#{player['agent_id']}?player_id=#{player_id}"
+    agent_sidebar_path = "#{agent_sidebar_path}&#{@state_query}" if @state_query.present?
+    agent_sidebar_open_expr = "$overlaytype = 'agent'; $overlayid = '#{player['agent_id']}'; @get('#{agent_sidebar_path}')"
+  end
+%>
+
+<div id="rightpanel-overlay" class="h-full bg-background border-l border-border/70">
+  <div class="sticky top-0 z-20 h-10 px-4 flex items-center justify-between border-b border-border bg-background">
+    <button
+      type="button"
+      class="cursor-pointer text-xs text-muted-foreground hover:text-foreground hover:underline"
+      data-two-way-overlay-clear
+      data-on:click="$overlaytype = 'none'; $overlayid = ''; @get('/two-way-utility/sidebar/clear')"
+    >Close</button>
+
+    <a class="text-xs text-muted-foreground hover:text-foreground hover:underline" href="<%= player_href(player_id) %>">
+      Open player page
+    </a>
+  </div>
+
+  <div class="px-4 py-4 space-y-4 overflow-y-auto h-[calc(100%-40px)]">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded border border-border bg-background overflow-hidden flex items-center justify-center shrink-0">
+        <% if team_logo.present? %>
+          <img
+            src="<%= team_logo %>"
+            alt="<%= team_name %> logo"
+            class="w-full h-full object-contain"
+            loading="lazy"
+            decoding="async"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+          />
+          <span class="hidden text-[10px] font-semibold text-muted-foreground"><%= team_code %></span>
+        <% else %>
+          <span class="text-[10px] font-semibold text-muted-foreground"><%= team_code %></span>
+        <% end %>
+      </div>
+
+      <div class="w-14 h-14 rounded border border-border bg-background overflow-hidden shrink-0">
+        <img
+          src="<%= player_headshot_url(player_id) %>"
+          alt="<%= player_name %>"
+          class="w-full h-full object-cover object-top bg-muted"
+          loading="lazy"
+          decoding="async"
+          onerror="if (this.src !== '<%= fallback_headshot_data_uri %>') { this.src = '<%= fallback_headshot_data_uri %>'; }"
+        />
+      </div>
+
+      <div class="min-w-0 space-y-1">
+        <h2 class="text-base font-semibold truncate"><%= player_name %></h2>
+        <div class="text-[11px] text-muted-foreground/80 tabular-nums"><%= team_code %> · <%= team_name %></div>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-1.5">
+      <span class="<%= risk_chip_classes %>"><%= risk_label %></span>
+      <% status_chips.each do |chip| %>
+        <span class="<%= chip[:classes] %>"><%= chip[:label] %></span>
+      <% end %>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2">
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Used", value: games_used.presence || "—", class_name: "w-full" } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Limit", value: games_limit.presence || "—", class_name: "w-full" } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Remain", value: games_remaining.presence || "—", class_name: "w-full", variant: (games_remaining.present? && games_remaining.to_i <= 10 ? "negative" : "default") } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Used %", value: used_pct_label, class_name: "w-full" } %>
+    </div>
+
+    <div class="rounded border border-border bg-background px-3 py-2 space-y-2 text-[11px]">
+      <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">Usage trend</div>
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-muted-foreground">Used share</span>
+        <span class="font-mono tabular-nums"><%= used_pct_label %><% if used_blocks.present? %> · <%= used_blocks %><% end %></span>
+      </div>
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-muted-foreground">Remaining share</span>
+        <span class="font-mono tabular-nums"><%= remain_pct_label %><% if remain_blocks.present? %> · <%= remain_blocks %><% end %></span>
+      </div>
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-muted-foreground">Last game</span>
+        <span class="font-mono tabular-nums"><%= last_game_label.presence || "—" %></span>
+      </div>
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-muted-foreground">Signed</span>
+        <span class="font-mono tabular-nums"><%= signing_label.presence || "—" %></span>
+      </div>
+    </div>
+
+    <div class="rounded border border-border bg-background px-3 py-2 space-y-1.5 text-[11px]">
+      <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">Contract context</div>
+      <div class="flex items-center justify-between"><span class="text-muted-foreground"><%= format_year_label(current_year) %></span><span class="font-mono tabular-nums"><%= cap_2025.present? ? format_salary(cap_2025) : "—" %></span></div>
+      <div class="flex items-center justify-between"><span class="text-muted-foreground"><%= format_year_label(next_year) %></span><span class="font-mono tabular-nums"><%= cap_2026.present? ? format_salary(cap_2026) : "—" %></span></div>
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-muted-foreground">Agent</span>
+        <% if player["agent_name"].present? && agent_sidebar_open_expr.present? %>
+          <button
+            type="button"
+            class="cursor-pointer font-medium text-right hover:underline"
+            data-on:click="<%= agent_sidebar_open_expr %>"
+          ><%= player["agent_name"] %></button>
+        <% else %>
+          <span class="font-medium"><%= player["agent_name"].presence || "—" %></span>
+        <% end %>
+      </div>
+      <div class="flex items-center justify-between"><span class="text-muted-foreground">Agency</span><span class="font-medium"><%= player["agency_name"].presence || "—" %></span></div>
+    </div>
+
+    <div class="rounded border border-border bg-background px-3 py-2 space-y-1.5 text-[11px]">
+      <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">Pivots</div>
+      <a class="block text-blue-600 dark:text-blue-400 hover:underline" href="<%= player_href(player_id) %>">Open player page</a>
+      <a class="block text-blue-600 dark:text-blue-400 hover:underline" href="<%= team_href(team_code: team_code, team_id: team_id) %>">Open team page (<%= team_code %>)</a>
+      <% if player["agent_id"].present? %>
+        <button
+          type="button"
+          class="cursor-pointer block text-blue-600 dark:text-blue-400 hover:underline"
+          data-on:click="<%= agent_sidebar_open_expr %>"
+        >Open agent in sidebar</button>
+        <a class="block text-blue-600 dark:text-blue-400 hover:underline" href="<%= agent_href(player['agent_id']) %>">Open agent page</a>
+      <% end %>
+      <a class="block text-blue-600 dark:text-blue-400 hover:underline" href="<%= two_way_utility_path(conference: @conference, team: @team, risk: @risk) %>">Share this risk lens</a>
+    </div>
+  </div>
+</div>

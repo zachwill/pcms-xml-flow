@@ -1,0 +1,588 @@
+<% group = @draft_pick_group %>
+<% team_code = group["team_code"].to_s %>
+<% year = group["draft_year"] %>
+<% round = group["draft_round"] %>
+
+<% content_for :title, "#{team_code} #{year} R#{round} Draft Picks" %>
+
+<% norm_codes = ->(val) {
+  return [] if val.nil?
+  return val.map { |v| v.to_s.strip.upcase }.reject(&:blank?) if val.is_a?(Array)
+
+  s = val.to_s
+  return [] if s.blank? || s == "{}"
+
+  s.gsub(/[{}\"]/ , "")
+    .split(",")
+    .map { |v| v.to_s.strip.upcase }
+    .reject(&:blank?)
+} %>
+
+<% norm_ints = ->(val) {
+  return [] if val.nil?
+  if val.is_a?(Array)
+    return val.filter_map do |v|
+      begin
+        Integer(v)
+      rescue ArgumentError, TypeError
+        nil
+      end
+    end
+  end
+
+  s = val.to_s
+  return [] if s.blank? || s == "{}"
+
+  s.gsub(/[{}\"]/ , "")
+    .split(",")
+    .filter_map do |v|
+      begin
+        Integer(v.to_s.strip)
+      rescue ArgumentError, TypeError
+        nil
+      end
+    end
+} %>
+
+<% assets = Array(@assets) %>
+<% trade_chain_rows = Array(@trade_chain_rows) %>
+<% conditional_assets = assets.select { |a| a["is_conditional"] } %>
+<% swap_assets = assets.select { |a| a["is_swap"] } %>
+<% flagged_assets = assets.select { |a| a["is_forfeited"] || a["needs_review"] } %>
+<% clean_assets = assets.reject { |a| a["is_conditional"] || a["is_swap"] || a["is_forfeited"] || a["needs_review"] } %>
+
+<% original_owner_code = trade_chain_rows.map { |r| r["original_team_code"] }.find(&:present?) || team_code %>
+<% original_owner_team = @teams_by_code[original_owner_code] || {} %>
+
+<% protection_lanes = [
+  {
+    key: "conditional",
+    title: "Conditional protections",
+    help: "Conveyance depends on condition outcomes (lottery / record / timing).",
+    rows: conditional_assets,
+    chip_class: "entity-chip entity-chip--warning",
+    lane_class: "border-amber-300/70 bg-amber-50/60 dark:border-amber-800/60 dark:bg-amber-950/20"
+  },
+  {
+    key: "swap",
+    title: "Swap rights",
+    help: "Selection order can be exchanged with counterparties.",
+    rows: swap_assets,
+    chip_class: "entity-chip entity-chip--accent",
+    lane_class: "border-blue-300/70 bg-blue-50/60 dark:border-blue-800/60 dark:bg-blue-950/20"
+  },
+  {
+    key: "clean",
+    title: "Direct conveyance",
+    help: "No conditional or swap modifiers on the rule text.",
+    rows: clean_assets,
+    chip_class: "entity-chip entity-chip--muted",
+    lane_class: "border-border/60 bg-background"
+  },
+  {
+    key: "flagged",
+    title: "Forfeiture / review",
+    help: "Rows that include forfeiture or review flags.",
+    rows: flagged_assets,
+    chip_class: "entity-chip entity-chip--danger",
+    lane_class: "border-red-300/70 bg-red-50/60 dark:border-red-800/60 dark:bg-red-950/20"
+  }
+] %>
+
+<% rule_lens_options = [
+  { key: "all", label: "All rules", count: assets.size, help: "Show all rule lanes" },
+  { key: "conditional", label: "Conditional", count: conditional_assets.size, help: "Only condition-based protections" },
+  { key: "swap", label: "Swap", count: swap_assets.size, help: "Only swap-right protections" },
+  { key: "flagged", label: "Flagged", count: flagged_assets.size, help: "Forfeiture/review rows" }
+] %>
+<% rule_lens_keys = rule_lens_options.map { |option| option[:key] } %>
+<% active_rule_lane = params[:rule_lane].to_s.strip.downcase %>
+<% active_rule_lane = "all" unless rule_lens_keys.include?(active_rule_lane) %>
+
+<% conditional_chain_rows = trade_chain_rows.select { |row| row["is_conditional"] } %>
+<% swap_chain_rows = trade_chain_rows.select { |row| row["is_swap"] && !row["is_conditional"] } %>
+<% direct_chain_rows = trade_chain_rows.reject { |row| row["is_conditional"] || row["is_swap"] } %>
+
+<% chain_lanes = [
+  {
+    key: "conditional",
+    title: "Conditional hops",
+    help: "Conditional reroutes that can alter final ownership.",
+    rows: conditional_chain_rows,
+    chip_class: "entity-chip entity-chip--warning",
+    lane_class: "border-amber-300/70 bg-amber-50/60 dark:border-amber-800/60 dark:bg-amber-950/20"
+  },
+  {
+    key: "swap",
+    title: "Swap hops",
+    help: "Swap-based ownership transfers.",
+    rows: swap_chain_rows,
+    chip_class: "entity-chip entity-chip--accent",
+    lane_class: "border-blue-300/70 bg-blue-50/60 dark:border-blue-800/60 dark:bg-blue-950/20"
+  },
+  {
+    key: "direct",
+    title: "Direct hops",
+    help: "Unconditional transfers in the chain.",
+    rows: direct_chain_rows,
+    chip_class: "entity-chip entity-chip--muted",
+    lane_class: "border-border/60 bg-background"
+  }
+] %>
+
+<% chain_nodes = [] %>
+<% chain_nodes << original_owner_code if original_owner_code.present? %>
+<% trade_chain_rows.each do |row| %>
+  <% from_code = row["from_team_code"].to_s.strip.upcase.presence %>
+  <% to_code = row["to_team_code"].to_s.strip.upcase.presence %>
+  <% chain_nodes << from_code if from_code.present? && chain_nodes.last != from_code %>
+  <% chain_nodes << to_code if to_code.present? && chain_nodes.last != to_code %>
+<% end %>
+<% chain_nodes << team_code if chain_nodes.empty? %>
+<% chain_depth = [chain_nodes.length - 1, 0].max %>
+
+<% chain_hops = trade_chain_rows.each_with_index.map do |row, idx|
+  from_code = row["from_team_code"].to_s.strip.upcase.presence
+  to_code = row["to_team_code"].to_s.strip.upcase.presence
+  is_conditional = row["is_conditional"] || row["conditional_type_lk"].present?
+  is_swap = !!row["is_swap"]
+  is_flagged = is_conditional || is_swap || !!row["is_future"]
+
+  {
+    hop_number: idx + 1,
+    from_code:,
+    to_code:,
+    from_team_id: row["from_team_id"],
+    to_team_id: row["to_team_id"],
+    is_conditional:,
+    is_swap:,
+    is_flagged:
+  }
+end %>
+
+<div id="entity-directory" class="min-h-screen w-full bg-background">
+  <%= render partial: "shared/commandbar", locals: {
+    active_entity_scope: "drafts"
+  } %>
+
+  <main id="maincanvas" class="px-4 pb-8 space-y-6" data-entity-workspace>
+    <%= render partial: "shared/workspace_header", locals: {
+      breadcrumbs: [["Teams", "/teams"], [team_code, team_href(team_code: team_code)], ["#{year} R#{round} draft pick", nil]],
+      title: "#{team_code} — #{year} Round #{round}",
+      subtitle: ((@team.present? && @team["team_name"].present?) ? "#{@team['team_name']} · Source: pcms.vw_draft_pick_assets" : "Source: pcms.vw_draft_pick_assets"),
+      right_links: [["Open in Salary Book", "/?team=#{team_code}##{team_code}"], ["Draft selections", "/draft-selections"]]
+    } %>
+
+    <div id="draft-pick-workspace" class="lg:flex lg:gap-8" data-signals="{ rulelane: '<%= active_rule_lane %>' }">
+      <%= render partial: "shared/local_nav", locals: {
+        sections: [
+          ["vitals", "Vitals"],
+          ["protections", "Rule lanes"],
+          ["trade-chain", "Trade chain map"],
+          ["swap-rights", "Swap rights"]
+        ]
+      } %>
+
+      <div class="min-w-0 flex-1 space-y-6">
+        <section id="vitals" class="scroll-mt-24 space-y-3">
+          <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Vitals</h2>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="rounded-lg border border-border bg-background p-3">
+              <div class="text-xs text-muted-foreground">Year</div>
+              <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= year %></div>
+            </div>
+            <div class="rounded-lg border border-border bg-background p-3">
+              <div class="text-xs text-muted-foreground">Round</div>
+              <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= round %></div>
+            </div>
+            <div class="rounded-lg border border-border bg-background p-3">
+              <div class="text-xs text-muted-foreground">Current owner</div>
+              <div class="mt-1 text-sm font-medium">
+                <a href="<%= team_href(team_code: team_code, team_id: @team&.dig('team_id')) %>" class="hover:underline"><%= team_code %></a>
+              </div>
+            </div>
+            <div class="rounded-lg border border-border bg-background p-3">
+              <div class="text-xs text-muted-foreground">Original owner</div>
+              <div class="mt-1 text-sm font-medium">
+                <a href="<%= team_href(team_code: original_owner_code, team_id: original_owner_team['team_id']) %>" class="hover:underline"><%= original_owner_code %></a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="protections" class="scroll-mt-24 space-y-3">
+          <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Protection details</h2>
+
+          <div class="rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
+            <div class="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">Rule lanes</div>
+            <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
+              <span class="entity-chip entity-chip--muted">Rows · <span class="font-mono tabular-nums"><%= assets.size %></span></span>
+              <span class="entity-chip entity-chip--warning">Conditional · <span class="font-mono tabular-nums"><%= conditional_assets.size %></span></span>
+              <span class="entity-chip entity-chip--accent">Swap · <span class="font-mono tabular-nums"><%= swap_assets.size %></span></span>
+              <span class="entity-chip entity-chip--danger">Flagged · <span class="font-mono tabular-nums"><%= flagged_assets.size %></span></span>
+              <span>Original owner context: <a href="<%= team_href(team_code: original_owner_code, team_id: original_owner_team['team_id']) %>" class="hover:underline font-medium"><%= original_owner_code %></a></span>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-border/60 bg-background px-3 py-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Rule filters</span>
+              <% rule_lens_options.each do |option| %>
+                <button
+                  type="button"
+                  class="cursor-pointer inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors"
+                  data-on:click="$rulelane = '<%= option[:key] %>'; const url = new URL(window.location.href); if ('<%= option[:key] %>' === 'all') { url.searchParams.delete('rule_lane'); } else { url.searchParams.set('rule_lane', '<%= option[:key] %>'); } window.history.replaceState({}, '', url.pathname + url.search + url.hash);"
+                  data-class="{ 'bg-primary text-primary-foreground border-primary': $rulelane === '<%= option[:key] %>', 'bg-background text-muted-foreground border-border hover:text-foreground hover:border-foreground/25': $rulelane !== '<%= option[:key] %>' }"
+                  title="<%= option[:help] %>"
+                >
+                  <span><%= option[:label] %></span>
+                  <span class="entity-chip <%= option[:key] == 'conditional' ? 'entity-chip--warning' : (option[:key] == 'swap' ? 'entity-chip--accent' : (option[:key] == 'flagged' ? 'entity-chip--danger' : 'entity-chip--muted')) %>"><%= option[:count] %></span>
+                </button>
+              <% end %>
+              <span class="text-[10px] text-muted-foreground">Filtering lanes also highlights matching chain hops below.</span>
+            </div>
+          </div>
+
+          <% if assets.empty? %>
+            <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No asset rows found.</div>
+          <% else %>
+            <div class="space-y-2">
+              <% protection_lanes.each do |lane| %>
+                <% lane_rows = Array(lane[:rows]) %>
+                <% lane_visible = if lane[:key] == "clean"
+                  active_rule_lane == "all"
+                else
+                  active_rule_lane == "all" || active_rule_lane == lane[:key]
+                end %>
+                <article
+                  class="rounded-lg border p-3 <%= lane[:lane_class] %>"
+                  data-show="<%= lane[:key] == 'clean' ? "$rulelane === 'all'" : "$rulelane === 'all' || $rulelane === '#{lane[:key]}'" %>"
+                  <% unless lane_visible %>style="display: none;"<% end %>
+                >
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+                      <span class="<%= lane[:chip_class] %>"><%= lane[:title] %></span>
+                      <span class="font-mono tabular-nums text-muted-foreground">rows: <%= lane_rows.size %></span>
+                    </div>
+                    <div class="text-[10px] text-muted-foreground"><%= lane[:help] %></div>
+                  </div>
+
+                  <% if lane_rows.any? %>
+                    <div class="mt-2 rounded-lg border border-border/60 divide-y divide-border/50 bg-background/80">
+                      <% lane_rows.each do |a| %>
+                        <% slot = "#{a['asset_slot']}.#{a['sub_asset_slot']}" %>
+                        <% counterparty = a["counterparty_team_code"].to_s.strip.upcase.presence %>
+                        <% counterparty_team = counterparty.present? ? (@teams_by_code[counterparty] || {}) : {} %>
+                        <% via_codes = norm_codes.call(a["via_team_codes"]) %>
+                        <% counterparty_codes = norm_codes.call(a["counterparty_team_codes"]) %>
+                        <% endnote_ids = norm_ints.call(a["effective_endnote_ids"]) %>
+                        <% endnote_ids = [a["primary_endnote_id"].to_i] if endnote_ids.empty? && a["primary_endnote_id"].present? %>
+                        <% linked_endnotes = endnote_ids.filter_map { |idv| @endnotes_by_id[idv.to_i] } %>
+                        <% linked_trade_ids = linked_endnotes.filter_map { |n| n["trade_id"] }.uniq %>
+
+                        <% flags = [] %>
+                        <% flags << "conditional" if a["is_conditional"] %>
+                        <% flags << "swap" if a["is_swap"] %>
+                        <% flags << "forfeited" if a["is_forfeited"] %>
+                        <% flags << "needs review" if a["needs_review"] %>
+
+                        <div class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                          <div class="flex flex-wrap items-start gap-3">
+                            <div class="w-24 shrink-0">
+                              <div class="entity-cell-two-line">
+                                <div class="entity-cell-primary justify-start font-mono tabular-nums"><%= slot %></div>
+                                <div class="entity-cell-secondary justify-start font-mono uppercase tracking-wide"><%= a["asset_type"].presence || "—" %></div>
+                              </div>
+                            </div>
+
+                            <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                              <div class="entity-cell-two-line xl:col-span-2">
+                                <div class="entity-cell-primary justify-start"><%= a["display_text"].presence || a["raw_part"].presence || "—" %></div>
+                                <div class="entity-cell-secondary justify-start">Rule text</div>
+                              </div>
+
+                              <div class="entity-cell-two-line xl:col-span-2">
+                                <div class="entity-cell-primary justify-start gap-1.5 flex-wrap">
+                                  <% if counterparty.present? %>
+                                    <a href="<%= team_href(team_code: counterparty, team_id: counterparty_team['team_id']) %>" class="hover:underline font-medium"><%= counterparty %></a>
+                                  <% else %>
+                                    <span class="text-muted-foreground/60">Counterparty —</span>
+                                  <% end %>
+
+                                  <% if counterparty_codes.any? %>
+                                    <span class="text-muted-foreground/50">·</span>
+                                    <span class="text-xs text-muted-foreground">pool: <%= counterparty_codes.join("/") %></span>
+                                  <% end %>
+
+                                  <% if via_codes.any? %>
+                                    <span class="text-muted-foreground/50">·</span>
+                                    <span class="text-xs text-muted-foreground">via <%= via_codes.join(" → ") %></span>
+                                  <% end %>
+                                </div>
+                                <div class="entity-cell-secondary justify-start">Counterparty route</div>
+                              </div>
+
+                              <div class="entity-cell-two-line">
+                                <div class="entity-cell-primary justify-start gap-1 flex-wrap">
+                                  <% if flags.any? %>
+                                    <% flags.each do |flag| %>
+                                      <% flag_class = if flag == "conditional"
+                                        "entity-chip entity-chip--warning"
+                                      elsif flag == "swap"
+                                        "entity-chip entity-chip--accent"
+                                      elsif flag == "forfeited"
+                                        "entity-chip entity-chip--danger"
+                                      elsif flag == "needs review"
+                                        "entity-chip entity-chip--danger"
+                                      else
+                                        "entity-chip entity-chip--muted"
+                                      end %>
+                                      <span class="<%= flag_class %>"><%= flag %></span>
+                                    <% end %>
+                                  <% else %>
+                                    <span class="text-muted-foreground/60">No modifiers</span>
+                                  <% end %>
+                                </div>
+                                <div class="entity-cell-secondary justify-start">
+                                  <% if linked_trade_ids.any? %>
+                                    Trade pivots:
+                                    <% linked_trade_ids.each_with_index do |trade_id, idx| %>
+                                      <a href="<%= trade_href(trade_id) %>" class="hover:underline font-mono tabular-nums">#<%= trade_id %></a><%= idx < linked_trade_ids.size - 1 ? "," : "" %>
+                                    <% end %>
+                                  <% else %>
+                                    Flags
+                                  <% end %>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <% if a["endnote_explanation"].present? %>
+                            <div class="mt-2 text-xs text-muted-foreground border-t border-border/60 pt-2">
+                              <span class="font-medium text-foreground/90">Note:</span>
+                              <%= a["endnote_explanation"] %>
+                            </div>
+                          <% end %>
+                        </div>
+                      <% end %>
+                    </div>
+                  <% else %>
+                    <div class="mt-2 text-sm text-muted-foreground italic">No rows in this lane for this pick context.</div>
+                  <% end %>
+                </article>
+              <% end %>
+            </div>
+          <% end %>
+        </section>
+
+        <section id="trade-chain" class="scroll-mt-24 space-y-3">
+          <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Trade chain</h2>
+
+          <div class="rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
+            <div class="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80">Chain map</div>
+            <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+              <% chain_nodes.each_with_index do |code, idx| %>
+                <% team_meta = @teams_by_code[code] || {} %>
+                <a href="<%= team_href(team_code: code, team_id: team_meta['team_id']) %>" class="entity-chip entity-chip--muted hover:underline"><%= code %></a>
+                <% if idx < chain_nodes.length - 1 %>
+                  <span class="text-muted-foreground/60">→</span>
+                <% end %>
+              <% end %>
+            </div>
+            <div class="mt-1 text-[10px] text-muted-foreground flex flex-wrap items-center gap-1.5">
+              <span class="entity-chip entity-chip--muted">Hops · <span class="font-mono tabular-nums"><%= chain_depth %></span></span>
+              <span>Original owner: <a href="<%= team_href(team_code: original_owner_code, team_id: original_owner_team['team_id']) %>" class="hover:underline font-medium"><%= original_owner_code %></a></span>
+              <span>Current owner: <a href="<%= team_href(team_code: team_code, team_id: @team&.dig('team_id')) %>" class="hover:underline font-medium"><%= team_code %></a></span>
+            </div>
+
+            <% if chain_hops.any? %>
+              <div id="rule-hop-map" class="mt-2 flex flex-wrap gap-1.5 text-[10px]">
+                <% chain_hops.each do |hop| %>
+                  <% hop_match_js = "(($rulelane === 'conditional' && #{hop[:is_conditional]}) || ($rulelane === 'swap' && #{hop[:is_swap]}) || ($rulelane === 'flagged' && #{hop[:is_flagged]}))" %>
+                  <span
+                    id="chain-hop-<%= hop[:hop_number] %>"
+                    data-rule-hop="<%= hop[:hop_number] %>"
+                    class="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background px-2 py-0.5 transition-colors"
+                    data-class="{ 'border-amber-400/80 bg-amber-100/70 text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200': $rulelane === 'conditional' && <%= hop[:is_conditional] %>, 'border-blue-400/80 bg-blue-100/70 text-blue-800 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-200': $rulelane === 'swap' && <%= hop[:is_swap] %>, 'border-red-400/80 bg-red-100/70 text-red-800 dark:border-red-700 dark:bg-red-950/40 dark:text-red-200': $rulelane === 'flagged' && <%= hop[:is_flagged] %>, 'opacity-45': $rulelane !== 'all' && !(<%= hop_match_js %>) }"
+                  >
+                    <span class="font-mono tabular-nums">H<%= hop[:hop_number] %></span>
+                    <% if hop[:from_code].present? %>
+                      <a href="<%= team_href(team_code: hop[:from_code], team_id: hop[:from_team_id]) %>" class="hover:underline"><%= hop[:from_code] %></a>
+                    <% else %>
+                      <span class="text-muted-foreground/60">—</span>
+                    <% end %>
+                    <span class="text-muted-foreground/60">→</span>
+                    <% if hop[:to_code].present? %>
+                      <a href="<%= team_href(team_code: hop[:to_code], team_id: hop[:to_team_id]) %>" class="hover:underline"><%= hop[:to_code] %></a>
+                    <% else %>
+                      <span class="text-muted-foreground/60">—</span>
+                    <% end %>
+                  </span>
+                <% end %>
+              </div>
+            <% end %>
+
+            <div
+              class="mt-1 text-[10px] text-muted-foreground"
+              data-show="$rulelane !== 'all'"
+              <% if active_rule_lane == "all" %>style="display: none;"<% end %>
+            >
+              Active rule filter highlights matching hops in the chain map.
+            </div>
+          </div>
+
+          <% if trade_chain_rows.empty? %>
+            <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No draft_pick_trades rows found for this team/year/round.</div>
+          <% else %>
+            <div class="space-y-2">
+              <% chain_lanes.each do |lane| %>
+                <% lane_rows = Array(lane[:rows]) %>
+                <article class="rounded-lg border p-3 <%= lane[:lane_class] %>">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+                      <span class="<%= lane[:chip_class] %>"><%= lane[:title] %></span>
+                      <span class="font-mono tabular-nums text-muted-foreground">rows: <%= lane_rows.size %></span>
+                    </div>
+                    <div class="text-[10px] text-muted-foreground"><%= lane[:help] %></div>
+                  </div>
+
+                  <% if lane_rows.any? %>
+                    <div class="mt-2 rounded-lg border border-border/60 divide-y divide-border/50 bg-background/80">
+                      <% lane_rows.each do |row| %>
+                        <% hop = trade_chain_rows.index(row).to_i + 1 %>
+                        <% flags = [] %>
+                        <% flags << "swap" if row["is_swap"] %>
+                        <% flags << "future" if row["is_future"] %>
+                        <% flags << "conditional" if row["is_conditional"] %>
+                        <% flags << row["conditional_type_lk"] if row["conditional_type_lk"].present? %>
+
+                        <div class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                          <div class="flex flex-wrap items-start gap-3">
+                            <div class="w-24 shrink-0">
+                              <div class="entity-cell-two-line">
+                                <div class="entity-cell-primary justify-start font-mono tabular-nums">H<%= hop %></div>
+                                <div class="entity-cell-secondary justify-start font-mono tabular-nums"><%= row["trade_date"].presence || "—" %></div>
+                              </div>
+                            </div>
+
+                            <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                              <div class="entity-cell-two-line xl:col-span-2">
+                                <div class="entity-cell-primary justify-start gap-1.5 flex-wrap">
+                                  <% if row["from_team_code"].present? %>
+                                    <a href="<%= team_href(team_code: row['from_team_code'], team_id: row['from_team_id']) %>" class="hover:underline font-medium"><%= row["from_team_code"] %></a>
+                                  <% else %>
+                                    <span class="text-muted-foreground/60">—</span>
+                                  <% end %>
+                                  <span class="text-muted-foreground/50">→</span>
+                                  <% if row["to_team_code"].present? %>
+                                    <a href="<%= team_href(team_code: row['to_team_code'], team_id: row['to_team_id']) %>" class="hover:underline font-medium"><%= row["to_team_code"] %></a>
+                                  <% else %>
+                                    <span class="text-muted-foreground/60">—</span>
+                                  <% end %>
+                                </div>
+                                <div class="entity-cell-secondary justify-start">From → To</div>
+                              </div>
+
+                              <div class="entity-cell-two-line">
+                                <div class="entity-cell-primary justify-start">
+                                  <% if row["original_team_code"].present? %>
+                                    <a href="<%= team_href(team_code: row['original_team_code'], team_id: row['original_team_id']) %>" class="hover:underline font-medium"><%= row["original_team_code"] %></a>
+                                  <% else %>
+                                    <span class="text-muted-foreground/60">—</span>
+                                  <% end %>
+                                </div>
+                                <div class="entity-cell-secondary justify-start">Original owner</div>
+                              </div>
+
+                              <div class="entity-cell-two-line">
+                                <div class="entity-cell-primary justify-start font-mono tabular-nums">
+                                  <% if row["trade_id"].present? %>
+                                    <a href="<%= trade_href(row['trade_id']) %>" class="hover:underline">#<%= row["trade_id"] %></a>
+                                  <% else %>
+                                    <span class="text-muted-foreground/60">—</span>
+                                  <% end %>
+                                </div>
+                                <div class="entity-cell-secondary justify-start">Trade pivot</div>
+                              </div>
+
+                              <div class="entity-cell-two-line xl:col-span-2">
+                                <div class="entity-cell-primary justify-start gap-1 flex-wrap">
+                                  <% if flags.any? %>
+                                    <% flags.each do |flag| %>
+                                      <% flag_class = flag == "conditional" ? "entity-chip entity-chip--warning" : (flag == "swap" ? "entity-chip entity-chip--accent" : "entity-chip entity-chip--muted") %>
+                                      <span class="<%= flag_class %>"><%= flag %></span>
+                                    <% end %>
+                                  <% else %>
+                                    <span class="text-muted-foreground/60">No conditional/swap modifiers</span>
+                                  <% end %>
+                                </div>
+                                <div class="entity-cell-secondary justify-start">Flags</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      <% end %>
+                    </div>
+                  <% else %>
+                    <div class="mt-2 text-sm text-muted-foreground italic">No rows in this lane for this pick context.</div>
+                  <% end %>
+                </article>
+              <% end %>
+            </div>
+          <% end %>
+        </section>
+
+        <section id="swap-rights" class="scroll-mt-24 space-y-3">
+          <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Swap rights</h2>
+          <% if swap_assets.empty? %>
+            <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No swap rights rows for this pick context.</div>
+          <% else %>
+            <div class="space-y-2">
+              <% swap_assets.each do |a| %>
+                <% counterparty = a["counterparty_team_code"].to_s.strip.upcase.presence %>
+                <article class="rounded-lg border border-border bg-background p-3">
+                  <div class="text-sm font-medium">
+                    <%= a["display_text"].presence || a["raw_part"] %>
+                  </div>
+                  <div class="mt-1 text-xs text-muted-foreground">
+                    <% if counterparty.present? %>
+                      Counterparty: <a href="<%= team_href(team_code: counterparty, team_id: @teams_by_code.dig(counterparty, 'team_id')) %>" class="hover:underline"><%= counterparty %></a>
+                    <% else %>
+                      Counterparty: —
+                    <% end %>
+                    <% via = norm_codes.call(a["via_team_codes"]) %>
+                    <% if via.any? %>
+                      · via <%= via.join(" → ") %>
+                    <% end %>
+                  </div>
+                </article>
+              <% end %>
+            </div>
+          <% end %>
+
+          <% if @endnotes.any? %>
+            <details class="rounded-lg border border-border bg-background p-3" open>
+              <summary class="cursor-pointer text-sm font-medium">Referenced endnotes (<%= @endnotes.size %>)</summary>
+              <div class="mt-3 space-y-2">
+                <% @endnotes.each do |n| %>
+                  <article id="endnote-<%= n['endnote_id'] %>" class="rounded border border-border/60 p-2">
+                    <div class="text-sm font-mono tabular-nums">#<%= n["endnote_id"] %></div>
+                    <div class="text-xs text-muted-foreground mt-1">
+                      <% if n["trade_id"].present? %>
+                        Trade <a href="<%= trade_href(n['trade_id']) %>" class="hover:underline font-mono tabular-nums">#<%= n["trade_id"] %></a>
+                      <% end %>
+                      <% if n["trade_date"].present? %>
+                        · <span class="font-mono tabular-nums"><%= n["trade_date"] %></span>
+                      <% end %>
+                    </div>
+                    <div class="mt-2 text-sm whitespace-pre-line"><%= n["explanation"].presence || n["conveyance_text"].presence || "—" %></div>
+                  </article>
+                <% end %>
+              </div>
+            </details>
+          <% end %>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>

@@ -1,0 +1,100 @@
+<% summary = @sidebar_summary || {} %>
+<% top_rows = Array(summary[:top_rows]) %>
+
+<div id="rightpanel-base" class="space-y-4">
+  <div class="rounded-lg border border-border bg-background p-3 space-y-3">
+    <div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Workspace snapshot</div>
+      <div class="text-sm font-semibold text-foreground">
+        Trades
+        <span class="text-muted-foreground font-medium">· <%= summary[:row_count].to_i %> rows</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-1.5">
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Players", value: summary[:player_assets_total].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Picks", value: summary[:pick_assets_total].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Assets", value: summary[:complexity_asset_total].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Complex", value: summary[:complex_deal_count].to_i.to_s, class_name: "w-full" } %>
+    </div>
+
+    <div class="grid grid-cols-3 gap-1.5">
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Player", value: summary[:player_heavy_deal_count].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Pick", value: summary[:pick_heavy_deal_count].to_i.to_s, class_name: "w-full" } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Cash/TPE", value: summary[:cash_tpe_deal_count].to_i.to_s, class_name: "w-full" } %>
+    </div>
+
+    <% if Array(summary[:filters]).any? %>
+      <div class="pt-1 flex flex-wrap gap-1">
+        <% Array(summary[:filters]).each do |label| %>
+          <span class="entity-chip entity-chip--muted"><%= label %></span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if top_rows.any? %>
+    <div class="rounded-lg border border-border bg-background">
+      <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">Quick deals · <%= @sort_label %></div>
+      <div class="divide-y divide-border">
+        <% top_rows.each do |row| %>
+          <% row_id = row["trade_id"].to_s %>
+          <% teams_label = row["teams_involved"].presence || "No teams" %>
+          <% composition_labels = Array(row["composition_labels"]) %>
+          <% quick_impacts = Array(row["primary_team_impacts"]) %>
+          <% additional_impact_count = row["additional_team_impact_count"].to_i %>
+          <% open_expr = "$overlaytype = 'trade'; $overlayid = '#{row_id}'; @get('/trades/sidebar/#{row_id}')" %>
+          <button
+            type="button"
+            class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+            data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'trade' && $overlayid === '<%= row_id %>' }"
+            data-on:click="<%= open_expr %>"
+          >
+            <div class="entity-cell-two-line">
+              <div class="entity-cell-primary justify-between gap-2">
+                <span class="font-medium font-mono tabular-nums">#<%= row["trade_id"] %></span>
+                <span class="text-[10px] text-muted-foreground"><%= row["trade_date"].present? ? Date.parse(row["trade_date"].to_s).strftime("%b %d") : "—" %></span>
+              </div>
+              <div class="entity-cell-secondary truncate">
+                <%= teams_label %> · <%= row["team_count"].to_i %>T · <%= row["complexity_asset_count"].to_i %> assets
+                <% if composition_labels.any? %>
+                  · <%= composition_labels.join(" + ") %>
+                <% end %>
+              </div>
+            </div>
+
+            <% if quick_impacts.any? %>
+              <div class="mt-1 space-y-1">
+                <% quick_impacts.each do |impact| %>
+                  <% net_variant = trade_impact_net_variant(impact) %>
+                  <% net_chip_class = case net_variant
+                     when :net_in then "entity-chip entity-chip--success"
+                     when :net_out then "entity-chip entity-chip--danger"
+                     else "entity-chip entity-chip--muted"
+                     end %>
+                  <div class="text-[10px] tabular-nums leading-none flex items-center gap-1 min-w-0 overflow-hidden">
+                    <span class="font-semibold text-foreground shrink-0"><%= impact["team_code"].presence || "—" %></span>
+                    <span class="<%= net_chip_class %> shrink-0"><%= trade_impact_net_label(impact) %></span>
+                    <span class="text-red-600 dark:text-red-400 shrink-0">OUT <%= trade_impact_flow_label(impact, direction: :out) %></span>
+                    <span class="text-muted-foreground/50">·</span>
+                    <span class="text-emerald-600 dark:text-emerald-400 shrink-0">IN <%= trade_impact_flow_label(impact, direction: :in) %></span>
+                  </div>
+                <% end %>
+
+                <% if additional_impact_count.positive? %>
+                  <div class="text-[10px] text-muted-foreground tabular-nums">+<%= additional_impact_count %> more team<%= "s" if additional_impact_count != 1 %></div>
+                <% end %>
+              </div>
+            <% else %>
+              <div class="mt-1 text-[10px] text-muted-foreground">No team impact map</div>
+            <% end %>
+          </button>
+        <% end %>
+      </div>
+    </div>
+  <% else %>
+    <div class="p-4 rounded-lg border border-border bg-muted/20 text-sm text-muted-foreground">
+      No trades in the current filter set.
+    </div>
+  <% end %>
+</div>

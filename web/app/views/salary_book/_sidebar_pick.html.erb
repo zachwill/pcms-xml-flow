@@ -1,0 +1,361 @@
+<%#
+  Pick overlay (RightPanel entity) — Salary Book sidebar
+
+  NOTE: Root id must remain stable for Datastar morphing.
+%>
+
+<% round_i = round.to_i %>
+<% salary_book_year = local_assigns.fetch(:salary_year, SalaryBookHelper::SALARY_YEARS.first).to_i %>
+
+<% team_name = team_meta["team_name"] || team_code %>
+<% team_id = team_meta["team_id"] %>
+<% logo_url = team_logo_url(team_id) %>
+<% team_meta_by_code ||= {} %>
+
+<% primary = picks.first || {} %>
+<% asset_type = primary["asset_type"].to_s.upcase %>
+<% is_swap = picks.any? { |p| p["is_swap"] || p["endnote_is_swap"] } %>
+<% is_conditional = picks.any? { |p| p["is_conditional"] || p["endnote_is_conditional"] } %>
+
+<%
+  parse_pg_array = ->(val) {
+    return [] if val.nil?
+    return val.map { |v| v.to_s.strip.upcase }.reject(&:blank?) if val.is_a?(Array)
+
+    s = val.to_s
+    return [] if s.blank? || s == "{}"
+
+    s.gsub(/[{}\"]/, "")
+      .split(",")
+      .map { |v| v.to_s.strip.upcase }
+      .reject(&:blank?)
+  }
+
+  direct_counterparty_codes = picks.map { |p| p["origin_team_code"].to_s.strip.upcase.presence }.compact
+  array_counterparty_codes = picks.flat_map { |p| parse_pg_array.call(p["counterparty_team_codes"]) }
+  origin_codes = (direct_counterparty_codes + array_counterparty_codes).uniq.reject { |c| c == team_code }
+
+  via_codes = picks
+    .flat_map { |p| parse_pg_array.call(p["via_team_codes"]) }
+    .uniq
+    .reject { |c| c == team_code }
+
+  is_own = origin_codes.empty? && asset_type != "TO"
+
+  descriptions = picks.map { |p| p["description"].to_s.strip }.reject(&:blank?).uniq
+  explanations = picks.map { |p| p["endnote_explanation"].to_s.strip }.reject(&:blank?).uniq
+
+  trade_dates_raw = picks.map { |p| p["endnote_trade_date"].presence }.compact.uniq
+  trade_date_entries = trade_dates_raw.map do |raw|
+    begin
+      d = Date.parse(raw.to_s)
+      { sortable: d, label: d.strftime("%b %-d, %Y") }
+    rescue
+      { sortable: nil, label: raw.to_s }
+    end
+  end.uniq { |entry| entry[:label] }
+
+  parsed_trade_entries = trade_date_entries.select { |entry| entry[:sortable].present? }.sort_by { |entry| entry[:sortable] }
+  unparsed_trade_entries = trade_date_entries.reject { |entry| entry[:sortable].present? }
+
+  all_trade_date_labels = parsed_trade_entries.map { |entry| entry[:label] } + unparsed_trade_entries.map { |entry| entry[:label] }
+  trade_date_count = all_trade_date_labels.length
+  latest_trade_date_label = parsed_trade_entries.last&.fetch(:label, nil) || all_trade_date_labels.last
+  trade_history_summary = if trade_date_count <= 0
+    nil
+  elsif trade_date_count == 1
+    all_trade_date_labels.first
+  else
+    "#{trade_date_count} events"
+  end
+  trade_history_title = all_trade_date_labels.join(", ")
+
+  status_badge = if is_own
+    { label: "Own Pick", klass: "bg-emerald-100/70 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" }
+  elsif asset_type == "TO"
+    { label: "Traded Away", klass: "bg-violet-100/70 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300" }
+  else
+    { label: "Acquired", klass: "bg-blue-100/70 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" }
+  end
+
+  flow_label = asset_type == "TO" ? "To" : "From"
+  flow_value = if origin_codes.empty?
+    is_own ? team_code : "—"
+  elsif origin_codes.length == 1
+    origin_codes.first
+  else
+    "Multi"
+  end
+
+  team_meta_for_code = ->(code) {
+    team_meta_by_code[code.to_s.strip.upcase] || {}
+  }
+
+  team_logo_for_code = ->(code) {
+    meta = team_meta_for_code.call(code)
+    team_logo_url(meta["team_id"])
+  }
+
+  switch_team_onclick = ->(code) {
+    "el.dispatchEvent(new CustomEvent('salarybook-switch-team', { bubbles: true, detail: { team: '#{code}', year: '#{salary_book_year}' } }));"
+  }
+
+  team_combo_chip_classes = "cursor-pointer inline-flex items-center gap-0.5 px-1.5 rounded border border-border bg-background hover:border-foreground/20"
+  team_combo_chip_style = "width: 78px; height: 24px;"
+  team_combo_logo_wrap_classes = "inline-flex items-center justify-center w-4 h-4 overflow-hidden rounded-[3px] bg-muted/20"
+  team_combo_logo_image_classes = "w-full h-full object-cover object-center scale-[1.12]"
+  team_combo_code_classes = "flex-1 text-xs font-semibold tabular-nums leading-none text-center"
+%>
+
+<div id="rightpanel-overlay" class="h-full">
+  <%# Sticky header %>
+  <div class="sticky top-0 z-20 h-10 px-4 flex items-center justify-between border-b border-border bg-background">
+    <%= render partial: "salary_book/sidebar_back_button" %>
+
+    <a
+      class="text-xs text-muted-foreground hover:text-foreground hover:underline"
+      href="<%= draft_pick_path(team_code: team_code, year: year, round: round) %>"
+    >Open pick page</a>
+  </div>
+
+  <div class="px-4 pb-4 pt-4 space-y-5">
+    <%# Header %>
+    <div class="flex items-center gap-2.5">
+      <div class="w-12 h-12 shrink-0 rounded-lg border border-border bg-muted/30 flex flex-col items-center justify-center text-center leading-none">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground">Round</div>
+        <div class="mt-0.5 text-sm font-semibold tabular-nums">R<%= round_i %></div>
+      </div>
+
+      <div class="w-12 h-12 rounded-lg border border-border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
+        <% if logo_url %>
+          <img
+            src="<%= logo_url %>"
+            alt="<%= team_name %> logo"
+            class="w-full h-full object-contain"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+          />
+          <span class="hidden text-sm font-semibold text-muted-foreground"><%= team_code %></span>
+        <% else %>
+          <span class="text-sm font-semibold text-muted-foreground"><%= team_code %></span>
+        <% end %>
+      </div>
+
+      <div class="min-w-0 flex-1 space-y-0.5">
+        <h2 class="text-lg font-semibold text-foreground truncate"><%= year %> Round <%= round_i %></h2>
+        <div class="text-sm text-muted-foreground truncate"><%= team_name %></div>
+      </div>
+    </div>
+
+    <%# Snapshot KPIs %>
+    <div class="border-t border-border pt-4 space-y-2.5">
+      <div class="grid grid-cols-4 gap-1.5">
+        <%= render partial: "salary_book/kpi_cell", locals: {
+          label: "Year",
+          value: year.to_s,
+          class_name: "w-full"
+        } %>
+
+        <%= render partial: "salary_book/kpi_cell", locals: {
+          label: "Round",
+          value: "R#{round_i}",
+          class_name: "w-full"
+        } %>
+
+        <%= render partial: "salary_book/kpi_cell", locals: {
+          label: "Status",
+          value: status_badge[:label].sub(" Pick", ""),
+          class_name: "w-full",
+          value_class_name: "text-[10px]"
+        } %>
+
+        <%= render partial: "salary_book/kpi_cell", locals: {
+          label: flow_label,
+          value: flow_value,
+          class_name: "w-full",
+          value_class_name: "text-[10px]"
+        } %>
+      </div>
+
+      <div class="flex flex-wrap gap-1.5">
+        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none <%= status_badge[:klass] %>">
+          <%= status_badge[:label] %>
+        </span>
+
+        <% if is_swap %>
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none bg-violet-100/70 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+            Swap
+          </span>
+        <% end %>
+
+        <% if is_conditional %>
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none bg-amber-100/80 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+            Conditional
+          </span>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Ownership / routing %>
+    <div class="border-t border-border pt-4 space-y-2">
+      <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ownership</div>
+
+      <div class="space-y-0.5">
+        <div class="flex items-center justify-between py-1.5 gap-3">
+          <span class="text-sm text-muted-foreground">Current owner</span>
+          <% current_logo = team_logo_for_code.call(team_code) %>
+          <button
+            type="button"
+            class="<%= team_combo_chip_classes %>"
+            style="<%= team_combo_chip_style %>"
+            data-on:click="<%= switch_team_onclick.call(team_code) %>"
+          >
+            <span class="<%= team_combo_logo_wrap_classes %>">
+              <% if current_logo.present? %>
+                <img src="<%= current_logo %>" alt="<%= team_code %> logo" class="<%= team_combo_logo_image_classes %>" loading="lazy" decoding="async" />
+              <% end %>
+            </span>
+            <span class="<%= team_combo_code_classes %>"><%= team_code %></span>
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between py-1.5 gap-3">
+          <span class="text-sm text-muted-foreground"><%= flow_label %></span>
+          <% if origin_codes.any? %>
+            <div class="flex flex-wrap items-center justify-end gap-1.5">
+              <% origin_codes.each do |code| %>
+                <% code_logo = team_logo_for_code.call(code) %>
+                <button
+                  type="button"
+                  class="<%= team_combo_chip_classes %>"
+                  style="<%= team_combo_chip_style %>"
+                  data-on:click="<%= switch_team_onclick.call(code) %>"
+                >
+                  <span class="<%= team_combo_logo_wrap_classes %>">
+                    <% if code_logo.present? %>
+                      <img src="<%= code_logo %>" alt="<%= code %> logo" class="<%= team_combo_logo_image_classes %>" loading="lazy" decoding="async" />
+                    <% end %>
+                  </span>
+                  <span class="<%= team_combo_code_classes %>"><%= code %></span>
+                </button>
+              <% end %>
+            </div>
+          <% else %>
+            <% if is_own %>
+              <% own_logo = team_logo_for_code.call(team_code) %>
+              <button
+                type="button"
+                class="<%= team_combo_chip_classes %>"
+                style="<%= team_combo_chip_style %>"
+                data-on:click="<%= switch_team_onclick.call(team_code) %>"
+              >
+                <span class="<%= team_combo_logo_wrap_classes %>">
+                  <% if own_logo.present? %>
+                    <img src="<%= own_logo %>" alt="<%= team_code %> logo" class="<%= team_combo_logo_image_classes %>" loading="lazy" decoding="async" />
+                  <% end %>
+                </span>
+                <span class="<%= team_combo_code_classes %>"><%= team_code %></span>
+              </button>
+            <% else %>
+              <span class="text-sm font-medium text-right">—</span>
+            <% end %>
+          <% end %>
+        </div>
+
+        <% if via_codes.any? %>
+          <div class="flex items-center justify-between py-1.5 gap-3">
+            <span class="text-sm text-muted-foreground">Via</span>
+            <div class="flex flex-wrap items-center justify-end gap-1.5">
+              <% via_codes.each do |code| %>
+                <% code_logo = team_logo_for_code.call(code) %>
+                <button
+                  type="button"
+                  class="<%= team_combo_chip_classes %>"
+                  style="<%= team_combo_chip_style %>"
+                  data-on:click="<%= switch_team_onclick.call(code) %>"
+                >
+                  <span class="<%= team_combo_logo_wrap_classes %>">
+                    <% if code_logo.present? %>
+                      <img src="<%= code_logo %>" alt="<%= code %> logo" class="<%= team_combo_logo_image_classes %>" loading="lazy" decoding="async" />
+                    <% end %>
+                  </span>
+                  <span class="<%= team_combo_code_classes %>"><%= code %></span>
+                </button>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <% if trade_history_summary.present? %>
+          <div class="flex items-center justify-between py-1.5 gap-3">
+            <span class="text-sm text-muted-foreground">Trade history</span>
+            <span class="text-sm font-medium tabular-nums text-right" title="<%= trade_history_title %>"><%= trade_history_summary %></span>
+          </div>
+
+          <% if trade_date_count > 1 && latest_trade_date_label.present? %>
+            <div class="flex items-center justify-between py-1.5 gap-3">
+              <span class="text-sm text-muted-foreground">Latest trade</span>
+              <span class="text-sm font-medium tabular-nums text-right"><%= latest_trade_date_label %></span>
+            </div>
+          <% end %>
+        <% end %>
+
+      </div>
+    </div>
+
+    <%# Pick details text %>
+    <% if descriptions.any? %>
+      <div class="border-t border-border pt-4 space-y-2">
+        <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pick details</div>
+        <div class="space-y-1.5">
+          <% descriptions.each do |desc| %>
+            <p class="text-sm text-foreground leading-snug"><%= desc %></p>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <%# Protections / conditions %>
+    <% if explanations.any? %>
+      <div class="border-t border-border pt-4 space-y-2">
+        <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Protections</div>
+        <div class="space-y-1.5">
+          <% explanations.each do |explanation| %>
+            <p class="text-sm text-amber-700 dark:text-amber-300 leading-snug"><%= explanation %></p>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <%# Source rows (useful when a slot has multiple parsed fragments) %>
+    <% if picks.size > 1 %>
+      <div class="border-t border-border pt-4 space-y-2">
+        <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Source rows</div>
+
+        <div class="overflow-x-auto rounded-lg border border-border/60">
+          <table class="min-w-full text-[11px]">
+            <thead class="bg-muted/20 text-muted-foreground uppercase tracking-wide text-[10px]">
+              <tr>
+                <th class="text-left px-2 py-1.5 font-medium">Slot</th>
+                <th class="text-left px-2 py-1.5 font-medium">Type</th>
+                <th class="text-left px-2 py-1.5 font-medium">Flags</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border/50">
+              <% picks.each do |pick| %>
+                <% flags = [] %>
+                <% flags << "swap" if pick["is_swap"] || pick["endnote_is_swap"] %>
+                <% flags << "conditional" if pick["is_conditional"] || pick["endnote_is_conditional"] %>
+
+                <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/25 transition-colors duration-75">
+                  <td class="px-2 py-1.5 tabular-nums"><%= pick["asset_slot"] %>.<%= pick["sub_asset_slot"] %></td>
+                  <td class="px-2 py-1.5 font-mono"><%= pick["asset_type"] || "—" %></td>
+                  <td class="px-2 py-1.5 text-muted-foreground"><%= flags.any? ? flags.join(" · ") : "—" %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

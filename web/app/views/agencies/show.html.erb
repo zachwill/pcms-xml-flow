@@ -1,0 +1,709 @@
+<% content_for :title, @agency&.fetch("agency_name", nil) || "Agency" %>
+
+<% agency_name = @agency&.fetch("agency_name", nil).to_s %>
+<% agent_count_percentile = @agency_rollup["agent_count_percentile"] %>
+<% client_count_percentile = @agency_rollup["client_count_percentile"] %>
+<% book_2025_percentile = @agency_rollup["cap_2025_total_percentile"] %>
+
+<% prefetch_canonical_slugs(entity_type: "agent", entity_ids: @agents.map { |a| a["agent_id"] } + @clients.map { |c| c["agent_id"] }) %>
+<% prefetch_canonical_slugs(entity_type: "player", entity_ids: @clients.map { |c| c["player_id"] }) %>
+<% prefetch_canonical_slugs(entity_type: "team", entity_ids: @team_distribution.map { |r| r["team_id"] } + @clients.map { |c| c["team_id"] }) %>
+
+<%
+  agency_cap_2025_total = @agency_rollup["cap_2025_total"].to_f
+
+  agent_rows = @agents.map do |agent|
+    cap_2025_total = agent["cap_2025_total"].to_f
+    client_count = agent["client_count"].to_i
+
+    {
+      agent_id: agent["agent_id"],
+      full_name: agent["full_name"],
+      is_active: agent["is_active"] != false,
+      client_count: client_count,
+      cap_2025_total: cap_2025_total,
+      total_salary_from_2025: agent["total_salary_from_2025"].to_f,
+      cap_share_pct: (agency_cap_2025_total.positive? ? (cap_2025_total / agency_cap_2025_total) * 100.0 : nil)
+    }
+  end
+
+  active_agent_count = agent_rows.count { |row| row[:is_active] }
+  inactive_agent_count = agent_rows.count - active_agent_count
+  roster_client_total = agent_rows.sum { |row| row[:client_count] }
+
+  team_rows = @team_distribution.map do |team_row|
+    cap_2025_total = team_row["cap_2025_total"].to_f
+    client_count = team_row["client_count"].to_i
+
+    {
+      team_code: team_row["team_code"],
+      team_id: team_row["team_id"],
+      team_name: team_row["team_name"],
+      client_count: client_count,
+      cap_2025_total: cap_2025_total,
+      client_share_pct: (roster_client_total.positive? ? (client_count.to_f / roster_client_total) * 100.0 : nil),
+      cap_share_pct: (agency_cap_2025_total.positive? ? (cap_2025_total / agency_cap_2025_total) * 100.0 : nil)
+    }
+  end
+
+  represented_client_total = team_rows.sum { |row| row[:client_count] }
+  represented_cap_total = team_rows.sum { |row| row[:cap_2025_total] }
+
+  client_rows = @clients.map do |client|
+    cap_by_year = (2025..2030).to_h { |year| [year, client["cap_#{year}"].to_f] }
+
+    option_years = (2025..2028).filter_map do |year|
+      option_code = normalize_contract_option(client["option_#{year}"])
+      next if option_code.blank?
+
+      {
+        year: year,
+        label: option_code,
+        season_label: format_year_label(year)
+      }
+    end
+
+    next_option = option_years.find { |option| option[:year] >= 2026 } || option_years.first
+
+    fa_year = nil
+    (2025..2029).each do |year|
+      if cap_by_year[year].positive? && cap_by_year[year + 1].to_f.zero?
+        fa_year = year
+        break
+      end
+    end
+
+    is_two_way = client["is_two_way"]
+    is_max_level = !is_two_way && client["pct_cap_2025"].to_f >= 0.25
+    is_restricted = client["is_no_trade"] || client["is_trade_bonus"] || client["is_trade_restricted_now"]
+    is_expiring_window = fa_year.present? && fa_year <= 2027
+    is_option_heavy = option_years.any?
+
+    chips = []
+    chips << { label: "2W", classes: neutral_badge_classes } if is_two_way
+    chips << { label: "Max", classes: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" } if is_max_level
+
+    if client["is_trade_bonus"]
+      chips << { label: "TK", classes: "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300" }
+    end
+
+    chips << { label: "NTC", classes: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300" } if client["is_no_trade"]
+    chips << { label: "Restricted", classes: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300" } if client["is_trade_restricted_now"]
+
+    option_years.each do |option|
+      option_classes = case option[:label]
+      when "PO"
+        "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+      when "TO"
+        "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300"
+      else
+        "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
+      end
+
+      chips << {
+        label: "#{option[:label]} '#{option[:season_label].split('-').first}",
+        classes: option_classes
+      }
+    end
+
+    chips << { label: "FA '#{format_year_label(fa_year).split('-').first}", classes: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" } if is_expiring_window
+
+    decision_label, decision_classes = if next_option.present?
+      option_label = "#{next_option[:label]} #{next_option[:season_label]}"
+      option_classes = case next_option[:label]
+      when "PO"
+        "text-blue-600 dark:text-blue-400"
+      when "TO"
+        "text-purple-600 dark:text-purple-400"
+      else
+        "text-orange-600 dark:text-orange-400"
+      end
+
+      [option_label, option_classes]
+    elsif fa_year.present?
+      ["FA #{format_year_label(fa_year)}", "text-amber-700 dark:text-amber-300"]
+    elsif is_two_way
+      ["Two-Way", "text-muted-foreground"]
+    else
+      ["—", "text-muted-foreground/60"]
+    end
+
+    cohort_memberships = []
+    cohort_memberships << { key: "max", label: "Max" } if is_max_level
+    cohort_memberships << { key: "expiring", label: "Exp ≤27" } if is_expiring_window
+    cohort_memberships << { key: "restricted", label: "Restricted" } if is_restricted
+    cohort_memberships << { key: "option_heavy", label: "Option" } if is_option_heavy
+
+    {
+      player_id: client["player_id"],
+      player_name: client["player_name"],
+      agent_id: client["agent_id"],
+      agent_name: client["agent_name"],
+      team_id: client["team_id"],
+      team_code: client["team_code"],
+      team_name: client["team_name"],
+      cap_2025: client["cap_2025"].to_f,
+      total_salary_from_2025: client["total_salary_from_2025"].to_f,
+      decision_label: decision_label,
+      decision_classes: decision_classes,
+      chips: chips,
+      cohort_memberships: cohort_memberships,
+      cohort_keys: cohort_memberships.map { |membership| membership[:key] }
+    }
+  end
+
+  sorted_client_rows = client_rows.sort_by { |row| [-(row[:cap_2025].to_f), row[:player_name].to_s] }
+
+  active_cohort_filters = Array(@show_cohort_filters)
+    .map { |value| value.to_s.strip.downcase.tr("-", "_") }
+    .reject(&:blank?)
+    .select { |value| %w[max expiring restricted option_heavy].include?(value) }
+    .uniq
+  active_cohort_filter_lookup = active_cohort_filters.index_with(true)
+
+  cohort_definitions = [
+    {
+      key: "max",
+      id: "cohort-max",
+      title: "Max-level anchors",
+      subtitle: "Largest leverage contracts in this agency footprint.",
+      match: ->(row) { row[:cohort_keys].include?("max") }
+    },
+    {
+      key: "expiring",
+      id: "cohort-expiring",
+      title: "Expiring through 2027",
+      subtitle: "Near-term free-agency windows requiring sequencing.",
+      match: ->(row) { row[:cohort_keys].include?("expiring") }
+    },
+    {
+      key: "restricted",
+      id: "cohort-restricted",
+      title: "Restricted / no-trade / kicker",
+      subtitle: "Negotiation constraints and transaction-sensitive clients.",
+      match: ->(row) { row[:cohort_keys].include?("restricted") }
+    },
+    {
+      key: "option_heavy",
+      id: "cohort-option-heavy",
+      title: "Option-heavy clients",
+      subtitle: "Option decision pressure through 2028.",
+      match: ->(row) { row[:cohort_keys].include?("option_heavy") }
+    }
+  ]
+
+  cohort_rows_by_key = cohort_definitions.to_h do |definition|
+    [definition[:key], sorted_client_rows.select { |row| definition[:match].call(row) }]
+  end
+
+  visible_cohort_definitions = if active_cohort_filters.any?
+    cohort_definitions.select { |definition| active_cohort_filter_lookup[definition[:key]] }
+  else
+    cohort_definitions
+  end
+
+  filtered_client_rows = if active_cohort_filters.any?
+    sorted_client_rows.select { |row| (row[:cohort_keys] & active_cohort_filters).any? }
+  else
+    sorted_client_rows
+  end
+
+  filtered_client_ids = filtered_client_rows.map { |row| row[:player_id].to_i }.select(&:positive?).uniq
+
+  yearly_footprint_rows = @client_yearly_footprint.map do |year_row|
+    {
+      player_id: year_row["player_id"].to_i,
+      salary_year: year_row["salary_year"].to_i,
+      cap_total: year_row["cap_amount"].to_f,
+      tax_total: year_row["tax_amount"].to_f,
+      apron_total: year_row["apron_amount"].to_f
+    }
+  end
+
+  scoped_yearly_footprint_rows = if active_cohort_filters.any?
+    yearly_footprint_rows.select { |row| filtered_client_ids.include?(row[:player_id]) }
+  else
+    yearly_footprint_rows
+  end
+
+  historical_book_rows = scoped_yearly_footprint_rows
+    .group_by { |row| row[:salary_year] }
+    .sort_by { |salary_year, _| salary_year }
+    .map do |salary_year, rows|
+      {
+        salary_year: salary_year,
+        player_count: rows.map { |row| row[:player_id] }.uniq.count,
+        cap_total: rows.sum { |row| row[:cap_total] },
+        tax_total: rows.sum { |row| row[:tax_total] },
+        apron_total: rows.sum { |row| row[:apron_total] }
+      }
+    end
+
+  max_historical_cap_total = [historical_book_rows.map { |row| row[:cap_total] }.max.to_f, 1].max
+
+  historical_top_client_rows = filtered_client_rows.first(20)
+  historical_top_client_cap_total = historical_top_client_rows.sum { |row| row[:cap_2025].to_f }
+%>
+
+<div id="entity-directory" class="min-h-screen w-full bg-background">
+  <%= render partial: "shared/commandbar", locals: {
+    active_entity_scope: "agencies"
+  } %>
+
+  <main class="px-4 pb-8 space-y-6" data-entity-workspace>
+    <%= render partial: "shared/workspace_header", locals: {
+      breadcrumbs: [["Agencies", "/agencies"], [agency_name.presence || "Agency", nil]],
+      title: (agency_name.presence || "Agency"),
+      subtitle: ("agency_id: #{@agency_id} · slug: #{@agency_slug}" + (@agency["is_active"] == false ? " · inactive" : "")),
+      right_links: [["Open Salary Book", "/"], ["Browse Agents", "/agents"]]
+    } %>
+
+    <div class="lg:flex lg:gap-8">
+      <%= render partial: "shared/local_nav", locals: {
+        sections: [
+          ["vitals", "Vitals"],
+          ["agent-roster", "Agent roster"],
+          ["team-distribution", "Team distribution"],
+          ["historical", "Historical footprint"]
+        ]
+      } %>
+
+      <div class="min-w-0 flex-1 space-y-6">
+        <section id="vitals" class="scroll-mt-24 space-y-3">
+          <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Vitals</h2>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div class="rounded-lg border border-border bg-background p-3">
+              <div class="text-xs text-muted-foreground">Agent count</div>
+              <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @agency_rollup["agent_count"] || 0 %></div>
+              <% if representation_percentile_int(agent_count_percentile).present? %>
+                <div class="mt-1 text-[10px] leading-none font-mono tabular-nums <%= representation_percentile_color_class(agent_count_percentile) %>">P<%= representation_percentile_int(agent_count_percentile) %></div>
+              <% end %>
+            </div>
+            <div class="rounded-lg border border-border bg-background p-3">
+              <div class="text-xs text-muted-foreground">Client count</div>
+              <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= @agency_rollup["client_count"] || 0 %></div>
+              <% if representation_percentile_int(client_count_percentile).present? %>
+                <div class="mt-1 text-[10px] leading-none font-mono tabular-nums <%= representation_percentile_color_class(client_count_percentile) %>">P<%= representation_percentile_int(client_count_percentile) %></div>
+              <% end %>
+            </div>
+            <div class="rounded-lg border border-border bg-background p-3">
+              <div class="text-xs text-muted-foreground">Cap 2025 total</div>
+              <div class="mt-1 text-lg font-semibold font-mono tabular-nums"><%= format_salary(@agency_rollup["cap_2025_total"]) %></div>
+              <% if representation_percentile_int(book_2025_percentile).present? %>
+                <div class="mt-1 text-[10px] leading-none font-mono tabular-nums <%= representation_percentile_color_class(book_2025_percentile) %>">P<%= representation_percentile_int(book_2025_percentile) %></div>
+              <% end %>
+            </div>
+          </div>
+        </section>
+
+        <section id="agent-roster" class="scroll-mt-24 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Agent roster</h2>
+            <div class="text-[10px] text-muted-foreground tabular-nums">
+              <span><%= agent_rows.count %> agents</span>
+              <span class="px-1 text-muted-foreground/50">·</span>
+              <span><%= active_agent_count %> active</span>
+              <% if inactive_agent_count.positive? %>
+                <span class="px-1 text-muted-foreground/50">·</span>
+                <span><%= inactive_agent_count %> inactive</span>
+              <% end %>
+              <span class="px-1 text-muted-foreground/50">·</span>
+              <span><%= format_salary(agency_cap_2025_total) %> cap</span>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Cohort slices</div>
+              <% if active_cohort_filters.any? %>
+                <div class="text-[10px] text-muted-foreground tabular-nums"><%= visible_cohort_definitions.size %> of <%= cohort_definitions.size %> slices · <%= filtered_client_rows.size %> matching clients</div>
+              <% else %>
+                <div class="text-[10px] text-muted-foreground tabular-nums"><%= cohort_definitions.size %> slices · <%= sorted_client_rows.size %> clients</div>
+              <% end %>
+            </div>
+
+            <div class="flex flex-wrap gap-1.5 text-[10px] uppercase tracking-wide">
+              <a
+                href="<%= agency_path(@agency_slug, anchor: 'agent-roster') %>"
+                class="rounded border px-2 py-0.5 transition-colors <%= active_cohort_filters.empty? ? 'border-primary bg-primary/10 text-primary font-semibold' : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/20' %>"
+              >All cohorts</a>
+
+              <% cohort_definitions.each do |definition| %>
+                <% cohort_rows = cohort_rows_by_key.fetch(definition[:key], []) %>
+                <% filter_active = active_cohort_filter_lookup[definition[:key]] %>
+                <% next_filters = filter_active ? (active_cohort_filters - [definition[:key]]) : (active_cohort_filters + [definition[:key]]) %>
+                <% cohort_href = agency_path(@agency_slug, cohorts: (next_filters.any? ? next_filters.join(",") : nil), anchor: "agent-roster") %>
+
+                <a
+                  href="<%= cohort_href %>"
+                  class="rounded border px-2 py-0.5 transition-colors <%= filter_active ? 'border-primary bg-primary/10 text-primary font-semibold' : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/20' %>"
+                >
+                  <span><%= definition[:title] %></span>
+                  <span class="ml-1 font-mono tabular-nums"><%= cohort_rows.size %></span>
+                </a>
+              <% end %>
+            </div>
+
+            <div class="space-y-4">
+              <% visible_cohort_definitions.each do |cohort| %>
+                <% cohort_rows = cohort_rows_by_key.fetch(cohort[:key], []) %>
+                <% cohort_cap_total = cohort_rows.sum { |row| row[:cap_2025].to_f } %>
+                <% cohort_salary_total = cohort_rows.sum { |row| row[:total_salary_from_2025].to_f } %>
+
+                <article id="<%= cohort[:id] %>" class="rounded-lg border border-border overflow-hidden">
+                  <header class="px-3 py-2 border-b border-border/60 bg-muted/20">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h3 class="text-[11px] font-semibold uppercase tracking-wide text-foreground"><%= cohort[:title] %></h3>
+                        <p class="text-[10px] text-muted-foreground/80"><%= cohort[:subtitle] %></p>
+                      </div>
+                      <div class="text-right tabular-nums">
+                        <div class="text-xs font-semibold"><%= cohort_rows.size %> client<%= cohort_rows.size == 1 ? "" : "s" %></div>
+                        <div class="text-[10px] text-muted-foreground">
+                          <span class="font-mono"><%= cohort_cap_total.positive? ? format_salary(cohort_cap_total) : "—" %></span>
+                          ·
+                          <span class="font-mono"><%= cohort_salary_total.positive? ? format_salary(cohort_salary_total) : "—" %> total</span>
+                        </div>
+                      </div>
+                    </div>
+                  </header>
+
+                  <% if cohort_rows.any? %>
+                    <div class="divide-y divide-border/50">
+                      <% cohort_rows.each do |row| %>
+                        <div class="group transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                          <div class="flex items-center gap-2 px-3 py-1.5 text-xs">
+                            <div class="min-w-0 flex-[1.4]">
+                              <div class="entity-cell-two-line">
+                                <div class="entity-cell-primary">
+                                  <a href="<%= player_href(row[:player_id]) %>" class="font-medium truncate hover:underline"><%= row[:player_name] %></a>
+                                </div>
+                                <div class="entity-cell-secondary min-w-0 flex items-center gap-1 truncate">
+                                  <% if row[:agent_id].present? %>
+                                    <a href="<%= agent_href(row[:agent_id]) %>" class="truncate hover:underline"><%= row[:agent_name].presence || "Unknown agent" %></a>
+                                  <% else %>
+                                    <span class="truncate"><%= row[:agent_name].presence || "Unknown agent" %></span>
+                                  <% end %>
+                                  <span class="text-muted-foreground/50">·</span>
+                                  <% if row[:team_code].present? %>
+                                    <a href="<%= team_href(team_code: row[:team_code], team_id: row[:team_id]) %>" class="truncate hover:underline"><%= row[:team_code] %></a>
+                                  <% else %>
+                                    <span>—</span>
+                                  <% end %>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div class="w-24 shrink-0">
+                              <div class="entity-cell-two-line">
+                                <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= row[:cap_2025].positive? ? format_salary(row[:cap_2025]) : "—" %></div>
+                                <div class="entity-cell-secondary justify-end">Cap '25</div>
+                              </div>
+                            </div>
+
+                            <div class="w-28 shrink-0">
+                              <div class="entity-cell-two-line">
+                                <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= row[:total_salary_from_2025].positive? ? format_salary(row[:total_salary_from_2025]) : "—" %></div>
+                                <div class="entity-cell-secondary justify-end">Total from '25</div>
+                              </div>
+                            </div>
+
+                            <div class="w-24 shrink-0">
+                              <div class="entity-cell-two-line">
+                                <div class="entity-cell-primary justify-end text-[10px] tabular-nums <%= row[:decision_classes] %>"><%= row[:decision_label] %></div>
+                                <div class="entity-cell-secondary justify-end">Next decision</div>
+                              </div>
+                            </div>
+
+                            <div class="min-w-0 flex-1 flex justify-end">
+                              <% if row[:chips].any? %>
+                                <div class="flex flex-wrap justify-end gap-1">
+                                  <% row[:chips].each do |chip| %>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide leading-none <%= chip[:classes] %>"><%= chip[:label] %></span>
+                                  <% end %>
+                                </div>
+                              <% else %>
+                                <span class="text-[10px] text-muted-foreground/50">No active flags</span>
+                              <% end %>
+                            </div>
+                          </div>
+                        </div>
+                      <% end %>
+                    </div>
+                  <% else %>
+                    <div class="px-3 py-3 text-[11px] text-muted-foreground italic">No clients currently in this cohort.</div>
+                  <% end %>
+                </article>
+              <% end %>
+            </div>
+          </div>
+
+          <% if agent_rows.empty? %>
+            <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No agents found.</div>
+          <% else %>
+            <div class="rounded-lg border border-border overflow-hidden">
+              <div class="bg-muted/20 border-b border-border/60">
+                <div class="flex items-center px-3 h-7 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
+                  <div class="min-w-0 flex-[1.4]">Agent roster lanes</div>
+                  <div class="w-16 shrink-0 text-right font-mono tabular-nums">Clients</div>
+                  <div class="w-24 shrink-0 text-right font-mono tabular-nums">Cap '25</div>
+                  <div class="w-28 shrink-0 text-right font-mono tabular-nums">Total from '25</div>
+                </div>
+              </div>
+
+              <div class="divide-y divide-border/50">
+                <% agent_rows.each do |row| %>
+                  <div class="group transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                    <div class="flex items-center gap-2 px-3 py-1.5 text-xs">
+                      <div class="min-w-0 flex-[1.4]">
+                        <div class="entity-cell-two-line">
+                          <div class="entity-cell-primary">
+                            <a href="<%= agent_href(row[:agent_id]) %>" class="font-medium truncate hover:underline"><%= row[:full_name] %></a>
+                          </div>
+                          <div class="entity-cell-secondary">
+                            agent_id: <span class="font-mono tabular-nums"><%= row[:agent_id] %></span>
+                            <span class="ml-1 entity-chip <%= row[:is_active] ? 'entity-chip--success' : 'entity-chip--muted' %>"><%= row[:is_active] ? 'active' : 'inactive' %></span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="w-16 shrink-0">
+                        <div class="entity-cell-two-line">
+                          <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= row[:client_count] %></div>
+                          <div class="entity-cell-secondary justify-end"><%= row[:cap_share_pct] ? "#{number_with_precision(row[:cap_share_pct], precision: 1, strip_insignificant_zeros: true)}% cap" : "—" %></div>
+                        </div>
+                      </div>
+
+                      <div class="w-24 shrink-0">
+                        <div class="entity-cell-two-line">
+                          <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(row[:cap_2025_total]) %></div>
+                          <div class="entity-cell-secondary justify-end">Book '25</div>
+                        </div>
+                      </div>
+
+                      <div class="w-28 shrink-0">
+                        <div class="entity-cell-two-line">
+                          <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(row[:total_salary_from_2025]) %></div>
+                          <div class="entity-cell-secondary justify-end">Commitments</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </section>
+
+        <section id="team-distribution" class="scroll-mt-24 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Team distribution</h2>
+            <div class="text-[10px] text-muted-foreground tabular-nums">
+              <span><%= team_rows.size %> teams</span>
+              <span class="px-1 text-muted-foreground/50">·</span>
+              <span><%= represented_client_total %> represented clients</span>
+              <span class="px-1 text-muted-foreground/50">·</span>
+              <span><%= format_salary(represented_cap_total) %> cap in scope</span>
+            </div>
+          </div>
+
+          <% if team_rows.empty? %>
+            <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">No team distribution data.</div>
+          <% else %>
+            <div class="rounded-lg border border-border overflow-hidden">
+              <div class="bg-muted/20 border-b border-border/60">
+                <div class="flex items-center px-3 h-7 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
+                  <div class="min-w-0 flex-1">Team distribution lanes</div>
+                  <div class="w-20 shrink-0 text-right font-mono tabular-nums">Clients</div>
+                  <div class="w-28 shrink-0 text-right font-mono tabular-nums">Cap '25</div>
+                </div>
+              </div>
+
+              <div class="divide-y divide-border/50">
+                <% team_rows.each do |row| %>
+                  <% width_pct = represented_cap_total.positive? ? ((row[:cap_2025_total] / represented_cap_total) * 100.0) : 0 %>
+                  <div class="group relative overflow-hidden transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                    <div class="absolute inset-y-0 left-0 bg-violet-100/35 dark:bg-violet-900/20" style="width: <%= number_with_precision(width_pct, precision: 2, strip_insignificant_zeros: true) %>%;"></div>
+
+                    <div class="relative flex items-center gap-2 px-3 py-1.5 text-xs">
+                      <div class="min-w-0 flex-1">
+                        <div class="entity-cell-two-line">
+                          <div class="entity-cell-primary">
+                            <% if row[:team_code].present? %>
+                              <a href="<%= team_href(team_code: row[:team_code], team_id: row[:team_id]) %>" class="font-medium truncate hover:underline"><%= row[:team_code] %></a>
+                            <% else %>
+                              <span class="text-muted-foreground">—</span>
+                            <% end %>
+                          </div>
+                          <div class="entity-cell-secondary truncate"><%= row[:team_name].presence || "Unknown team" %></div>
+                        </div>
+                      </div>
+
+                      <div class="w-20 shrink-0">
+                        <div class="entity-cell-two-line">
+                          <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= row[:client_count] %></div>
+                          <div class="entity-cell-secondary justify-end"><%= row[:client_share_pct] ? "#{number_with_precision(row[:client_share_pct], precision: 1, strip_insignificant_zeros: true)}% clients" : "—" %></div>
+                        </div>
+                      </div>
+
+                      <div class="w-28 shrink-0">
+                        <div class="entity-cell-two-line">
+                          <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(row[:cap_2025_total]) %></div>
+                          <div class="entity-cell-secondary justify-end"><%= row[:cap_share_pct] ? "#{number_with_precision(row[:cap_share_pct], precision: 1, strip_insignificant_zeros: true)}% agency cap" : "—" %></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </section>
+
+        <section id="historical" class="scroll-mt-24 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Historical footprint</h2>
+            <% if active_cohort_filters.any? %>
+              <div class="flex items-center gap-1.5 text-[10px] uppercase tracking-wide">
+                <span class="entity-chip entity-chip--accent">Slice context: <%= active_cohort_filters.map { |key| key.humanize }.join(" + ") %></span>
+                <a href="<%= agency_path(@agency_slug, anchor: 'historical') %>" class="entity-chip entity-chip--muted hover:underline">Show all</a>
+              </div>
+            <% end %>
+          </div>
+
+          <article class="rounded-lg border border-border overflow-hidden">
+            <header class="px-3 py-2 border-b border-border/60 bg-muted/20">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 class="text-[11px] font-semibold uppercase tracking-wide">Book by season</h3>
+                  <p class="text-[10px] text-muted-foreground/80">
+                    <% if active_cohort_filters.any? %>
+                      Cohort-scoped cap, tax, and apron exposure.
+                    <% else %>
+                      Year-over-year cap, tax, and apron exposure.
+                    <% end %>
+                  </p>
+                </div>
+                <div class="text-[10px] text-muted-foreground tabular-nums">
+                  <span><%= historical_book_rows.size %> seasons</span>
+                  <% if historical_book_rows.any? %>
+                    <span class="px-1 text-muted-foreground/50">·</span>
+                    <span><%= format_year_label(historical_book_rows.first[:salary_year]) %> → <%= format_year_label(historical_book_rows.last[:salary_year]) %></span>
+                  <% end %>
+                </div>
+              </div>
+            </header>
+
+            <% if historical_book_rows.empty? %>
+              <div class="p-4 text-sm text-muted-foreground italic">No yearly warehouse rows in this slice.</div>
+            <% else %>
+              <div class="divide-y divide-border/50">
+                <% historical_book_rows.each do |row| %>
+                  <% bar_width_pct = (row[:cap_total] / max_historical_cap_total) * 100.0 %>
+                  <div class="group relative overflow-hidden transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                    <div class="absolute inset-y-0 left-0 bg-violet-100/35 dark:bg-violet-900/20" style="width: <%= number_with_precision(bar_width_pct, precision: 2, strip_insignificant_zeros: true) %>%;"></div>
+
+                    <div class="relative flex items-center gap-2 px-3 py-1.5 text-xs">
+                      <div class="min-w-0 flex-1">
+                        <div class="entity-cell-two-line">
+                          <div class="entity-cell-primary font-medium">Season <%= format_year_label(row[:salary_year]) %></div>
+                          <div class="entity-cell-secondary"><span class="font-mono tabular-nums"><%= row[:player_count] %></span> players tracked</div>
+                        </div>
+                      </div>
+
+                      <div class="w-24 shrink-0">
+                        <div class="entity-cell-two-line">
+                          <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(row[:cap_total]) %></div>
+                          <div class="entity-cell-secondary justify-end">Cap</div>
+                        </div>
+                      </div>
+
+                      <div class="w-24 shrink-0">
+                        <div class="entity-cell-two-line">
+                          <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(row[:tax_total]) %></div>
+                          <div class="entity-cell-secondary justify-end">Tax</div>
+                        </div>
+                      </div>
+
+                      <div class="w-24 shrink-0">
+                        <div class="entity-cell-two-line">
+                          <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(row[:apron_total]) %></div>
+                          <div class="entity-cell-secondary justify-end">Apron</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </article>
+
+          <article class="rounded-lg border border-border overflow-hidden">
+            <header class="px-3 py-2 border-b border-border/60 bg-muted/20">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 class="text-[11px] font-semibold uppercase tracking-wide"><%= active_cohort_filters.any? ? "Slice clients by cap (2025)" : "Top clients by cap (2025)" %></h3>
+                  <p class="text-[10px] text-muted-foreground/80">Direct pivots across player, agent, and team context.</p>
+                </div>
+                <div class="text-[10px] text-muted-foreground tabular-nums">
+                  <span><%= historical_top_client_rows.size %> clients</span>
+                  <span class="px-1 text-muted-foreground/50">·</span>
+                  <span><%= format_salary(historical_top_client_cap_total) %> cap</span>
+                </div>
+              </div>
+            </header>
+
+            <% if historical_top_client_rows.empty? %>
+              <div class="p-4 text-sm text-muted-foreground italic">No clients found in this slice.</div>
+            <% else %>
+              <div class="divide-y divide-border/50">
+                <% historical_top_client_rows.each do |row| %>
+                  <div class="group transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                    <div class="flex items-center gap-2 px-3 py-1.5 text-xs">
+                      <div class="min-w-0 flex-[1.4]">
+                        <div class="entity-cell-two-line">
+                          <div class="entity-cell-primary">
+                            <a href="<%= player_href(row[:player_id]) %>" class="font-medium truncate hover:underline"><%= row[:player_name] %></a>
+                          </div>
+                          <div class="entity-cell-secondary min-w-0 flex items-center gap-1 truncate">
+                            <% if row[:agent_id].present? %>
+                              <a href="<%= agent_href(row[:agent_id]) %>" class="truncate hover:underline"><%= row[:agent_name].presence || "Unknown agent" %></a>
+                            <% else %>
+                              <span class="truncate"><%= row[:agent_name].presence || "Unknown agent" %></span>
+                            <% end %>
+                            <span class="text-muted-foreground/50">·</span>
+                            <% if row[:team_code].present? %>
+                              <a href="<%= team_href(team_code: row[:team_code], team_id: row[:team_id]) %>" class="truncate hover:underline"><%= row[:team_code] %></a>
+                            <% else %>
+                              <span>—</span>
+                            <% end %>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="w-24 shrink-0">
+                        <div class="entity-cell-two-line">
+                          <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(row[:cap_2025]) %></div>
+                          <div class="entity-cell-secondary justify-end">Cap '25</div>
+                        </div>
+                      </div>
+
+                      <div class="w-28 shrink-0">
+                        <div class="entity-cell-two-line">
+                          <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= format_salary(row[:total_salary_from_2025]) %></div>
+                          <div class="entity-cell-secondary justify-end">Total from '25</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </article>
+        </section>
+      </div>
+    </div>
+
+    <%= render partial: "shared/known_slugs", locals: { entity_type: "agency", entity_id: @agency_id, path_prefix: "agencies" } %>
+  </main>
+</div>

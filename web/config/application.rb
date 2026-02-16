@@ -48,6 +48,12 @@ module Web
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
 
+    # Ensure custom app directories autoload/eager-load in all environments.
+    config.autoload_paths << Rails.root.join("app/queries")
+    config.autoload_paths << Rails.root.join("app/services")
+    config.eager_load_paths << Rails.root.join("app/queries")
+    config.eager_load_paths << Rails.root.join("app/services")
+
     # Don't generate system test files.
     config.generators.system_tests = nil
   end

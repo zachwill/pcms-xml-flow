@@ -1,0 +1,146 @@
+<% capacity = @two_way_capacity_row || {} %>
+<% watchlist_rows = Array(@two_way_watchlist_rows) %>
+<% team_code = @team&.fetch("team_code", nil).to_s %>
+<% two_way_tool_href = team_code.present? ? "/two-way-utility?team=#{team_code}" : "/two-way-utility" %>
+
+<% remaining_chip = lambda do |value|
+  remaining = value.to_i
+  return ["No limit data", "entity-chip entity-chip--muted"] if value.nil?
+  return ["Urgent", "entity-chip entity-chip--danger"] if remaining <= 2
+  return ["Watch", "entity-chip entity-chip--warning"] if remaining <= 5
+
+  ["Buffer", "entity-chip entity-chip--success"]
+end %>
+
+<section id="two-way" class="space-y-3">
+  <h2 class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Two-way capacity</h2>
+
+  <details class="rounded-lg border border-border bg-background p-3" open>
+    <summary class="cursor-pointer text-sm font-medium">
+      Capacity control lanes
+      <span class="ml-2 text-xs text-muted-foreground">(<%= watchlist_rows.size %> player watchlist)</span>
+    </summary>
+
+    <div class="mt-3 space-y-4">
+      <div class="space-y-2">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Capacity posture lane</div>
+
+        <article class="rounded-lg border border-border px-3 py-2">
+          <div class="flex flex-wrap items-start gap-3">
+            <div class="w-44 shrink-0">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary">Two-way posture</div>
+                <div class="entity-cell-secondary">
+                  <a href="#activity" class="hover:underline">See transaction activity</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= capacity.fetch("current_contract_count", "—") %></div>
+                <div class="entity-cell-secondary justify-end">Current contracts</div>
+              </div>
+
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= capacity.fetch("open_standard_slots", "—") %></div>
+                <div class="entity-cell-secondary justify-end">Open standard slots</div>
+              </div>
+
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= capacity.fetch("games_remaining", "—") %></div>
+                <div class="entity-cell-secondary justify-end">League games remaining</div>
+              </div>
+
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= capacity.fetch("under_15_games_count", "—") %></div>
+                <div class="entity-cell-secondary justify-end">Under-15 count</div>
+              </div>
+
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= capacity.fetch("under_15_games_remaining", "—") %></div>
+                <div class="entity-cell-secondary justify-end">Under-15 remaining</div>
+              </div>
+
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= capacity.fetch("context_games_remaining", "—") %></div>
+                <div class="entity-cell-secondary justify-end">Context runway</div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="space-y-2">
+        <div class="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-wide text-muted-foreground/80">
+          <span>Watchlist usage → remaining lanes</span>
+          <a href="<%= two_way_tool_href %>" class="normal-case tracking-normal hover:underline">Open Two-Way Utility</a>
+        </div>
+
+        <% if watchlist_rows.empty? %>
+          <div class="p-3 rounded border border-border/60 text-sm text-muted-foreground italic">No two-way game utility rows found for this team.</div>
+        <% else %>
+          <div class="rounded-lg border border-border divide-y divide-border/60">
+            <% watchlist_rows.each do |r| %>
+              <% player_name = r["player_name"].presence || "—" %>
+              <% urgency_label, urgency_class = remaining_chip.call(r["remaining_games"]) %>
+
+              <article class="group px-3 py-2 transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                <div class="flex flex-wrap items-start gap-3">
+                  <div class="w-44 shrink-0">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary">
+                        <% if r["player_id"].present? %>
+                          <a href="<%= player_href(r['player_id']) %>" class="hover:underline truncate"><%= player_name %></a>
+                        <% else %>
+                          <span class="truncate text-muted-foreground/70"><%= player_name %></span>
+                        <% end %>
+                      </div>
+                      <div class="entity-cell-secondary font-mono tabular-nums">
+                        Latest <%= format_plain_date(r["game_date_est"]) %>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="min-w-0 flex-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= r["games_on_active_list"].presence || "—" %></div>
+                      <div class="entity-cell-secondary justify-end">Games used</div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= r["active_list_games_limit"].presence || "—" %></div>
+                      <div class="entity-cell-secondary justify-end">Usage limit</div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary justify-end gap-1.5">
+                        <span class="font-mono tabular-nums"><%= r["remaining_games"].presence || "—" %></span>
+                        <span class="<%= urgency_class %>"><%= urgency_label %></span>
+                      </div>
+                      <div class="entity-cell-secondary justify-end">Remaining runway</div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary justify-end font-mono tabular-nums"><%= r["standard_nba_contracts_on_team"].presence || "—" %></div>
+                      <div class="entity-cell-secondary justify-end">Std contracts on team</div>
+                    </div>
+
+                    <div class="entity-cell-two-line">
+                      <div class="entity-cell-primary gap-1.5">
+                        <a href="<%= two_way_tool_href %>" class="entity-chip entity-chip--accent hover:underline">Two-Way Utility</a>
+                      </div>
+                      <div class="entity-cell-secondary">
+                        <a href="#apron-provenance" class="hover:underline">Check apron constraints</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </details>
+</section>

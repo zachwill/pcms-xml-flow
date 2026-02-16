@@ -1,0 +1,220 @@
+<% content_for :title, "Team Summary" %>
+
+<%
+  year_options = @available_years.presence || [@selected_year]
+  season_first_column = year_options.first(4)
+  season_second_column = year_options.drop(4)
+  pressure_options = [["all", "All teams"], ["over_tax", "Over Tax"], ["over_apron1", "Over Apron 1"], ["over_apron2", "Over Apron 2"]]
+
+  sort_metric = if @sort.start_with?("tax_overage")
+    "tax_overage"
+  elsif @sort == "team_asc"
+    "team"
+  else
+    "cap_space"
+  end
+
+  sort_ascending = @sort.end_with?("_asc") && @sort != "team_asc"
+  conference_east_checked = @conference != "Western"
+  conference_west_checked = @conference != "Eastern"
+
+  state_query_expr = "'year=' + encodeURIComponent($tsyear) +
+    '&conference=' + encodeURIComponent(($tsconferenceeast && $tsconferencewest) ? 'all' : ($tsconferenceeast ? 'Eastern' : ($tsconferencewest ? 'Western' : 'all'))) +
+    '&pressure=' + encodeURIComponent($tspressure) +
+    '&sort=' + encodeURIComponent(($tssortmetric === 'team' ? 'team_asc' : ($tssortmetric === 'tax_overage' ? ($tssortasc ? 'tax_overage_asc' : 'tax_overage_desc') : ($tssortasc ? 'cap_space_asc' : 'cap_space_desc')))) +
+    '&selected=' + encodeURIComponent($selectedteam || '') +
+    '&compare_a=' + encodeURIComponent($comparea || '') +
+    '&compare_b=' + encodeURIComponent($compareb || '')"
+
+  refresh_expr = "@get('#{team_summary_sse_refresh_path}?' + (#{state_query_expr}))"
+  submit_refresh_expr = "evt.preventDefault(); #{refresh_expr}"
+  sync_url_expr = "const nextUrl = '#{team_summary_path}?' + (#{state_query_expr}); if ((window.location.pathname + window.location.search) !== nextUrl) { window.history.replaceState({}, '', nextUrl); }"
+
+  signals_literal = "{ tsyear: #{@selected_year.to_json}, tspressure: #{@pressure.to_json}, tssortmetric: #{sort_metric.to_json}, tssortasc: #{sort_ascending.to_json}, tsconferenceeast: #{conference_east_checked.to_json}, tsconferencewest: #{conference_west_checked.to_json}, selectedteam: #{@selected_team_code.to_s.to_json}, comparea: #{@compare_a_code.to_s.to_json}, compareb: #{@compare_b_code.to_s.to_json} }"
+%>
+
+<div
+  id="team-summary"
+  class="h-screen w-full flex flex-col overflow-hidden bg-background"
+  style="height: 100dvh;"
+  data-signals="<%= signals_literal %>"
+  data-effect="<%= sync_url_expr %>"
+>
+  <div id="flash"></div>
+
+  <header id="commandbar" class="shrink-0 z-40 border-b border-border bg-background h-[130px] px-4 pt-3 flex items-start gap-4 select-none">
+    <form
+      method="get"
+      action="<%= team_summary_path %>"
+      class="flex items-start gap-3 min-w-0 flex-1"
+      role="group"
+      aria-label="Team Summary controls"
+      data-on:submit="<%= submit_refresh_expr %>"
+    >
+      <input type="hidden" name="selected" value="<%= @selected_team_code.to_s %>" data-bind="selectedteam" />
+      <input type="hidden" name="compare_a" value="<%= @compare_a_code.to_s %>" data-bind="comparea" />
+      <input type="hidden" name="compare_b" value="<%= @compare_b_code.to_s %>" data-bind="compareb" />
+
+      <div class="min-w-[9rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Sort</div>
+        <select
+          name="sort_metric"
+          class="h-7 w-full rounded border border-border bg-muted/50 px-2 text-xs"
+          data-bind="tssortmetric"
+          data-on:change="if (el.value === 'team') { $tssortasc = false; } el.form.requestSubmit();"
+        >
+          <option value="cap_space" <%= "selected" if sort_metric == "cap_space" %>>Cap Space</option>
+          <option value="tax_overage" <%= "selected" if sort_metric == "tax_overage" %>>Tax Overage</option>
+          <option value="team" <%= "selected" if sort_metric == "team" %>>Team (A→Z)</option>
+        </select>
+
+        <label
+          class="flex items-center gap-1.5 cursor-pointer select-none"
+          data-class="{ 'opacity-50': $tssortmetric === 'team' }"
+        >
+          <input type="hidden" name="sort_asc" value="0" />
+          <input
+            type="checkbox"
+            name="sort_asc"
+            value="1"
+            class="size-3.5 accent-primary"
+            <%= "checked" if sort_ascending %>
+            data-bind="tssortasc"
+            data-on:change="if ($tssortmetric === 'team') { $tssortasc = false; return; } el.form.requestSubmit();"
+          />
+          <span class="text-[11px] leading-none text-foreground/80">Ascending</span>
+        </label>
+      </div>
+
+      <div class="h-20 w-px bg-border self-center shrink-0 mx-1"></div>
+
+      <div class="shrink-0 w-fit space-y-1" role="radiogroup" aria-label="Season">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Season</div>
+        <div class="flex items-start gap-6">
+          <div class="space-y-1">
+            <% season_first_column.each do |candidate_year| %>
+              <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="radio"
+                  name="year"
+                  value="<%= candidate_year %>"
+                  class="size-3.5 accent-primary"
+                  <%= "checked" if candidate_year == @selected_year %>
+                  data-bind="tsyear"
+                  data-on:change="if (el.checked) { el.form.requestSubmit(); }"
+                />
+                <span class="text-[11px] leading-none text-foreground/80 tabular-nums"><%= format_year_label(candidate_year) %></span>
+              </label>
+            <% end %>
+          </div>
+
+          <div class="space-y-1">
+            <% season_second_column.each do |candidate_year| %>
+              <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="radio"
+                  name="year"
+                  value="<%= candidate_year %>"
+                  class="size-3.5 accent-primary"
+                  <%= "checked" if candidate_year == @selected_year %>
+                  data-bind="tsyear"
+                  data-on:change="if (el.checked) { el.form.requestSubmit(); }"
+                />
+                <span class="text-[11px] leading-none text-foreground/80 tabular-nums"><%= format_year_label(candidate_year) %></span>
+              </label>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <div class="h-20 w-px bg-border self-center shrink-0 mx-1"></div>
+
+      <div class="flex items-start gap-0">
+        <div class="w-[7.25rem] space-y-1" role="radiogroup" aria-label="Pressure">
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Pressure</div>
+          <div class="space-y-1">
+            <% pressure_options.each do |value, label| %>
+              <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="radio"
+                  name="pressure"
+                  value="<%= value %>"
+                  class="size-3.5 accent-primary"
+                  <%= "checked" if @pressure == value %>
+                  data-bind="tspressure"
+                  data-on:change="if (el.checked) { el.form.requestSubmit(); }"
+                />
+                <span class="text-[11px] leading-none text-foreground/80"><%= label %></span>
+              </label>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="w-[6rem] space-y-1">
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Conference</div>
+          <div class="space-y-1">
+            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                name="conference_east"
+                value="1"
+                class="size-3.5 accent-primary"
+                <%= "checked" if conference_east_checked %>
+                data-bind="tsconferenceeast"
+                data-on:change="el.form.requestSubmit()"
+              />
+              <span class="text-[11px] leading-none text-foreground/80">East</span>
+            </label>
+
+            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                name="conference_west"
+                value="1"
+                class="size-3.5 accent-primary"
+                <%= "checked" if conference_west_checked %>
+                data-bind="tsconferencewest"
+                data-on:change="el.form.requestSubmit()"
+              />
+              <span class="text-[11px] leading-none text-foreground/80">West</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+    </form>
+
+    <div class="h-20 w-px bg-border self-center ml-auto mr-1 shrink-0"></div>
+    <%= render partial: "shared/commandbar_navigation", locals: { active_destination: "team_summary" } %>
+  </header>
+
+  <div id="viewport" class="flex flex-1 overflow-hidden relative">
+    <main id="maincanvas" class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-background relative overscroll-y-contain scroll-touch isolate pb-8">
+      <%= render partial: "team_summary/workspace_main" %>
+    </main>
+
+    <aside
+      id="rightpanel"
+      class="w-[30%] min-w-[320px] max-w-[480px] border-l border-border bg-background overflow-hidden relative"
+    >
+      <div
+        id="rightpanel-base-layer"
+        class="absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-contain scroll-touch pt-2 px-4 pb-4"
+      >
+        <%= render partial: "team_summary/rightpanel_base" %>
+      </div>
+
+      <% if @selected_row.present? %>
+        <%= render partial: "team_summary/rightpanel_overlay_team" %>
+      <% else %>
+        <%= render partial: "team_summary/rightpanel_clear" %>
+      <% end %>
+    </aside>
+  </div>
+</div>
+
+<% content_for :head_scripts do %>
+  <script type="module">
+    import "team_summary";
+  </script>
+<% end %>

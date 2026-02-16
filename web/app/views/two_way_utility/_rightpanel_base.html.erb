@@ -1,0 +1,157 @@
+<%
+  summary = @sidebar_summary || {}
+  quick_rows = Array(summary[:quick_rows])
+  team_records_by_code = @team_records_by_code || {}
+
+  critical_rows = quick_rows.select { |row| row["risk_tier"].to_s == "critical" }
+  warning_rows = quick_rows.select { |row| row["risk_tier"].to_s == "warning" }
+  estimate_rows = quick_rows.select { |row| row["risk_tier"].to_s == "estimate" }
+
+  team_pressure_rows = Array(@rows_by_team).map do |team_code, rows|
+    rows = Array(rows)
+    meta = @team_meta_by_code[team_code] || {}
+
+    {
+      team_code:,
+      team_name: (meta["team_name"] || team_code),
+      team_logo_url: team_logo_url(meta["team_id"]),
+      record: team_records_by_code[team_code].presence || "—",
+      total: rows.size,
+      critical: rows.count { |row| row["risk_tier"].to_s == "critical" },
+      warning: rows.count { |row| row["risk_tier"].to_s == "warning" },
+      estimate: rows.count { |row| row["risk_tier"].to_s == "estimate" }
+    }
+  end
+
+  team_pressure_rows = team_pressure_rows.sort_by do |row|
+    [-row[:critical], -row[:warning], -row[:total], row[:team_code].to_s]
+  end.first(10)
+%>
+
+<div id="rightpanel-base" class="space-y-4">
+  <div class="rounded-lg border border-border bg-background p-3 space-y-3">
+    <div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Workspace snapshot</div>
+      <div class="text-sm font-semibold text-foreground">
+        Two-Way Utility
+        <span class="text-muted-foreground font-medium">· <%= summary[:row_count].to_i %> rows</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-1.5">
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Critical", value: summary[:critical_count].to_i.to_s, class_name: "w-full", variant: (summary[:critical_count].to_i.positive? ? "negative" : "muted") } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "≤20 Left", value: summary[:low_remaining_count].to_i.to_s, class_name: "w-full", variant: (summary[:low_remaining_count].to_i.positive? ? "negative" : "muted") } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Warning", value: summary[:warning_count].to_i.to_s, class_name: "w-full", variant: (summary[:warning_count].to_i.positive? ? "default" : "muted") } %>
+      <%= render partial: "salary_book/kpi_cell", locals: { label: "Est. Limit", value: summary[:estimate_count].to_i.to_s, class_name: "w-full", variant: (summary[:estimate_count].to_i.positive? ? "default" : "muted") } %>
+    </div>
+
+    <% if Array(summary[:active_filters]).any? %>
+      <div class="pt-1 flex flex-wrap gap-1">
+        <% Array(summary[:active_filters]).each do |label| %>
+          <span class="entity-chip entity-chip--muted"><%= label %></span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="rounded-lg border border-border bg-background">
+    <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">Team pressure</div>
+
+    <% if team_pressure_rows.any? %>
+      <div class="divide-y divide-border">
+        <% team_pressure_rows.each do |row| %>
+          <div class="px-3 py-2 text-xs">
+            <div class="flex items-center justify-between gap-2">
+              <span class="min-w-0 flex items-center gap-2">
+                <span class="w-5 h-5 rounded border border-border bg-background flex items-center justify-center overflow-hidden shrink-0">
+                  <% if row[:team_logo_url].present? %>
+                    <img src="<%= row[:team_logo_url] %>" alt="" class="w-full h-full object-contain" loading="lazy" decoding="async" />
+                  <% else %>
+                    <span class="text-[9px] font-semibold text-muted-foreground"><%= row[:team_code] %></span>
+                  <% end %>
+                </span>
+                <span class="font-medium text-foreground truncate"><%= row[:team_name] %></span>
+              </span>
+              <span class="font-mono tabular-nums text-muted-foreground"><%= row[:record] %></span>
+            </div>
+            <div class="mt-1 flex items-center gap-1.5 text-[10px] tabular-nums text-muted-foreground">
+              <span class="entity-chip entity-chip--danger"><%= row[:critical] %> critical</span>
+              <span class="entity-chip entity-chip--warning"><%= row[:warning] %> warning</span>
+              <span class="entity-chip entity-chip--muted"><%= row[:total] %> rows</span>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="p-3 text-sm text-muted-foreground">No teams in scope.</div>
+    <% end %>
+  </div>
+
+  <div class="rounded-lg border border-border bg-background">
+    <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">Quick risk queue</div>
+
+    <% if quick_rows.any? %>
+      <div class="divide-y divide-border">
+        <% quick_rows.each do |row| %>
+          <% row_id = row["player_id"].to_s %>
+          <% team_code = row["team_code"].to_s.upcase %>
+          <% team_meta = @team_meta_by_code[team_code] || {} %>
+          <% team_logo = team_logo_url(team_meta["team_id"]) %>
+          <% open_expr = "$overlaytype = 'player'; $overlayid = '#{row_id}'; @get('/two-way-utility/sidebar/#{row_id}?#{@state_query}')" %>
+          <% risk_tier = row["risk_tier"].to_s %>
+          <% risk_chip_class = case risk_tier
+             when "critical" then "entity-chip entity-chip--danger"
+             when "warning" then "entity-chip entity-chip--warning"
+             when "estimate" then "entity-chip entity-chip--muted"
+             else "entity-chip entity-chip--muted"
+             end %>
+          <% risk_label = case risk_tier
+             when "critical" then "Critical"
+             when "warning" then "Warning"
+             when "estimate" then "Est."
+             else "Stable"
+             end %>
+
+          <button
+            type="button"
+            class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+            data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'player' && $overlayid === '<%= row_id %>' }"
+            data-on:click="<%= open_expr %>"
+          >
+            <div class="entity-cell-two-line">
+              <div class="entity-cell-primary gap-2">
+                <span class="min-w-0 flex items-center gap-1.5">
+                  <span class="w-4 h-4 rounded border border-border bg-background flex items-center justify-center overflow-hidden shrink-0">
+                    <% if team_logo.present? %>
+                      <img src="<%= team_logo %>" alt="" class="w-full h-full object-contain" loading="lazy" decoding="async" />
+                    <% else %>
+                      <span class="text-[8px] font-semibold text-muted-foreground"><%= team_code %></span>
+                    <% end %>
+                  </span>
+                  <span class="font-medium truncate"><%= row["player_name"] %></span>
+                </span>
+              </div>
+              <div class="entity-cell-secondary justify-between gap-2">
+                <span class="font-mono tabular-nums"><%= team_code %> · <%= row["remaining_active_list_games"].presence || "—" %> left</span>
+                <span class="<%= risk_chip_class %>"><%= risk_label %></span>
+              </div>
+            </div>
+          </button>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="p-4 text-sm text-muted-foreground">No at-risk two-way rows in the current lens.</div>
+    <% end %>
+  </div>
+
+  <% if critical_rows.any? || warning_rows.any? || estimate_rows.any? %>
+    <div class="rounded-lg border border-border bg-background p-3 space-y-2">
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Risk mix</div>
+      <div class="text-[11px] text-muted-foreground tabular-nums">
+        Critical <span class="font-medium text-foreground"><%= critical_rows.size %></span>
+        · Warning <span class="font-medium text-foreground"><%= warning_rows.size %></span>
+        · Estimate <span class="font-medium text-foreground"><%= estimate_rows.size %></span>
+      </div>
+    </div>
+  <% end %>
+</div>

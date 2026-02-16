@@ -1,0 +1,72 @@
+<% draft_assets ||= [] %>
+<% draft_loaded = local_assigns.fetch(:draft_loaded, true) %>
+<% year ||= SalaryBookHelper::SALARY_YEARS.first %>
+<% draft_start_year = local_assigns.fetch(:draft_start_year, year.to_i + 1).to_i %>
+<% grouped = draft_assets.group_by { |row| row["year"].to_i } %>
+<%
+  visible_years = grouped.keys.sort
+  draft_range_label =
+    if visible_years.any?
+      visible_years.length == 1 ? visible_years.first.to_s : "#{visible_years.first}–#{visible_years.last}"
+    else
+      "#{draft_start_year}+"
+    end
+%>
+
+<div id="sidebar-team-tab-draft" data-show="$sidebartab === 'draft'" class="border-t border-border pt-4 space-y-3">
+  <div class="flex items-center justify-between">
+    <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Draft Snapshot</div>
+    <div class="text-[10px] text-muted-foreground"><%= draft_range_label %></div>
+  </div>
+
+  <% unless draft_loaded %>
+    <div class="p-3 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">
+      Loading draft assets…
+    </div>
+  <% else %>
+    <% if draft_assets.empty? %>
+      <div class="p-3 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">
+        No draft asset rows for this team from <%= draft_start_year %> onward.
+      </div>
+    <% else %>
+      <% grouped.keys.sort.each do |draft_year| %>
+        <% rows = grouped[draft_year] || [] %>
+        <% frp_count = rows.count { |r| r["round"].to_i == 1 } %>
+        <% srp_count = rows.count { |r| r["round"].to_i == 2 } %>
+
+        <section class="rounded-lg border border-border/60 overflow-hidden">
+          <div class="px-3 py-2 bg-muted/20 border-b border-border/60 flex items-center justify-between">
+            <div class="tabular-nums text-xs font-medium"><%= draft_year %></div>
+            <div class="text-[10px] text-muted-foreground">
+              <%= rows.length %> rows · <%= frp_count %> FRP · <%= srp_count %> SRP
+            </div>
+          </div>
+
+          <div class="divide-y divide-border/50">
+            <% rows.each do |pick| %>
+              <button
+                type="button"
+                class="cursor-pointer w-full text-left px-3 py-2 hover:bg-muted/20 transition-colors duration-75"
+                data-on:click="evt.stopPropagation(); @get('<%= salary_book_sidebar_pick_path(team: team_code, year: pick['year'], round: pick['round']) %>&salary_year=<%= year %>')"
+                title="Open <%= pick['year'] %> round <%= pick['round'] %> detail"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0 space-y-0.5">
+                    <div class="text-xs font-medium">
+                      R<%= pick["round"] %> · <%= pick_label(pick) %>
+                    </div>
+                    <div class="text-[11px] text-muted-foreground leading-snug"><%= pick["description"].presence || pick_value(pick) %></div>
+                  </div>
+
+                  <div class="text-[10px] text-muted-foreground shrink-0">
+                    <%= pick_status(pick) %>
+                  </div>
+                </div>
+              </button>
+            <% end %>
+          </div>
+        </section>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>

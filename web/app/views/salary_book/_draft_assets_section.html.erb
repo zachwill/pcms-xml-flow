@@ -1,0 +1,147 @@
+<%# DraftAssetsRow — Tailwind port of the React prototype %>
+
+<% picks ||= [] %>
+<% salary_years ||= SalaryBookHelper::SALARY_YEARS %>
+<% salary_year = local_assigns.fetch(:salary_year, SalaryBookHelper::SALARY_YEARS.first).to_i %>
+<% return if picks.empty? %>
+
+<%# Draft year is calendar year (e.g., 2026 draft happens after the 25-26 season). %>
+<%# Salary Book columns are season-start years (e.g., 2025 => 25-26), so shift by -1. %>
+<% picks_by_season_year = picks.group_by { |p| p["year"].to_i - 1 } %>
+
+<%# Sort picks within each year (round asc, then origin team code) %>
+<% picks_by_season_year.each_value do |rows| %>
+  <% rows.sort_by! { |p| [p["round"].to_i, p["origin_team_code"].to_s] } %>
+<% end %>
+
+<% frozen_pick = ->(pick) { (pick["description"].to_s.downcase.include?("frozen")) } %>
+
+<div class="bg-muted/10 dark:bg-muted/5 border-b border-border/50">
+  <%# Season header row %>
+  <div class="h-8 flex items-center text-xs font-medium text-muted-foreground select-none cursor-default border-b border-border/30">
+    <div
+      class="w-52 shrink-0 pl-4 sticky left-0 z-[2] self-stretch bg-background relative
+             after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/30"
+    >
+      <div class="grid grid-cols-[40px_1fr] items-center h-full">
+        <div class="flex items-center justify-start">
+          <div class="w-7 h-7 rounded border border-border bg-background flex items-center justify-center text-muted-foreground">
+            <%= lucide_icon("file-text", class: "w-4 h-4", "aria-hidden": true) %>
+          </div>
+        </div>
+        <div class="pl-1 flex items-center gap-2 min-w-0">
+          <span class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Draft Assets</span>
+          <span class="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-muted text-muted-foreground text-[9px] font-medium">
+            <%= picks.length %>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="h-full flex shrink-0"
+      data-on:salarybook-setseason="if (!$seasonlocked) { const nextyear = String(evt.detail.year); if ($selectedseason !== nextyear) { $selectedseason = nextyear; } }"
+      data-on:mouseleave="if (!$seasonlocked && $selectedseason !== '') { $selectedseason = ''; }"
+      data-on:focusout="if (!$seasonlocked && evt.relatedTarget && !el.contains(evt.relatedTarget) && $selectedseason !== '') { $selectedseason = ''; }"
+    >
+      <div class="w-24 h-full shrink-0" data-show="$displayepm" style="display: none;"></div>
+
+      <% salary_years.each do |year| %>
+        <div
+          class="w-24 h-full shrink-0 flex items-center justify-center tabular-nums text-center transition-colors duration-100 cursor-pointer select-none"
+          data-on:mouseenter="el.dispatchEvent(new CustomEvent('salarybook-setseason', { detail: { year: '<%= year %>' }, bubbles: true }))"
+          data-on:focusin="el.dispatchEvent(new CustomEvent('salarybook-setseason', { detail: { year: '<%= year %>' }, bubbles: true }))"
+          data-on:click="const samecell = ($selectedseason === '<%= year %>'); if (samecell && $seasonlocked) { $seasonlocked = false; $selectedseason = ''; } else { $selectedseason = '<%= year %>'; $seasonlocked = true; }"
+          data-class="{ 'bg-yellow-50/70 dark:bg-yellow-900/25 text-foreground': $selectedseason === '<%= year %>' }"
+        ><%= format_year_label(year) %></div>
+      <% end %>
+    </div>
+
+    <div class="w-24 shrink-0"></div>
+    <div class="w-40 pr-4 shrink-0"></div>
+  </div>
+
+  <%# Picks content row %>
+  <div class="flex items-start text-xs py-2">
+    <%# Sticky label column %>
+    <div
+      class="w-52 shrink-0 pl-4 sticky left-0 z-[2] self-stretch bg-background relative
+             after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/30"
+    >
+    </div>
+
+    <%# EPM spacer + year columns %>
+    <div class="flex items-stretch">
+      <div class="w-24 shrink-0" data-show="$displayepm" style="display: none;"></div>
+
+      <% salary_years.each do |year| %>
+        <% year_picks = picks_by_season_year[year] || [] %>
+
+        <div
+          class="w-24 shrink-0 flex flex-col items-center gap-1"
+          data-class="{ 'bg-yellow-50/70 dark:bg-yellow-900/25': $selectedseason === '<%= year %>' }"
+        >
+          <% if year_picks.any? %>
+            <% year_picks.each do |pick| %>
+              <% is_frozen = frozen_pick.call(pick) %>
+              <% round = pick["round"].to_i %>
+
+              <% status = if is_frozen
+                "Frozen"
+              elsif pick["is_swap"]
+                "Swap"
+              elsif pick["is_conditional"] || pick["description"].to_s.downcase.include?("conditional")
+                "Conditional"
+              else
+                round == 1 ? "FRP" : "SRP"
+              end %>
+
+              <% label = if ["FRP", "SRP"].include?(status)
+                "#{pick['year'].to_i} #{status}"
+              else
+                status
+              end %>
+
+              <% value = pick_value(pick) %>
+              <% title = pick_title(pick) %>
+
+              <% card_class = if is_frozen
+                "bg-slate-950/90 border border-blue-500/40"
+              elsif round == 1
+                "bg-amber-200/80 dark:bg-amber-700/70"
+              else
+                "bg-slate-200/80 dark:bg-slate-700/70"
+              end %>
+
+              <% label_class = is_frozen ? "text-blue-200" : "" %>
+              <% value_class = is_frozen ? "text-blue-100" : "" %>
+
+              <button
+                type="button"
+                class="cursor-pointer rounded focus-visible:outline-none focus-visible:ring-0 focus-visible:border-foreground dark:focus-visible:border-foreground"
+                data-on:click="evt.stopPropagation(); @get('<%= salary_book_sidebar_pick_path(team: pick['team_code'], year: pick['year'], round: pick['round']) %>&salary_year=<%= salary_year %>')"
+              >
+                <%= render partial: "salary_book/kpi_cell", locals: {
+                  label:,
+                  value:,
+                  title:,
+                  class_name: card_class,
+                  label_class_name: "w-full truncate #{label_class}",
+                  value_class_name: "truncate #{value_class}"
+                } %>
+              </button>
+            <% end %>
+          <% else %>
+            <%= render partial: "salary_book/kpi_cell", locals: { value: "—", variant: "muted" } %>
+          <% end %>
+        </div>
+      <% end %>
+
+      <%# Total spacer column %>
+      <div class="w-24 shrink-0"></div>
+
+      <%# Agent spacer %>
+      <div class="w-40 pr-4 shrink-0"></div>
+    </div>
+  </div>
+</div>

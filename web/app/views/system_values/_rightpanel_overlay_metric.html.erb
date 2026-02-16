@@ -1,0 +1,131 @@
+<% payload = @overlay_payload || {} %>
+<% context_label = payload[:context_label].presence || payload[:bracket_label].presence %>
+<% selected_delta_class = case payload[:selected_delta_variant]
+when "positive"
+  "text-emerald-600 dark:text-emerald-400"
+when "negative"
+  "text-red-500"
+when "neutral"
+  "text-foreground"
+else
+  "text-muted-foreground"
+end %>
+
+<% focus_delta_class = case payload[:focus_delta_variant]
+when "positive"
+  "text-emerald-600 dark:text-emerald-400"
+when "negative"
+  "text-red-500"
+when "neutral"
+  "text-foreground"
+else
+  "text-muted-foreground"
+end %>
+
+<% rookie_detail_rows = Array(payload[:rookie_detail_rows]) %>
+<% tax_overlay = payload[:section].to_s == "tax" %>
+<% tax_metric_is_rate = payload[:metric].to_s.start_with?("tax_rate_") %>
+<% tax_metric_interpretation_line = if tax_metric_is_rate
+  "This metric is the per-$1 multiplier for dollars that land inside the active bracket."
+else
+  "This metric is the carry-forward subtotal from lower brackets before this step's incremental charge is applied."
+end %>
+
+<div id="rightpanel-overlay" class="h-full bg-background border-l border-border/70">
+  <div class="sticky top-0 z-20 h-10 px-4 flex items-center justify-between border-b border-border bg-background">
+    <button
+      type="button"
+      class="cursor-pointer text-xs text-muted-foreground hover:text-foreground hover:underline"
+      data-system-values-overlay-clear
+      data-on:click="$svmetricfinder=''; $svoverlaysection=''; $svoverlaymetric=''; $svoverlayyear=''; $svoverlaylower=''; $svoverlayupper=''; @get('<%= system_values_sidebar_clear_path %>')"
+    >Close</button>
+
+    <a class="text-xs text-muted-foreground hover:text-foreground hover:underline" href="<%= system_values_path(@state_params) %>">Open canonical URL</a>
+  </div>
+
+  <div class="px-4 py-4 space-y-4 overflow-y-auto h-[calc(100%-40px)]">
+    <div class="space-y-1">
+      <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80"><%= payload[:section_title] %></div>
+      <h2 class="text-base font-semibold text-foreground"><%= payload[:metric_label] %></h2>
+      <div class="text-[11px] text-muted-foreground/80 font-mono tabular-nums"><%= payload[:focus_year_label] %><% if context_label.present? %> · <%= context_label %><% end %></div>
+    </div>
+
+    <div class="rounded border border-border bg-muted/20 px-3 py-2 space-y-1.5 text-[11px]">
+      <div class="font-medium"><%= payload[:summary_line] %></div>
+      <div class="text-muted-foreground"><%= payload[:focus_line] %></div>
+    </div>
+
+    <% if tax_overlay %>
+      <div class="rounded border border-border bg-background px-3 py-2 space-y-1 text-[10px]">
+        <div class="uppercase tracking-wide font-semibold text-muted-foreground/80">Tax step interpretation</div>
+        <div class="text-muted-foreground">Brackets are incremental: only dollars inside the selected band use this step&apos;s rate.</div>
+        <div class="text-muted-foreground"><%= tax_metric_interpretation_line %></div>
+        <div class="font-mono tabular-nums text-muted-foreground/90">Tax due at this step = base charge + (amount in bracket × rate).</div>
+      </div>
+    <% end %>
+
+    <div class="grid grid-cols-2 gap-2 text-[11px]">
+      <div class="rounded border border-border bg-background px-2 py-1.5">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80"><%= payload[:selected_year_label] %></div>
+        <div class="font-semibold font-mono tabular-nums"><%= payload[:selected_value_label] %></div>
+        <div class="mt-0.5 font-mono tabular-nums <%= selected_delta_class %>">Δ <%= payload[:selected_delta_label] %></div>
+      </div>
+
+      <div class="rounded border border-border bg-background px-2 py-1.5">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80"><%= payload[:baseline_year_label] %></div>
+        <div class="font-semibold font-mono tabular-nums"><%= payload[:baseline_value_label] %></div>
+        <div class="mt-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">baseline</div>
+      </div>
+
+      <div class="rounded border border-border bg-background px-2 py-1.5 col-span-2">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Focused row (<%= payload[:focus_year_label] %>)</div>
+        <div class="font-semibold font-mono tabular-nums"><%= payload[:focus_value_label] %></div>
+        <div class="mt-0.5 font-mono tabular-nums <%= focus_delta_class %>">Δ <%= payload[:focus_delta_label] %> vs <%= payload[:baseline_year_label] %></div>
+      </div>
+    </div>
+
+    <% if rookie_detail_rows.any? %>
+      <div class="rounded border border-border bg-background px-3 py-2 space-y-2 text-[11px]">
+        <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">Pick scale detail</div>
+        <div class="space-y-1.5">
+          <% rookie_detail_rows.each do |row| %>
+            <% detail_delta_class = case row[:delta_variant]
+            when "positive"
+              "text-emerald-600 dark:text-emerald-400"
+            when "negative"
+              "text-red-500"
+            when "neutral"
+              "text-foreground"
+            else
+              "text-muted-foreground"
+            end %>
+            <% detail_active = row[:metric].to_s == payload[:metric].to_s %>
+
+            <div class="rounded border px-2 py-1.5 <%= detail_active ? 'border-amber-500/70 bg-amber-100/60 dark:border-amber-500/60 dark:bg-amber-900/25' : 'border-border/70 bg-muted/10' %>">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[10px] uppercase tracking-wide <%= detail_active ? 'text-foreground font-semibold' : 'text-muted-foreground/80' %>"><%= row[:label] %></span>
+                <span class="font-semibold font-mono tabular-nums"><%= row[:selected_value_label] %></span>
+              </div>
+              <div class="mt-0.5 flex items-center justify-between gap-2">
+                <span class="font-mono tabular-nums text-muted-foreground">Baseline <%= payload[:baseline_year_label] %>: <%= row[:baseline_value_label] %></span>
+                <span class="font-mono tabular-nums <%= detail_delta_class %>">Δ <%= row[:delta_label] %></span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="rounded border border-border bg-background px-3 py-2 space-y-1.5 text-[11px]">
+      <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">Provenance</div>
+      <div class="font-mono tabular-nums text-muted-foreground">Source table: <%= payload[:source_table] %></div>
+    </div>
+
+    <div class="rounded border border-border bg-background px-3 py-2 space-y-1.5 text-[11px]">
+      <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">Pivots</div>
+      <% Array(payload[:pivot_links]).each do |pivot| %>
+        <a class="block text-blue-600 dark:text-blue-400 hover:underline" href="<%= pivot[:href] %>"><%= pivot[:label] %></a>
+      <% end %>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,168 @@
+<%
+  summary = @sidebar_summary || {}
+  year = summary[:year].to_i
+  year = 2025 if year <= 0
+  year_label = format_year_label(year).split("-").first
+  top_rows = Array(summary[:top_rows])
+
+  pane_query_expr = "'q=' + encodeURIComponent($agentquery) +
+    '&kind=' + $entitykind +
+    '&active_only=' + ($activeonly ? '1' : '0') +
+    '&certified_only=' + ($certifiedonly ? '1' : '0') +
+    '&with_clients=' + ($withclients ? '1' : '0') +
+    '&with_book=' + ($withbook ? '1' : '0') +
+    '&with_restrictions=' + ($withrestrictions ? '1' : '0') +
+    '&with_expiring=' + ($withexpiring ? '1' : '0') +
+    '&year=' + $bookyear +
+    '&sort=' + $sortkey +
+    '&dir=' + $sortdir +
+    '&agency_scope=' + (($entitykind === 'agents' && $agencyscopeactive) ? '1' : '0') +
+    '&agency_scope_id=' + encodeURIComponent($entitykind === 'agents' ? $agencyscopeid : '')"
+
+  selected_overlay_query_expr = "'selected_type=' + encodeURIComponent($overlaytype) + '&selected_id=' + encodeURIComponent($overlayid)"
+  refresh_expr = "@get('/agents/sse/refresh?' + (#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr})); window.history.replaceState({}, '', '/agents?' + (#{pane_query_expr}))"
+
+  agency_scope_id = summary[:agency_scope_id].to_i
+  agency_scope_name = summary[:agency_scope_name].to_s
+  agency_scope_label = agency_scope_name.presence || (agency_scope_id.positive? ? "Agency ##{agency_scope_id}" : "Agency")
+%>
+
+<div id="rightpanel-base" class="space-y-4">
+  <div class="rounded-lg border border-border bg-background p-3 space-y-3">
+    <div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Workspace snapshot</div>
+      <div class="text-sm font-semibold">
+        <%= summary[:kind].to_s == "agencies" ? "Agencies" : "Agents" %>
+        <span class="text-muted-foreground font-medium">· <%= summary[:row_count].to_i %> rows</span>
+      </div>
+    </div>
+
+    <% if summary[:kind].to_s == "agents" %>
+      <div class="rounded border border-border bg-muted/20 px-2 py-1.5 space-y-1">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Agency narrowing</div>
+        <div class="flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-wide">
+          <button
+            id="agents-sidebar-scope-overlay"
+            type="button"
+            class="cursor-pointer rounded border border-violet-400/70 bg-violet-100/70 px-1.5 py-0.5 font-semibold text-violet-800 transition-colors hover:bg-violet-100 dark:border-violet-500/60 dark:bg-violet-900/30 dark:text-violet-200"
+            data-show="$overlaytype === 'agency' && !$agencyscopeactive"
+            style="display: none;"
+            data-on:click="$agencyscopeactive = true; $agencyscopeid = $overlayid; <%= refresh_expr %>"
+          >Scope to active overlay</button>
+
+          <button
+            id="agents-sidebar-clear-scope"
+            type="button"
+            class="cursor-pointer rounded border border-border px-1.5 py-0.5 text-muted-foreground transition-colors hover:text-foreground hover:border-foreground/20"
+            data-show="$agencyscopeactive"
+            style="display: none;"
+            data-on:click="$agencyscopeactive = false; $agencyscopeid = ''; <%= refresh_expr %>"
+          >Show all agents</button>
+
+          <span
+            class="rounded border border-violet-400/60 bg-violet-100/60 px-1.5 py-0.5 font-semibold text-violet-800 dark:border-violet-500/50 dark:bg-violet-900/25 dark:text-violet-200"
+            data-show="$agencyscopeactive"
+            style="display: none;"
+          >Scoped: <%= agency_scope_label %></span>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="grid grid-cols-2 gap-1.5">
+      <%= render partial: "salary_book/kpi_cell", locals: {
+        label: "Rows",
+        value: summary[:row_count].to_i.to_s,
+        class_name: "w-full"
+      } %>
+
+      <%= render partial: "salary_book/kpi_cell", locals: {
+        label: "Active",
+        value: summary[:active_count].to_i.to_s,
+        class_name: "w-full"
+      } %>
+
+      <%= render partial: "salary_book/kpi_cell", locals: {
+        label: "Clients",
+        value: summary[:client_total].to_i.to_s,
+        class_name: "w-full"
+      } %>
+
+      <%= render partial: "salary_book/kpi_cell", locals: {
+        label: "Book '#{year_label}",
+        value: format_compact_currency(summary[:book_total]),
+        class_name: "w-full"
+      } %>
+    </div>
+
+    <div class="grid grid-cols-3 gap-1.5">
+      <%= render partial: "salary_book/kpi_cell", locals: {
+        label: "Max",
+        value: summary[:max_total].to_i.to_s,
+        class_name: "w-full"
+      } %>
+      <%= render partial: "salary_book/kpi_cell", locals: {
+        label: "Exp",
+        value: summary[:expiring_total].to_i.to_s,
+        class_name: "w-full"
+      } %>
+      <%= render partial: "salary_book/kpi_cell", locals: {
+        label: "Opts",
+        value: summary[:option_total].to_i.to_s,
+        class_name: "w-full"
+      } %>
+    </div>
+
+    <% if Array(summary[:filters]).any? %>
+      <div class="pt-1 flex flex-wrap gap-1">
+        <% Array(summary[:filters]).each do |label| %>
+          <span class="entity-chip entity-chip--muted"><%= label %></span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="rounded-lg border border-border bg-background">
+    <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">
+      Top <%= summary[:kind].to_s == "agencies" ? "agencies" : "agents" %> by current sort
+    </div>
+
+    <% if top_rows.empty? %>
+      <div class="p-3 text-sm text-muted-foreground italic">No rows.</div>
+    <% else %>
+      <div class="divide-y divide-border">
+        <% top_rows.each do |row| %>
+          <% row_id = row[:id] %>
+          <% is_agency = row[:type].to_s == "agency" %>
+          <% sidebar_url = is_agency ? "/agents/sidebar/agency/#{row_id}" : "/agents/sidebar/agent/#{row_id}" %>
+          <% href = is_agency ? agency_href(row_id) : agent_href(row_id) %>
+
+          <button
+            type="button"
+            class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+            data-on:click="$overlaytype = '<%= is_agency ? 'agency' : 'agent' %>'; $overlayid = '<%= row_id %>'; @get('<%= sidebar_url %>')"
+          >
+            <div class="entity-cell-two-line">
+              <div class="entity-cell-primary justify-between gap-2">
+                <a href="<%= href %>" class="truncate font-medium hover:underline" onclick="event.stopPropagation()"><%= row[:title] %></a>
+                <span class="font-mono tabular-nums text-[11px] shrink-0"><%= format_compact_currency(row[:book_total]) %></span>
+              </div>
+              <div class="entity-cell-secondary justify-between gap-2">
+                <span class="truncate"><%= row[:subtitle] %></span>
+                <% if representation_percentile_int(row[:percentile]).present? %>
+                  <span class="font-mono tabular-nums <%= representation_percentile_color_class(row[:percentile]) %>">P<%= representation_percentile_int(row[:percentile]) %></span>
+                <% end %>
+              </div>
+            </div>
+          </button>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="text-[10px] text-muted-foreground/70 tabular-nums px-1 space-y-0.5">
+    <% if summary[:query].present? %>
+      <div>Search: <span class="text-foreground"><%= summary[:query] %></span></div>
+    <% end %>
+    <div>Sort: <%= summary[:sort_key].to_s.humanize.presence || "Book" %> · <%= summary[:sort_dir].to_s.upcase.presence || "DESC" %></div>
+  </div>
+</div>

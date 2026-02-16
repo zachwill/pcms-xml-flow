@@ -1,0 +1,30 @@
+<%
+  source_player_id = local_assigns[:source_player_id]
+  source_player_name = local_assigns[:source_player_name].to_s.strip
+  state_query = local_assigns[:state_query].to_s
+
+  back_path = if source_player_id.present?
+    path = "/two-way-utility/sidebar/#{source_player_id}"
+    state_query.present? ? "#{path}?#{state_query}" : path
+  else
+    "/two-way-utility/sidebar/clear"
+  end
+
+  back_expr = if source_player_id.present?
+    "$overlaytype = 'player'; $overlayid = '#{source_player_id}'; @get('#{back_path}')"
+  else
+    "$overlaytype = 'none'; $overlayid = ''; @get('#{back_path}')"
+  end
+
+  back_label = source_player_name.present? ? "Back to #{source_player_name}" : "Back"
+%>
+
+<button
+  type="button"
+  class="cursor-pointer flex items-center gap-1.5 text-sm transition-colors text-muted-foreground hover:text-foreground
+         focus-visible:outline-none focus-visible:ring-0 focus-visible:border-foreground dark:focus-visible:border-foreground"
+  data-on:click="<%= back_expr %>"
+>
+  <%= lucide_icon("arrow-left", class: "w-4 h-4", "aria-hidden": true) %>
+  <span class="font-medium truncate max-w-[220px]"><%= back_label %></span>
+</button>

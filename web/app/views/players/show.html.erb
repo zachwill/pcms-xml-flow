@@ -1,0 +1,134 @@
+<% full_name = [@player&.fetch("first_name", nil), @player&.fetch("last_name", nil)].compact.join(" ") %>
+<% content_for :title, full_name.presence || "Player" %>
+
+<% team_history_rows = Array(@team_history_rows) %>
+<% contract_chronology_rows = Array(@contract_chronology_rows) %>
+<% ledger_entries = Array(@ledger_entries) %>
+
+<% prefetch_canonical_slugs(entity_type: "team", entity_ids: [@salary_book_row&.fetch("team_id", nil)] + contract_chronology_rows.map { |r| r["signing_team_id"] } + contract_chronology_rows.map { |r| r["sign_and_trade_to_team_id"] } + ledger_entries.map { |r| r["team_id"] } + team_history_rows.map { |r| r["team_id"] }) %>
+
+<% status_label = @player["player_status_name"].presence || @player["player_status_lk"].presence %>
+<% current_team_code = @salary_book_row&.fetch("team_code", nil).presence || @player["person_team_code"].presence %>
+<% current_team_id = @salary_book_row&.fetch("team_id", nil).presence || @player["person_team_id"] %>
+<% current_team_name = @salary_book_row&.fetch("team_name", nil) %>
+
+<% draft_label_parts = [] %>
+<% draft_label_parts << @player["draft_year"] if @player["draft_year"].present? %>
+<% if @player["draft_round"].present? && @player["draft_pick"].present? %>
+  <% draft_label_parts << "R#{@player['draft_round']} P#{@player['draft_pick']}" %>
+<% end %>
+<% draft_label_parts << @player["draft_team_code"] if @player["draft_team_code"].present? %>
+
+<% header_badges = [] %>
+<% header_badges << { label: status_label, variant: "muted" } if status_label.present? %>
+<% header_badges << { label: "2W", variant: "accent" } if (@salary_book_row&.fetch("is_two_way", nil) || @player["person_is_two_way"]) %>
+<% header_badges << { label: "Trade restricted", variant: "danger" } if @salary_book_row&.fetch("is_trade_restricted_now", nil) %>
+
+<% header_meta = [] %>
+<% header_meta << "##{@player['uniform_number']}" if @player["uniform_number"].present? %>
+<% header_meta << format_height_inches(@player["height"]) if @player["height"].present? %>
+<% header_meta << format_weight_lbs(@player["weight"]) if @player["weight"].present? %>
+<% header_meta << "#{@player['years_of_service'].to_i} YOS" if @player["years_of_service"].present? %>
+<% header_meta << "DOB #{format_plain_date(@player['birth_date'])}" if @player["birth_date"].present? %>
+<% header_meta << "Draft: #{draft_label_parts.join(' · ')}" if draft_label_parts.any? %>
+<% header_meta << current_team_name || current_team_code if current_team_code.present? %>
+
+<% salary_book_href = (@salary_book_row&.fetch("team_code", nil).present? ? "/?team=#{@salary_book_row['team_code']}##{@salary_book_row['team_code']}" : "/") %>
+<% bootstrap_decision_query = (@decision_lens.to_s == "all" ? "" : "?decision_lens=#{ERB::Util.url_encode(@decision_lens.to_s)}") %>
+
+<% header_links = [] %>
+<% header_links << ["Open in Salary Book", salary_book_href] if salary_book_href.present? %>
+<% if current_team_code.present? %>
+  <% header_links << ["Team page", team_href(team_code: current_team_code, team_id: current_team_id)] %>
+<% end %>
+<% if @draft_selection.present? %>
+  <% header_links << ["Draft selection", draft_selection_href(@draft_selection['transaction_id'])] %>
+<% end %>
+
+<div
+  id="player-show"
+  class="min-h-screen w-full bg-background"
+>
+  <%= render partial: "shared/commandbar", locals: {
+    active_entity_scope: "players"
+  } %>
+
+  <% if @defer_heavy_load %>
+    <noscript>
+      <meta http-equiv="refresh" content="0;url=<%= player_path(@player_slug, full: 1) %>">
+      <p class="px-4 py-2 text-sm text-muted-foreground">
+        JavaScript is disabled. <a href="<%= player_path(@player_slug, full: 1) %>" class="hover:underline">Load full player page</a>.
+      </p>
+    </noscript>
+
+    <div
+      id="player-bootstrap"
+      class="hidden"
+      aria-hidden="true"
+      data-init="@get('/players/<%= @player_slug %>/sse/bootstrap<%= bootstrap_decision_query %>')"
+    ></div>
+  <% end %>
+
+  <main id="maincanvas" class="px-4 pb-8" data-entity-workspace data-scroll-offset-extra="64">
+    <%= render partial: "players/sticky_header", locals: {
+      image_url: player_headshot_url(@player_id),
+      image_alt: full_name,
+      image_fallback: "NBA",
+      title: full_name.presence || "Player",
+      badges: header_badges,
+      meta: header_meta,
+      links: header_links,
+      team_code: current_team_code,
+      cap_2025: @salary_book_row&.fetch("cap_2025", nil),
+      total_from_2025: @salary_book_row&.fetch("total_salary_from_2025", nil),
+      trade_restricted_now: @salary_book_row&.fetch("is_trade_restricted_now", nil)
+    } %>
+
+    <div class="lg:flex lg:gap-8">
+      <div class="min-w-0 flex-1 space-y-8">
+        <% if @defer_heavy_load %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "vitals", title: "Vitals", rows: 4 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "constraints", title: "Constraint posture", rows: 3 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "next-decisions", title: "Next decisions", rows: 5 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "connections", title: "Connections", rows: 5 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "contract", title: "Contract horizon", rows: 4 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "contract-history", title: "Contract history", rows: 6 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "guarantees", title: "Guarantees + protections", rows: 6 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "incentives", title: "Incentives", rows: 4 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "ledger", title: "Ledger timeline", rows: 6 } %>
+          <%= render partial: "shared/section_skeleton", locals: { section_id: "team-history", title: "Team history", rows: 3 } %>
+        <% else %>
+          <%= render partial: "players/section_vitals" %>
+          <%= render partial: "players/section_constraints" %>
+          <%= render partial: "players/section_next_decisions" %>
+          <%= render partial: "players/section_connections" %>
+          <%= render partial: "players/section_contract" %>
+          <%= render partial: "players/section_contract_history" %>
+          <%= render partial: "players/section_guarantees" %>
+          <%= render partial: "players/section_incentives" %>
+          <%= render partial: "players/section_ledger" %>
+          <%= render partial: "players/section_team_history" %>
+        <% end %>
+      </div>
+
+      <%= render partial: "shared/local_nav", locals: {
+        sticky_top_class: "top-[196px]",
+        sections: [
+          ["vitals", "Vitals"],
+          ["constraints", "Constraint posture"],
+          ["next-decisions", "Next decisions"],
+          ["connections", "Connections"],
+          ["contract", "Contract horizon"],
+          ["contract-history", "Contract history"],
+          ["guarantees", "Guarantees"],
+          ["incentives", "Incentives"],
+          ["ledger", "Ledger timeline"],
+          ["team-history", "Team history"]
+        ]
+      } %>
+    </div>
+
+    <%= render partial: "players/rightpanel_base" %>
+    <div id="rightpanel-overlay"></div>
+  </main>
+</div>

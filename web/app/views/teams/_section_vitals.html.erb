@@ -1,0 +1,9 @@
+<% current_year_row = @team_salary_rows.find { |r| r["salary_year"].to_i == 2025 } || {} %>
+<% team_code = @team&.fetch("team_code", nil).to_s %>
+
+<section id="vitals">
+  <%= render partial: "teams/cap_vitals", locals: {
+    team_salary_row: current_year_row,
+    team_code: team_code
+  } %>
+</section>

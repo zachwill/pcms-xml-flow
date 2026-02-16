@@ -221,7 +221,7 @@ class ToolsTwoWayUtilityTest < ActionDispatch::IntegrationTest
 
   test "two-way utility refresh renders team-button commandbar and simplified sidebar" do
     with_fake_connection do
-      get "/tools/two-way-utility/sse/refresh", params: {
+      get "/two-way-utility/sse/refresh", params: {
         conference: "all",
         team: "",
         risk: "all"
@@ -250,7 +250,7 @@ class ToolsTwoWayUtilityTest < ActionDispatch::IntegrationTest
 
   test "two-way utility show uses simplified signal model" do
     with_fake_connection do
-      get "/tools/two-way-utility", params: {
+      get "/two-way-utility", params: {
         conference: "all",
         team: "",
         risk: "all"
@@ -271,7 +271,7 @@ class ToolsTwoWayUtilityTest < ActionDispatch::IntegrationTest
 
   test "two-way utility refresh endpoint returns ordered multi-region sse patches" do
     with_fake_connection do
-      get "/tools/two-way-utility/sse/refresh", params: {
+      get "/two-way-utility/sse/refresh", params: {
         conference: "Western",
         team: "POR",
         risk: "warning"
@@ -298,7 +298,7 @@ class ToolsTwoWayUtilityTest < ActionDispatch::IntegrationTest
 
   test "two-way utility sidebar endpoint returns player drill-in without compare controls" do
     with_fake_connection do
-      get "/tools/two-way-utility/sidebar/1001", params: { conference: "all", team: "", risk: "all" }, headers: modern_headers
+      get "/two-way-utility/sidebar/1001", params: { conference: "all", team: "", risk: "all" }, headers: modern_headers
 
       assert_response :success
       assert_equal "text/html", response.media_type
@@ -315,7 +315,7 @@ class ToolsTwoWayUtilityTest < ActionDispatch::IntegrationTest
 
   test "two-way utility team filter scopes rows to selected team" do
     with_fake_connection do
-      get "/tools/two-way-utility/sse/refresh", params: {
+      get "/two-way-utility/sse/refresh", params: {
         conference: "all",
         team: "POR",
         risk: "all"
@@ -332,7 +332,7 @@ class ToolsTwoWayUtilityTest < ActionDispatch::IntegrationTest
 
   test "two-way utility refresh preserves and clears overlay selection based on visibility" do
     with_fake_connection do
-      get "/tools/two-way-utility/sse/refresh", params: {
+      get "/two-way-utility/sse/refresh", params: {
         conference: "all",
         team: "POR",
         risk: "warning",
@@ -345,7 +345,7 @@ class ToolsTwoWayUtilityTest < ActionDispatch::IntegrationTest
       assert_includes response.body, '"overlayid":"1002"'
       assert_includes response.body, "Warning Wing"
 
-      get "/tools/two-way-utility/sse/refresh", params: {
+      get "/two-way-utility/sse/refresh", params: {
         conference: "Eastern",
         team: "BOS",
         risk: "critical",

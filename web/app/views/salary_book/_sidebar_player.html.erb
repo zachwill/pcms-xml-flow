@@ -4,191 +4,59 @@
   NOTE: Root id must remain stable for Datastar morphing.
 %>
 
-<% salary_years = SalaryBookHelper::SALARY_YEARS %>
-<% compact = ->(v) { format_salary(v) } %>
-
-<% player_id = player["player_id"] %>
-<% player_name = player["player_name"] %>
-<% team_code = player["team_code"].presence || "—" %>
-<% team_id = player["team_id"] %>
-<% team_name = player["team_name"].presence || team_code %>
-<% team_logo = team_logo_url(team_id) %>
-<% agent_name = player["agent_name"] %>
-<% agent_id = player["agent_id"] %>
-<% age_yos = player_age_yos_display(player) %>
-<% is_two_way = player["is_two_way"] %>
-
 <%
-  team_switchable = team_code.match?(/\A[A-Z]{3}\z/)
-  team_combo_chip_classes = "cursor-pointer inline-flex items-center gap-0.5 px-1.5 rounded border border-border bg-background hover:border-foreground/20"
-  team_combo_chip_style = "width: 78px; height: 24px;"
-  team_combo_logo_wrap_classes = "inline-flex items-center justify-center w-4 h-4 overflow-hidden rounded-[3px] bg-muted/20"
-  team_combo_logo_image_classes = "w-full h-full object-cover object-center scale-[1.12]"
-  team_combo_code_classes = "flex-1 text-xs font-semibold tabular-nums leading-none text-center"
+  presenter = SalaryBook::PlayerSidebarPresenter.new(player: player, helpers: self)
+  sidebar = presenter.state
 
-  team_row_onclick = if team_switchable
-    "const effectiveyear = String($sidebarcapyearloaded || '#{salary_years.first}'); " \
-      "el.dispatchEvent(new CustomEvent('salarybook-switch-team', { bubbles: true, detail: { team: '#{team_code}', year: effectiveyear } }));"
-  end
+  salary_years = sidebar.fetch(:salary_years)
+  compact = sidebar.fetch(:compact)
 
-  years_data = salary_years.map do |y|
-    salary = player["cap_#{y}"]
-    option = normalize_contract_option(player["option_#{y}"])
-    guaranteed_amount = player["guaranteed_amount_#{y}"]
-    is_full = player["is_fully_guaranteed_#{y}"]
-    is_partial = player["is_partially_guaranteed_#{y}"]
-    is_non = player["is_non_guaranteed_#{y}"]
-    likely_bonus = player["likely_bonus_#{y}"]
-    unlikely_bonus = player["unlikely_bonus_#{y}"]
+  player_id = sidebar.fetch(:player_id)
+  player_name = sidebar.fetch(:player_name)
+  team_code = sidebar.fetch(:team_code)
+  team_id = sidebar.fetch(:team_id)
+  team_name = sidebar.fetch(:team_name)
+  team_logo = sidebar.fetch(:team_logo)
+  agent_name = sidebar.fetch(:agent_name)
+  agent_id = sidebar.fetch(:agent_id)
+  age_yos = sidebar.fetch(:age_yos)
+  is_two_way = sidebar.fetch(:is_two_way)
 
-    guarantee_status = if is_full
-      "FULL"
-    elsif is_partial
-      "PARTIAL"
-    elsif is_non
-      "NONE"
-    end
+  team_switchable = sidebar.fetch(:team_switchable)
+  team_combo_chip_classes = sidebar.fetch(:team_combo_chip_classes)
+  team_combo_chip_style = sidebar.fetch(:team_combo_chip_style)
+  team_combo_logo_wrap_classes = sidebar.fetch(:team_combo_logo_wrap_classes)
+  team_combo_logo_image_classes = sidebar.fetch(:team_combo_logo_image_classes)
+  team_combo_code_classes = sidebar.fetch(:team_combo_code_classes)
+  team_row_onclick = sidebar.fetch(:team_row_onclick)
 
-    {
-      year: y,
-      salary: salary,
-      option: option,
-      guaranteed_amount: guaranteed_amount,
-      guarantee_status: guarantee_status,
-      likely_bonus: likely_bonus,
-      unlikely_bonus: unlikely_bonus
-    }
-  end
+  years_data = sidebar.fetch(:years_data)
+  active_years = sidebar.fetch(:active_years)
+  total_value = sidebar.fetch(:total_value)
+  contract_years = sidebar.fetch(:contract_years)
+  cap_2025 = sidebar.fetch(:cap_2025)
 
-  active_years = years_data.select { |yd| yd[:salary].present? && yd[:salary].to_f > 0 }
+  next_option = sidebar.fetch(:next_option)
+  fa_year = sidebar.fetch(:fa_year)
+  next_decision_label = sidebar.fetch(:next_decision_label)
+  next_decision_variant = sidebar.fetch(:next_decision_variant)
 
-  total_value = active_years.sum { |yd| yd[:salary].to_f }
-  contract_years = active_years.size
+  header_contract_label = sidebar.fetch(:header_contract_label)
+  header_contract_classes = sidebar.fetch(:header_contract_classes)
 
-  # Snapshot / KPI values
-  cap_2025 = player["cap_2025"]
+  status_chips = sidebar.fetch(:status_chips)
 
-  next_option = salary_years.drop(1).map do |y|
-    opt = normalize_contract_option(player["option_#{y}"])
-    next nil if opt.blank?
+  contract_type = sidebar.fetch(:contract_type)
+  signed_using = sidebar.fetch(:signed_using)
+  exception_type = sidebar.fetch(:exception_type)
+  epm_value = sidebar.fetch(:epm_value)
+  epm_percentile = sidebar.fetch(:epm_percentile)
+  epm_season = sidebar.fetch(:epm_season)
+  epm_season_label = sidebar.fetch(:epm_season_label)
 
-    {
-      year: y,
-      option: opt
-    }
-  end.compact.first
-
-  fa_year = nil
-  unless is_two_way
-    salary_years.each_cons(2) do |y, y_next|
-      if player["cap_#{y}"].to_f > 0 && player["cap_#{y_next}"].to_f == 0
-        fa_year = y
-        break
-      end
-    end
-  end
-
-  next_decision_label = if next_option.present?
-    "#{next_option[:option]} #{format_year_label(next_option[:year])}"
-  elsif fa_year.present?
-    "FA #{format_year_label(fa_year)}"
-  elsif is_two_way
-    "Two-Way"
-  else
-    "—"
-  end
-
-  next_decision_variant = if next_option.present?
-    case next_option[:option]
-    when "PO" then "option_po"
-    when "TO" then "option_to"
-    when "ETO" then "option_eto"
-    else "muted"
-    end
-  elsif fa_year.present?
-    "default"
-  elsif is_two_way
-    "muted"
-  else
-    "muted"
-  end
-
-  header_contract_label = if next_option.present?
-    "#{next_option[:option]} #{format_year_label(next_option[:year])}"
-  elsif fa_year.present?
-    "FA #{format_year_label(fa_year + 1)}"
-  elsif is_two_way
-    "2W"
-  end
-
-  header_contract_classes = case next_decision_variant
-  when "option_po"
-    "text-blue-600 dark:text-blue-400"
-  when "option_to"
-    "text-purple-600 dark:text-purple-400"
-  when "option_eto"
-    "text-orange-600 dark:text-orange-400"
-  else
-    "text-muted-foreground"
-  end
-%>
-
-<%
-  # Trade restrictions / flags
-  is_no_trade = player["is_no_trade"]
-  is_trade_bonus = player["is_trade_bonus"]
-  trade_bonus_percent = player["trade_bonus_percent"]
-  is_consent_required = player["is_trade_consent_required_now"]
-  is_preconsented = player["is_trade_preconsented"]
-  is_poison_pill = player["is_poison_pill"]
-  is_trade_restricted_now = player["is_trade_restricted_now"]
-
-  trade_kicker_label = if trade_bonus_percent.present? && trade_bonus_percent.to_f > 0
-    pct = trade_bonus_percent.to_f
-    pct_str = pct % 1 == 0 ? pct.to_i.to_s : pct.to_s
-    "TK #{pct_str}%"
-  else
-    "Trade Kicker"
-  end
-
-  restrictions = [
-    { label: trade_kicker_label, active: is_trade_bonus, classes: "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300" },
-    { label: "No-Trade", active: is_no_trade, classes: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300" },
-    { label: "Consent Required", active: is_consent_required, classes: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300" },
-    { label: "Restricted", active: is_trade_restricted_now, classes: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300" },
-    { label: "Poison Pill", active: is_poison_pill, classes: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 italic" },
-    { label: "Pre-consented", active: is_preconsented, classes: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300" }
-  ]
-
-  active_restrictions = restrictions.select { |r| r[:active] }
-
-  status_chips = []
-  status_chips << { label: "Two-Way", classes: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300" } if is_two_way
-  if player["is_min_contract"]
-    min_label = player["min_contract_lookup_value"].presence
-    status_chips << { label: min_label.present? ? "Min · #{min_label}" : "Minimum", classes: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300" }
-  end
-  status_chips.concat(active_restrictions)
-%>
-
-<%
-  contract_type = player["contract_type_lookup_value"] || player["contract_type_code"]
-  signed_using = player["signed_method_lookup_value"]
-  exception_type = player["exception_type_lookup_value"]
-  epm_value = player["epm_value"]
-  epm_percentile = player["epm_percentile"]
-  epm_season = player["epm_season"]
-  epm_season_label = format_epm_season_label(epm_season)
-
-  epm_percentile_int_value = epm_percentile_int(epm_percentile)
-  epm_has_percentile = epm_percentile_int_value.present?
-  epm_badge_class = if epm_percentile_int_value.present? && epm_percentile_int_value >= 80
-    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-  elsif epm_percentile_int_value.present? && epm_percentile_int_value <= 20
-    "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-  else
-    "bg-muted text-foreground"
-  end
+  epm_percentile_int_value = sidebar.fetch(:epm_percentile_int_value)
+  epm_has_percentile = sidebar.fetch(:epm_has_percentile)
+  epm_badge_class = sidebar.fetch(:epm_badge_class)
 %>
 
 <div

@@ -17,18 +17,13 @@ class TeamSummaryController < ApplicationController
   def show
     load_workspace_state!
   rescue ActiveRecord::StatementInvalid => e
-    apply_boot_error!(e)
+    assign_state!(workspace_state.fallback(error: e))
   end
 
   # GET /team-summary/sidebar/:team_code
   def sidebar
     load_workspace_state!(selected_override_team_code: params[:team_code])
-
-    if @selected_row.present?
-      render partial: "team_summary/rightpanel_overlay_team", layout: false
-    else
-      render partial: "team_summary/rightpanel_clear", layout: false
-    end
+    render partial: overlay_partial_name, layout: false
   rescue ActiveRecord::StatementInvalid => e
     render html: <<~HTML.html_safe, layout: false
       <div id="rightpanel-overlay" class="h-full p-4">
@@ -52,14 +47,7 @@ class TeamSummaryController < ApplicationController
     with_sse_stream do |sse|
       patch_elements_by_id(sse, render_to_string(partial: "team_summary/compare_strip", layout: false))
       patch_elements_by_id(sse, render_to_string(partial: "team_summary/rightpanel_base", layout: false))
-
-      overlay_html = if @selected_row.present?
-        render_to_string(partial: "team_summary/rightpanel_overlay_team", layout: false)
-      else
-        render_to_string(partial: "team_summary/rightpanel_clear", layout: false)
-      end
-
-      patch_elements_by_id(sse, overlay_html)
+      patch_elements_by_id(sse, render_to_string(partial: overlay_partial_name, layout: false))
       patch_signals(
         sse,
         selectedteam: @selected_team_code.to_s,
@@ -82,13 +70,7 @@ class TeamSummaryController < ApplicationController
     load_workspace_state!(step_direction: resolve_step_direction(params[:direction]))
 
     with_sse_stream do |sse|
-      overlay_html = if @selected_row.present?
-        render_to_string(partial: "team_summary/rightpanel_overlay_team", layout: false)
-      else
-        render_to_string(partial: "team_summary/rightpanel_clear", layout: false)
-      end
-
-      patch_elements_by_id(sse, overlay_html)
+      patch_elements_by_id(sse, render_to_string(partial: overlay_partial_name, layout: false))
       patch_signals(
         sse,
         selectedteam: @selected_team_code.to_s,
@@ -116,12 +98,7 @@ class TeamSummaryController < ApplicationController
       main_html = render_to_string(partial: "team_summary/workspace_main", layout: false)
       compare_html = render_to_string(partial: "team_summary/compare_strip", layout: false)
       sidebar_html = render_to_string(partial: "team_summary/rightpanel_base", layout: false)
-
-      overlay_html = if @selected_row.present?
-        render_to_string(partial: "team_summary/rightpanel_overlay_team", layout: false)
-      else
-        render_to_string(partial: "team_summary/rightpanel_clear", layout: false)
-      end
+      overlay_html = render_to_string(partial: overlay_partial_name, layout: false)
 
       patch_elements(sse, selector: "#maincanvas", mode: "inner", html: main_html)
       patch_elements_by_id(sse, compare_html)
@@ -148,8 +125,29 @@ class TeamSummaryController < ApplicationController
 
   private
 
+  def assign_state!(state)
+    state.each do |key, value|
+      instance_variable_set("@#{key}", value)
+    end
+  end
+
   def queries
     @queries ||= ::TeamSummaryQueries.new(connection: ActiveRecord::Base.connection)
+  end
+
+  def workspace_state
+    @workspace_state ||= ::TeamSummary::WorkspaceState.new(
+      params: params,
+      request_query_parameters: request.query_parameters,
+      queries: queries,
+      current_salary_year: CURRENT_SALARY_YEAR,
+      available_salary_years: AVAILABLE_SALARY_YEARS,
+      sort_sql: SORT_SQL
+    )
+  end
+
+  def overlay_partial_name
+    @selected_row.present? ? "team_summary/rightpanel_overlay_team" : "team_summary/rightpanel_clear"
   end
 
   def resolve_step_direction(value)
@@ -160,22 +158,13 @@ class TeamSummaryController < ApplicationController
   end
 
   def load_workspace_state!(apply_compare_action: false, step_direction: nil, selected_override_team_code: nil)
-    state = ::TeamSummary::WorkspaceState.new(
-      params: params,
-      request_query_parameters: request.query_parameters,
-      queries: queries,
-      current_salary_year: CURRENT_SALARY_YEAR,
-      available_salary_years: AVAILABLE_SALARY_YEARS,
-      sort_sql: SORT_SQL
-    ).build(
-      apply_compare_action: apply_compare_action,
-      step_direction: step_direction,
-      selected_override_team_code: selected_override_team_code
+    assign_state!(
+      workspace_state.build(
+        apply_compare_action: apply_compare_action,
+        step_direction: step_direction,
+        selected_override_team_code: selected_override_team_code
+      )
     )
-
-    state.each do |key, value|
-      instance_variable_set("@#{key}", value)
-    end
   end
 
   def sort_metric_for(sort)
@@ -189,29 +178,5 @@ class TeamSummaryController < ApplicationController
   def sort_ascending_for(sort)
     sort_value = sort.to_s
     sort_value.end_with?("_asc") && sort_value != "team_asc"
-  end
-
-  def apply_boot_error!(error)
-    @boot_error = error.message
-    @available_years = []
-    @selected_year = CURRENT_SALARY_YEAR
-    @conference = "all"
-    @pressure = "all"
-    @sort = "cap_space_desc"
-    @rows = []
-    @rows_by_code = {}
-    @team_picker_by_conference = { "Eastern" => [], "Western" => [] }
-    @compare_a_code = nil
-    @compare_b_code = nil
-    @compare_a_row = nil
-    @compare_b_row = nil
-    @selected_team_code = nil
-    @selected_row = nil
-    @state_params = {
-      year: @selected_year,
-      conference: @conference,
-      pressure: @pressure,
-      sort: @sort
-    }
   end
 end

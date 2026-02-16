@@ -61,6 +61,7 @@ module TwoWayUtility
         build_sidebar_summary!(selected_player_id: @selected_player_id)
 
         {
+          boot_error: nil,
           conference: @conference,
           team: @team,
           risk: @risk,
@@ -75,6 +76,35 @@ module TwoWayUtility
           state_query: @state_query,
           selected_player_id: @selected_player_id,
           sidebar_summary: @sidebar_summary
+        }
+      end
+
+      def fallback(error:)
+        {
+          boot_error: error.to_s,
+          conference: "all",
+          team: nil,
+          risk: "all",
+          rows: [],
+          rows_by_team: {},
+          teams_by_conference: { "Eastern" => [], "Western" => [] },
+          team_meta_by_code: {},
+          team_capacity_by_code: {},
+          team_options: [],
+          team_codes: [],
+          team_records_by_code: {},
+          state_query: Rack::Utils.build_query(conference: "all", team: "", risk: "all"),
+          selected_player_id: nil,
+          sidebar_summary: {
+            row_count: 0,
+            team_count: 0,
+            critical_count: 0,
+            warning_count: 0,
+            low_remaining_count: 0,
+            estimate_count: 0,
+            active_filters: [],
+            quick_rows: []
+          }
         }
       end
 

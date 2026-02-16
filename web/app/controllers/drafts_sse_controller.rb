@@ -10,8 +10,8 @@ class DraftsSseController < DraftsController
   def refresh
     load_index_state!
 
-    requested_context = requested_overlay_context
-    overlay_html, resolved_overlay_type, resolved_overlay_key = refreshed_overlay_payload(requested_context:)
+    overlay_state_payload = overlay_state.initial_overlay_state
+    overlay_html, resolved_overlay_type, resolved_overlay_key = resolve_overlay_refresh_payload(overlay_state_payload)
 
     with_sse_stream do |sse|
       main_html = without_view_annotations do
@@ -41,51 +41,23 @@ class DraftsSseController < DraftsController
 
   private
 
-  def refreshed_overlay_payload(requested_context:)
-    return [overlay_clear_html, "none", ""] unless selected_overlay_visible?(context: requested_context)
+  def resolve_overlay_refresh_payload(overlay_state_payload)
+    partial = overlay_state_payload[:initial_overlay_partial]
+    locals = overlay_state_payload[:initial_overlay_locals]
 
-    case requested_context[:type]
-    when "pick"
-      render_pick_overlay_payload(requested_context)
-    when "selection"
-      render_selection_overlay_payload(requested_context)
-    else
-      [overlay_clear_html, "none", ""]
+    return [overlay_clear_html, "none", ""] if partial.blank?
+
+    html = without_view_annotations do
+      render_to_string(partial: partial, locals: locals)
     end
+
+    [
+      html,
+      overlay_state_payload[:initial_overlay_type].presence || "none",
+      overlay_state_payload[:initial_overlay_key].to_s
+    ]
   rescue ActiveRecord::RecordNotFound
     [overlay_clear_html, "none", ""]
-  end
-
-  def render_pick_overlay_payload(context)
-    team_code = context[:team_code]
-    draft_year = context[:draft_year]
-    draft_round = context[:draft_round]
-
-    html = without_view_annotations do
-      render_to_string(
-        partial: "drafts/rightpanel_overlay_pick",
-        locals: load_sidebar_pick_payload(
-          team_code:,
-          draft_year:,
-          draft_round:
-        )
-      )
-    end
-
-    [html, "pick", overlay_key_for_pick(team_code:, draft_year:, draft_round:)]
-  end
-
-  def render_selection_overlay_payload(context)
-    transaction_id = context[:transaction_id].to_i
-
-    html = without_view_annotations do
-      render_to_string(
-        partial: "drafts/rightpanel_overlay_selection",
-        locals: load_sidebar_selection_payload(transaction_id)
-      )
-    end
-
-    [html, "selection", "selection-#{transaction_id}"]
   end
 
   def overlay_clear_html

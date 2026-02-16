@@ -1,0 +1,118 @@
+<% flow_label = sidebar.fetch(:flow_label) %>
+<% origin_codes = sidebar.fetch(:origin_codes) %>
+<% via_codes = sidebar.fetch(:via_codes) %>
+<% is_own = sidebar.fetch(:is_own) %>
+
+<% trade_history_summary = sidebar.fetch(:trade_history_summary) %>
+<% trade_history_title = sidebar.fetch(:trade_history_title) %>
+<% trade_date_count = sidebar.fetch(:trade_date_count).to_i %>
+<% latest_trade_date_label = sidebar.fetch(:latest_trade_date_label) %>
+
+<% team_combo_chip_classes = sidebar.fetch(:team_combo_chip_classes) %>
+<% team_combo_chip_style = sidebar.fetch(:team_combo_chip_style) %>
+<% team_combo_logo_wrap_classes = sidebar.fetch(:team_combo_logo_wrap_classes) %>
+<% team_combo_logo_image_classes = sidebar.fetch(:team_combo_logo_image_classes) %>
+<% team_combo_code_classes = sidebar.fetch(:team_combo_code_classes) %>
+
+<div class="border-t border-border pt-4 space-y-2">
+  <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ownership</div>
+
+  <div class="space-y-0.5">
+    <div class="flex items-center justify-between py-1.5 gap-3">
+      <span class="text-sm text-muted-foreground">Current owner</span>
+      <% current_logo = presenter.team_logo_for_code(team_code) %>
+      <button
+        type="button"
+        class="<%= team_combo_chip_classes %>"
+        style="<%= team_combo_chip_style %>"
+        data-on:click="<%= presenter.switch_team_onclick(team_code) %>"
+      >
+        <span class="<%= team_combo_logo_wrap_classes %>">
+          <% if current_logo.present? %>
+            <img src="<%= current_logo %>" alt="<%= team_code %> logo" class="<%= team_combo_logo_image_classes %>" loading="lazy" decoding="async" />
+          <% end %>
+        </span>
+        <span class="<%= team_combo_code_classes %>"><%= team_code %></span>
+      </button>
+    </div>
+
+    <div class="flex items-center justify-between py-1.5 gap-3">
+      <span class="text-sm text-muted-foreground"><%= flow_label %></span>
+      <% if origin_codes.any? %>
+        <div class="flex flex-wrap items-center justify-end gap-1.5">
+          <% origin_codes.each do |code| %>
+            <% code_logo = presenter.team_logo_for_code(code) %>
+            <button
+              type="button"
+              class="<%= team_combo_chip_classes %>"
+              style="<%= team_combo_chip_style %>"
+              data-on:click="<%= presenter.switch_team_onclick(code) %>"
+            >
+              <span class="<%= team_combo_logo_wrap_classes %>">
+                <% if code_logo.present? %>
+                  <img src="<%= code_logo %>" alt="<%= code %> logo" class="<%= team_combo_logo_image_classes %>" loading="lazy" decoding="async" />
+                <% end %>
+              </span>
+              <span class="<%= team_combo_code_classes %>"><%= code %></span>
+            </button>
+          <% end %>
+        </div>
+      <% elsif is_own %>
+        <% own_logo = presenter.team_logo_for_code(team_code) %>
+        <button
+          type="button"
+          class="<%= team_combo_chip_classes %>"
+          style="<%= team_combo_chip_style %>"
+          data-on:click="<%= presenter.switch_team_onclick(team_code) %>"
+        >
+          <span class="<%= team_combo_logo_wrap_classes %>">
+            <% if own_logo.present? %>
+              <img src="<%= own_logo %>" alt="<%= team_code %> logo" class="<%= team_combo_logo_image_classes %>" loading="lazy" decoding="async" />
+            <% end %>
+          </span>
+          <span class="<%= team_combo_code_classes %>"><%= team_code %></span>
+        </button>
+      <% else %>
+        <span class="text-sm font-medium text-right">—</span>
+      <% end %>
+    </div>
+
+    <% if via_codes.any? %>
+      <div class="flex items-center justify-between py-1.5 gap-3">
+        <span class="text-sm text-muted-foreground">Via</span>
+        <div class="flex flex-wrap items-center justify-end gap-1.5">
+          <% via_codes.each do |code| %>
+            <% code_logo = presenter.team_logo_for_code(code) %>
+            <button
+              type="button"
+              class="<%= team_combo_chip_classes %>"
+              style="<%= team_combo_chip_style %>"
+              data-on:click="<%= presenter.switch_team_onclick(code) %>"
+            >
+              <span class="<%= team_combo_logo_wrap_classes %>">
+                <% if code_logo.present? %>
+                  <img src="<%= code_logo %>" alt="<%= code %> logo" class="<%= team_combo_logo_image_classes %>" loading="lazy" decoding="async" />
+                <% end %>
+              </span>
+              <span class="<%= team_combo_code_classes %>"><%= code %></span>
+            </button>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <% if trade_history_summary.present? %>
+      <div class="flex items-center justify-between py-1.5 gap-3">
+        <span class="text-sm text-muted-foreground">Trade history</span>
+        <span class="text-sm font-medium tabular-nums text-right" title="<%= trade_history_title %>"><%= trade_history_summary %></span>
+      </div>
+
+      <% if trade_date_count > 1 && latest_trade_date_label.present? %>
+        <div class="flex items-center justify-between py-1.5 gap-3">
+          <span class="text-sm text-muted-foreground">Latest trade</span>
+          <span class="text-sm font-medium tabular-nums text-right"><%= latest_trade_date_label %></span>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>

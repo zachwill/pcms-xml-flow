@@ -47,6 +47,7 @@ module TeamSummary
       @state_params = build_state_params
 
       {
+        boot_error: nil,
         available_years: @available_years,
         selected_year: @selected_year,
         conference: @conference,
@@ -62,6 +63,32 @@ module TeamSummary
         selected_team_code: @selected_team_code,
         selected_row: @selected_row,
         state_params: @state_params
+      }
+    end
+
+    def fallback(error:)
+      {
+        boot_error: error.to_s,
+        available_years: [],
+        selected_year: current_salary_year,
+        conference: "all",
+        pressure: "all",
+        sort: "cap_space_desc",
+        rows: [],
+        rows_by_code: {},
+        team_picker_by_conference: { "Eastern" => [], "Western" => [] },
+        compare_a_code: nil,
+        compare_b_code: nil,
+        compare_a_row: nil,
+        compare_b_row: nil,
+        selected_team_code: nil,
+        selected_row: nil,
+        state_params: {
+          year: current_salary_year,
+          conference: "all",
+          pressure: "all",
+          sort: "cap_space_desc"
+        }
       }
     end
 

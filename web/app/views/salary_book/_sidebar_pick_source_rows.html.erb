@@ -1,0 +1,24 @@
+<div class="border-t border-border pt-4 space-y-2">
+  <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Source rows</div>
+
+  <div class="overflow-x-auto rounded-lg border border-border/60">
+    <table class="min-w-full text-[11px]">
+      <thead class="bg-muted/20 text-muted-foreground uppercase tracking-wide text-[10px]">
+        <tr>
+          <th class="text-left px-2 py-1.5 font-medium">Slot</th>
+          <th class="text-left px-2 py-1.5 font-medium">Type</th>
+          <th class="text-left px-2 py-1.5 font-medium">Flags</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-border/50">
+        <% source_rows.each do |row| %>
+          <tr class="hover:bg-yellow-50/70 dark:hover:bg-yellow-900/25 transition-colors duration-75">
+            <td class="px-2 py-1.5 tabular-nums"><%= row.fetch(:slot) %></td>
+            <td class="px-2 py-1.5 font-mono"><%= row.fetch(:asset_type) %></td>
+            <td class="px-2 py-1.5 text-muted-foreground"><%= row.fetch(:flags_text) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

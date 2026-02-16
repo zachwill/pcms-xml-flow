@@ -68,6 +68,33 @@ class SalaryBookViewsTest < ActionDispatch::IntegrationTest
       ["POR", "Portland Trail Blazers", 25, "POR", "West", 9, 17, 26, 28, 0.481, "26-28", "4-6", "W 3", 15.0, 15.0, -1.9, 2025, "2025-26", Date.new(2026, 2, 12), 3]
     ].freeze
 
+    PICK_ASSET_COLUMNS = %w[
+      team_code
+      year
+      round
+      asset_slot
+      sub_asset_slot
+      asset_type
+      is_conditional
+      is_swap
+      origin_team_code
+      counterparty_team_codes
+      via_team_codes
+      description
+      raw_round_text
+      raw_fragment
+      endnote_explanation
+      endnote_trade_date
+      endnote_is_swap
+      endnote_is_conditional
+      refreshed_at
+    ].freeze
+
+    PICK_ASSET_ROWS = [
+      ["BOS", 2028, 1, 1, 1, "TO", true, true, "NYK", "{LAL}", "{PHX}", "2028 first-round pick (top-4 protected)", nil, nil, "Conveys if outside top 4.", "2024-07-06", true, true, Time.current],
+      ["BOS", 2028, 1, 1, 2, "TO", true, false, "", "{MIA}", "{UTA}", "Turns into two seconds if not conveyed", nil, nil, "Roll-over provision.", "2023-06-30", false, true, Time.current]
+    ].freeze
+
     def quote(value)
       case value
       when nil
@@ -92,12 +119,36 @@ class SalaryBookViewsTest < ActionDispatch::IntegrationTest
         return ActiveRecord::Result.new(STANDINGS_COLUMNS, STANDINGS_ROWS)
       end
 
+      if sql.include?("FROM pcms.draft_pick_summary_assets")
+        return ActiveRecord::Result.new(PICK_ASSET_COLUMNS, PICK_ASSET_ROWS)
+      end
+
+      if sql.include?("FROM pcms.teams") && sql.include?("league_lk = 'NBA'")
+        rows = filtered_team_rows(sql)
+        return ActiveRecord::Result.new(%w[team_code team_name conference_name team_id], rows)
+      end
+
       # Salary Book player queries can safely return empty rows for these tests.
       if sql.include?("FROM pcms.salary_book_warehouse sbw")
         return ActiveRecord::Result.new([], [])
       end
 
       ActiveRecord::Result.new([], [])
+    end
+
+    private
+
+    def filtered_team_rows(sql)
+      if (match = sql.match(/team_code\s*=\s*'([A-Z]{3})'/))
+        return TEAM_ROWS.select { |row| row[0] == match[1] }
+      end
+
+      if (match = sql.match(/team_code\s+IN\s*\(([^\)]+)\)/))
+        codes = match[1].scan(/'([A-Z]{3})'/).flatten
+        return TEAM_ROWS.select { |row| codes.include?(row[0]) }
+      end
+
+      TEAM_ROWS
     end
   end
 
@@ -168,6 +219,21 @@ class SalaryBookViewsTest < ActionDispatch::IntegrationTest
       assert_equal "text/html", response.media_type
       assert_includes response.body, 'id="salarybook-team-frame"'
       assert_includes response.body, 'id="rightpanel-base"'
+    end
+  end
+
+  test "sidebar pick endpoint renders ownership and source row sections" do
+    with_fake_connection do
+      get "/salary-book/sidebar/pick", params: { team: "BOS", year: "2028", round: "1", salary_year: "2025" }, headers: modern_headers
+
+      assert_response :success
+      assert_equal "text/html", response.media_type
+      assert_includes response.body, 'id="rightpanel-overlay"'
+      assert_includes response.body, "Open pick page"
+      assert_includes response.body, "Ownership"
+      assert_includes response.body, "Trade history"
+      assert_includes response.body, "Source rows"
+      assert_includes response.body, "Roll-over provision."
     end
   end
 

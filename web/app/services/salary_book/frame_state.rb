@@ -16,33 +16,36 @@ module SalaryBook
       @default_view = default_view
     end
 
-    def build
-      team_code = resolve_required_team_code(params[:team])
-      year = resolve_salary_year(params[:year])
-      view = resolve_view(params[:view])
+    # Returns: { partial: "...", locals: {...} }
+    # Optional overrides let sibling controllers (ex: switch-team) reuse the
+    # exact same frame payload logic without duplicating branch logic.
+    def build(team_code: nil, year: nil, view: nil)
+      resolved_team_code = resolve_required_team_code(team_code || params[:team])
+      resolved_year = resolve_salary_year(year || params[:year])
+      resolved_view = resolve_view(view || params[:view])
 
-      case view
+      case resolved_view
       when "tankathon"
-        build_tankathon_frame_payload(team_code:, year:)
+        build_tankathon_frame_payload(team_code: resolved_team_code, year: resolved_year)
       when "injuries"
-        build_injuries_frame_payload(team_code:, year:)
+        build_injuries_frame_payload(team_code: resolved_team_code, year: resolved_year)
       else
-        build_team_frame_payload(team_code:, year:)
+        build_team_frame_payload(team_code: resolved_team_code, year: resolved_year)
       end
     end
 
-    def fallback(error:)
-      year = resolve_salary_year(params[:year])
-      view = resolve_view(params[:view])
-      team_code = normalize_team_code(params[:team])
+    def fallback(error:, team_code: nil, year: nil, view: nil)
+      resolved_year = resolve_salary_year(year || params[:year])
+      resolved_view = resolve_view(view || params[:view])
+      resolved_team_code = normalize_team_code(team_code || params[:team])
 
-      case view
+      case resolved_view
       when "tankathon"
         {
           partial: "salary_book/maincanvas_tankathon_frame",
           locals: {
-            team_code: team_code,
-            year: year,
+            team_code: resolved_team_code,
+            year: resolved_year,
             standings_rows: [],
             standing_date: nil,
             season_year: nil,
@@ -54,10 +57,10 @@ module SalaryBook
         {
           partial: "salary_book/maincanvas_injuries_frame",
           locals: {
-            team_code: team_code,
+            team_code: resolved_team_code,
             team_codes: [],
             team_meta_by_code: {},
-            year: year,
+            year: resolved_year,
             error_message: error.to_s
           }
         }
@@ -74,7 +77,7 @@ module SalaryBook
             picks: [],
             team_summaries: {},
             team_meta: {},
-            year: year,
+            year: resolved_year,
             salary_years: salary_years,
             empty_message: nil
           }

@@ -2,7 +2,7 @@
 
 This file tracks what is **actually left** after the namespace flattening work.
 
-_Last updated: 2026-02-11_
+_Last updated: 2026-02-11 (controller + helper/presenter extraction pass)_
 
 ---
 
@@ -51,20 +51,58 @@ Query objects/services exist for the key feature areas (`app/queries`, `app/serv
 - `Agencies::IndexWorkspaceState` for index filters/rows/sidebar summary
 - `Agencies::ShowWorkspaceData` for show-page hydration
 
-### ✅ Draft selections index extraction pass
+### ✅ Draft selections extraction pass (index + show/sidebar)
 
-`draft_selections_controller.rb` now delegates index workspace assembly to `DraftSelections::IndexWorkspaceState`, reducing controller-level filter/query/sidebar derivation bloat while keeping existing Datastar behavior and patch IDs unchanged.
+`draft_selections_controller.rb` now delegates to focused query/service units:
 
-### ✅ Team Summary controller extraction pass
+- `DraftSelections::IndexWorkspaceState` for index filters/rows/sidebar summary
+- `DraftSelectionQueries` for SQL access (show/sidebar/redirect seed queries)
+- `DraftSelections::ShowWorkspaceData` for show-page hydration
+- `DraftSelections::SidebarSelectionPayload` for overlay hydration
+
+This removes duplicated SQL across show/sidebar paths while keeping existing Datastar behavior and patch IDs unchanged.
+
+### ✅ Team Summary controller extraction pass (finalized)
 
 `team_summary_controller.rb` now delegates workspace assembly to:
 
 - `TeamSummaryQueries` for SQL access
-- `TeamSummary::WorkspaceState` for filter parsing, compare/step orchestration state, sidebar hydration, and state params
+- `TeamSummary::WorkspaceState` for filter parsing, compare/step orchestration state, sidebar hydration, state params, and boot-error fallback payloads
 
-### ✅ System Values workspace extraction pass
+Controller cleanup completed:
 
-`system_values_controller.rb` now delegates base workspace loading/state params to `SystemValues::WorkspaceState` (while keeping overlay derivation in `SystemValues::WorkspaceDerivedState`).
+- Shared state assignment helper
+- Overlay partial selection centralized
+- Boot error path moved out of controller
+
+### ✅ System Values controller extraction pass (finalized)
+
+`system_values_controller.rb` now delegates to:
+
+- `SystemValues::WorkspaceState` for base workspace loading + boot-error fallback payloads
+- `SystemValues::WorkspaceDerivedState` for overlay derivation, metric-finder state, quick cards, and overlay signals
+
+Controller cleanup completed:
+
+- Shared state assignment helper
+- Overlay partial selection centralized
+- Boot error path moved out of controller
+
+### ✅ Two-Way Utility controller extraction pass
+
+`two_way_utility_controller.rb` now delegates to:
+
+- `TwoWayUtilityQueries` for SQL access
+- `TwoWayUtility::WorkspaceState` for filter parsing/base workspace + boot-error fallback payloads
+- `TwoWayUtility::OverlayState` for sidebar/overlay hydration and refresh overlay visibility resolution
+
+### ✅ Drafts controller extraction pass
+
+`drafts_controller.rb` now delegates to:
+
+- `Drafts::IndexWorkspaceState` for index filters/results/sidebar summary
+- `Drafts::OverlayState` for initial overlay hydration from URL state and visibility checks
+- `DraftQueries` for sidebar payload fetches
 
 ### ✅ Salary Book controller extraction pass
 
@@ -78,12 +116,36 @@ Query objects/services exist for the key feature areas (`app/queries`, `app/serv
 
 Additional cleanup:
 
-- Added query delegation from controller to `SalaryBookQueries` so `SalaryBookSwitchController` can safely reuse shared query calls.
+- `SalaryBookSwitchController` now reuses `FrameState` + `TeamSidebarState` directly (removing duplicated frame/sidebar branch logic).
+- Added `app/services/salary_book/README.md` documenting action→service boundaries for future agents.
+- Added query delegation from controller to `SalaryBookQueries` so inherited/sibling controllers can safely reuse shared query calls.
 - Updated Salary Book integration tests to current URLs (`/salary-book*`) and added switch-team patch-payload coverage.
 
 ### ✅ Baseline integration tests exist
 
 `test/integration/` now has broad coverage across major surfaces (entities + tools), instead of only a single model test.
+
+### ✅ Salary Book helper split + presenter foundation
+
+`salary_book_helper.rb` was decomposed into focused helper modules under `app/helpers/salary_book/*`:
+
+- `SalaryBook::FormattingHelper`
+- `SalaryBook::ContractsHelper`
+- `SalaryBook::PercentileHelper`
+- `SalaryBook::AssetsHelper`
+
+A presenter layer was added for sidebar-heavy rendering paths:
+
+- `SalaryBook::PlayerSidebarPresenter`
+- `SalaryBook::AgentSidebarPresenter`
+- `SalaryBook::PickSidebarPresenter`
+
+Sidebar partials now use presenter-backed precomputed state for header/contract chips/marker/ownership logic, reducing embedded view logic while preserving current Datastar IDs and routes.
+
+Additional partial decomposition landed for pick sidebar:
+
+- `_sidebar_pick.html.erb` reduced to section orchestration
+- extracted `_sidebar_pick_ownership.html.erb`, `_sidebar_pick_source_rows.html.erb`, `_sidebar_pick_text_block.html.erb`
 
 ---
 
@@ -95,11 +157,6 @@ Controllers still over target size:
 
 | Controller | LOC |
 |---|---:|
-| `draft_selections_controller.rb` | 336 |
-| `system_values_controller.rb` | 279 |
-| `two_way_utility_controller.rb` | 247 |
-| `drafts_controller.rb` | 238 |
-| `team_summary_controller.rb` | 217 |
 | `agents_controller.rb` | 217 |
 | `teams_controller.rb` | 215 |
 | `draft_picks_controller.rb` | 213 |
@@ -115,23 +172,23 @@ Target:
 
 Current helper sizes:
 
-- `app/helpers/salary_book_helper.rb` ~805 LOC
+- `app/helpers/salary_book_helper.rb` ~16 LOC (entrypoint)
+- `app/helpers/salary_book/*.rb` ~775 LOC (split by concern)
 - `app/helpers/entities_helper.rb` ~336 LOC
 
 Action:
 
-- Extract presenter/view-model objects for sidebar-heavy rendering
-- Split helper responsibilities by concern (`formatting`, `badges`, `rows`, etc.)
+- Continue moving sidebar-heavy conditional/render-prep logic into presenters/view-models
+- Keep helper modules as formatting/primitives, not workflow assembly
 
 ## 3) Partial decomposition (large ERB files)
 
 Largest files still need decomposition:
 
-- `salary_book/_sidebar_player.html.erb` (550)
-- `salary_book/_sidebar_agent.html.erb` (427)
+- `salary_book/_sidebar_player.html.erb` (418)
 - `players/_workspace_main.html.erb` (381)
 - `salary_book/show.html.erb` (362)
-- `salary_book/_sidebar_pick.html.erb` (361)
+- `salary_book/_sidebar_agent.html.erb` (358)
 - `teams/_workspace_main.html.erb` (352)
 
 Target:
@@ -174,25 +231,31 @@ Optional cleanup:
 
 ### Phase A — Controller extraction pass
 
-Focus in order:
+Remaining focus:
 
-1. `draft_selections_controller.rb` (show/sidebar extraction remains)
-2. `system_values_controller.rb` (final extraction + error-path cleanup)
-3. `two_way_utility_controller.rb`
-4. `drafts_controller.rb`
-5. `team_summary_controller.rb` (final extraction + error-path cleanup)
+1. `agents_controller.rb`
+2. `teams_controller.rb`
+3. `draft_picks_controller.rb`
+4. `agencies_controller.rb` cleanup pass
 
-(`salary_book_controller.rb` and `agencies_controller.rb` extraction passes completed.)
+(`system_values_controller.rb`, `two_way_utility_controller.rb`, `drafts_controller.rb`, `team_summary_controller.rb`, `salary_book_controller.rb`, and `draft_selections_controller.rb` extraction passes completed.)
 
-Gate: no controller >400 LOC; top 3 materially reduced. ✅ (current max: `draft_selections_controller.rb` at 336 LOC)
+Gate: no controller >400 LOC; top controllers materially reduced. ✅ (current max: `agents_controller.rb` at 217 LOC)
 
-### Phase B — Sidebar presenter extraction
+### Phase B — Sidebar presenter extraction (in progress)
+
+Completed:
 
 - `PlayerSidebarPresenter`
 - `AgentSidebarPresenter`
-- helper split for `salary_book_helper`
+- helper split for `salary_book_helper` into `app/helpers/salary_book/*`
 
-Gate: `salary_book_helper.rb` reduced substantially (<300 first checkpoint).
+Remaining:
+
+- push more row-level/section assembly out of ERB into presenters
+- continue decomposing `_sidebar_player` and `_sidebar_agent` into section partials
+
+Gate: helper split landed; continue reducing oversized sidebar partials.
 
 ### Phase C — Partial decomposition + shared row library
 

@@ -1,0 +1,8 @@
+<div class="border-t border-border pt-4 space-y-2">
+  <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground"><%= title %></div>
+  <div class="space-y-1.5">
+    <% rows.each do |text| %>
+      <p class="text-sm leading-snug <%= row_text_class %>"><%= text %></p>
+    <% end %>
+  </div>
+</div>

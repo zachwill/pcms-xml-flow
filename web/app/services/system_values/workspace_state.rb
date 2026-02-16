@@ -50,38 +50,30 @@ module SystemValues
       @baseline_rookie_scale_rows = queries.fetch_rookie_scale_amounts(@baseline_year, @baseline_year) if @baseline_rookie_scale_rows.empty?
 
       resolve_section_visibility!
+      build_state_payload(boot_error: nil)
+    end
 
-      @state_params = {
-        year: @selected_year,
-        baseline_year: @baseline_year,
-        from_year: @from_year,
-        to_year: @to_year
-      }.merge(visibility_state_params)
+    def fallback(error:)
+      @available_years = []
+      @selected_year = current_salary_year
+      @baseline_year = current_salary_year
+      @from_year = current_salary_year
+      @to_year = current_salary_year
+      @league_system_values = []
+      @league_tax_rates = []
+      @league_salary_scales = []
+      @rookie_scale_amounts = []
+      @selected_system_values_row = nil
+      @baseline_system_values_row = nil
+      @selected_tax_rate_rows = []
+      @baseline_tax_rate_rows = []
+      @selected_salary_scale_rows = []
+      @baseline_salary_scale_rows = []
+      @selected_rookie_scale_rows = []
+      @baseline_rookie_scale_rows = []
 
-      {
-        available_years: @available_years,
-        selected_year: @selected_year,
-        baseline_year: @baseline_year,
-        from_year: @from_year,
-        to_year: @to_year,
-        league_system_values: @league_system_values,
-        league_tax_rates: @league_tax_rates,
-        league_salary_scales: @league_salary_scales,
-        rookie_scale_amounts: @rookie_scale_amounts,
-        selected_system_values_row: @selected_system_values_row,
-        baseline_system_values_row: @baseline_system_values_row,
-        selected_tax_rate_rows: @selected_tax_rate_rows,
-        baseline_tax_rate_rows: @baseline_tax_rate_rows,
-        selected_salary_scale_rows: @selected_salary_scale_rows,
-        baseline_salary_scale_rows: @baseline_salary_scale_rows,
-        selected_rookie_scale_rows: @selected_rookie_scale_rows,
-        baseline_rookie_scale_rows: @baseline_rookie_scale_rows,
-        show_system_values: @show_system_values,
-        show_tax_rates: @show_tax_rates,
-        show_salary_scales: @show_salary_scales,
-        show_rookie_scales: @show_rookie_scales,
-        state_params: @state_params
-      }
+      resolve_section_visibility!
+      build_state_payload(boot_error: error.to_s)
     end
 
     private
@@ -147,6 +139,41 @@ module SystemValues
       @show_tax_rates = parse_visibility_param(params[section_visibility_param_definitions.fetch(:showtaxrates)])
       @show_salary_scales = parse_visibility_param(params[section_visibility_param_definitions.fetch(:showsalaryscales)])
       @show_rookie_scales = parse_visibility_param(params[section_visibility_param_definitions.fetch(:showrookiescales)])
+    end
+
+    def build_state_payload(boot_error:)
+      @state_params = {
+        year: @selected_year,
+        baseline_year: @baseline_year,
+        from_year: @from_year,
+        to_year: @to_year
+      }.merge(visibility_state_params)
+
+      {
+        boot_error: boot_error,
+        available_years: @available_years,
+        selected_year: @selected_year,
+        baseline_year: @baseline_year,
+        from_year: @from_year,
+        to_year: @to_year,
+        league_system_values: @league_system_values,
+        league_tax_rates: @league_tax_rates,
+        league_salary_scales: @league_salary_scales,
+        rookie_scale_amounts: @rookie_scale_amounts,
+        selected_system_values_row: @selected_system_values_row,
+        baseline_system_values_row: @baseline_system_values_row,
+        selected_tax_rate_rows: @selected_tax_rate_rows,
+        baseline_tax_rate_rows: @baseline_tax_rate_rows,
+        selected_salary_scale_rows: @selected_salary_scale_rows,
+        baseline_salary_scale_rows: @baseline_salary_scale_rows,
+        selected_rookie_scale_rows: @selected_rookie_scale_rows,
+        baseline_rookie_scale_rows: @baseline_rookie_scale_rows,
+        show_system_values: @show_system_values,
+        show_tax_rates: @show_tax_rates,
+        show_salary_scales: @show_salary_scales,
+        show_rookie_scales: @show_rookie_scales,
+        state_params: @state_params
+      }
     end
 
     def parse_visibility_param(value)

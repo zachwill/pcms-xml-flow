@@ -7,120 +7,56 @@
   NOTE: Root id must remain stable for Datastar morphing.
 %>
 
-<% salary_years = SalaryBookHelper::SALARY_YEARS %>
-<% compact = ->(v) { format_salary(v) } %>
-
-<% agent_id = agent["agent_id"] %>
-<% agent_name = agent["name"] %>
-<% agency_name = agent["agency_name"] %>
-<% rollup ||= {} %>
-<% sidebar_back_button_partial = local_assigns.fetch(:sidebar_back_button_partial, "salary_book/sidebar_back_button") %>
-<% sidebar_back_button_locals = local_assigns.fetch(:sidebar_back_button_locals, {}) %>
-
 <%
-  initials = agent_initials(agent_name)
+  rollup ||= {}
+  sidebar_back_button_partial = local_assigns.fetch(:sidebar_back_button_partial, "salary_book/sidebar_back_button")
+  sidebar_back_button_locals = local_assigns.fetch(:sidebar_back_button_locals, {})
 
-  total_count = rollup["total_count"].to_i
-  standard_count = rollup["standard_count"].to_i
-  two_way_count = rollup["two_way_count"].to_i
-  team_count = rollup["team_count"].to_i
+  presenter = SalaryBook::AgentSidebarPresenter.new(agent: agent, rollup: rollup, helpers: self)
+  sidebar = presenter.state
 
-  book_2025 = rollup["book_2025"].to_i
-  book_2026 = rollup["book_2026"].to_i
-  book_2027 = rollup["book_2027"].to_i
+  salary_years = sidebar.fetch(:salary_years)
+  compact = sidebar.fetch(:compact)
 
-  rookie_scale_count = rollup["rookie_scale_count"].to_i
-  min_contract_count = rollup["min_contract_count"].to_i
-  max_contract_count = rollup["max_contract_count"].to_i
-  no_trade_count = rollup["no_trade_count"].to_i
-  trade_kicker_count = rollup["trade_kicker_count"].to_i
-  trade_restricted_count = rollup["trade_restricted_count"].to_i
+  agent_id = sidebar.fetch(:agent_id)
+  agent_name = sidebar.fetch(:agent_name)
+  agency_name = sidebar.fetch(:agency_name)
+  initials = sidebar.fetch(:initials)
 
-  expiring_2025 = rollup["expiring_2025"].to_i
-  total_expiring = expiring_2025
+  total_count = sidebar.fetch(:total_count)
+  standard_count = sidebar.fetch(:standard_count)
+  two_way_count = sidebar.fetch(:two_way_count)
+  team_count = sidebar.fetch(:team_count)
 
-  player_option_count = rollup["player_option_count"].to_i
-  team_option_count = rollup["team_option_count"].to_i
-  prior_year_nba_now_free_agent_count = rollup["prior_year_nba_now_free_agent_count"].to_i
+  book_2025 = sidebar.fetch(:book_2025)
+  book_2026 = sidebar.fetch(:book_2026)
+  book_2027 = sidebar.fetch(:book_2027)
 
-  book_2025_percentile = rollup["cap_2025_total_percentile"]
-  book_2026_percentile = rollup["cap_2026_total_percentile"]
-  book_2027_percentile = rollup["cap_2027_total_percentile"]
-  client_count_percentile = rollup["client_count_percentile"]
-  team_count_percentile = rollup["team_count_percentile"]
-  standard_count_percentile = rollup["standard_count_percentile"]
-  two_way_count_percentile = rollup["two_way_count_percentile"]
+  rookie_scale_count = sidebar.fetch(:rookie_scale_count)
+  min_contract_count = sidebar.fetch(:min_contract_count)
+  max_contract_count = sidebar.fetch(:max_contract_count)
+  no_trade_count = sidebar.fetch(:no_trade_count)
+  trade_kicker_count = sidebar.fetch(:trade_kicker_count)
+  trade_restricted_count = sidebar.fetch(:trade_restricted_count)
 
-  client_row_name = ->(c) {
-    last = c["display_last_name"].to_s.strip
-    first = c["display_first_name"].to_s.strip
+  expiring_2025 = sidebar.fetch(:expiring_2025)
+  total_expiring = sidebar.fetch(:total_expiring)
 
-    return "#{last}, #{first}" if last.present? && first.present?
-    return last if last.present?
-    return first if first.present?
+  player_option_count = sidebar.fetch(:player_option_count)
+  team_option_count = sidebar.fetch(:team_option_count)
+  prior_year_nba_now_free_agent_count = sidebar.fetch(:prior_year_nba_now_free_agent_count)
 
-    c["player_name"].to_s
-  }
+  book_2025_percentile = sidebar.fetch(:book_2025_percentile)
+  book_2026_percentile = sidebar.fetch(:book_2026_percentile)
+  book_2027_percentile = sidebar.fetch(:book_2027_percentile)
+  client_count_percentile = sidebar.fetch(:client_count_percentile)
+  team_count_percentile = sidebar.fetch(:team_count_percentile)
+  standard_count_percentile = sidebar.fetch(:standard_count_percentile)
+  two_way_count_percentile = sidebar.fetch(:two_way_count_percentile)
 
-  short_year = ->(y) { y.to_i.to_s[-2..] }
-
-  # Next contract inflection marker shown in the row meta line
-  # (e.g., "7 YOS · FA 26", "4 YOS · PO 28").
-  #
-  # Priority rules:
-  # 1) Earliest year wins
-  # 2) For the same year: option > non-guaranteed > free agency
-  next_contract_marker = ->(c) {
-    return nil if c["is_two_way"]
-
-    markers = []
-
-    salary_years.drop(1).each do |y|
-      option = normalize_contract_option(c["option_#{y}"])
-      if option.present?
-        option_classes = case option
-        when "PO"
-          "text-blue-600 dark:text-blue-400"
-        when "TO"
-          "text-purple-600 dark:text-purple-400"
-        when "ETO"
-          "text-orange-600 dark:text-orange-400"
-        end
-
-        if option_classes.present?
-          markers << {
-            year: y,
-            priority: 1,
-            label: "#{option} #{short_year.call(y)}",
-            classes: option_classes
-          }
-        end
-      end
-
-      if c["is_non_guaranteed_#{y}"] && c["cap_#{y}"].to_f > 0
-        markers << {
-          year: y,
-          priority: 2,
-          label: "NG #{short_year.call(y)}",
-          classes: "text-amber-600 dark:text-amber-400"
-        }
-      end
-    end
-
-    salary_years.each_cons(2) do |y, y_next|
-      next unless c["cap_#{y}"].to_f > 0 && c["cap_#{y_next}"].to_f == 0
-
-      markers << {
-        year: y_next,
-        priority: 3,
-        label: "FA #{short_year.call(y_next)}",
-        classes: (y_next == salary_years[1] ? "text-red-600 dark:text-red-400" : "text-muted-foreground")
-      }
-      break
-    end
-
-    markers.min_by { |m| [m[:year], m[:priority]] }
-  }
+  has_options = sidebar.fetch(:has_options)
+  has_restrictions = sidebar.fetch(:has_restrictions)
+  has_prior_year_now_fa = sidebar.fetch(:has_prior_year_now_fa)
 %>
 
 <div id="rightpanel-overlay" class="h-full">
@@ -243,9 +179,6 @@
     </div>
 
     <%# ── Upcoming events + flags ── %>
-    <% has_options = player_option_count > 0 || team_option_count > 0 %>
-    <% has_restrictions = no_trade_count > 0 || trade_kicker_count > 0 || trade_restricted_count > 0 %>
-    <% has_prior_year_now_fa = prior_year_nba_now_free_agent_count > 0 %>
     <% if total_expiring > 0 || has_options || has_restrictions || has_prior_year_now_fa %>
       <div class="border-t border-border pt-4 space-y-2">
         <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Upcoming</div>
@@ -316,7 +249,7 @@
               team_id = client["team_id"]
               team_name = client["team_name"] || team_code
 
-              row_name = client_row_name.call(client)
+              row_name = presenter.client_row_name(client)
 
               yos_label = player_years_of_service_display(client)
 
@@ -324,7 +257,7 @@
 
               logo_url = team_logo_url(team_id)
 
-              contract_marker = next_contract_marker.call(client)
+              contract_marker = presenter.next_contract_marker(client)
             %>
 
             <button
@@ -403,9 +336,7 @@
                     <div class="tabular-nums text-sm font-medium whitespace-nowrap"><%= compact.call(current_salary) %></div>
                   </div>
                   <div class="h-[18px] -mt-px flex items-start justify-end">
-                    <%
-                      total_value = salary_years.sum { |y| client["cap_#{y}"].to_f }
-                    %>
+                    <% total_value = presenter.total_contract_value(client) %>
                     <div class="text-[10px] leading-none tabular-nums whitespace-nowrap text-muted-foreground"><%= compact.call(total_value) %> total</div>
                   </div>
                 <% else %>

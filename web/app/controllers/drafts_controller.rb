@@ -9,7 +9,7 @@ class DraftsController < ApplicationController
   # and pick grid (team × year × round ownership matrix).
   def index
     load_index_state!
-    hydrate_initial_overlay_from_params!
+    assign_state!(overlay_state.initial_overlay_state)
     render :index
   end
 
@@ -34,7 +34,7 @@ class DraftsController < ApplicationController
     raise ActiveRecord::RecordNotFound if team_code.blank? || year.nil? || round.nil?
 
     render partial: "drafts/rightpanel_overlay_pick", locals: load_sidebar_pick_payload(
-      team_code:,
+      team_code: team_code,
       draft_year: year,
       draft_round: round
     )
@@ -42,12 +42,8 @@ class DraftsController < ApplicationController
 
   # GET /drafts/sidebar/selection/:id
   def sidebar_selection
-    transaction_id = Integer(params[:id])
-    raise ActiveRecord::RecordNotFound if transaction_id <= 0
-
+    transaction_id = normalize_required_id!(params[:id])
     render partial: "drafts/rightpanel_overlay_selection", locals: load_sidebar_selection_payload(transaction_id)
-  rescue ArgumentError
-    raise ActiveRecord::RecordNotFound
   end
 
   # GET /drafts/sidebar/clear
@@ -57,27 +53,41 @@ class DraftsController < ApplicationController
 
   private
 
-  def queries
-    @queries ||= ::DraftQueries.new(connection: ActiveRecord::Base.connection)
-  end
-
-  def load_index_state!
-    state = ::Drafts::IndexWorkspaceState.new(
-      params: params,
-      queries: queries,
-      index_views: INDEX_VIEWS,
-      index_rounds: INDEX_ROUNDS,
-      index_sorts: INDEX_SORTS,
-      index_lenses: INDEX_LENSES
-    ).build
-
+  def assign_state!(state)
     state.each do |key, value|
       instance_variable_set("@#{key}", value)
     end
   end
 
+  def queries
+    @queries ||= ::DraftQueries.new(connection: ActiveRecord::Base.connection)
+  end
+
+  def overlay_state
+    ::Drafts::OverlayState.new(
+      params: params,
+      view: @view,
+      results: @results,
+      grid_data: @grid_data,
+      queries: queries
+    )
+  end
+
+  def load_index_state!
+    assign_state!(
+      ::Drafts::IndexWorkspaceState.new(
+        params: params,
+        queries: queries,
+        index_views: INDEX_VIEWS,
+        index_rounds: INDEX_ROUNDS,
+        index_sorts: INDEX_SORTS,
+        index_lenses: INDEX_LENSES
+      ).build
+    )
+  end
+
   def load_sidebar_pick_payload(team_code:, draft_year:, draft_round:)
-    payload = queries.fetch_sidebar_pick_payload(team_code:, draft_year:, draft_round:)
+    payload = queries.fetch_sidebar_pick_payload(team_code: team_code, draft_year: draft_year, draft_round: draft_round)
     raise ActiveRecord::RecordNotFound unless payload
 
     payload
@@ -90,125 +100,13 @@ class DraftsController < ApplicationController
     payload
   end
 
-  def hydrate_initial_overlay_from_params!
-    @initial_overlay_type = "none"
-    @initial_overlay_key = ""
-    @initial_overlay_partial = nil
-    @initial_overlay_locals = {}
+  def normalize_required_id!(raw)
+    id = Integer(raw.to_s.strip, 10)
+    raise ActiveRecord::RecordNotFound unless id.positive?
 
-    context = requested_overlay_context
-    return if context.blank?
-    return unless selected_overlay_visible?(context: context)
-
-    case context[:type]
-    when "pick"
-      @initial_overlay_partial = "drafts/rightpanel_overlay_pick"
-      @initial_overlay_locals = load_sidebar_pick_payload(
-        team_code: context[:team_code],
-        draft_year: context[:draft_year],
-        draft_round: context[:draft_round]
-      )
-      @initial_overlay_type = "pick"
-      @initial_overlay_key = overlay_key_for_pick(
-        team_code: context[:team_code],
-        draft_year: context[:draft_year],
-        draft_round: context[:draft_round]
-      )
-    when "selection"
-      transaction_id = context[:transaction_id].to_i
-      @initial_overlay_partial = "drafts/rightpanel_overlay_selection"
-      @initial_overlay_locals = load_sidebar_selection_payload(transaction_id)
-      @initial_overlay_type = "selection"
-      @initial_overlay_key = "selection-#{transaction_id}"
-    end
-  rescue ActiveRecord::RecordNotFound
-    @initial_overlay_type = "none"
-    @initial_overlay_key = ""
-    @initial_overlay_partial = nil
-    @initial_overlay_locals = {}
-  end
-
-  def requested_overlay_context
-    overlay_type = params[:selected_type].to_s.strip.downcase
-    overlay_key = params[:selected_key].to_s.strip
-
-    case overlay_type
-    when "pick"
-      parse_pick_overlay_key(overlay_key)
-    when "selection"
-      parse_selection_overlay_key(overlay_key)
-    else
-      nil
-    end
-  end
-
-  def selected_overlay_visible?(context:)
-    return false if context.blank?
-
-    case context[:type]
-    when "pick"
-      return false unless %w[picks grid].include?(@view)
-
-      selected_pick_visible?(
-        team_code: context[:team_code],
-        draft_year: context[:draft_year],
-        draft_round: context[:draft_round]
-      )
-    when "selection"
-      return false unless @view == "selections"
-
-      Array(@results).any? { |row| row["transaction_id"].to_i == context[:transaction_id].to_i }
-    else
-      false
-    end
-  end
-
-  def overlay_key_for_pick(team_code:, draft_year:, draft_round:)
-    key_prefix = @view == "grid" ? "grid" : "pick"
-    "#{key_prefix}-#{team_code}-#{draft_year}-#{draft_round}"
-  end
-
-  def parse_pick_overlay_key(raw_key)
-    match = raw_key.match(/\A(?:pick|grid)-([A-Za-z]{3})-(\d{4})-(\d+)\z/)
-    return nil unless match
-
-    team_code = match[1].to_s.upcase
-    draft_year = match[2].to_i
-    draft_round = match[3].to_i
-
-    return nil if team_code.blank? || draft_year <= 0 || draft_round <= 0
-
-    {
-      type: "pick",
-      team_code:,
-      draft_year:,
-      draft_round:
-    }
-  end
-
-  def parse_selection_overlay_key(raw_key)
-    match = raw_key.match(/\Aselection-(\d+)\z/)
-    return nil unless match
-
-    transaction_id = match[1].to_i
-    return nil if transaction_id <= 0
-
-    {
-      type: "selection",
-      transaction_id:
-    }
-  end
-
-  def selected_pick_visible?(team_code:, draft_year:, draft_round:)
-    if @view == "grid"
-      @grid_data.dig(team_code, draft_round.to_i, draft_year.to_i).present?
-    else
-      Array(@results).any? do |row|
-        row["original_team_code"].to_s.upcase == team_code.to_s.upcase &&
-          row["draft_year"].to_i == draft_year.to_i &&
-          row["draft_round"].to_i == draft_round.to_i
-      end
-    end
+    id
+  rescue ArgumentError, TypeError
+    raise ActiveRecord::RecordNotFound
   end
 
   def normalize_team_code_param(raw)

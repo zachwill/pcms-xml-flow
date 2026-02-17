@@ -12,6 +12,7 @@
 \ir 066_agents_and_agencies_warehouse_assertions.sql
 \ir 071_representation_nonzero_percentiles_assertions.sql
 \ir 067_team_salary_percentiles_assertions.sql
+\ir 077_team_salary_two_way_count_assertions.sql
 \ir 072_dead_money_warehouse_assertions.sql
 \ir 073_salary_book_two_way_overlay_assertions.sql
 \ir 074_salary_book_team_assignment_assertions.sql
@@ -39,6 +40,7 @@
 \ir 060_draft_pick_summary_assets_assertions.sql
 \ir 052_player_rights_warehouse_assertions.sql
 \ir 075_player_rights_trade_direction_assertions.sql
+\ir 076_player_rights_overrides_assertions.sql
 \ir 059_draft_pick_shorthand_assets_assertions.sql
 \ir 062_draft_pick_assets_views_assertions.sql
 \ir 063_draft_pick_assets_display_text_direction_assertions.sql

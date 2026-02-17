@@ -103,29 +103,13 @@ when :warning then "text-orange-700/90 dark:text-orange-300/90"
 else "text-muted-foreground/80"
 end %>
 
-<% last_game_top = "—" %>
-<% last_game_bottom = "" %>
-<% if player["last_game_date_est"].present? %>
-  <% begin %>
-    <% last_game_date = Date.parse(player["last_game_date_est"].to_s) %>
-    <% last_game_top = last_game_date.strftime("%b %d") %>
-    <% last_game_bottom = last_game_date.strftime("%Y") %>
-  <% rescue ArgumentError %>
-    <% last_game_top = format_date_short(player["last_game_date_est"]) || "—" %>
-  <% end %>
-<% end %>
+<% last_game_top, last_game_bottom = format_date_with_days_ago(player["last_game_date_est"]) %>
+<% last_game_top ||= "—" %>
+<% last_game_bottom ||= "" %>
 
-<% signing_top = "—" %>
-<% signing_bottom = "" %>
-<% if player["signing_date"].present? %>
-  <% begin %>
-    <% signing_date = Date.parse(player["signing_date"].to_s) %>
-    <% signing_top = signing_date.strftime("%b %d") %>
-    <% signing_bottom = signing_date.strftime("%Y") %>
-  <% rescue ArgumentError %>
-    <% signing_top = format_date_short(player["signing_date"]) || "—" %>
-  <% end %>
-<% end %>
+<% signing_top, signing_bottom = format_date_with_days_ago(player["signing_date"]) %>
+<% signing_top ||= "—" %>
+<% signing_bottom ||= "" %>
 
 <% open_expr = "$overlaytype = 'player'; $overlayid = '#{player_id}'; @get('/two-way-utility/sidebar/#{player_id}?#{state_query}')" %>
 
@@ -289,26 +273,26 @@ end %>
 
   <div class="w-28 shrink-0 flex flex-col">
     <div class="h-[24px] flex items-end justify-center">
-      <span class="inline-block font-mono tabular-nums text-right <%= last_game_top == '—' ? 'text-muted-foreground/50' : 'text-foreground' %>" style="width: 8ch"><%= last_game_top %></span>
+      <span class="inline-block -translate-y-px text-[11px] leading-tight whitespace-nowrap text-center <%= last_game_top == '—' ? 'text-muted-foreground/50' : 'text-foreground' %>"><%= last_game_top %></span>
     </div>
     <div class="h-[16px] -mt-px flex items-start justify-center">
       <% if last_game_bottom.present? %>
         <span class="text-[10px] leading-none tabular-nums whitespace-nowrap text-muted-foreground/80"><%= last_game_bottom %></span>
       <% else %>
-        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap opacity-0">0000</span>
+        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap opacity-0">00 days ago</span>
       <% end %>
     </div>
   </div>
 
   <div class="w-28 shrink-0 flex flex-col">
     <div class="h-[24px] flex items-end justify-center">
-      <span class="inline-block font-mono tabular-nums text-right <%= signing_top == '—' ? 'text-muted-foreground/50' : 'text-foreground' %>" style="width: 8ch"><%= signing_top %></span>
+      <span class="inline-block -translate-y-px text-[11px] leading-tight whitespace-nowrap text-center <%= signing_top == '—' ? 'text-muted-foreground/50' : 'text-foreground' %>"><%= signing_top %></span>
     </div>
     <div class="h-[16px] -mt-px flex items-start justify-center">
       <% if signing_bottom.present? %>
         <span class="text-[10px] leading-none tabular-nums whitespace-nowrap text-muted-foreground/80"><%= signing_bottom %></span>
       <% else %>
-        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap opacity-0">0000</span>
+        <span class="text-[10px] leading-none tabular-nums whitespace-nowrap opacity-0">00 days ago</span>
       <% end %>
     </div>
   </div>

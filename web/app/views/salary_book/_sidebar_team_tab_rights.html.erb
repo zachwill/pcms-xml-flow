@@ -1,6 +1,11 @@
 <% rights_by_kind ||= {} %>
 <% rights_loaded = local_assigns.fetch(:rights_loaded, true) %>
 <%
+  if rights_loaded
+    rights_player_ids = rights_by_kind.values.flatten.filter_map { |row| row["player_id"] }
+    prefetch_canonical_slugs(entity_type: "player", entity_ids: rights_player_ids)
+  end
+
   kind_label = ->(kind) {
     case kind.to_s
     when "NBA_DRAFT_RIGHTS"

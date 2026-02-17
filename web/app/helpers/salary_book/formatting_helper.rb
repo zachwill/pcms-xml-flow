@@ -90,9 +90,34 @@ module SalaryBook
       return nil unless value.present?
 
       parsed = value.is_a?(Date) ? value : Date.parse(value.to_s)
-      parsed.strftime("%b %d, %Y")
+      "#{parsed.strftime('%b')} #{parsed.day}, #{parsed.year}"
     rescue ArgumentError
       value.to_s
+    end
+
+    # Date formatter for compact table cells:
+    # - line 1: "Feb 17, 2026"
+    # - line 2: "3 days ago" (or "Today", "in 2 days")
+    def format_date_with_days_ago(value, today: Date.current)
+      return [nil, nil] unless value.present?
+
+      parsed = value.is_a?(Date) ? value : Date.parse(value.to_s)
+      formatted = "#{parsed.strftime('%b')} #{parsed.day}, #{parsed.year}"
+      [formatted, days_ago_label(parsed, today: today)]
+    rescue ArgumentError
+      [value.to_s, nil]
+    end
+
+    def days_ago_label(date, today: Date.current)
+      delta_days = (today - date).to_i
+      return "Today" if delta_days.zero?
+      return "1 day ago" if delta_days == 1
+      return "#{delta_days} days ago" if delta_days.positive?
+
+      future_days = delta_days.abs
+      return "Tomorrow" if future_days == 1
+
+      "in #{future_days} days"
     end
 
     # Format room amounts with +/- sign (e.g., +5.2M, -3.8M)

@@ -4,13 +4,14 @@
       No trades found for this time period and filters.
     </div>
   <% else %>
+    <% headshot_fallback = fallback_headshot_data_uri %>
     <div id="trades-board" class="min-w-[92rem] border-y border-border bg-background">
       <div id="trades-flex-header" class="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90">
           <div class="flex items-center h-8 px-3 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
             <div class="w-28 shrink-0">When</div>
             <div class="w-40 shrink-0">Deal</div>
             <div class="w-[30rem] shrink-0">Team impact (OUT / IN)</div>
-            <div class="w-40 shrink-0">Assets</div>
+            <div class="w-44 shrink-0">Assets</div>
             <div class="w-40 shrink-0">Composition</div>
             <div class="w-[14rem] shrink-0">Notes</div>
           </div>
@@ -24,6 +25,8 @@
             <% composition_labels = Array(trade["composition_labels"]) %>
             <% primary_impacts = Array(trade["primary_team_impacts"]) %>
             <% additional_impact_count = trade["additional_team_impact_count"].to_i %>
+            <% player_previews = Array(trade["player_previews"]) %>
+            <% additional_player_preview_count = trade["additional_player_preview_count"].to_i %>
 
             <div
               class="group cursor-pointer hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
@@ -69,9 +72,28 @@
                            when :net_out then "entity-chip entity-chip--danger"
                            else "entity-chip entity-chip--muted"
                            end %>
+                        <% team_code = impact["team_code"].presence || "—" %>
+                        <% team_logo = impact["team_id"].present? ? team_logo_url(impact["team_id"]) : nil %>
                         <div class="min-w-[13.5rem] flex-1 rounded border border-border/70 bg-muted/20 px-2 py-1">
                           <div class="flex items-center justify-between gap-2 text-[10px] leading-none">
-                            <a href="<%= team_href(team_code: impact['team_code'], team_id: impact['team_id']) %>" class="font-semibold tabular-nums hover:underline" onclick="event.stopPropagation()"><%= impact["team_code"].presence || "—" %></a>
+                            <a href="<%= team_href(team_code: impact['team_code'], team_id: impact['team_id']) %>" class="min-w-0 inline-flex items-center gap-1.5 font-semibold tabular-nums hover:underline" onclick="event.stopPropagation()">
+                              <span class="w-4 h-4 rounded border border-border bg-background overflow-hidden flex items-center justify-center shrink-0">
+                                <% if team_logo.present? %>
+                                  <img
+                                    src="<%= team_logo %>"
+                                    alt="<%= team_code %>"
+                                    class="w-full h-full object-contain"
+                                    loading="lazy"
+                                    decoding="async"
+                                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                                  />
+                                  <span class="hidden text-[8px] font-mono text-muted-foreground"><%= team_code %></span>
+                                <% else %>
+                                  <span class="text-[8px] font-mono text-muted-foreground"><%= team_code %></span>
+                                <% end %>
+                              </span>
+                              <span class="truncate"><%= team_code %></span>
+                            </a>
                             <span class="<%= net_chip_class %>"><%= trade_impact_net_label(impact) %></span>
                           </div>
                           <div class="mt-1 text-[10px] leading-none tabular-nums flex items-center gap-1 min-w-0 overflow-hidden">
@@ -91,15 +113,50 @@
                   <% end %>
                 </div>
 
-                <div class="w-40 shrink-0 pr-2">
+                <div class="w-44 shrink-0 pr-2">
                   <div class="entity-cell-two-line">
-                    <div class="entity-cell-primary justify-start gap-1.5">
+                    <div class="entity-cell-primary justify-start gap-1.5 min-w-0">
+                      <% if player_previews.any? %>
+                        <div class="flex items-center -space-x-1 shrink-0">
+                          <% player_previews.each do |preview| %>
+                            <% player_id = preview["player_id"].to_i %>
+                            <% player_name = preview["player_name"].presence || (player_id.positive? ? "Player ##{player_id}" : "Player") %>
+                            <% player_href_value = player_id.positive? ? player_href(player_id) : "#" %>
+                            <a
+                              href="<%= player_href_value %>"
+                              class="w-5 h-5 rounded-full border border-border bg-background overflow-hidden flex items-center justify-center"
+                              title="<%= player_name %>"
+                              onclick="event.stopPropagation()"
+                            >
+                              <% if player_id.positive? %>
+                                <img
+                                  src="<%= player_headshot_url(player_id) %>"
+                                  alt="<%= player_name %>"
+                                  class="w-full h-full object-cover object-top"
+                                  loading="lazy"
+                                  decoding="async"
+                                  onerror="if (this.src !== '<%= headshot_fallback %>') { this.src = '<%= headshot_fallback %>'; }"
+                                />
+                              <% else %>
+                                <span class="text-[8px] font-semibold text-muted-foreground">NBA</span>
+                              <% end %>
+                            </a>
+                          <% end %>
+                        </div>
+
+                        <% if additional_player_preview_count.positive? %>
+                          <span class="entity-chip entity-chip--muted">+<%= additional_player_preview_count %></span>
+                        <% end %>
+                      <% else %>
+                        <span class="entity-chip entity-chip--muted">No player avatars</span>
+                      <% end %>
+                    </div>
+
+                    <div class="entity-cell-secondary justify-start tabular-nums gap-1.5">
                       <span class="entity-chip entity-chip--success"><%= trade["player_count"].to_i %>P</span>
                       <span class="entity-chip entity-chip--accent"><%= trade["pick_count"].to_i %>K</span>
-                    </div>
-                    <div class="entity-cell-secondary justify-start tabular-nums">
                       <span><%= trade["cash_line_count"].to_i %> cash</span>
-                      <span class="text-muted-foreground/50 px-1">·</span>
+                      <span class="text-muted-foreground/50">·</span>
                       <span><%= trade["tpe_line_count"].to_i %> TPE</span>
                     </div>
                   </div>

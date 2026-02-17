@@ -343,6 +343,22 @@ class TradeQueries
           tr.trade_comments
         FROM pcms.trades tr
         WHERE tr.league_lk = 'NBA'
+          AND EXISTS (
+            SELECT 1
+            FROM pcms.trade_teams tt
+            JOIN pcms.teams team
+              ON team.team_id = tt.team_id
+            WHERE tt.trade_id = tr.trade_id
+              AND team.league_lk = 'NBA'
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM pcms.trade_teams tt
+            JOIN pcms.teams team
+              ON team.team_id = tt.team_id
+            WHERE tt.trade_id = tr.trade_id
+              AND COALESCE(team.league_lk, '') <> 'NBA'
+          )
           AND #{where_sql}
       ),
       trade_rollup AS (
@@ -354,11 +370,17 @@ class TradeQueries
           (
             SELECT string_agg(tt.team_code, ', ' ORDER BY tt.seqno)
             FROM pcms.trade_teams tt
+            JOIN pcms.teams team
+              ON team.team_id = tt.team_id
+             AND team.league_lk = 'NBA'
             WHERE tt.trade_id = ft.trade_id
           ) AS teams_involved,
           (
             SELECT COUNT(DISTINCT tt.team_id)::integer
             FROM pcms.trade_teams tt
+            JOIN pcms.teams team
+              ON team.team_id = tt.team_id
+             AND team.league_lk = 'NBA'
             WHERE tt.trade_id = ft.trade_id
           ) AS team_count,
           (
@@ -435,14 +457,70 @@ class TradeQueries
         COUNT(ttd.trade_team_detail_id) FILTER (WHERE ttd.trade_entry_lk = 'TREX' AND ttd.is_sent = TRUE)::integer AS tpe_out,
         COUNT(ttd.trade_team_detail_id) FILTER (WHERE ttd.trade_entry_lk = 'TREX' AND ttd.is_sent = FALSE)::integer AS tpe_in
       FROM pcms.trade_teams tt
+      JOIN pcms.teams team
+        ON team.team_id = tt.team_id
+       AND team.league_lk = 'NBA'
       LEFT JOIN pcms.trade_team_details ttd
         ON ttd.trade_id = tt.trade_id
        AND ttd.team_id = tt.team_id
-      LEFT JOIN pcms.teams team
-        ON team.team_id = tt.team_id
       WHERE tt.trade_id IN (#{ids_sql})
       GROUP BY tt.trade_id, tt.team_id, tt.team_code, team.team_name, tt.seqno
       ORDER BY tt.trade_id, tt.seqno, tt.team_code
+    SQL
+  end
+
+  def fetch_trade_player_previews(trade_ids:)
+    ids = Array(trade_ids).map(&:to_i).select(&:positive?).uniq
+    return [] if ids.empty?
+
+    ids_sql = ids.join(",")
+
+    conn.exec_query(<<~SQL).to_a
+      WITH distinct_players AS (
+        SELECT DISTINCT ON (ttd.trade_id, ttd.player_id)
+          ttd.trade_id,
+          ttd.player_id,
+          COALESCE(
+            NULLIF(TRIM(CONCAT_WS(' ', p.display_first_name, p.display_last_name)), ''),
+            NULLIF(TRIM(CONCAT_WS(' ', p.first_name, p.last_name)), ''),
+            ttd.player_id::text
+          ) AS player_name,
+          ttd.seqno,
+          ttd.trade_team_detail_id
+        FROM pcms.trade_team_details ttd
+        JOIN pcms.trade_teams tt
+          ON tt.trade_id = ttd.trade_id
+         AND tt.team_id = ttd.team_id
+        JOIN pcms.teams team
+          ON team.team_id = tt.team_id
+         AND team.league_lk = 'NBA'
+        LEFT JOIN pcms.people p
+          ON p.person_id = ttd.player_id
+        WHERE ttd.trade_id IN (#{ids_sql})
+          AND ttd.player_id IS NOT NULL
+        ORDER BY
+          ttd.trade_id,
+          ttd.player_id,
+          ttd.seqno NULLS LAST,
+          ttd.trade_team_detail_id
+      ),
+      ranked_players AS (
+        SELECT
+          distinct_players.*,
+          ROW_NUMBER() OVER (
+            PARTITION BY distinct_players.trade_id
+            ORDER BY distinct_players.seqno NULLS LAST, distinct_players.trade_team_detail_id, distinct_players.player_name
+          ) AS trade_player_rank
+        FROM distinct_players
+      )
+      SELECT
+        trade_id,
+        player_id,
+        player_name,
+        trade_player_rank
+      FROM ranked_players
+      WHERE trade_player_rank <= 3
+      ORDER BY trade_id, trade_player_rank
     SQL
   end
 

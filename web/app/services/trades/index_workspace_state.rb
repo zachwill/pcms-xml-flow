@@ -16,6 +16,7 @@ module Trades
       load_trades!
       annotate_trade_rows!(@trades)
       attach_trade_team_impacts!(@trades)
+      attach_trade_player_previews!(@trades)
       build_sidebar_summary!
 
       {
@@ -84,7 +85,10 @@ module Trades
           EXISTS (
             SELECT 1
             FROM pcms.trade_teams tt
+            JOIN pcms.teams team
+              ON team.team_id = tt.team_id
             WHERE tt.trade_id = tr.trade_id
+              AND team.league_lk = 'NBA'
               AND tt.team_code = #{conn.quote(@team)}
           )
         SQL
@@ -205,6 +209,28 @@ module Trades
         trade_row["team_impacts"] = impacts
         trade_row["primary_team_impacts"] = impacts.first(2)
         trade_row["additional_team_impact_count"] = [impacts.size - 2, 0].max
+      end
+    end
+
+    def attach_trade_player_previews!(rows)
+      trade_rows = Array(rows)
+      trade_ids = trade_rows.map { |row| row["trade_id"].to_i }.select(&:positive?).uniq
+      return if trade_ids.empty?
+
+      preview_rows = queries.fetch_trade_player_previews(trade_ids: trade_ids)
+      grouped = preview_rows.group_by { |row| row["trade_id"].to_i }
+
+      trade_rows.each do |trade_row|
+        previews = Array(grouped[trade_row["trade_id"].to_i]).first(3).map do |preview_row|
+          {
+            "player_id" => preview_row["player_id"].to_i,
+            "player_name" => preview_row["player_name"],
+            "rank" => preview_row["trade_player_rank"].to_i
+          }
+        end
+
+        trade_row["player_previews"] = previews
+        trade_row["additional_player_preview_count"] = [trade_row["player_count"].to_i - previews.size, 0].max
       end
     end
 

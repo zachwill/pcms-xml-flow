@@ -23,6 +23,8 @@
       "text-muted-foreground"
     end
   end
+
+  headshot_fallback = fallback_headshot_data_uri
 %>
 
 <div id="transactions-results" class="space-y-3 px-4 py-4">
@@ -38,7 +40,7 @@
             <div class="w-36 shrink-0">Severity</div>
             <div class="w-24 shrink-0">Type</div>
             <div class="w-52 shrink-0">Player</div>
-            <div class="w-44 shrink-0">Route</div>
+            <div class="w-52 shrink-0">Route</div>
             <div class="w-56 shrink-0">Impact deltas</div>
             <div class="w-[20rem] shrink-0">Description / match cue</div>
           </div>
@@ -85,6 +87,12 @@
                         <% artifact_tags << "#{txn['exception_usage_count'].to_i} exc" if txn["exception_usage_count"].to_i.positive? %>
                         <% artifact_tags << "#{txn['budget_snapshot_count'].to_i} budget" if txn["budget_snapshot_count"].to_i.positive? %>
                         <% max_delta = txn["impact_max_delta"].to_f %>
+                        <% player_id = txn["player_id"].to_i %>
+                        <% player_name = txn["player_name"].presence || (player_id.positive? ? "Player ##{player_id}" : "—") %>
+                        <% from_team_code = txn["from_team_code"].presence || "—" %>
+                        <% to_team_code = txn["to_team_code"].presence || "—" %>
+                        <% from_team_logo = txn["from_team_id"].present? ? team_logo_url(txn["from_team_id"]) : nil %>
+                        <% to_team_logo = txn["to_team_id"].present? ? team_logo_url(txn["to_team_id"]) : nil %>
 
                         <div
                           class="group cursor-pointer hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
@@ -127,32 +135,88 @@
                             </div>
 
                             <div class="w-52 shrink-0 pr-2">
-                              <div class="entity-cell-two-line">
-                                <div class="entity-cell-primary justify-start">
-                                  <% if txn["player_id"].present? %>
-                                    <a href="<%= player_href(txn['player_id']) %>" class="font-medium truncate hover:underline" onclick="event.stopPropagation()"><%= txn["player_name"] %></a>
+                              <div class="grid grid-cols-[24px_1fr] grid-rows-[20px_14px]">
+                                <div class="row-span-2 flex items-center justify-start">
+                                  <div class="w-5 h-5 rounded-full border border-border bg-background overflow-hidden flex items-center justify-center">
+                                    <% if player_id.positive? %>
+                                      <img
+                                        src="<%= player_headshot_url(player_id) %>"
+                                        alt="<%= player_name %>"
+                                        class="w-full h-full object-cover object-top"
+                                        loading="lazy"
+                                        decoding="async"
+                                        onerror="if (this.src !== '<%= headshot_fallback %>') { this.src = '<%= headshot_fallback %>'; }"
+                                      />
+                                    <% else %>
+                                      <span class="text-[8px] font-semibold text-muted-foreground">NBA</span>
+                                    <% end %>
+                                  </div>
+                                </div>
+
+                                <div class="h-[20px] flex items-end min-w-0 pl-1.5">
+                                  <% if player_id.positive? %>
+                                    <a href="<%= player_href(player_id) %>" class="font-medium truncate hover:underline" onclick="event.stopPropagation()"><%= player_name %></a>
                                   <% else %>
-                                    <span class="text-muted-foreground">—</span>
+                                    <span class="text-muted-foreground truncate">—</span>
                                   <% end %>
                                 </div>
-                                <div class="entity-cell-secondary justify-start">id: <code class="font-mono tabular-nums"><%= txn["player_id"].presence || "—" %></code></div>
+
+                                <div class="h-[14px] flex items-start min-w-0 pl-1.5 leading-none text-[10px] text-muted-foreground/80 tabular-nums">
+                                  id: <code class="font-mono tabular-nums"><%= player_id.positive? ? player_id : "—" %></code>
+                                </div>
                               </div>
                             </div>
 
-                            <div class="w-44 shrink-0 pr-2">
+                            <div class="w-52 shrink-0 pr-2">
                               <div class="entity-cell-two-line">
-                                <div class="entity-cell-primary justify-start gap-1">
-                                  <% if txn["from_team_code"].present? %>
-                                    <a href="<%= team_href(team_code: txn['from_team_code']) %>" class="font-medium hover:underline" onclick="event.stopPropagation()"><%= txn["from_team_code"] %></a>
-                                  <% else %>
-                                    <span class="text-muted-foreground">—</span>
-                                  <% end %>
-                                  <span class="text-muted-foreground/60">→</span>
-                                  <% if txn["to_team_code"].present? %>
-                                    <a href="<%= team_href(team_code: txn['to_team_code']) %>" class="font-medium hover:underline" onclick="event.stopPropagation()"><%= txn["to_team_code"] %></a>
-                                  <% else %>
-                                    <span class="text-muted-foreground">—</span>
-                                  <% end %>
+                                <div class="entity-cell-primary justify-start gap-1.5 min-w-0">
+                                  <span class="inline-flex items-center gap-1 min-w-0">
+                                    <span class="w-4 h-4 rounded border border-border bg-background overflow-hidden flex items-center justify-center shrink-0">
+                                      <% if from_team_logo.present? %>
+                                        <img
+                                          src="<%= from_team_logo %>"
+                                          alt="<%= from_team_code %>"
+                                          class="w-full h-full object-contain"
+                                          loading="lazy"
+                                          decoding="async"
+                                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                                        />
+                                        <span class="hidden text-[8px] font-mono text-muted-foreground"><%= from_team_code %></span>
+                                      <% else %>
+                                        <span class="text-[8px] font-mono text-muted-foreground"><%= from_team_code %></span>
+                                      <% end %>
+                                    </span>
+                                    <% if txn["from_team_code"].present? %>
+                                      <a href="<%= team_href(team_code: txn['from_team_code']) %>" class="font-medium hover:underline truncate" onclick="event.stopPropagation()"><%= from_team_code %></a>
+                                    <% else %>
+                                      <span class="text-muted-foreground">—</span>
+                                    <% end %>
+                                  </span>
+
+                                  <span class="text-muted-foreground/60 shrink-0">→</span>
+
+                                  <span class="inline-flex items-center gap-1 min-w-0">
+                                    <span class="w-4 h-4 rounded border border-border bg-background overflow-hidden flex items-center justify-center shrink-0">
+                                      <% if to_team_logo.present? %>
+                                        <img
+                                          src="<%= to_team_logo %>"
+                                          alt="<%= to_team_code %>"
+                                          class="w-full h-full object-contain"
+                                          loading="lazy"
+                                          decoding="async"
+                                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                                        />
+                                        <span class="hidden text-[8px] font-mono text-muted-foreground"><%= to_team_code %></span>
+                                      <% else %>
+                                        <span class="text-[8px] font-mono text-muted-foreground"><%= to_team_code %></span>
+                                      <% end %>
+                                    </span>
+                                    <% if txn["to_team_code"].present? %>
+                                      <a href="<%= team_href(team_code: txn['to_team_code']) %>" class="font-medium hover:underline truncate" onclick="event.stopPropagation()"><%= to_team_code %></a>
+                                    <% else %>
+                                      <span class="text-muted-foreground">—</span>
+                                    <% end %>
+                                  </span>
                                 </div>
                                 <div class="entity-cell-secondary justify-start truncate"><%= [txn["from_team_name"], txn["to_team_name"]].compact.reject(&:blank?).join(" → ").presence || "No team route" %></div>
                               </div>

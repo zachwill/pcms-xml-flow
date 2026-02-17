@@ -21,6 +21,9 @@ class EntitiesTransactionsIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "Max Δ"
       assert_includes response.body, "Severity quick feed"
       assert_includes response.body, "Cap"
+      assert_includes response.body, "https://cdn.nba.com/headshots/nba/latest/1040x760/101.png"
+      assert_includes response.body, "https://cdn.nba.com/logos/nba/1610612757/primary/L/logo.svg"
+      assert_includes response.body, "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg"
       assert_includes response.body, 'id="rightpanel-base"'
     end
   end

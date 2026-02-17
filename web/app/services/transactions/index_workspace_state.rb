@@ -60,7 +60,7 @@ module Transactions
       today = Date.today
       season_start = today.month >= 7 ? Date.new(today.year, 7, 1) : Date.new(today.year - 1, 7, 1)
 
-      where_clauses = ["t.trade_id IS NULL"]
+      where_clauses = ["t.trade_id IS NULL", "t.league_lk = 'NBA'"]
 
       case @daterange
       when "today"

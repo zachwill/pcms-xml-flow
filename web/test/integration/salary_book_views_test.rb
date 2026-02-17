@@ -181,7 +181,7 @@ class SalaryBookViewsTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="view-tankathon"'
       assert_includes response.body, 'value="tankathon"'
       assert_includes response.body, "Tankathon"
-      assert_includes response.body, "nba.standings"
+      assert_includes response.body, "Source"
     end
   end
 
@@ -207,7 +207,7 @@ class SalaryBookViewsTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="salarybook-team-frame"'
       assert_includes response.body, 'id="salarybook-standings-table"'
       assert_includes response.body, "Switch to POR"
-      assert_includes response.body, "nba.standings"
+      assert_includes response.body, "Source"
     end
   end
 

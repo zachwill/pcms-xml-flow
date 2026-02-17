@@ -149,13 +149,13 @@ Ownership map:
 
 ## Deep dives (read when needed)
 
-For non-trivial refactors, read `reference/rails-architecture.md` before extracting new layers.
+For non-trivial refactors, read `reference/rails/architecture.md` before extracting new layers.
 
 | Doc | What it covers |
 |-----|----------------|
 | `web/docs/design_guide.md` | Concrete visual patterns (shells, row/cell anatomy, table conventions, checklist) |
 | `web/docs/datastar_sse_playbook.md` | SSE response templates, Rails `ActionController::Live` patterns |
-| `reference/rails-architecture.md` | Durable Rails architecture principles (layer collapse, I/O boundaries, extraction over import) |
+| `reference/rails/architecture.md` | Durable Rails architecture principles (layer collapse, I/O boundaries, extraction over import) |
 | `reference/sites/INTERACTION_MODELS.md` | Scroll-driven tools, entity workspaces, catalog surfaces |
 | `reference/datastar/insights.md` | Signal naming, DOM refs, Datastar conventions |
 | `reference/datastar/rails.md` | Rails + Datastar integration patterns |

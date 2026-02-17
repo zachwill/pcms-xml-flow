@@ -16,7 +16,8 @@ Rails.application.routes.draw do
   get "system-values/sidebar/clear", to: "system_values#sidebar_clear", as: :system_values_sidebar_clear
   get "system-values/sse/refresh", to: "system_values#refresh", as: :system_values_sse_refresh
   get "team-summary", to: "team_summary#show"
-  get "liveline-test", to: "liveline_test#show"
+  get "liveline", to: "liveline_test#show"
+  get "liveline-test", to: redirect("/liveline")
   get "team-summary/sidebar/clear", to: "team_summary#sidebar_clear", as: :team_summary_sidebar_clear
   get "team-summary/sidebar/:team_code", to: "team_summary#sidebar", as: :team_summary_sidebar, constraints: { team_code: /[A-Za-z]{3}/ }
   get "team-summary/sse/refresh", to: "team_summary#refresh", as: :team_summary_sse_refresh

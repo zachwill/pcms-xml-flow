@@ -83,7 +83,6 @@ const init = () => {
   const windowStyleSelect = controls.querySelector("[name='windowStyle']");
   const lerpInput = controls.querySelector("[name='lerpSpeed']");
   const lerpValue = controls.querySelector("[data-liveline-lerp-value]");
-  const tooltipInput = controls.querySelector("[name='tooltipY']");
 
   let currentWindowSecs = WINDOW_OPTIONS[1].secs;
 
@@ -113,7 +112,6 @@ const init = () => {
     if (["up", "down", "flat"].includes(momentumRaw)) momentum = momentumRaw;
 
     const lerpSpeed = Number(lerpInput?.value || 0.08);
-    const tooltipY = Number(tooltipInput?.value || 14);
 
     if (lerpValue) {
       lerpValue.textContent = lerpSpeed.toFixed(2);
@@ -126,7 +124,7 @@ const init = () => {
       badgeVariant: badgeVariantSelect?.value === "minimal" ? "minimal" : "default",
       windowStyle: windowStyleSelect?.value || "default",
       lerpSpeed: clamp(Number.isFinite(lerpSpeed) ? lerpSpeed : 0.08, 0.01, 0.5),
-      tooltipY: Number.isFinite(tooltipY) ? tooltipY : 14,
+      tooltipY: 14,
       grid: checkbox("grid"),
       badge: checkbox("badge"),
       badgeTail: checkbox("badgeTail"),

@@ -1,6 +1,6 @@
 <%
   active_destination = local_assigns[:active_destination].to_s
-  valid_destinations = %w[salary_book system_values team_summary liveline_test two_way_utility agents draft draft_selections players teams trades transactions noah]
+  valid_destinations = %w[salary_book system_values team_summary two_way_utility agents draft draft_selections players teams trades transactions noah]
   active_destination = "salary_book" unless valid_destinations.include?(active_destination)
 %>
 
@@ -18,7 +18,6 @@
       <optgroup label="PCMS">
         <option value="/system-values" <%= "selected" if active_destination == "system_values" %>>System Values</option>
         <option value="/team-summary" <%= "selected" if active_destination == "team_summary" %>>Team Summary</option>
-        <option value="/liveline-test" <%= "selected" if active_destination == "liveline_test" %>>Liveline Test</option>
         <option value="/two-way-utility" <%= "selected" if active_destination == "two_way_utility" %>>Two-Way Utility</option>
       </optgroup>
 

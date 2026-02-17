@@ -1,4 +1,4 @@
-<% content_for :title, "Liveline Test" %>
+<% content_for :title, "Liveline" %>
 
 <div
   id="liveline-test"
@@ -7,119 +7,107 @@
 >
   <div id="flash"></div>
 
-  <header id="commandbar" class="shrink-0 h-[130px] border-b border-border bg-background px-4 pt-3 flex items-start gap-4 select-none">
-    <div class="min-w-0 flex-1 space-y-1">
-      <h1 class="text-sm font-semibold tracking-wide uppercase">Liveline Test</h1>
-      <p class="text-[11px] text-muted-foreground">
-        Datastar-native canvas chart playground (no React runtime). Includes spline line, live interpolation, scrub crosshair,
-        momentum arrows, orderbook lane, and optional degen particles.
-      </p>
+  <header id="commandbar" class="shrink-0 h-[130px] border-b border-border bg-background px-4 pt-3 flex items-start gap-4 select-none overflow-hidden">
+    <form data-liveline-controls class="min-w-0 flex-1 space-y-1.5 text-[11px]">
+      <div class="grid grid-cols-6 gap-2">
+        <label class="space-y-0.5 min-w-0">
+          <span class="block text-[10px] uppercase tracking-wide text-muted-foreground/80">Theme</span>
+          <select name="theme" class="h-7 w-full rounded border border-border bg-background px-2 text-[11px]">
+            <option value="dark" selected>Dark</option>
+            <option value="light">Light</option>
+          </select>
+        </label>
 
-      <div class="pt-1 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/70">
-        <span class="rounded border border-border bg-muted/40 px-1.5 py-0.5">Canvas</span>
-        <span class="rounded border border-border bg-muted/40 px-1.5 py-0.5">Datastar-safe Mount</span>
-        <span class="rounded border border-border bg-muted/40 px-1.5 py-0.5">Live Feed Simulator</span>
+        <label class="space-y-0.5 min-w-0">
+          <span class="block text-[10px] uppercase tracking-wide text-muted-foreground/80">Accent</span>
+          <input name="color" type="color" value="#3b82f6" class="h-7 w-full rounded border border-border bg-background p-0.5" />
+        </label>
+
+        <label class="space-y-0.5 min-w-0">
+          <span class="block text-[10px] uppercase tracking-wide text-muted-foreground/80">Momentum</span>
+          <select name="momentum" class="h-7 w-full rounded border border-border bg-background px-2 text-[11px]">
+            <option value="auto" selected>Auto</option>
+            <option value="up">Up</option>
+            <option value="down">Down</option>
+            <option value="flat">Flat</option>
+            <option value="off">Off</option>
+          </select>
+        </label>
+
+        <label class="space-y-0.5 min-w-0">
+          <span class="block text-[10px] uppercase tracking-wide text-muted-foreground/80">Badge</span>
+          <select name="badgeVariant" class="h-7 w-full rounded border border-border bg-background px-2 text-[11px]">
+            <option value="default" selected>Default</option>
+            <option value="minimal">Minimal</option>
+          </select>
+        </label>
+
+        <label class="space-y-0.5 min-w-0">
+          <span class="block text-[10px] uppercase tracking-wide text-muted-foreground/80">Window UI</span>
+          <select name="windowStyle" class="h-7 w-full rounded border border-border bg-background px-2 text-[11px]">
+            <option value="default" selected>Default</option>
+            <option value="rounded">Rounded</option>
+            <option value="text">Text</option>
+          </select>
+        </label>
+
+        <div class="space-y-0.5 min-w-0">
+          <div class="flex items-center justify-between text-[10px] uppercase tracking-wide text-muted-foreground/80">
+            <span>Lerp speed</span>
+            <span data-liveline-lerp-value class="font-mono tabular-nums">0.08</span>
+          </div>
+          <input
+            name="lerpSpeed"
+            type="range"
+            min="0.02"
+            max="0.30"
+            step="0.01"
+            value="0.08"
+            class="w-full accent-primary"
+          />
+        </div>
       </div>
-    </div>
+
+      <div class="grid grid-cols-6 gap-2 items-start text-[11px]">
+        <div class="space-y-0.5 pt-0.5">
+          <label class="flex items-center gap-1.5"><input name="grid" type="checkbox" class="size-3.5 accent-primary" checked /> Grid</label>
+          <label class="flex items-center gap-1.5"><input name="pulse" type="checkbox" class="size-3.5 accent-primary" checked /> Pulse</label>
+        </div>
+
+        <div class="space-y-0.5 pt-0.5">
+          <label class="flex items-center gap-1.5"><input name="fill" type="checkbox" class="size-3.5 accent-primary" checked /> Fill</label>
+          <label class="flex items-center gap-1.5"><input name="scrub" type="checkbox" class="size-3.5 accent-primary" checked /> Scrub</label>
+        </div>
+
+        <div class="space-y-0.5 pt-0.5">
+          <label class="flex items-center gap-1.5"><input name="badge" type="checkbox" class="size-3.5 accent-primary" checked /> Badge</label>
+          <label class="flex items-center gap-1.5"><input name="showValue" type="checkbox" class="size-3.5 accent-primary" checked /> Value</label>
+        </div>
+
+        <div class="space-y-0.5 pt-0.5">
+          <label class="flex items-center gap-1.5"><input name="badgeTail" type="checkbox" class="size-3.5 accent-primary" checked /> Tail</label>
+          <label class="flex items-center gap-1.5"><input name="valueMomentumColor" type="checkbox" class="size-3.5 accent-primary" /> Value Color</label>
+        </div>
+
+        <div class="space-y-0.5 pt-0.5">
+          <label class="flex items-center gap-1.5"><input name="orderbook" type="checkbox" class="size-3.5 accent-primary" checked /> Orderbook</label>
+          <label class="flex items-center gap-1.5"><input name="exaggerate" type="checkbox" class="size-3.5 accent-primary" /> Exaggerate</label>
+        </div>
+
+        <div class="space-y-0.5 pt-0.5">
+          <label class="flex items-center gap-1.5"><input name="degen" type="checkbox" class="size-3.5 accent-primary" /> Degen</label>
+        </div>
+      </div>
+
+    </form>
 
     <div class="h-20 w-px bg-border self-center ml-auto shrink-0"></div>
-    <%= render partial: "shared/commandbar_navigation", locals: { active_destination: "liveline_test" } %>
+    <%= render partial: "shared/commandbar_navigation", locals: { active_destination: "salary_book" } %>
   </header>
 
   <div id="viewport" class="flex flex-1 overflow-hidden relative">
-    <main id="maincanvas" class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-background relative overscroll-y-contain scroll-touch isolate px-4 py-4 pb-8">
-      <section class="rounded-lg border border-border bg-muted/10 p-3 space-y-3">
-        <div class="flex items-center justify-between gap-2">
-          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Live chart surface</div>
-          <div class="text-[10px] text-muted-foreground">Synthetic tick stream · ~700ms updates</div>
-        </div>
-
-        <div id="liveline-test-chart" class="w-full h-[420px] rounded border border-border bg-background/80"></div>
-      </section>
-
-      <section class="mt-4 rounded-lg border border-border bg-muted/10 p-3">
-        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 mb-2">Chart controls</div>
-
-        <form data-liveline-controls class="space-y-3 text-xs">
-          <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
-            <label class="space-y-1">
-              <span class="block text-[10px] uppercase tracking-wide text-muted-foreground/80">Theme</span>
-              <select name="theme" class="h-7 w-full rounded border border-border bg-background px-2 text-xs">
-                <option value="dark" selected>Dark</option>
-                <option value="light">Light</option>
-              </select>
-            </label>
-
-            <label class="space-y-1">
-              <span class="block text-[10px] uppercase tracking-wide text-muted-foreground/80">Accent</span>
-              <input name="color" type="color" value="#3b82f6" class="h-7 w-full rounded border border-border bg-background px-1" />
-            </label>
-
-            <label class="space-y-1">
-              <span class="block text-[10px] uppercase tracking-wide text-muted-foreground/80">Momentum</span>
-              <select name="momentum" class="h-7 w-full rounded border border-border bg-background px-2 text-xs">
-                <option value="auto" selected>Auto</option>
-                <option value="up">Force Up</option>
-                <option value="down">Force Down</option>
-                <option value="flat">Force Flat</option>
-                <option value="off">Off</option>
-              </select>
-            </label>
-
-            <label class="space-y-1">
-              <span class="block text-[10px] uppercase tracking-wide text-muted-foreground/80">Badge</span>
-              <select name="badgeVariant" class="h-7 w-full rounded border border-border bg-background px-2 text-xs">
-                <option value="default" selected>Default</option>
-                <option value="minimal">Minimal</option>
-              </select>
-            </label>
-
-            <label class="space-y-1">
-              <span class="block text-[10px] uppercase tracking-wide text-muted-foreground/80">Window style</span>
-              <select name="windowStyle" class="h-7 w-full rounded border border-border bg-background px-2 text-xs">
-                <option value="default" selected>Default</option>
-                <option value="rounded">Rounded</option>
-                <option value="text">Text</option>
-              </select>
-            </label>
-
-            <label class="space-y-1">
-              <span class="block text-[10px] uppercase tracking-wide text-muted-foreground/80">Tooltip Y</span>
-              <input name="tooltipY" type="number" value="14" min="0" max="64" class="h-7 w-full rounded border border-border bg-background px-2 text-xs font-mono tabular-nums" />
-            </label>
-          </div>
-
-          <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2 text-[11px]">
-            <label class="flex items-center gap-1.5"><input name="grid" type="checkbox" class="size-3.5 accent-primary" checked /> Grid</label>
-            <label class="flex items-center gap-1.5"><input name="fill" type="checkbox" class="size-3.5 accent-primary" checked /> Fill</label>
-            <label class="flex items-center gap-1.5"><input name="badge" type="checkbox" class="size-3.5 accent-primary" checked /> Badge</label>
-            <label class="flex items-center gap-1.5"><input name="badgeTail" type="checkbox" class="size-3.5 accent-primary" checked /> Badge tail</label>
-            <label class="flex items-center gap-1.5"><input name="pulse" type="checkbox" class="size-3.5 accent-primary" checked /> Pulse dot</label>
-            <label class="flex items-center gap-1.5"><input name="scrub" type="checkbox" class="size-3.5 accent-primary" checked /> Scrub</label>
-
-            <label class="flex items-center gap-1.5"><input name="exaggerate" type="checkbox" class="size-3.5 accent-primary" /> Exaggerate Y</label>
-            <label class="flex items-center gap-1.5"><input name="showValue" type="checkbox" class="size-3.5 accent-primary" checked /> Show value</label>
-            <label class="flex items-center gap-1.5"><input name="valueMomentumColor" type="checkbox" class="size-3.5 accent-primary" /> Value momentum color</label>
-            <label class="flex items-center gap-1.5"><input name="orderbook" type="checkbox" class="size-3.5 accent-primary" checked /> Orderbook lane</label>
-            <label class="flex items-center gap-1.5"><input name="degen" type="checkbox" class="size-3.5 accent-primary" /> Degen mode</label>
-          </div>
-
-          <label class="block space-y-1">
-            <span class="block text-[10px] uppercase tracking-wide text-muted-foreground/80">
-              Lerp speed <span data-liveline-lerp-value class="font-mono tabular-nums">0.08</span>
-            </span>
-            <input
-              name="lerpSpeed"
-              type="range"
-              min="0.02"
-              max="0.30"
-              step="0.01"
-              value="0.08"
-              class="w-full accent-primary"
-            />
-          </label>
-        </form>
-      </section>
+    <main id="maincanvas" class="flex-1 min-w-0 min-h-0 overflow-hidden bg-background">
+      <div id="liveline-test-chart" class="h-full w-full"></div>
     </main>
 
     <aside
@@ -131,52 +119,61 @@
         class="absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-contain scroll-touch pt-2 px-4 pb-4"
       >
         <div id="rightpanel-base" class="space-y-4">
-          <div class="rounded border border-border bg-muted/20 p-3 space-y-2">
-            <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Runtime telemetry</div>
-
-            <div class="grid grid-cols-2 gap-2 text-xs">
-              <div class="entity-cell-two-line">
-                <div class="entity-cell-secondary uppercase tracking-wide">Latest value</div>
-                <div class="entity-cell-primary justify-end font-mono tabular-nums" data-liveline-metric="latest-value">—</div>
-              </div>
-
-              <div class="entity-cell-two-line">
-                <div class="entity-cell-secondary uppercase tracking-wide">Latest tick</div>
-                <div class="entity-cell-primary justify-end font-mono tabular-nums" data-liveline-metric="latest-time">—</div>
-              </div>
-
-              <div class="entity-cell-two-line">
-                <div class="entity-cell-secondary uppercase tracking-wide">Window</div>
-                <div class="entity-cell-primary justify-end font-mono tabular-nums" data-liveline-metric="window">—</div>
-              </div>
-
-              <div class="entity-cell-two-line">
-                <div class="entity-cell-secondary uppercase tracking-wide">Point count</div>
-                <div class="entity-cell-primary justify-end font-mono tabular-nums" data-liveline-metric="points">—</div>
-              </div>
-
-              <div class="entity-cell-two-line">
-                <div class="entity-cell-secondary uppercase tracking-wide">Momentum</div>
-                <div class="entity-cell-primary justify-end font-mono tabular-nums" data-liveline-metric="momentum">—</div>
-              </div>
+          <section class="space-y-1.5">
+            <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Liveline</div>
+            <p class="text-xs text-muted-foreground leading-snug">
+              Hidden Datastar test harness for validating canvas behavior, interpolation, orderbook lane, and scrub interactions.
+            </p>
+            <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <span class="entity-chip entity-chip--muted">Synthetic feed</span>
+              <span class="entity-chip entity-chip--muted">~700ms ticks</span>
+              <span class="entity-chip entity-chip--muted">Full-width canvas</span>
             </div>
-          </div>
+          </section>
 
-          <div class="rounded border border-border bg-muted/20 p-3 space-y-2">
-            <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Hover probe</div>
-
-            <div class="grid grid-cols-2 gap-2 text-xs">
-              <div class="entity-cell-two-line">
-                <div class="entity-cell-secondary uppercase tracking-wide">Hover value</div>
-                <div class="entity-cell-primary justify-end font-mono tabular-nums" data-liveline-metric="hover-value">—</div>
-              </div>
-
-              <div class="entity-cell-two-line">
-                <div class="entity-cell-secondary uppercase tracking-wide">Hover time</div>
-                <div class="entity-cell-primary justify-end font-mono tabular-nums" data-liveline-metric="hover-time">—</div>
-              </div>
+          <section class="border border-border rounded-lg divide-y divide-border">
+            <div class="px-3 py-2 flex items-center justify-between gap-3 text-xs">
+              <span class="text-muted-foreground uppercase tracking-wide text-[10px]">Latest value</span>
+              <span class="font-mono tabular-nums" data-liveline-metric="latest-value">—</span>
             </div>
-          </div>
+            <div class="px-3 py-2 flex items-center justify-between gap-3 text-xs">
+              <span class="text-muted-foreground uppercase tracking-wide text-[10px]">Latest tick</span>
+              <span class="font-mono tabular-nums" data-liveline-metric="latest-time">—</span>
+            </div>
+            <div class="px-3 py-2 flex items-center justify-between gap-3 text-xs">
+              <span class="text-muted-foreground uppercase tracking-wide text-[10px]">Window</span>
+              <span class="font-mono tabular-nums" data-liveline-metric="window">—</span>
+            </div>
+            <div class="px-3 py-2 flex items-center justify-between gap-3 text-xs">
+              <span class="text-muted-foreground uppercase tracking-wide text-[10px]">Point count</span>
+              <span class="font-mono tabular-nums" data-liveline-metric="points">—</span>
+            </div>
+            <div class="px-3 py-2 flex items-center justify-between gap-3 text-xs">
+              <span class="text-muted-foreground uppercase tracking-wide text-[10px]">Momentum</span>
+              <span class="font-mono tabular-nums" data-liveline-metric="momentum">—</span>
+            </div>
+          </section>
+
+          <section class="border border-border rounded-lg divide-y divide-border">
+            <div class="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Hover probe</div>
+            <div class="px-3 py-2 flex items-center justify-between gap-3 text-xs">
+              <span class="text-muted-foreground uppercase tracking-wide text-[10px]">Hover value</span>
+              <span class="font-mono tabular-nums" data-liveline-metric="hover-value">—</span>
+            </div>
+            <div class="px-3 py-2 flex items-center justify-between gap-3 text-xs">
+              <span class="text-muted-foreground uppercase tracking-wide text-[10px]">Hover time</span>
+              <span class="font-mono tabular-nums" data-liveline-metric="hover-time">—</span>
+            </div>
+          </section>
+
+          <section class="border border-border rounded-lg p-3 space-y-1.5">
+            <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Notes</div>
+            <ul class="text-[11px] text-muted-foreground space-y-1 list-disc pl-4">
+              <li>Window selector remains on-canvas for direct feel checks.</li>
+              <li>Controls are command-bar native to match tool ergonomics.</li>
+              <li>Theme follows global Dark Mode toggle.</li>
+            </ul>
+          </section>
         </div>
       </div>
 

@@ -22,6 +22,7 @@ class TradeQueries
         tr.trade_comments
       FROM pcms.trades tr
       WHERE tr.trade_id = #{id_sql}
+        AND tr.league_lk = 'NBA'
       LIMIT 1
     SQL
   end
@@ -341,7 +342,8 @@ class TradeQueries
           tr.trade_finalized_date,
           tr.trade_comments
         FROM pcms.trades tr
-        WHERE #{where_sql}
+        WHERE tr.league_lk = 'NBA'
+          AND #{where_sql}
       ),
       trade_rollup AS (
         SELECT
@@ -488,6 +490,7 @@ class TradeQueries
         ) AS tpe_line_count
       FROM pcms.trades tr
       WHERE tr.trade_id = #{id_sql}
+        AND tr.league_lk = 'NBA'
       LIMIT 1
     SQL
   end

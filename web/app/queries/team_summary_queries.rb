@@ -69,6 +69,20 @@ class TeamSummaryQueries
         tsw.apron_level_lk,
         tsw.roster_row_count,
         tsw.two_way_row_count,
+        CASE
+          WHEN COALESCE(tsw.room_under_apron2, 0) < 0 THEN 'over_apron2'
+          WHEN COALESCE(tsw.room_under_apron1, 0) < 0 THEN 'over_apron1'
+          WHEN COALESCE(tsw.room_under_tax, 0) < 0 THEN 'over_tax'
+          WHEN (COALESCE(tsw.salary_cap_amount, 0) - COALESCE(tsw.cap_total_hold, 0)) < 0 THEN 'over_cap'
+          ELSE 'under_cap'
+        END AS pressure_bucket,
+        CASE
+          WHEN COALESCE(tsw.room_under_apron2, 0) < 0 THEN 4
+          WHEN COALESCE(tsw.room_under_apron1, 0) < 0 THEN 3
+          WHEN COALESCE(tsw.room_under_tax, 0) < 0 THEN 2
+          WHEN (COALESCE(tsw.salary_cap_amount, 0) - COALESCE(tsw.cap_total_hold, 0)) < 0 THEN 1
+          ELSE 0
+        END AS pressure_rank,
         pcms.fn_luxury_tax_amount(
           tsw.salary_year,
           GREATEST(0::bigint, COALESCE(tsw.tax_total, 0) - COALESCE(tsw.tax_level_amount, 0)),

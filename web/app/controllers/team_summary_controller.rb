@@ -6,6 +6,7 @@ class TeamSummaryController < ApplicationController
   AVAILABLE_SALARY_YEARS = (CURRENT_SALARY_YEAR...(CURRENT_SALARY_YEAR + SALARY_YEAR_HORIZON)).to_a.freeze
 
   SORT_SQL = {
+    "pressure_desc" => "pressure_rank DESC, COALESCE(tsw.room_under_apron2, 0) ASC NULLS LAST, COALESCE(tsw.room_under_apron1, 0) ASC NULLS LAST, COALESCE(tsw.room_under_tax, 0) ASC NULLS LAST, tsw.team_code ASC",
     "cap_space_desc" => "(COALESCE(tsw.salary_cap_amount, 0) - COALESCE(tsw.cap_total_hold, 0)) DESC NULLS LAST, tsw.team_code",
     "cap_space_asc" => "(COALESCE(tsw.salary_cap_amount, 0) - COALESCE(tsw.cap_total_hold, 0)) ASC NULLS LAST, tsw.team_code",
     "tax_overage_desc" => "(COALESCE(tsw.tax_total, 0) - COALESCE(tsw.tax_level_amount, 0)) DESC NULLS LAST, tsw.team_code",
@@ -40,43 +41,17 @@ class TeamSummaryController < ApplicationController
     render partial: "team_summary/rightpanel_clear", layout: false
   end
 
-  # GET /team-summary/sse/compare
-  def compare
-    load_workspace_state!(apply_compare_action: true)
-
-    with_sse_stream do |sse|
-      patch_elements_by_id(sse, render_to_string(partial: "team_summary/compare_strip", layout: false))
-      patch_elements_by_id(sse, render_to_string(partial: "team_summary/rightpanel_base", layout: false))
-      patch_elements_by_id(sse, render_to_string(partial: overlay_partial_name, layout: false))
-      patch_signals(
-        sse,
-        selectedteam: @selected_team_code.to_s,
-        comparea: @compare_a_code.to_s,
-        compareb: @compare_b_code.to_s
-      )
-    end
-  rescue ActiveRecord::StatementInvalid => e
-    with_sse_stream do |sse|
-      patch_flash(sse, "Team Summary compare update failed: #{e.message.to_s.truncate(160)}")
-    end
-  end
-
   # GET /team-summary/sse/step
   # Overlay stepping for adjacent teams in the current filtered row order.
   # Patches:
   # - #rightpanel-overlay
-  # - selectedteam/compare signals
+  # - selectedteam signal
   def step
     load_workspace_state!(step_direction: resolve_step_direction(params[:direction]))
 
     with_sse_stream do |sse|
       patch_elements_by_id(sse, render_to_string(partial: overlay_partial_name, layout: false))
-      patch_signals(
-        sse,
-        selectedteam: @selected_team_code.to_s,
-        comparea: @compare_a_code.to_s,
-        compareb: @compare_b_code.to_s
-      )
+      patch_signals(sse, selectedteam: @selected_team_code.to_s)
     end
   rescue ActiveRecord::StatementInvalid => e
     with_sse_stream do |sse|
@@ -88,7 +63,6 @@ class TeamSummaryController < ApplicationController
   # One-request multi-region refresh for commandbar knob changes.
   # Patches:
   # - #maincanvas
-  # - #team-summary-compare-strip
   # - #rightpanel-base
   # - #rightpanel-overlay
   def refresh
@@ -96,12 +70,10 @@ class TeamSummaryController < ApplicationController
 
     with_sse_stream do |sse|
       main_html = render_to_string(partial: "team_summary/workspace_main", layout: false)
-      compare_html = render_to_string(partial: "team_summary/compare_strip", layout: false)
       sidebar_html = render_to_string(partial: "team_summary/rightpanel_base", layout: false)
       overlay_html = render_to_string(partial: overlay_partial_name, layout: false)
 
       patch_elements(sse, selector: "#maincanvas", mode: "inner", html: main_html)
-      patch_elements_by_id(sse, compare_html)
       patch_elements_by_id(sse, sidebar_html)
       patch_elements_by_id(sse, overlay_html)
       patch_signals(
@@ -112,9 +84,7 @@ class TeamSummaryController < ApplicationController
         tssortasc: sort_ascending_for(@sort),
         tsconferenceeast: @conference != "Western",
         tsconferencewest: @conference != "Eastern",
-        selectedteam: @selected_team_code.to_s,
-        comparea: @compare_a_code.to_s,
-        compareb: @compare_b_code.to_s
+        selectedteam: @selected_team_code.to_s
       )
     end
   rescue ActiveRecord::StatementInvalid => e
@@ -157,10 +127,9 @@ class TeamSummaryController < ApplicationController
     nil
   end
 
-  def load_workspace_state!(apply_compare_action: false, step_direction: nil, selected_override_team_code: nil)
+  def load_workspace_state!(step_direction: nil, selected_override_team_code: nil)
     assign_state!(
       workspace_state.build(
-        apply_compare_action: apply_compare_action,
         step_direction: step_direction,
         selected_override_team_code: selected_override_team_code
       )
@@ -169,6 +138,7 @@ class TeamSummaryController < ApplicationController
 
   def sort_metric_for(sort)
     sort_value = sort.to_s
+    return "pressure" if sort_value == "pressure_desc"
     return "tax_overage" if sort_value.start_with?("tax_overage")
     return "team" if sort_value == "team_asc"
 
@@ -177,6 +147,8 @@ class TeamSummaryController < ApplicationController
 
   def sort_ascending_for(sort)
     sort_value = sort.to_s
-    sort_value.end_with?("_asc") && sort_value != "team_asc"
+    return false if sort_value == "team_asc" || sort_value == "pressure_desc"
+
+    sort_value.end_with?("_asc")
   end
 end

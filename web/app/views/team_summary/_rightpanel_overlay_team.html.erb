@@ -4,14 +4,12 @@
   logo_url = team_logo_url(row["team_id"])
   conference_name = row["conference_name"].presence || "—"
 
-  cap_space = row["cap_space"].to_f
-  tax_overage = row["tax_overage"].to_f
-  room_tax = row["room_under_tax"]&.to_f
-  room_a1 = row["room_under_apron1"]&.to_f
-  room_a2 = row["room_under_apron2"]&.to_f
-  luxury_tax_owed = row["luxury_tax_owed"].to_f
-
-  has_compare = @compare_a_code.present? || @compare_b_code.present?
+  cap_space = row["cap_space"]
+  tax_overage = row["tax_overage"]
+  room_tax = row["room_under_tax"]
+  room_a1 = row["room_under_apron1"]
+  room_a2 = row["room_under_apron2"]
+  luxury_tax_owed = row["luxury_tax_owed"]
 
   ordered_team_codes = @rows.map { |candidate| candidate["team_code"].to_s.upcase }.select { |code| code.match?(/\A[A-Z]{3}\z/) }
   selected_index = ordered_team_codes.index(team_code)
@@ -27,48 +25,19 @@
   prev_step_path = team_summary_sse_step_path(step_params.merge(direction: "prev"))
   next_step_path = team_summary_sse_step_path(step_params.merge(direction: "next"))
 
-  slot_configs = [
-    { key: "a", label: "Slot A", current: @compare_a_code, active_class: "border-indigo-500/60 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300" },
-    { key: "b", label: "Slot B", current: @compare_b_code, active_class: "border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" }
-  ]
-
-  snapshot_rows = [
-    {
-      label: "Cap Space",
-      value: format_room_amount(cap_space),
-      value_class: cap_space >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
-    },
-    {
-      label: "Tax Overage",
-      value: tax_overage > 0 ? format_compact_currency(tax_overage) : "—",
-      value_class: tax_overage > 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"
-    },
-    {
-      label: "Room Under Tax",
-      value: room_tax.nil? ? "—" : format_room_amount(room_tax),
-      value_class: room_tax && room_tax < 0 ? "text-red-600 dark:text-red-400" : ""
-    },
-    {
-      label: "Room Under Apron 1",
-      value: room_a1.nil? ? "—" : format_room_amount(room_a1),
-      value_class: room_a1 && room_a1 < 0 ? "text-red-600 dark:text-red-400" : ""
-    },
-    {
-      label: "Room Under Apron 2",
-      value: room_a2.nil? ? "—" : format_room_amount(room_a2),
-      value_class: room_a2 && room_a2 < 0 ? "text-red-600 dark:text-red-400" : ""
-    },
-    {
-      label: "Luxury Tax",
-      value: luxury_tax_owed > 0 ? format_compact_currency(luxury_tax_owed) : "—",
-      value_class: luxury_tax_owed > 0 ? "text-red-600 dark:text-red-400" : ""
-    },
-    {
-      label: "Roster / 2W",
-      value: "#{row['roster_row_count']} / #{row['two_way_row_count']}",
-      value_class: ""
-    }
-  ]
+  pressure_bucket = row["pressure_bucket"].to_s
+  pressure_label, pressure_chip_classes = case pressure_bucket
+    when "over_apron2"
+      ["Over Apron 2", "entity-chip entity-chip--danger"]
+    when "over_apron1"
+      ["Over Apron 1", "entity-chip entity-chip--warning"]
+    when "over_tax"
+      ["Over Tax", "entity-chip entity-chip--warning"]
+    when "over_cap"
+      ["Over Cap", "entity-chip entity-chip--muted"]
+    else
+      ["Under Cap", "entity-chip entity-chip--success"]
+    end
 %>
 
 <div id="rightpanel-overlay" class="h-full bg-background">
@@ -109,10 +78,14 @@
         </div>
       </div>
 
-      <div class="mt-2 flex items-center gap-1.5 text-[10px]">
+      <div class="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
         <span class="entity-chip entity-chip--muted">Row <%= selected_position_label %></span>
-        <span class="entity-chip entity-chip--muted" data-show="$comparea === '<%= team_code %>'" style="display: none;">Pinned A</span>
-        <span class="entity-chip entity-chip--muted" data-show="$compareb === '<%= team_code %>'" style="display: none;">Pinned B</span>
+        <span class="<%= pressure_chip_classes %>"><%= pressure_label %></span>
+        <% if row["is_repeater_taxpayer"] %>
+          <span class="entity-chip entity-chip--danger">Repeater</span>
+        <% elsif row["is_taxpayer"] %>
+          <span class="entity-chip entity-chip--warning">Taxpayer</span>
+        <% end %>
       </div>
     </section>
 
@@ -141,54 +114,71 @@
       </div>
     </section>
 
-    <section class="mt-4 border-t border-border pt-3">
-      <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80 mb-1.5">Cap snapshot</div>
-      <div class="space-y-1">
-        <% snapshot_rows.each do |item| %>
-          <div class="flex items-center justify-between gap-2 py-1">
-            <span class="text-sm text-muted-foreground"><%= item[:label] %></span>
-            <span class="text-sm tabular-nums font-medium <%= item[:value_class] %>"><%= item[:value] %></span>
-          </div>
-        <% end %>
+    <section class="mt-4 border-t border-border pt-4">
+      <div class="grid grid-cols-2 gap-1.5">
+        <%= render partial: "salary_book/kpi_cell", locals: {
+          label: "Cap space",
+          value: cap_space.nil? ? "—" : format_room_amount(cap_space),
+          class_name: "w-full",
+          variant: (cap_space.to_f < 0 ? "negative" : "positive")
+        } %>
+
+        <%= render partial: "salary_book/kpi_cell", locals: {
+          label: "Tax overage",
+          value: tax_overage.to_f > 0 ? format_compact_currency(tax_overage) : "—",
+          class_name: "w-full",
+          variant: (tax_overage.to_f > 0 ? "negative" : "default")
+        } %>
+
+        <%= render partial: "salary_book/kpi_cell", locals: {
+          label: "Room tax",
+          value: room_tax.nil? ? "—" : format_room_amount(room_tax),
+          class_name: "w-full",
+          variant: (room_tax.to_f < 0 ? "negative" : "default")
+        } %>
+
+        <%= render partial: "salary_book/kpi_cell", locals: {
+          label: "Room A1",
+          value: room_a1.nil? ? "—" : format_room_amount(room_a1),
+          class_name: "w-full",
+          variant: (room_a1.to_f < 0 ? "negative" : "default")
+        } %>
+
+        <%= render partial: "salary_book/kpi_cell", locals: {
+          label: "Room A2",
+          value: room_a2.nil? ? "—" : format_room_amount(room_a2),
+          class_name: "w-full",
+          variant: (room_a2.to_f < 0 ? "negative" : "default")
+        } %>
+
+        <%= render partial: "salary_book/kpi_cell", locals: {
+          label: "Tax owed",
+          value: luxury_tax_owed.to_f > 0 ? format_compact_currency(luxury_tax_owed) : "—",
+          class_name: "w-full",
+          variant: (luxury_tax_owed.to_f > 0 ? "negative" : "default")
+        } %>
       </div>
     </section>
 
-    <section class="mt-4 border-t border-border pt-3 space-y-2">
-      <div class="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">Compare actions</div>
-      <div class="grid grid-cols-2 gap-2">
-        <% slot_configs.each do |slot| %>
-          <% slot_is_active = slot[:current] == team_code %>
-          <% slot_filled = slot[:current].present? %>
-          <% button_label = if slot_is_active
-            "Remove #{slot[:label]}"
-          elsif slot_filled
-            "Replace #{slot[:label]}"
-          else
-            "Pin #{slot[:label]}"
-          end %>
+    <section class="mt-4 border-t border-border pt-4 space-y-2">
+      <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pressure signals</div>
 
-          <% compare_params = @state_params.merge(slot: slot[:key], selected: team_code) %>
-          <% if slot_is_active %>
-            <% compare_params = compare_params.merge(compare_action: "clear_slot") %>
-          <% else %>
-            <% compare_params = compare_params.merge(compare_action: "pin", team_code: team_code) %>
-          <% end %>
+      <div class="space-y-0.5">
+        <div class="flex items-center justify-between py-1.5 gap-2">
+          <span class="text-sm text-muted-foreground">Current bucket</span>
+          <span class="<%= pressure_chip_classes %>"><%= pressure_label %></span>
+        </div>
 
-          <button
-            type="button"
-            class="cursor-pointer h-8 rounded border border-border text-[11px] font-medium hover:bg-muted transition-colors <%= slot_is_active ? slot[:active_class] : '' %>"
-            data-on:click="@get('<%= team_summary_sse_compare_path(compare_params) %>')"
-          ><%= button_label %></button>
-        <% end %>
+        <div class="flex items-center justify-between py-1.5 gap-2">
+          <span class="text-sm text-muted-foreground">Luxury tax owed</span>
+          <span class="text-sm font-medium font-mono tabular-nums <%= luxury_tax_owed.to_f > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground' %>"><%= luxury_tax_owed.to_f > 0 ? format_compact_currency(luxury_tax_owed) : "—" %></span>
+        </div>
+
+        <div class="flex items-center justify-between py-1.5 gap-2">
+          <span class="text-sm text-muted-foreground">Roster / Two-way</span>
+          <span class="text-sm font-medium font-mono tabular-nums"><%= row["roster_row_count"].to_i %> / <%= row["two_way_row_count"].to_i %></span>
+        </div>
       </div>
-
-      <% if has_compare %>
-        <button
-          type="button"
-          class="cursor-pointer h-7 px-2 rounded border border-border text-[11px] hover:bg-muted"
-          data-on:click="@get('<%= team_summary_sse_compare_path(@state_params.merge(compare_action: "clear_all", selected: team_code)) %>')"
-        >Clear compare board</button>
-      <% end %>
     </section>
 
     <section class="mt-4 border-t border-border pt-3 space-y-1.5 text-[11px]">

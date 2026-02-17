@@ -262,12 +262,12 @@
           <%= render partial: "salary_book/placeholder_section_row", locals: { label: "Draft Assets", salary_years: salary_years } %>
         <% end %>
 
-        <div data-show="$displayfreeagentholds">
-          <%= render partial: "salary_book/cap_holds_section", locals: { cap_holds: cap_holds, salary_years: salary_years } %>
-        </div>
-
         <div data-show="$displaydeadmoney">
           <%= render partial: "salary_book/dead_money_section", locals: { dead_money: dead_money, salary_years: salary_years } %>
+        </div>
+
+        <div data-show="$displayfreeagentholds">
+          <%= render partial: "salary_book/cap_holds_section", locals: { cap_holds: cap_holds, salary_years: salary_years } %>
         </div>
 
         <%= render partial: "salary_book/totals_footer", locals: {

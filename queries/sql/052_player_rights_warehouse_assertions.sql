@@ -17,7 +17,7 @@ FROM pcms.player_rights_warehouse
 WHERE rights_kind='NBA_DRAFT_RIGHTS'
   AND (rights_team_code IS NULL OR rights_team_code='');
 
--- Spot check: Daniel Diez should have NYK rights after the 2024-06-27 DRLST trade
+-- Spot check: Daniel Diez should resolve to NYK rights (curated override).
 SELECT
   player_id,
   player_name,

@@ -16,7 +16,7 @@ module TeamSummary
       @sort_sql = sort_sql
     end
 
-    def build(apply_compare_action: false, step_direction: nil, selected_override_team_code: nil)
+    def build(step_direction: nil, selected_override_team_code: nil)
       @available_years = fetch_available_years
       @selected_year = resolve_selected_year(@available_years)
       @conference = resolve_conference_from_params
@@ -31,20 +31,15 @@ module TeamSummary
         sort_sql: sort_sql
       )
       @rows_by_code = @rows.index_by { |row| row["team_code"] }
-      @team_picker_by_conference = build_team_picker_by_conference(year: @selected_year)
-
-      @compare_a_code = resolve_team_code(params[:compare_a])
-      @compare_b_code = resolve_team_code(params[:compare_b])
-      normalize_compare_slots!
 
       @selected_team_code = resolve_team_code(params[:selected])
       @selected_team_code = resolve_team_code(selected_override_team_code) if selected_override_team_code.present?
 
-      apply_compare_action! if apply_compare_action
       step_selected_team!(step_direction) if step_direction.present?
 
-      hydrate_sidebar_payload!
+      hydrate_selected_row!
       @state_params = build_state_params
+      build_sidebar_summary!
 
       {
         boot_error: nil,
@@ -55,11 +50,8 @@ module TeamSummary
         sort: @sort,
         rows: @rows,
         rows_by_code: @rows_by_code,
-        team_picker_by_conference: @team_picker_by_conference,
-        compare_a_code: @compare_a_code,
-        compare_b_code: @compare_b_code,
-        compare_a_row: @compare_a_row,
-        compare_b_row: @compare_b_row,
+        pressure_counts: @pressure_counts,
+        sidebar_summary: @sidebar_summary,
         selected_team_code: @selected_team_code,
         selected_row: @selected_row,
         state_params: @state_params
@@ -67,27 +59,48 @@ module TeamSummary
     end
 
     def fallback(error:)
+      empty_pressure_counts = {
+        "all" => 0,
+        "over_cap" => 0,
+        "over_tax" => 0,
+        "over_apron1" => 0,
+        "over_apron2" => 0
+      }
+
       {
         boot_error: error.to_s,
         available_years: [],
         selected_year: current_salary_year,
         conference: "all",
         pressure: "all",
-        sort: "cap_space_desc",
+        sort: "pressure_desc",
         rows: [],
         rows_by_code: {},
-        team_picker_by_conference: { "Eastern" => [], "Western" => [] },
-        compare_a_code: nil,
-        compare_b_code: nil,
-        compare_a_row: nil,
-        compare_b_row: nil,
+        pressure_counts: empty_pressure_counts,
+        sidebar_summary: {
+          row_count: 0,
+          eastern_count: 0,
+          western_count: 0,
+          over_cap_count: 0,
+          over_tax_count: 0,
+          over_apron1_count: 0,
+          over_apron2_count: 0,
+          pressure_counts: empty_pressure_counts,
+          active_pressure_lens: "all",
+          active_pressure_label: "All teams",
+          active_pressure_count: 0,
+          active_sort_label: "Pressure first",
+          luxury_tax_total: 0,
+          filters: [],
+          top_rows: []
+        },
         selected_team_code: nil,
         selected_row: nil,
         state_params: {
           year: current_salary_year,
           conference: "all",
           pressure: "all",
-          sort: "cap_space_desc"
+          sort: "pressure_desc"
         }
       }
     end
@@ -160,6 +173,8 @@ module TeamSummary
         ascending = checkbox_on?(params[:sort_asc])
 
         derived_sort = case metric
+        when "pressure"
+          "pressure_desc"
         when "cap_space"
           ascending ? "cap_space_asc" : "cap_space_desc"
         when "tax_overage"
@@ -176,26 +191,12 @@ module TeamSummary
 
     def resolve_sort(value)
       normalized = value.to_s.strip
-      sort_sql.key?(normalized) ? normalized : "cap_space_desc"
+      sort_sql.key?(normalized) ? normalized : "pressure_desc"
     end
 
     def resolve_team_code(value)
       code = value.to_s.strip.upcase
       code.match?(/\A[A-Z]{3}\z/) ? code : nil
-    end
-
-    def resolve_compare_action(value)
-      normalized = value.to_s.strip
-      return normalized if %w[pin clear_slot clear_all].include?(normalized)
-
-      nil
-    end
-
-    def resolve_compare_slot(value)
-      normalized = value.to_s.strip.downcase
-      return normalized if %w[a b].include?(normalized)
-
-      nil
     end
 
     def step_selected_team!(direction)
@@ -216,35 +217,28 @@ module TeamSummary
       @selected_team_code = ordered_codes[target_index]
     end
 
-    def normalize_compare_slots!
-      if @compare_a_code.present? && @compare_a_code == @compare_b_code
-        @compare_b_code = nil
-      end
-    end
-
-    def hydrate_sidebar_payload!
-      lookup_codes = [@selected_team_code, @compare_a_code, @compare_b_code].compact.uniq
-      lookup_rows_by_code = {}
-
-      lookup_codes.each do |code|
-        row = @rows_by_code[code]
-        lookup_rows_by_code[code] = row if row.present?
+    def hydrate_selected_row!
+      selected_code = resolve_team_code(@selected_team_code)
+      if selected_code.blank?
+        @selected_team_code = nil
+        @selected_row = nil
+        return
       end
 
-      missing_codes = lookup_codes - lookup_rows_by_code.keys
-      if missing_codes.any?
-        lookup_rows_by_code.merge!(fetch_rows_by_team_codes(year: @selected_year, team_codes: missing_codes))
+      @selected_row = @rows_by_code[selected_code]
+
+      if @selected_row.blank?
+        lookup_rows = fetch_rows_by_team_codes(year: @selected_year, team_codes: [selected_code])
+        @selected_row = lookup_rows[selected_code]
       end
 
-      @compare_a_row = @compare_a_code.present? ? lookup_rows_by_code[@compare_a_code] : nil
-      @compare_b_row = @compare_b_code.present? ? lookup_rows_by_code[@compare_b_code] : nil
+      unless @selected_row.present?
+        @selected_team_code = nil
+        @selected_row = nil
+        return
+      end
 
-      @compare_a_code = nil if @compare_a_code.present? && @compare_a_row.blank?
-      @compare_b_code = nil if @compare_b_code.present? && @compare_b_row.blank?
-      normalize_compare_slots!
-
-      @selected_row = @selected_team_code.present? ? lookup_rows_by_code[@selected_team_code] : nil
-      @selected_team_code = nil unless @selected_row.present?
+      @selected_team_code = selected_code
     end
 
     def build_state_params
@@ -253,46 +247,77 @@ module TeamSummary
         conference: @conference,
         pressure: @pressure,
         sort: @sort,
-        selected: @selected_team_code.presence,
-        compare_a: @compare_a_code.presence,
-        compare_b: @compare_b_code.presence
+        selected: @selected_team_code.presence
       }.compact
     end
 
-    def apply_compare_action!
-      compare_action_param = params[:compare_action].presence || request_query_parameters["action"]
-      compare_slot_param = params[:compare_slot].presence || request_query_parameters["slot"]
+    def build_sidebar_summary!
+      rows = Array(@rows)
+      @pressure_counts = build_pressure_counts(rows)
 
-      action = resolve_compare_action(compare_action_param)
-      slot = resolve_compare_slot(compare_slot_param)
-      team_code = resolve_team_code(params[:team_code])
+      active_filters = []
+      active_filters << "Conference: #{@conference}" unless @conference == "all"
+      active_filters << "Pressure: #{pressure_lens_label(@pressure)}" unless @pressure == "all"
+      active_filters << "Sort: #{sort_lens_label(@sort)}" unless @sort == "pressure_desc"
 
-      case action
-      when "pin"
-        return if slot.blank? || team_code.blank?
-
-        if slot == "a"
-          @compare_a_code = team_code
-          @compare_b_code = nil if @compare_b_code == team_code
-        else
-          @compare_b_code = team_code
-          @compare_a_code = nil if @compare_a_code == team_code
-        end
-
-      when "clear_slot"
-        return if slot.blank?
-
-        if slot == "a"
-          @compare_a_code = nil
-        else
-          @compare_b_code = nil
-        end
-      when "clear_all"
-        @compare_a_code = nil
-        @compare_b_code = nil
+      top_rows = rows.first(14)
+      if @selected_row.present? && top_rows.none? { |row| row["team_code"].to_s == @selected_row["team_code"].to_s }
+        top_rows = [@selected_row] + top_rows.first(13)
       end
 
-      normalize_compare_slots!
+      @sidebar_summary = {
+        row_count: rows.size,
+        eastern_count: rows.count { |row| row["conference_name"] == "Eastern" },
+        western_count: rows.count { |row| row["conference_name"] == "Western" },
+        over_cap_count: @pressure_counts["over_cap"],
+        over_tax_count: @pressure_counts["over_tax"],
+        over_apron1_count: @pressure_counts["over_apron1"],
+        over_apron2_count: @pressure_counts["over_apron2"],
+        pressure_counts: @pressure_counts,
+        active_pressure_lens: @pressure,
+        active_pressure_label: pressure_lens_label(@pressure),
+        active_pressure_count: @pressure_counts[@pressure],
+        active_sort_label: sort_lens_label(@sort),
+        luxury_tax_total: rows.sum { |row| row["luxury_tax_owed"].to_f },
+        filters: active_filters,
+        top_rows: top_rows
+      }
+    end
+
+    def pressure_lens_label(lens)
+      case lens
+      when "over_tax" then "Over tax"
+      when "over_apron1" then "Over Apron 1"
+      when "over_apron2" then "Over Apron 2"
+      else "All teams"
+      end
+    end
+
+    def sort_lens_label(lens)
+      case lens
+      when "cap_space_asc" then "Cap space (lowest first)"
+      when "cap_space_desc" then "Cap space (highest first)"
+      when "tax_overage_asc" then "Tax overage (lowest first)"
+      when "tax_overage_desc" then "Tax overage (highest first)"
+      when "team_asc" then "Team A→Z"
+      else "Pressure first"
+      end
+    end
+
+    def build_pressure_counts(rows)
+      scoped_rows = Array(rows)
+
+      {
+        "all" => scoped_rows.size,
+        "over_cap" => scoped_rows.count { |row| pressure_rank_for_row(row) >= 1 },
+        "over_tax" => scoped_rows.count { |row| pressure_rank_for_row(row) >= 2 },
+        "over_apron1" => scoped_rows.count { |row| pressure_rank_for_row(row) >= 3 },
+        "over_apron2" => scoped_rows.count { |row| pressure_rank_for_row(row) >= 4 }
+      }
+    end
+
+    def pressure_rank_for_row(row)
+      row["pressure_rank"].to_i
     end
 
     def fetch_rows_by_team_codes(year:, team_codes:)
@@ -313,34 +338,6 @@ module TeamSummary
       codes.each_with_object({}) do |code, acc|
         acc[code] = rows_by_code[code] if rows_by_code.key?(code)
       end
-    end
-
-    def build_team_picker_by_conference(year:)
-      rows = queries.fetch_rows(
-        year: year,
-        conference: "all",
-        pressure: "all",
-        sort: "team_asc",
-        sort_sql: sort_sql,
-        apply_filters: false
-      )
-
-      picker = { "Eastern" => [], "Western" => [] }
-
-      rows.each do |row|
-        code = resolve_team_code(row["team_code"])
-        next if code.blank?
-
-        conference = row["conference_name"].to_s
-        next unless picker.key?(conference)
-
-        picker[conference] << {
-          code: code,
-          name: row["team_name"].presence || code
-        }
-      end
-
-      picker
     end
   end
 end

@@ -31,7 +31,12 @@ All steps are raw Python inline scripts:
 - `standings.inline_script.py` → `nba.standings`
 - `games.inline_script.py` → `nba.games`, `nba.playoff_series`
 - `game_data.inline_script.py` → per-game detail tables (boxscore/pbp/hustle/tracking/etc.)
-- `aggregates.inline_script.py` → `nba.player_stats_aggregated`, `nba.team_stats_aggregated`, `nba.lineup_stats_season`, `nba.lineup_stats_game`, `nba.shot_chart`
+- `aggregates.inline_script.py` → `nba.player_stats_aggregated`, `nba.team_stats_aggregated`
+- `lineups.inline_script.py` → `nba.lineup_stats_season`, `nba.lineup_stats_game`
+  - `season_backfill` mode: fetches season + game lineups.
+  - `refresh`/`date_backfill` modes: defaults to game lineups only (set `NBA_LINEUPS_INCLUDE_SEASON_IN_REFRESH=1` to force season lineups).
+  - When `game_ids` is provided, season lineup pulls are scoped to teams in those games.
+- `shot_chart.inline_script.py` → `nba.shot_chart`
 - `supplemental.inline_script.py` → injuries, alerts, pregame storylines, tracking streams
 - `ngss.inline_script.py` → legacy NGSS endpoints (stored as `nba.ngss_*` tables)
 
@@ -44,9 +49,9 @@ The flow input is intentionally simple:
 - `days_back` (refresh only)
 - `start_date`, `end_date` (date backfill only)
 - `game_ids` (optional advanced override for game-level steps)
-- `only_final_games` (game_data/aggregates/ngss)
+- `only_final_games` (game_data/lineups/shot_chart/ngss)
 
-There are no per-step `include_*` toggles in the flow. It always runs the full pipeline (reference + games + game data + aggregates + supplemental + NGSS).
+There are no per-step `include_*` toggles in the flow. It always runs the full pipeline (reference + games + game data + aggregates + lineups + shot chart + supplemental + NGSS).
 
 ---
 
@@ -83,7 +88,7 @@ Notes:
 - Most fetch helpers retry on `429` and `5xx` responses.
 - Many endpoints legitimately return `404` for missing game/date payloads; the scripts usually treat `404` as "no data".
 - Before changing DB schema, confirm the upstream payload shape (log keys/sample rows).
-- The `aggregates` step wraps each major section (player agg, team agg, season lineups, game lineups, shot chart) in its own try/except so a failure in one section doesn't kill the others. Errors are collected and returned in the result's `"errors"` array.
+- `aggregates`, `lineups`, and `shot_chart` each wrap major fetch sections in try/except blocks so a single endpoint failure doesn’t kill the whole step. Errors are collected in each step’s `"errors"` array.
 
 See also:
 - `nba/AGENTS.md` — schema design conventions + where the API specs live
@@ -94,9 +99,21 @@ See also:
 
 ## Shot chart (`nba.shot_chart`)
 
-The `aggregates` step fetches FieldGoals event data from the Query Tool `/event/player` endpoint and writes to `nba.shot_chart` — a proper table with first-class columns and a `(game_id, event_number)` natural key.
+The `shot_chart` step fetches FieldGoals event data from the Query Tool `/event/player` endpoint and writes to `nba.shot_chart` — a proper table with first-class columns and a `(game_id, event_number)` natural key.
 
-Shot chart uses **batched GameId requests** (up to 50 games per API call via comma-separated `GameId` parameter) to stay under the 10k-row API limit (~180 shots/game × 50 = ~9000). A full season backfill takes ~40s instead of ~25min.
+Shot chart uses **batched GameId requests** (50 games per API call via comma-separated `GameId` parameter) to stay under the 10k-row API limit (~180 shots/game × 50 = ~9000).
+
+`shot_chart.inline_script.py` now returns a `telemetry` object with:
+- game-list resolution timing
+- batch/call counters
+- per-batch FieldGoals + TrackingShots timings/row counts
+- parse/merge timing
+- upsert timing
+
+Current tuning notes (2025-26 regular-season dry-run):
+- batch size **50**: ~65–67s, no truncation warnings
+- batch size **40**: ~89s (more API calls)
+- batch size **60**: triggers split-on-truncation frequently and regresses heavily (~185s)
 
 For one-off backfills there's also a standalone script:
 

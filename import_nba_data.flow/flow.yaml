@@ -192,6 +192,84 @@ value:
         language: python3
 
     - id: h
+      summary: Lineups
+      value:
+        type: rawscript
+        content: '!inline lineups.inline_script.py'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: '!flow_input.save_data'
+          league_id:
+            type: javascript
+            expr: flow_input.league_id
+          season_label:
+            type: javascript
+            expr: flow_input.season_label
+          season_type:
+            type: javascript
+            expr: flow_input.season_type
+          mode:
+            type: javascript
+            expr: flow_input.run_mode
+          days_back:
+            type: javascript
+            expr: flow_input.days_back
+          start_date:
+            type: javascript
+            expr: flow_input.start_date
+          end_date:
+            type: javascript
+            expr: flow_input.end_date
+          game_ids:
+            type: javascript
+            expr: flow_input.game_ids
+          only_final_games:
+            type: javascript
+            expr: flow_input.only_final_games
+        lock: '!inline lineups.inline_script.lock'
+        language: python3
+
+    - id: i
+      summary: Shot Chart
+      value:
+        type: rawscript
+        content: '!inline shot_chart.inline_script.py'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: '!flow_input.save_data'
+          league_id:
+            type: javascript
+            expr: flow_input.league_id
+          season_label:
+            type: javascript
+            expr: flow_input.season_label
+          season_type:
+            type: javascript
+            expr: flow_input.season_type
+          mode:
+            type: javascript
+            expr: flow_input.run_mode
+          days_back:
+            type: javascript
+            expr: flow_input.days_back
+          start_date:
+            type: javascript
+            expr: flow_input.start_date
+          end_date:
+            type: javascript
+            expr: flow_input.end_date
+          game_ids:
+            type: javascript
+            expr: flow_input.game_ids
+          only_final_games:
+            type: javascript
+            expr: flow_input.only_final_games
+        lock: '!inline shot_chart.inline_script.lock'
+        language: python3
+
+    - id: j
       summary: Supplemental
       value:
         type: rawscript
@@ -227,7 +305,7 @@ value:
         lock: '!inline supplemental.inline_script.lock'
         language: python3
 
-    - id: i
+    - id: k
       summary: NGSS
       value:
         type: rawscript

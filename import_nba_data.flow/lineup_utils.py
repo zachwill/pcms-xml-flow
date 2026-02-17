@@ -12,10 +12,11 @@ LINEUP_QUANTITY = 5
 LINEUP_MAX_ROWS = 10000
 LINEUP_GROUPING = "None"
 LINEUP_GAME_BATCH_SIZE = {
-    "Base": 150,
-    "Advanced": 120,
+    # Keep these aggressive; fetch helper can split on 414/429/5xx and truncation.
+    "Base": 250,
+    "Advanced": 250,
 }
-# Keep an aggressive default for throughput; fetch helper can split batches on failures.
+# TeamId batching for /season/lineups. 10 tends to be reliable and fast.
 LINEUP_SEASON_TEAM_BATCH_SIZE = 10
 
 LINEUP_STAT_COLUMNS = [

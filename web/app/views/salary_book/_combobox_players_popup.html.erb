@@ -23,6 +23,8 @@
   else
     "all players"
   end
+
+  age_percentiles = age_percentiles_by_player_id(players)
 %>
 
 <div
@@ -81,7 +83,11 @@
   <div id="sbplayercb-list" role="listbox" class="max-h-80 overflow-y-auto overscroll-contain py-1">
     <% if players.any? %>
       <% players.each_with_index do |player, index| %>
-        <%= render partial: "salary_book/combobox_players_option", locals: { player:, index: } %>
+        <%= render partial: "salary_book/combobox_players_option", locals: {
+          player:,
+          index:,
+          age_percentile: age_percentiles[player["player_id"]]
+        } %>
       <% end %>
     <% else %>
       <div class="px-3 py-2 text-xs text-muted-foreground"><%= empty_message %></div>

@@ -15,6 +15,8 @@
 <% epm_color_class = epm_percentile_color_class(epm_percentile) %>
 <% epm_has_value = !epm_value.nil? %>
 <% show_player_cap_holds_by_default = salary_book_default_display_player_cap_holds? %>
+<% age_percentile = local_assigns[:age_percentile] %>
+<% age_color_class = age_percentile_color_class(age_percentile) %>
 
 <div
   id="player-<%= player_id %>"
@@ -59,7 +61,8 @@
         <div class="h-[16px] -mt-px flex items-start min-w-0 pl-1 pr-2 leading-none text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden">
           <% current_year = salary_years.first %>
           <% next_year = salary_years[1] %>
-          <% age_yos = player_age_yos_display(player) %>
+          <% age_display = player_age_display(player) %>
+          <% yos_display = player_years_of_service_display(player) %>
 
           <% status_tokens = [] %>
           <% status_tokens << { label: "2W", classes: "text-foreground" } if player["is_two_way"] %>
@@ -88,14 +91,23 @@
           <% show_trade_kicker = player["is_trade_bonus"] && trade_bonus_has_room?(player, current_year) != false %>
           <% status_tokens << { label: "TK", classes: "text-orange-600 dark:text-orange-400" } if show_trade_kicker %>
 
-          <% if age_yos.present? || status_tokens.any? %>
+          <% has_demographic_tokens = age_display.present? || yos_display.present? %>
+
+          <% if has_demographic_tokens || status_tokens.any? %>
             <div class="flex items-start min-w-0 overflow-hidden whitespace-nowrap">
-              <% if age_yos.present? %>
-                <span class="truncate"><%= age_yos %></span>
+              <% if age_display.present? %>
+                <span class="truncate <%= age_color_class %>"><%= age_display %></span>
+              <% end %>
+
+              <% if yos_display.present? %>
+                <% if age_display.present? %>
+                  <span class="px-1 text-muted-foreground/50">·</span>
+                <% end %>
+                <span class="truncate"><%= yos_display %></span>
               <% end %>
 
               <% status_tokens.each_with_index do |token, idx| %>
-                <% if age_yos.present? || idx.positive? %>
+                <% if has_demographic_tokens || idx.positive? %>
                   <span class="px-1 text-muted-foreground/50">·</span>
                 <% end %>
                 <span class="<%= token[:classes] %>"><%= token[:label] %></span>

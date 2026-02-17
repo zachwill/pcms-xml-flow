@@ -26,7 +26,6 @@
     displayfreeagentholds: false,
     displaydeadmoney: false,
     displayepm: false,
-    displayctg: false,
     displayplayercapholds: <%= salary_book_default_display_player_cap_holds? %>,
     displaycashvscap: false,
     displayluxurytax: true
@@ -211,16 +210,6 @@
                 <%= "checked" if salary_book_default_display_player_cap_holds? %>
               />
               <label for="filter-column-capholds" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">Cap Holds</label>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                id="filter-column-ctg"
-                class="size-3.5 accent-primary"
-                data-bind="displayctg"
-                data-on:change="window.__salaryBookPreserveContext?.()"
-              />
-              <label for="filter-column-ctg" class="text-[11px] leading-none cursor-pointer select-none text-foreground/80 hover:text-foreground transition-colors">CTG</label>
             </div>
             <div class="flex items-center gap-1.5">
               <input

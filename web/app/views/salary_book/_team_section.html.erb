@@ -33,6 +33,8 @@
   col_px = 96
   agent_px = 160
   min_table_width_px = sticky_left_px + ((salary_years.length + 1) * col_px) + agent_px
+
+  age_percentiles = age_percentiles_by_player_id(players)
 %>
 
 <section
@@ -234,7 +236,11 @@
         <%# Player rows %>
         <div class="[&>*:first-child]:mt-1">
           <% players.each do |player| %>
-            <%= render partial: "salary_book/player_row", locals: { player: player, salary_years: salary_years } %>
+            <%= render partial: "salary_book/player_row", locals: {
+              player: player,
+              salary_years: salary_years,
+              age_percentile: age_percentiles[player["player_id"]]
+            } %>
           <% end %>
         </div>
 

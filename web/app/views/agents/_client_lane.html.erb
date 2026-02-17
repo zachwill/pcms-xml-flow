@@ -19,8 +19,31 @@
         </div>
 
         <div class="h-[14px] -mt-px flex items-start gap-1 min-w-0 pl-2 text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden leading-none">
-          <% if client[:detail_line].present? %>
-            <span class="truncate"><%= client[:detail_line] %></span>
+          <% age_text = client[:age_text].to_s.strip.presence %>
+          <% yos_text = client[:yos_text].to_s.strip.presence %>
+          <% contract_type_code = client[:contract_type_code].to_s.strip.presence %>
+          <% has_detail_tokens = age_text.present? || yos_text.present? || contract_type_code.present? %>
+
+          <% if has_detail_tokens %>
+            <div class="flex items-start min-w-0 overflow-hidden whitespace-nowrap">
+              <% if age_text.present? %>
+                <span class="truncate <%= client[:age_color_class] %>"><%= age_text %></span>
+              <% end %>
+
+              <% if yos_text.present? %>
+                <% if age_text.present? %>
+                  <span class="px-1 text-muted-foreground/50">·</span>
+                <% end %>
+                <span class="truncate"><%= yos_text %></span>
+              <% end %>
+
+              <% if contract_type_code.present? %>
+                <% if age_text.present? || yos_text.present? %>
+                  <span class="px-1 text-muted-foreground/50">·</span>
+                <% end %>
+                <span class="truncate"><%= contract_type_code %></span>
+              <% end %>
+            </div>
           <% else %>
             <span class="text-muted-foreground/50">—</span>
           <% end %>

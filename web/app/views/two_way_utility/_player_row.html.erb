@@ -10,7 +10,10 @@
 
 <% current_year = SalaryBookHelper::SALARY_YEARS.first %>
 <% next_year = SalaryBookHelper::SALARY_YEARS[1] %>
-<% age_yos = player_age_yos_display(player) %>
+<% age_display = player_age_display(player) %>
+<% yos_display = player_years_of_service_display(player) %>
+<% age_percentile = local_assigns[:age_percentile] %>
+<% age_color_class = age_percentile_color_class(age_percentile) %>
 <% cap_2025 = player["cap_2025"] %>
 <% cap_2026 = player["cap_2026"] %>
 
@@ -162,13 +165,22 @@ end %>
 
       <div class="h-[16px] -mt-px flex items-start min-w-0 pl-1 pr-2 leading-none text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden">
         <div class="flex items-start min-w-0 overflow-hidden whitespace-nowrap">
-          <% if age_yos.present? || status_tokens.any? %>
-            <% if age_yos.present? %>
-              <span class="truncate"><%= age_yos %></span>
+          <% has_demographic_tokens = age_display.present? || yos_display.present? %>
+
+          <% if has_demographic_tokens || status_tokens.any? %>
+            <% if age_display.present? %>
+              <span class="truncate <%= age_color_class %>"><%= age_display %></span>
+            <% end %>
+
+            <% if yos_display.present? %>
+              <% if age_display.present? %>
+                <span class="px-1 text-muted-foreground/50">·</span>
+              <% end %>
+              <span class="truncate"><%= yos_display %></span>
             <% end %>
 
             <% status_tokens.each_with_index do |token, idx| %>
-              <% if age_yos.present? || idx.positive? %>
+              <% if has_demographic_tokens || idx.positive? %>
                 <span class="px-1 text-muted-foreground/50">·</span>
               <% end %>
               <span class="<%= token[:classes] %>"><%= token[:label] %></span>

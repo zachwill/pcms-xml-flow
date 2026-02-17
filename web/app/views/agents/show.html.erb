@@ -60,8 +60,11 @@
 <% header_links << ["Browse Agents", "/agents"] %>
 
 <%
+  client_age_percentiles = age_percentiles_by_player_id(@clients)
+
   client_rows = @clients.map do |client|
     age_str = client["age"].present? ? "#{client['age'].to_i}y" : nil
+    age_color_class = age_percentile_color_class(client_age_percentiles[client["player_id"]])
     yos_str = client["years_of_service"].present? ? "#{client['years_of_service'].to_i} YOS" : nil
 
     next_option = nil
@@ -142,7 +145,7 @@
       "—"
     end
 
-    detail_parts = [age_str, yos_str, client["contract_type_code"].presence].compact
+    contract_type_code = client["contract_type_code"].presence
 
     cohort_memberships = []
     cohort_memberships << { key: "two_way", label: "2W" } if client["is_two_way"]
@@ -160,7 +163,10 @@
       total_salary_from_2025: client["total_salary_from_2025"],
       decision_label: decision_label,
       decision_classes: (next_option&.dig(:decision_classes) || "text-muted-foreground"),
-      detail_line: detail_parts.join(" · "),
+      age_text: age_str,
+      age_color_class: age_color_class,
+      yos_text: yos_str,
+      contract_type_code: contract_type_code,
       chips: chips,
       cohort_memberships: cohort_memberships,
       cohort_keys: cohort_memberships.map { |membership| membership[:key] },

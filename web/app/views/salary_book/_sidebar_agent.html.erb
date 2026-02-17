@@ -57,6 +57,8 @@
   has_options = sidebar.fetch(:has_options)
   has_restrictions = sidebar.fetch(:has_restrictions)
   has_prior_year_now_fa = sidebar.fetch(:has_prior_year_now_fa)
+
+  client_age_percentiles = age_percentiles_by_player_id(clients)
 %>
 
 <div id="rightpanel-overlay" class="h-full">
@@ -251,6 +253,8 @@
 
               row_name = presenter.client_row_name(client)
 
+              age_label = player_age_display(client)
+              age_color_class = age_percentile_color_class(client_age_percentiles[player_id])
               yos_label = player_years_of_service_display(client)
 
               current_salary = client["cap_2025"].to_f
@@ -306,14 +310,22 @@
                   <div class="font-medium text-[14px] truncate"><%= row_name %></div>
                 </div>
                 <div class="h-[18px] -mt-px flex items-start min-w-0 leading-none text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden">
-                  <% if yos_label.present? || contract_marker.present? %>
+                  <% has_demographic_tokens = age_label.present? || yos_label.present? %>
+                  <% if has_demographic_tokens || contract_marker.present? %>
                     <div class="flex items-start min-w-0 overflow-hidden whitespace-nowrap">
+                      <% if age_label.present? %>
+                        <span class="truncate <%= age_color_class %>"><%= age_label %></span>
+                      <% end %>
+
                       <% if yos_label.present? %>
+                        <% if age_label.present? %>
+                          <span class="px-1 text-muted-foreground/50">·</span>
+                        <% end %>
                         <span class="truncate"><%= yos_label %></span>
                       <% end %>
 
                       <% if contract_marker.present? %>
-                        <% if yos_label.present? %>
+                        <% if has_demographic_tokens %>
                           <span class="px-1 text-muted-foreground/50">·</span>
                         <% end %>
                         <span class="shrink-0 font-medium <%= contract_marker[:classes] %>"><%= contract_marker[:label] %></span>

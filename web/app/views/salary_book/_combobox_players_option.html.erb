@@ -3,7 +3,10 @@
 <% team_code = player["team_code"].presence || "—" %>
 <% team_logo = team_logo_url(player["team_id"]) %>
 <% agent_name = player["agent_name"].presence || "No agent" %>
-<% age_yos = player_age_yos_display(player) %>
+<% age_display = player_age_display(player) %>
+<% yos_display = player_years_of_service_display(player) %>
+<% age_percentile = local_assigns[:age_percentile] %>
+<% age_color_class = age_percentile_color_class(age_percentile) %>
 <% cap_2025 = player["cap_2025"] %>
 
 <button
@@ -72,9 +75,13 @@
       <span><%= team_code %></span>
       <span class="text-muted-foreground/50">·</span>
       <span class="font-mono tabular-nums"><%= format_salary(cap_2025) %></span>
-      <% if age_yos.present? %>
+      <% if age_display.present? %>
         <span class="text-muted-foreground/50">·</span>
-        <span class="truncate"><%= age_yos %></span>
+        <span class="truncate <%= age_color_class %>"><%= age_display %></span>
+      <% end %>
+      <% if yos_display.present? %>
+        <span class="text-muted-foreground/50">·</span>
+        <span class="truncate"><%= yos_display %></span>
       <% end %>
       <span class="text-muted-foreground/50">·</span>
       <span class="truncate"><%= agent_name %></span>

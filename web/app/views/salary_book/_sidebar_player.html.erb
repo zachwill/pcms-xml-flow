@@ -19,7 +19,9 @@
   team_logo = sidebar.fetch(:team_logo)
   agent_name = sidebar.fetch(:agent_name)
   agent_id = sidebar.fetch(:agent_id)
-  age_yos = sidebar.fetch(:age_yos)
+  age_display = sidebar.fetch(:age_display)
+  years_of_service_display = sidebar.fetch(:years_of_service_display)
+  age_color_class = sidebar.fetch(:age_color_class)
   is_two_way = sidebar.fetch(:is_two_way)
 
   team_switchable = sidebar.fetch(:team_switchable)
@@ -119,13 +121,21 @@
         <h2 class="text-lg font-semibold text-foreground truncate"><%= player_name %></h2>
 
         <div class="text-xs text-muted-foreground/80 tabular-nums flex items-center gap-1 min-w-0 overflow-hidden whitespace-nowrap">
-          <% if age_yos.present? || header_contract_label.present? %>
-            <% if age_yos.present? %>
-              <span class="truncate"><%= age_yos %></span>
+          <% has_demographic_tokens = age_display.present? || years_of_service_display.present? %>
+          <% if has_demographic_tokens || header_contract_label.present? %>
+            <% if age_display.present? %>
+              <span class="truncate <%= age_color_class %>"><%= age_display %></span>
+            <% end %>
+
+            <% if years_of_service_display.present? %>
+              <% if age_display.present? %>
+                <span class="text-muted-foreground/50">·</span>
+              <% end %>
+              <span class="truncate"><%= years_of_service_display %></span>
             <% end %>
 
             <% if header_contract_label.present? %>
-              <% if age_yos.present? %>
+              <% if has_demographic_tokens %>
                 <span class="text-muted-foreground/50">·</span>
               <% end %>
               <span class="shrink-0 font-medium <%= header_contract_classes %>"><%= header_contract_label %></span>

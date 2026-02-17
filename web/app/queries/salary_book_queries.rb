@@ -306,6 +306,16 @@ class SalaryBookQueries
 
     conn.exec_query(
       <<~SQL
+        WITH age_ranked AS (
+          SELECT
+            sbw_age.player_id,
+            (1 - PERCENT_RANK() OVER (
+              PARTITION BY sbw_age.team_code
+              ORDER BY sbw_age.age ASC, sbw_age.player_id ASC
+            ))::numeric AS age_percentile
+          FROM pcms.salary_book_warehouse sbw_age
+          WHERE sbw_age.age IS NOT NULL
+        )
         SELECT
           sbw.player_id,
           sbw.player_name,
@@ -315,6 +325,7 @@ class SalaryBookQueries
           sbw.agent_name,
           sbw.agent_id,
           sbw.age,
+          age_ranked.age_percentile,
           p.years_of_service,
           epm_latest.season AS epm_season,
           epm_latest.epm AS epm_value,
@@ -398,6 +409,8 @@ class SalaryBookQueries
         LEFT JOIN pcms.teams t
           ON t.team_code = sbw.team_code
          AND t.league_lk = 'NBA'
+        LEFT JOIN age_ranked
+          ON age_ranked.player_id = sbw.player_id
         LEFT JOIN LATERAL (
           SELECT
             e.season,

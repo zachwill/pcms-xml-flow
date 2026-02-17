@@ -206,7 +206,7 @@
     <div class="mt-2 border-t border-border pt-4">
       <div class="flex items-center justify-between mb-2">
         <div class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Season Ledger</div>
-        <div class="text-[10px] text-muted-foreground tabular-nums">Roster Cost · Cap Space</div>
+        <div class="text-[10px] text-muted-foreground tabular-nums">Salary Cap · Roster Cost</div>
       </div>
 
       <div class="overflow-x-auto rounded-lg border border-border/60">
@@ -214,8 +214,8 @@
           <thead class="bg-muted/20 text-muted-foreground uppercase tracking-wide text-[10px]">
             <tr>
               <th class="text-left px-2 py-1.5 font-medium">Year</th>
+              <th class="text-right px-2 py-1.5 font-medium">Salary Cap</th>
               <th class="text-right px-2 py-1.5 font-medium">Roster Cost</th>
-              <th class="text-right px-2 py-1.5 font-medium">Cap Space</th>
               <th class="text-right px-2 py-1.5 font-medium">Tax Status</th>
             </tr>
           </thead>
@@ -224,15 +224,15 @@
               <% ledger = summaries_by_year[ledger_year] || {} %>
               <% ledger_cap_total = ledger["cap_total"] %>
               <% has_ledger_cap_total = salary_amount_present_for_display?(ledger_cap_total) %>
-              <% ledger_cap_space = ledger["cap_space"] %>
+              <% ledger_salary_cap = ledger["salary_cap_amount"] %>
+              <% has_ledger_salary_cap = salary_amount_present_for_display?(ledger_salary_cap) %>
               <% ledger_status = ledger.empty? ? { label: "—", value: "—", variant: "muted" } : tax_status(ledger) %>
               <% ledger_status_label = ledger_status[:label] == "Under Tax" ? "Under" : ledger_status[:label] %>
-              <% ledger_cap_space_class = ledger_cap_space.nil? ? nil : (ledger_cap_space.to_f >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500") %>
               <% highlight = ledger_year.to_i == year.to_i %>
               <tr class="<%= highlight ? 'bg-yellow-50/70 dark:bg-yellow-900/25' : '' %>">
                 <td class="px-2 py-1.5 tabular-nums"><%= format_year_label(ledger_year) %></td>
+                <td class="px-2 py-1.5 text-right tabular-nums"><%= has_ledger_salary_cap ? format_compact_currency(ledger_salary_cap) : "—" %></td>
                 <td class="px-2 py-1.5 text-right tabular-nums"><%= has_ledger_cap_total ? format_compact_currency(ledger_cap_total) : "—" %></td>
-                <td class="px-2 py-1.5 text-right tabular-nums <%= ledger_cap_space_class %>"><%= ledger_cap_space ? format_room_amount(ledger_cap_space) : "—" %></td>
                 <td class="px-2 py-1.5 text-right">
                   <div class="flex flex-col items-end leading-tight">
                     <span class="inline-flex px-1.5 py-px rounded text-[10px] font-medium leading-none <%= status_badge_class_for.call(ledger_status[:label]) %>"><%= ledger_status_label %></span>

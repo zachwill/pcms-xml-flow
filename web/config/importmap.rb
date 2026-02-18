@@ -21,3 +21,6 @@ pin "shared/combobox", to: "shared/combobox.js"
 # Shared Liveline canvas engine + playground page
 pin "shared/liveline_datastar", to: "shared/liveline_datastar.js"
 pin "liveline_test", to: "liveline_test.js"
+
+# Ripcity Noah chart prototypes
+pin "ripcity/noah_shotchart", to: "ripcity/noah_shotchart.js"

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="264" height="255" viewBox="0 0 264 255">
+  <!-- Zones -->
+  <g id="zones" fill="#000" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 0v80h.004l.025.058L0 86V0h15z" name="left-corner-three" />
+    <path d="M81.612 145.7l-17.574 46.865C39.428 182.391 17.597 166.856 0 147.417V86l15.03-5.942c13.103 29.399 36.965 52.947 66.582 65.643z" name="left-wing-three" />
+    <path d="M81.612 145.7C97.076 152.33 114.11 156 132 156c17.89 0 34.924-3.67 50.388-10.3l17.574 46.865C179.022 201.223 156.069 206 132 206c-24.069 0-47.021-4.777-67.962-13.435l17.574-46.864z" name="middle-three" />
+    <path d="M182.388 145.7c29.617-12.695 53.48-36.243 66.586-65.64L264 86v61.417c-17.597 19.44-39.428 34.974-64.038 45.148l-17.574-46.864z" name="right-wing-three" />
+    <path d="M249 0h15v86l-15.026-5.94L249 80V0z" name="right-corner-three" />
+    <path d="M15 0h71v52L15.03 80.058 15.003 80H15V0z" name="left-corner-two" />
+    <path d="M165.852 102h12V52l70.974 28.06c-13.106 29.397-36.968 52.945-66.586 65.64L165.852 102z" transform="matrix(-1 0 0 1 264 0)" name="left-wing-two" />
+    <path d="M182.388 145.7C166.924 152.33 149.89 156 132 156s-34.924-3.67-50.388-10.3L98 102h68l16.388 43.7z" name="middle-two" />
+    <path d="M166 102h12V52l70.974 28.06c-13.107 29.397-36.969 52.945-66.586 65.64L166 102z" name="right-wing-two" />
+    <path d="M249 0v80l-.026.06L178 52V0h71z" name="right-corner-two" /> 
+    <!-- Paint as a simple rect (removed the embedded circle) -->
+    <rect x="86" y="0" width="92" height="102" name="paint" />
+    <!-- Rim fill -->
+    <circle cx="132" cy="28" r="20" name="rim" />
+    <path d="M264 147.417V255H0V147.417C32.57 183.397 79.645 206 132 206c52.355 0 99.43-22.603 132-58.583z" name="far-three" />
+  </g>
+  <!-- Minimal markings (stroke-only) -->
+  <g id="markings" pointer-events="none" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Lane edges and free-throw line -->
+    <path d="M86 0V102M178 0V102M86 102H178" /> 
+    <!-- Free-throw circle: center (132,102), radius 35 --> <!-- Top half (solid) -->
+    <path d="M97 102A35 35 0 0 0 167 102" />
+    <!-- Bottom half (dashed) -->
+    <path d="M97 102A35 35 0 0 1 167 102" stroke-dasharray="6 6" />
+    <!-- Rim outline -->
+    <circle cx="132" cy="28" r="20" />
+  </g>
+</svg>

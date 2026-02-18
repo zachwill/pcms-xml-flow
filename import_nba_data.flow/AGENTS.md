@@ -150,7 +150,10 @@ SQL assertions: `queries/sql/070_nba_shot_chart_assertions.sql`
 `game_data` now includes:
 - bounded per-game concurrency (`GAME_DATA_CONCURRENCY=4`)
 - structured telemetry for game selection, legacy endpoint timings, Query Tool batch metrics, and upsert timing.
+- season-backfill coverage skipping: when `run_mode=season_backfill` (and no explicit `game_ids`), it only fetches games missing each section (`traditional/advanced/pbp/poc/hustle` + `tracking/defensive/violations`).
 
 `querytool_event_streams` includes:
 - per-event-type batch telemetry (attempts/splits/rows/timing)
 - split/retry on 414/429/5xx and truncation detection.
+- season-backfill coverage skipping: when `run_mode=season_backfill` (and no explicit `game_ids`), each event type fetches only games missing that `event_type` row.
+- current TrackingPasses batch seed is **16** (sample benchmark over 200 games: faster than 15 with no splits).

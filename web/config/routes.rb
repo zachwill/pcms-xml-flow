@@ -151,8 +151,9 @@ Rails.application.routes.draw do
   get "transactions/sse/refresh", to: "transactions_sse#refresh", as: :transactions_sse_refresh
   get "transactions/:id", to: "transactions#show", as: :transaction, constraints: { id: /\d+/ }
 
-  # Rip City stubs
-  get "rip-city/noah", to: "rip_city/noah#show", as: :rip_city_noah
+  # Ripcity stubs
+  get "ripcity/noah", to: "ripcity/noah#show", as: :ripcitynoah
+  get "ripcity/noah/refresh", to: "ripcity/noah#refresh", as: :ripcitynoah_refresh
 
   root "salary_book#show"
 end

@@ -26,7 +26,7 @@ Use these as source-of-truth templates.
 | Pattern | Primary examples |
 |---|---|
 | **A. Full-viewport tool** | `web/app/views/tools/salary_book/show.html.erb`, `web/app/views/tools/team_summary/show.html.erb`, `web/app/views/tools/two_way_utility/show.html.erb`, `web/app/views/tools/system_values/show.html.erb`, `web/app/views/entities/players/index.html.erb` |
-| **B. Document-scroll page** | `web/app/views/rip_city/noah/show.html.erb` |
+| **B. Document-scroll page** | `web/app/views/ripcity/noah/show.html.erb` |
 | **C. Entity workspace** | `web/app/views/entities/players/show.html.erb`, `web/app/views/entities/teams/show.html.erb` |
 
 Additional workspace variants (legacy but valid when editing existing pages):

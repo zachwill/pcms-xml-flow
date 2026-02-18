@@ -16,7 +16,7 @@ QUERY_TOOL_TRUNCATION_THRESHOLD = 9900
 
 QUERYTOOL_EVENT_STREAM_MAX_ROWS_RETURNED = 10000
 QUERYTOOL_EVENT_STREAM_BATCH_SIZES = {
-    "TrackingPasses": 15,
+    "TrackingPasses": 16,
     "DefensiveEvents": 30,
     "TrackingDrives": 50,
     "TrackingIsolations": 200,
@@ -29,6 +29,7 @@ QUERYTOOL_EVENT_STREAM_SUM_SCOPE = "Event"
 QUERYTOOL_EVENT_STREAM_GROUPING = "None"
 QUERYTOOL_EVENT_STREAM_TEAM_GROUPING = "Y"
 QUERYTOOL_EVENT_STREAM_SINGLE_BATCH_MAX_ATTEMPTS = 4
+QUERYTOOL_EVENT_STREAMS_SKIP_EXISTING_ON_SEASON_BACKFILL = True
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -231,6 +232,27 @@ def upsert(
     return len(rows)
 
 
+def fetch_existing_event_stream_game_ids(
+    conn: psycopg.Connection,
+    game_ids: list[str],
+    event_type: str,
+) -> set[str]:
+    if not game_ids:
+        return set()
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT DISTINCT game_id
+            FROM nba.querytool_event_streams
+            WHERE game_id = ANY(%s::text[])
+              AND event_type = %s
+            """,
+            (game_ids, event_type),
+        )
+        return {row[0] for row in cur.fetchall() if row and row[0]}
+
+
 def chunked(values: list[str], size: int) -> list[list[str]]:
     if size <= 0:
         size = 1
@@ -286,6 +308,7 @@ def main(
             "batch_sizes": QUERYTOOL_EVENT_STREAM_BATCH_SIZES,
             "max_rows_returned": QUERYTOOL_EVENT_STREAM_MAX_ROWS_RETURNED,
             "truncation_threshold": QUERY_TOOL_TRUNCATION_THRESHOLD,
+            "skip_existing_on_season_backfill": QUERYTOOL_EVENT_STREAMS_SKIP_EXISTING_ON_SEASON_BACKFILL,
         },
         "game_selection": {
             "source": "",
@@ -297,6 +320,7 @@ def main(
         },
         "event_types": {},
         "fetch": {
+            "coverage": {},
             "total_batch_attempt_count": 0,
             "total_split_batch_count": 0,
             "total_truncation_warning_count": 0,
@@ -317,6 +341,7 @@ def main(
         stream_rows: list[dict] = []
 
         season_label_value = season_label
+        normalized_mode = (mode or "refresh").strip().lower()
         desired_season_type = normalize_season_type(season_type)
 
         game_list: list[tuple[str, int | None]] = []
@@ -399,18 +424,44 @@ def main(
         if final_game_ids and not season_label_value:
             errors.append("querytool_event_streams: season_label is required when game_ids are provided")
 
+        enable_skip_existing = (
+            QUERYTOOL_EVENT_STREAMS_SKIP_EXISTING_ON_SEASON_BACKFILL
+            and normalized_mode == "season_backfill"
+            and not bool(game_id_list)
+        )
+
+        event_type_game_ids: dict[str, list[str]] = {
+            event_type: list(final_game_ids)
+            for event_type in QUERYTOOL_EVENT_STREAM_TYPES
+        }
+
+        if enable_skip_existing and final_game_ids:
+            for event_type in QUERYTOOL_EVENT_STREAM_TYPES:
+                existing_game_ids = fetch_existing_event_stream_game_ids(conn, final_game_ids, event_type)
+                event_type_game_ids[event_type] = [
+                    gid for gid in final_game_ids if gid not in existing_game_ids
+                ]
+
+        telemetry["fetch"]["coverage"] = {
+            "skip_existing_enabled": enable_skip_existing,
+            "selected_final_games": len(final_game_ids),
+            "to_fetch_games_by_event_type": {
+                event_type: len(event_type_game_ids.get(event_type) or [])
+                for event_type in QUERYTOOL_EVENT_STREAM_TYPES
+            },
+        }
+
         fetch_started = time.perf_counter()
         if final_game_ids and season_label_value:
             with httpx.Client(timeout=60) as client:
                 for event_type in QUERYTOOL_EVENT_STREAM_TYPES:
                     event_started = time.perf_counter()
                     batch_size = QUERYTOOL_EVENT_STREAM_BATCH_SIZES.get(event_type, 25)
-                    pending_batches = chunked(final_game_ids, batch_size)
-                    single_batch_attempts: dict[str, int] = {}
+                    target_game_ids = event_type_game_ids.get(event_type) or []
 
                     metrics = {
                         "batch_size": batch_size,
-                        "initial_batch_count": len(pending_batches),
+                        "initial_batch_count": 0,
                         "batch_attempt_count": 0,
                         "completed_batch_count": 0,
                         "split_batch_count": 0,
@@ -420,6 +471,18 @@ def main(
                         "truncation_warning_count": 0,
                         "duration_ms": 0.0,
                     }
+
+                    if not target_game_ids:
+                        metrics["skipped"] = True
+                        metrics["reason"] = "coverage_complete"
+                        metrics["game_id_count"] = 0
+                        metrics["duration_ms"] = elapsed_ms(event_started)
+                        telemetry["event_types"][event_type] = metrics
+                        continue
+
+                    pending_batches = chunked(target_game_ids, batch_size)
+                    single_batch_attempts: dict[str, int] = {}
+                    metrics["initial_batch_count"] = len(pending_batches)
 
                     while pending_batches:
                         batch = pending_batches.pop(0)

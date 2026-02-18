@@ -1,0 +1,189 @@
+<div
+  id="rightpanel-base"
+  class="space-y-4"
+  data-init="window.__noahShotchartInit && window.__noahShotchartInit()"
+>
+  <% if @selected_player.present? %>
+    <section class="rounded border border-border bg-background p-3 space-y-3">
+      <div class="flex items-start gap-3">
+        <div class="w-12 h-12 rounded border border-border bg-muted/30 overflow-hidden flex items-center justify-center">
+          <% if @selected_player["nba_id"].present? %>
+            <img
+              src="<%= player_headshot_url(@selected_player['nba_id']) %>"
+              alt="<%= @selected_player['player_name'] %>"
+              class="w-full h-full object-cover object-top"
+              loading="lazy"
+              decoding="async"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            />
+            <span class="hidden text-[10px] font-semibold text-muted-foreground"><%= @selected_player["player_name"].to_s.first(2).upcase %></span>
+          <% else %>
+            <span class="text-[10px] font-semibold text-muted-foreground"><%= @selected_player["player_name"].to_s.first(2).upcase %></span>
+          <% end %>
+        </div>
+
+        <div class="min-w-0">
+          <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Selected player</div>
+          <div class="text-sm font-semibold truncate"><%= @selected_player["player_name"] %></div>
+          <div class="text-[11px] text-muted-foreground mt-0.5">
+            Noah ID <%= @selected_player["noah_id"] %>
+            <span class="mx-1">·</span>
+            <%= @shot_volume_label %> <%= @selected_player["attempts"] %>
+            <span class="mx-1">·</span>
+            <%= @shot_pct_label %> <%= (@selected_player["fg_pct"].to_f * 100.0).round(1) %>%
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-1.5">
+        <%= render partial: "salary_book/kpi_cell", locals: {
+          label: "Swish",
+          value: "#{(@selected_player['swish_pct'].to_f * 100.0).round(1)}%",
+          class_name: "w-full"
+        } %>
+
+        <%= render partial: "salary_book/kpi_cell", locals: {
+          label: "Depth σ",
+          value: (@selected_player["depth_std"].present? ? format("%.2f", @selected_player["depth_std"]) : "—"),
+          class_name: "w-full"
+        } %>
+
+        <%= render partial: "salary_book/kpi_cell", locals: {
+          label: "L/R σ",
+          value: (@selected_player["left_right_std"].present? ? format("%.2f", @selected_player["left_right_std"]) : "—"),
+          class_name: "w-full"
+        } %>
+      </div>
+    </section>
+
+    <section class="rounded border border-border overflow-hidden">
+      <div class="px-3 py-2 border-b border-border bg-muted/40">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Shotchart</div>
+        <div class="text-[11px] text-muted-foreground mt-0.5"><%= @window_label %> · <%= @shot_lens_label %></div>
+      </div>
+
+      <div id="noah-shotchart" class="h-[38vh] min-h-[320px] w-full" data-ignore-morph></div>
+
+      <div id="noah-shotchart-data" class="hidden" aria-hidden="true">
+        <script id="noah-shotchart-payload" type="application/json"><%= raw(json_escape(@shotchart_payload.to_json)) %></script>
+      </div>
+    </section>
+
+    <section class="rounded border border-border bg-muted/20 p-3 space-y-2">
+      <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Zone state</div>
+
+      <div class="text-xs text-muted-foreground">Selected</div>
+      <div
+        class="font-medium"
+        data-text="$selectedzone ? $selectedzone.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'None'"
+      ></div>
+
+      <div class="pt-2 text-xs text-muted-foreground">Hover</div>
+      <div
+        class="font-medium"
+        data-text="$hoveredzone ? $hoveredzone.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '—'"
+      ></div>
+
+      <button
+        type="button"
+        class="mt-1 inline-flex items-center rounded border border-border bg-background px-2 py-1 text-[11px]"
+        data-on:click="el.dispatchEvent(new CustomEvent('noah-zone-clear', { bubbles: true }))"
+      >
+        Clear zone selection
+      </button>
+    </section>
+
+    <section class="rounded border border-border overflow-hidden">
+      <div class="px-3 py-2 border-b border-border bg-muted/40 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Zone summary</div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-xs">
+          <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+            <tr>
+              <th class="px-2 py-1.5 text-left">Zone</th>
+              <th class="px-2 py-1.5 text-right">Attempts</th>
+              <th class="px-2 py-1.5 text-right">Made</th>
+              <th class="px-2 py-1.5 text-right">FG%</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <% @zone_rows.each do |zone| %>
+              <tr class="transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                <td class="px-2 py-1.5"><%= zone[:name].to_s.tr('-', ' ').titleize %></td>
+                <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= zone[:attempts] %></td>
+                <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= zone[:made] %></td>
+                <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= zone[:fg_pct] %>%</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rounded border border-border overflow-hidden">
+      <div class="px-3 py-2 border-b border-border bg-muted/40 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Recent weekly trend</div>
+
+      <% if @weekly_rows.empty? %>
+        <div class="p-3 text-sm text-muted-foreground italic">No weekly trend rows for this filter window.</div>
+      <% else %>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-xs">
+            <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+              <tr>
+                <th class="px-2 py-1.5 text-left">Week</th>
+                <th class="px-2 py-1.5 text-right">Shots</th>
+                <th class="px-2 py-1.5 text-right"><%= @shot_pct_label %></th>
+                <th class="px-2 py-1.5 text-right">Swish</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              <% @weekly_rows.each do |row| %>
+                <% week = row["week"].respond_to?(:to_date) ? row["week"].to_date : row["week"] %>
+                <tr class="transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                  <td class="px-2 py-1.5"><%= week.present? ? week.strftime("%b %-d, %Y") : "—" %></td>
+                  <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= row["shots"].to_i %></td>
+                  <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= (row["make_pct"].to_f * 100.0).round(1) %>%</td>
+                  <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= (row["swish_pct"].to_f * 100.0).round(1) %>%</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </section>
+
+    <section class="rounded border border-border overflow-hidden">
+      <div class="px-3 py-2 border-b border-border bg-muted/40 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Shot type mix</div>
+
+      <% if @shot_type_rows.empty? %>
+        <div class="p-3 text-sm text-muted-foreground italic">No shot type rows in this window.</div>
+      <% else %>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-xs">
+            <thead class="bg-muted/40 text-[10px] uppercase tracking-wide text-muted-foreground/90">
+              <tr>
+                <th class="px-2 py-1.5 text-left">Type</th>
+                <th class="px-2 py-1.5 text-right">Shots</th>
+                <th class="px-2 py-1.5 text-right"><%= @shot_pct_label %></th>
+                <th class="px-2 py-1.5 text-right">Swish</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              <% @shot_type_rows.each do |row| %>
+                <tr class="transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10">
+                  <td class="px-2 py-1.5"><%= row["shot_type"] %></td>
+                  <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= row["shots"].to_i %></td>
+                  <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= (row["make_pct"].to_f * 100.0).round(1) %>%</td>
+                  <td class="px-2 py-1.5 text-right font-mono tabular-nums"><%= (row["swish_pct"].to_f * 100.0).round(1) %>%</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </section>
+  <% else %>
+    <section class="rounded border border-border bg-muted/20 p-4 text-sm text-muted-foreground">
+      No player rows are available for the current window and filters.
+    </section>
+  <% end %>
+</div>

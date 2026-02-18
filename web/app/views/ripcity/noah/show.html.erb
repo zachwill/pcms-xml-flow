@@ -1,0 +1,130 @@
+<% content_for :title, "Noah" %>
+
+<%
+  refresh_query_expr = "'timeframe=' + encodeURIComponent($noahtimeframe) +
+    '&shot_lens=' + encodeURIComponent($noahshotlens) +
+    '&grade_lens=' + encodeURIComponent($noahgradelens) +
+    '&min_attempts=' + encodeURIComponent($noahminattempts)"
+
+  refresh_expr = "@get('/ripcity/noah/refresh?' + (#{refresh_query_expr})); window.history.replaceState({}, '', '/ripcity/noah?' + (#{refresh_query_expr}))"
+%>
+
+<div
+  id="noah-workspace"
+  class="h-screen w-full flex flex-col overflow-hidden bg-background"
+  style="height: 100dvh;"
+  data-signals="{
+    noahtimeframe: <%= @timeframe_lens.to_json %>,
+    noahshotlens: <%= @shot_lens.to_json %>,
+    noahgradelens: <%= @grade_lens.to_json %>,
+    noahminattempts: <%= @min_attempts.to_s.to_json %>,
+    selectedzone: '',
+    hoveredzone: ''
+  }"
+  data-on:noah-zone-hover="$hoveredzone = evt.detail?.zone || ''"
+  data-on:noah-zone-select="$selectedzone = evt.detail?.zone || ''"
+  data-on:noah-zone-clear="$selectedzone = ''"
+>
+  <div id="flash">
+    <% flash.each do |_kind, message| %>
+      <div class="mx-4 mt-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-300"><%= message %></div>
+    <% end %>
+  </div>
+
+  <header id="commandbar" class="shrink-0 h-[130px] border-b border-border bg-background px-4 pt-3 flex items-start gap-4 select-none">
+    <div class="flex items-start gap-4 min-w-0 overflow-x-auto pb-1">
+      <div class="min-w-[12rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Timeframe</div>
+        <select
+          id="noah-timeframe"
+          class="h-7 w-44 rounded border border-border bg-background px-2 text-xs text-foreground"
+          data-bind="noahtimeframe"
+          data-on:change="<%= refresh_expr %>"
+        >
+          <% @timeframe_options.each do |option| %>
+            <option value="<%= option[:key] %>" <%= "selected" if @timeframe_lens == option[:key] %>><%= option[:label] %></option>
+          <% end %>
+        </select>
+      </div>
+
+      <div class="min-w-[13rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Shot profile</div>
+        <select
+          id="noah-shot-profile"
+          class="h-7 w-52 rounded border border-border bg-background px-2 text-xs text-foreground"
+          data-bind="noahshotlens"
+          data-on:change="<%= refresh_expr %>"
+        >
+          <% @shot_lens_options.each do |key, option| %>
+            <option value="<%= key %>" <%= "selected" if @shot_lens == key %>><%= option[:label] %></option>
+          <% end %>
+        </select>
+      </div>
+
+      <div class="min-w-[10rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Grade lens</div>
+        <div class="space-y-1">
+          <% @grade_lens_options.each do |option| %>
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="radio"
+                name="noah-grade-lens"
+                value="<%= option[:key] %>"
+                class="size-3.5 accent-primary"
+                <%= "checked" if @grade_lens == option[:key] %>
+                data-bind="noahgradelens"
+                data-on:change="if (el.checked) { <%= refresh_expr %>; }"
+              />
+              <span
+                class="text-[11px] leading-none select-none"
+                data-class="{ 'text-foreground font-semibold': $noahgradelens === '<%= option[:key] %>', 'text-muted-foreground': $noahgradelens !== '<%= option[:key] %>' }"
+              ><%= option[:label] %></span>
+            </label>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="min-w-[8rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Min attempts</div>
+        <select
+          id="noah-min-attempts"
+          class="h-7 w-28 rounded border border-border bg-background px-2 text-xs text-foreground"
+          data-bind="noahminattempts"
+          data-on:change="<%= refresh_expr %>"
+        >
+          <% [5, 10, 25, 50, 100, 150].each do |value| %>
+            <option value="<%= value %>" <%= "selected" if @min_attempts.to_i == value %>><%= value %>+</option>
+          <% end %>
+        </select>
+      </div>
+    </div>
+
+    <div class="h-20 w-px bg-border self-center ml-auto shrink-0"></div>
+    <%= render partial: "shared/commandbar_navigation", locals: { active_destination: "noah" } %>
+  </header>
+
+  <div id="viewport" class="flex flex-1 overflow-hidden relative">
+    <%= render partial: "ripcity/noah/maincanvas" %>
+
+    <aside
+      id="rightpanel"
+      class="w-[30%] min-w-[320px] max-w-[480px] border-l border-border bg-background overflow-hidden relative"
+    >
+      <div
+        id="rightpanel-base-layer"
+        class="absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-contain scroll-touch pt-2 px-4 pb-4"
+      >
+        <%= render partial: "ripcity/noah/sidebar_base" %>
+      </div>
+
+      <div id="rightpanel-overlay"></div>
+    </aside>
+  </div>
+</div>
+
+<% content_for :head_scripts do %>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/echarts@6.0.0/dist/echarts.min.js"></script>
+  <script type="module">
+    import "ripcity/noah_shotchart";
+  </script>
+<% end %>

@@ -18,6 +18,7 @@ QUERY_TOOL_URL = "https://api.nba.com/v0/api/querytool"
 
 GAME_DATA_CONCURRENCY = 4
 GAME_DATA_INCLUDE_PER_GAME_METRICS = False
+GAME_DATA_SKIP_EXISTING_ON_SEASON_BACKFILL = True
 
 TRACKING_BATCH_SIZE = 100
 TRACKING_MAX_ROWS_RETURNED = 10000
@@ -256,6 +257,26 @@ def upsert(conn: psycopg.Connection, table: str, rows: list[dict], conflict_keys
         cur.executemany(sql, [tuple(r.get(c) for c in cols) for r in rows])
     conn.commit()
     return len(rows)
+
+
+def fetch_existing_game_ids(
+    conn: psycopg.Connection,
+    table: str,
+    game_ids: list[str],
+    extra_where: str = "",
+    extra_params: tuple | None = None,
+) -> set[str]:
+    if not game_ids:
+        return set()
+
+    extra_params = extra_params or ()
+    sql = f"SELECT DISTINCT game_id FROM {table} WHERE game_id = ANY(%s::text[])"
+    if extra_where:
+        sql += f" AND {extra_where}"
+
+    with conn.cursor() as cur:
+        cur.execute(sql, (game_ids, *extra_params))
+        return {row[0] for row in cur.fetchall() if row and row[0]}
 
 
 def resolve_season_date_range(season_label: str | None) -> tuple[date, date]:
@@ -1379,8 +1400,21 @@ def fetch_legacy_game_payloads(
     status: int | None,
     allow_unknown_final: bool,
     fetched_at: datetime,
+    fetch_plan: dict[str, bool],
 ) -> dict:
     is_final = status == 3 or (allow_unknown_final and status is None)
+
+    fetch_traditional = bool(fetch_plan.get("traditional", True))
+    fetch_advanced = bool(fetch_plan.get("advanced", is_final))
+    fetch_pbp = bool(fetch_plan.get("pbp", True))
+    fetch_poc = bool(fetch_plan.get("poc", True))
+    fetch_hustle_boxscore = bool(fetch_plan.get("hustle_boxscore", is_final))
+    fetch_hustle_events = bool(fetch_plan.get("hustle_events", is_final))
+
+    if not is_final:
+        fetch_advanced = False
+        fetch_hustle_boxscore = False
+        fetch_hustle_events = False
 
     api_calls = {
         "boxscore_traditional": 0,
@@ -1415,17 +1449,18 @@ def fetch_legacy_game_payloads(
     with httpx.Client(timeout=30) as client:
         # Traditional boxscore
         boxscore: dict = {}
-        try:
-            call_started = time.perf_counter()
-            boxscore = request_json(
-                client,
-                "/api/stats/boxscore",
-                {"gameId": game_id_value, "measureType": "Traditional"},
-            )
-            api_calls["boxscore_traditional"] += 1
-            api_duration_ms["boxscore_traditional"] += elapsed_ms(call_started)
-        except Exception as exc:
-            endpoint_errors.append(f"boxscore_traditional: {exc}")
+        if fetch_traditional:
+            try:
+                call_started = time.perf_counter()
+                boxscore = request_json(
+                    client,
+                    "/api/stats/boxscore",
+                    {"gameId": game_id_value, "measureType": "Traditional"},
+                )
+                api_calls["boxscore_traditional"] += 1
+                api_duration_ms["boxscore_traditional"] += elapsed_ms(call_started)
+            except Exception as exc:
+                endpoint_errors.append(f"boxscore_traditional: {exc}")
 
         home_team = boxscore.get("homeTeam") or {}
         away_team = boxscore.get("awayTeam") or {}
@@ -1477,7 +1512,7 @@ def fetch_legacy_game_payloads(
                 player_rows.append(row)
 
         # Advanced boxscore (only if Final)
-        if is_final:
+        if fetch_advanced:
             advanced: dict = {}
             try:
                 call_started = time.perf_counter()
@@ -1530,43 +1565,45 @@ def fetch_legacy_game_payloads(
             advanced_team_rows.extend(advanced_team_rows_for_game)
 
         # Play-by-play
-        try:
-            call_started = time.perf_counter()
-            pbp = request_json(client, "/api/stats/pbp", {"gameId": game_id_value})
-            api_calls["pbp"] += 1
-            api_duration_ms["pbp"] += elapsed_ms(call_started)
-            pbp_rows.append(
-                {
-                    "game_id": game_id_value,
-                    "pbp_json": Json(pbp) if pbp else None,
-                    "created_at": fetched_at,
-                    "updated_at": fetched_at,
-                    "fetched_at": fetched_at,
-                }
-            )
-        except Exception as exc:
-            endpoint_errors.append(f"pbp: {exc}")
+        if fetch_pbp:
+            try:
+                call_started = time.perf_counter()
+                pbp = request_json(client, "/api/stats/pbp", {"gameId": game_id_value})
+                api_calls["pbp"] += 1
+                api_duration_ms["pbp"] += elapsed_ms(call_started)
+                pbp_rows.append(
+                    {
+                        "game_id": game_id_value,
+                        "pbp_json": Json(pbp) if pbp else None,
+                        "created_at": fetched_at,
+                        "updated_at": fetched_at,
+                        "fetched_at": fetched_at,
+                    }
+                )
+            except Exception as exc:
+                endpoint_errors.append(f"pbp: {exc}")
 
         # Players on court
-        try:
-            call_started = time.perf_counter()
-            poc = request_json(client, "/api/stats/poc", {"gameId": game_id_value})
-            api_calls["poc"] += 1
-            api_duration_ms["poc"] += elapsed_ms(call_started)
-            poc_rows.append(
-                {
-                    "game_id": game_id_value,
-                    "poc_json": Json(poc) if poc else None,
-                    "created_at": fetched_at,
-                    "updated_at": fetched_at,
-                    "fetched_at": fetched_at,
-                }
-            )
-        except Exception as exc:
-            endpoint_errors.append(f"poc: {exc}")
+        if fetch_poc:
+            try:
+                call_started = time.perf_counter()
+                poc = request_json(client, "/api/stats/poc", {"gameId": game_id_value})
+                api_calls["poc"] += 1
+                api_duration_ms["poc"] += elapsed_ms(call_started)
+                poc_rows.append(
+                    {
+                        "game_id": game_id_value,
+                        "poc_json": Json(poc) if poc else None,
+                        "created_at": fetched_at,
+                        "updated_at": fetched_at,
+                        "fetched_at": fetched_at,
+                    }
+                )
+            except Exception as exc:
+                endpoint_errors.append(f"poc: {exc}")
 
         # Hustle stats + events (final games only)
-        if is_final:
+        if fetch_hustle_boxscore:
             try:
                 call_started = time.perf_counter()
                 hustle_box = request_xml(client, f"/{game_id_value}_hustlestats.xml")
@@ -1578,6 +1615,7 @@ def fetch_legacy_game_payloads(
             except Exception as exc:
                 endpoint_errors.append(f"hustle_boxscore: {exc}")
 
+        if fetch_hustle_events:
             try:
                 call_started = time.perf_counter()
                 hustle_events_xml = request_xml(client, f"/{game_id_value}_HustleStatsGameEvents.xml")
@@ -1600,6 +1638,14 @@ def fetch_legacy_game_payloads(
     return {
         "game_id": game_id_value,
         "is_final": is_final,
+        "fetch_plan": {
+            "traditional": fetch_traditional,
+            "advanced": fetch_advanced,
+            "pbp": fetch_pbp,
+            "poc": fetch_poc,
+            "hustle_boxscore": fetch_hustle_boxscore,
+            "hustle_events": fetch_hustle_events,
+        },
         "player_rows": player_rows,
         "team_rows": team_rows,
         "advanced_rows": advanced_rows,
@@ -1634,6 +1680,7 @@ def main(
         "config": {
             "concurrency": GAME_DATA_CONCURRENCY,
             "include_per_game_metrics": GAME_DATA_INCLUDE_PER_GAME_METRICS,
+            "skip_existing_on_season_backfill": GAME_DATA_SKIP_EXISTING_ON_SEASON_BACKFILL,
             "tracking_batch_size": TRACKING_BATCH_SIZE,
             "defensive_batch_size": DEFENSIVE_BATCH_SIZE,
             "violations_batch_size": VIOLATIONS_BATCH_SIZE,
@@ -1673,10 +1720,12 @@ def main(
                 "hustle_boxscore": 0.0,
                 "hustle_events": 0.0,
             },
+            "coverage": {},
             "per_game_metrics": [] if GAME_DATA_INCLUDE_PER_GAME_METRICS else None,
         },
         "querytool": {
             "game_id_count": 0,
+            "coverage": {},
             "duration_ms": 0.0,
             "tracking": {},
             "defensive": {},
@@ -1694,6 +1743,7 @@ def main(
     try:
         season_label_value = season_label
         season_type_value = season_type or "Regular Season"
+        normalized_mode = (mode or "refresh").strip().lower()
         desired_season_type = normalize_season_type(season_type_value)
 
         conn = psycopg.connect(os.environ["POSTGRES_URL"])
@@ -1793,18 +1843,119 @@ def main(
 
         fetched_at = now_utc()
 
+        selected_game_ids = [gid for gid, _ in game_list]
+        final_game_ids = [
+            gid
+            for gid, status in game_list
+            if status == 3 or (allow_unknown_final and status is None)
+        ]
+
+        enable_skip_existing = (
+            GAME_DATA_SKIP_EXISTING_ON_SEASON_BACKFILL
+            and normalized_mode == "season_backfill"
+            and not bool(game_id_list)
+        )
+
+        missing_traditional = set(selected_game_ids)
+        missing_advanced = set(final_game_ids)
+        missing_pbp = set(selected_game_ids)
+        missing_poc = set(selected_game_ids)
+        missing_hustle_boxscore = set(final_game_ids)
+        missing_hustle_events = set(final_game_ids)
+
+        if enable_skip_existing:
+            missing_traditional = set(selected_game_ids) - fetch_existing_game_ids(
+                conn,
+                "nba.boxscores_traditional_team",
+                selected_game_ids,
+            )
+            missing_advanced = set(final_game_ids) - fetch_existing_game_ids(
+                conn,
+                "nba.boxscores_advanced_team",
+                final_game_ids,
+            )
+            missing_pbp = set(selected_game_ids) - fetch_existing_game_ids(
+                conn,
+                "nba.play_by_play",
+                selected_game_ids,
+            )
+            missing_poc = set(selected_game_ids) - fetch_existing_game_ids(
+                conn,
+                "nba.players_on_court",
+                selected_game_ids,
+            )
+            missing_hustle_boxscore = set(final_game_ids) - fetch_existing_game_ids(
+                conn,
+                "nba.hustle_stats_team",
+                final_game_ids,
+            )
+            missing_hustle_events = set(final_game_ids) - fetch_existing_game_ids(
+                conn,
+                "nba.hustle_events",
+                final_game_ids,
+            )
+
+        legacy_game_plans: list[tuple[str, int | None, dict[str, bool]]] = []
+        for gid, status in game_list:
+            is_final = status == 3 or (allow_unknown_final and status is None)
+            plan = {
+                "traditional": gid in missing_traditional,
+                "advanced": is_final and gid in missing_advanced,
+                "pbp": gid in missing_pbp,
+                "poc": gid in missing_poc,
+                "hustle_boxscore": is_final and gid in missing_hustle_boxscore,
+                "hustle_events": is_final and gid in missing_hustle_events,
+            }
+            if any(plan.values()):
+                legacy_game_plans.append((gid, status, plan))
+
+        legacy_section_fetch_counts = {
+            "traditional": 0,
+            "advanced": 0,
+            "pbp": 0,
+            "poc": 0,
+            "hustle_boxscore": 0,
+            "hustle_events": 0,
+        }
+        for _, _, plan in legacy_game_plans:
+            for section, should_fetch in plan.items():
+                if should_fetch:
+                    legacy_section_fetch_counts[section] += 1
+
+        telemetry["legacy_fetch"]["coverage"] = {
+            "skip_existing_enabled": enable_skip_existing,
+            "selected_games": len(game_list),
+            "games_to_fetch": len(legacy_game_plans),
+            "games_skipped": len(game_list) - len(legacy_game_plans),
+            "section_selected": {
+                "traditional": len(selected_game_ids),
+                "advanced": len(final_game_ids),
+                "pbp": len(selected_game_ids),
+                "poc": len(selected_game_ids),
+                "hustle_boxscore": len(final_game_ids),
+                "hustle_events": len(final_game_ids),
+            },
+            "section_to_fetch": legacy_section_fetch_counts,
+        }
+
         # --- Legacy per-game payloads (concurrent) ---
         legacy_started = time.perf_counter()
         worker_count = 1
-        if game_list:
-            worker_count = min(max(1, GAME_DATA_CONCURRENCY), len(game_list))
+        if legacy_game_plans:
+            worker_count = min(max(1, GAME_DATA_CONCURRENCY), len(legacy_game_plans))
         telemetry["legacy_fetch"]["worker_count"] = worker_count
-        telemetry["legacy_fetch"]["scheduled_games"] = len(game_list)
+        telemetry["legacy_fetch"]["scheduled_games"] = len(legacy_game_plans)
 
         if worker_count <= 1:
-            for game_id_value, status in game_list:
+            for game_id_value, status, fetch_plan in legacy_game_plans:
                 try:
-                    result = fetch_legacy_game_payloads(game_id_value, status, allow_unknown_final, fetched_at)
+                    result = fetch_legacy_game_payloads(
+                        game_id_value,
+                        status,
+                        allow_unknown_final,
+                        fetched_at,
+                        fetch_plan,
+                    )
                 except Exception as exc:
                     telemetry["legacy_fetch"]["failed_games"] += 1
                     errors.append(f"legacy game {game_id_value}: {exc}")
@@ -1838,6 +1989,7 @@ def main(
                             "game_id": result["game_id"],
                             "is_final": result["is_final"],
                             "duration_ms": result["duration_ms"],
+                            "fetch_plan": result.get("fetch_plan") or {},
                         }
                     )
         else:
@@ -1849,8 +2001,9 @@ def main(
                         status,
                         allow_unknown_final,
                         fetched_at,
+                        fetch_plan,
                     ): game_id_value
-                    for game_id_value, status in game_list
+                    for game_id_value, status, fetch_plan in legacy_game_plans
                 }
 
                 for future in as_completed(future_map):
@@ -1890,6 +2043,7 @@ def main(
                                 "game_id": result["game_id"],
                                 "is_final": result["is_final"],
                                 "duration_ms": result["duration_ms"],
+                                "fetch_plan": result.get("fetch_plan") or {},
                             }
                         )
 
@@ -1899,117 +2053,168 @@ def main(
         querytool_started = time.perf_counter()
         querytool_game_ids: list[str] = []
         if season_label_value and season_type_value:
-            querytool_game_ids = [
-                gid
-                for gid, status in game_list
-                if status == 3 or (allow_unknown_final and status is None)
-            ]
+            querytool_game_ids = list(final_game_ids)
         telemetry["querytool"]["game_id_count"] = len(querytool_game_ids)
 
-        if querytool_game_ids and season_label_value and season_type_value:
+        tracking_game_ids = list(querytool_game_ids)
+        defensive_game_ids = list(querytool_game_ids)
+        violations_player_game_ids = list(querytool_game_ids)
+        violations_team_game_ids = list(querytool_game_ids)
+
+        if enable_skip_existing and querytool_game_ids:
+            existing_tracking = fetch_existing_game_ids(conn, "nba.tracking_stats", querytool_game_ids)
+            existing_defensive = fetch_existing_game_ids(conn, "nba.defensive_stats", querytool_game_ids)
+            existing_violations_player = fetch_existing_game_ids(conn, "nba.violations_player", querytool_game_ids)
+            existing_violations_team = fetch_existing_game_ids(conn, "nba.violations_team", querytool_game_ids)
+
+            tracking_game_ids = [gid for gid in querytool_game_ids if gid not in existing_tracking]
+            defensive_game_ids = [gid for gid in querytool_game_ids if gid not in existing_defensive]
+            violations_player_game_ids = [gid for gid in querytool_game_ids if gid not in existing_violations_player]
+            violations_team_game_ids = [gid for gid in querytool_game_ids if gid not in existing_violations_team]
+
+        telemetry["querytool"]["coverage"] = {
+            "skip_existing_enabled": enable_skip_existing,
+            "selected_final_games": len(querytool_game_ids),
+            "to_fetch": {
+                "tracking": len(tracking_game_ids),
+                "defensive": len(defensive_game_ids),
+                "violations_player": len(violations_player_game_ids),
+                "violations_team": len(violations_team_game_ids),
+            },
+        }
+
+        if season_label_value and season_type_value:
             with httpx.Client(timeout=60) as client:
-                tracking_payload_rows, tracking_warnings, tracking_metrics = fetch_querytool_batched_rows(
-                    client=client,
-                    path="/game/player",
-                    base_params={
-                        "LeagueId": league_id,
-                        "SeasonYear": season_label_value,
-                        "SeasonType": season_type_value,
-                        "Grouping": "None",
-                        "TeamGrouping": "Y",
-                        "MeasureType": "Tracking",
-                    },
-                    game_ids=querytool_game_ids,
-                    row_key="players",
-                    batch_size=TRACKING_BATCH_SIZE,
-                    max_rows_returned=TRACKING_MAX_ROWS_RETURNED,
-                )
-                errors.extend([f"tracking_stats: {warning}" for warning in tracking_warnings])
-                for player in tracking_payload_rows:
-                    row = build_tracking_row(player, fallback_game_id="", fetched_at=fetched_at)
-                    if row is None or not row.get("game_id"):
-                        continue
-                    tracking_rows.append(row)
-                tracking_metrics["warnings"] = len(tracking_warnings)
-                tracking_metrics["rows_built"] = len(tracking_rows)
-                telemetry["querytool"]["tracking"] = tracking_metrics
+                if tracking_game_ids:
+                    tracking_payload_rows, tracking_warnings, tracking_metrics = fetch_querytool_batched_rows(
+                        client=client,
+                        path="/game/player",
+                        base_params={
+                            "LeagueId": league_id,
+                            "SeasonYear": season_label_value,
+                            "SeasonType": season_type_value,
+                            "Grouping": "None",
+                            "TeamGrouping": "Y",
+                            "MeasureType": "Tracking",
+                        },
+                        game_ids=tracking_game_ids,
+                        row_key="players",
+                        batch_size=TRACKING_BATCH_SIZE,
+                        max_rows_returned=TRACKING_MAX_ROWS_RETURNED,
+                    )
+                    errors.extend([f"tracking_stats: {warning}" for warning in tracking_warnings])
+                    for player in tracking_payload_rows:
+                        row = build_tracking_row(player, fallback_game_id="", fetched_at=fetched_at)
+                        if row is None or not row.get("game_id"):
+                            continue
+                        tracking_rows.append(row)
+                    tracking_metrics["warnings"] = len(tracking_warnings)
+                    tracking_metrics["rows_built"] = len(tracking_rows)
+                    telemetry["querytool"]["tracking"] = tracking_metrics
+                else:
+                    telemetry["querytool"]["tracking"] = {
+                        "skipped": True,
+                        "reason": "coverage_complete",
+                        "game_id_count": 0,
+                    }
 
-                defensive_payload_rows, defensive_warnings, defensive_metrics = fetch_querytool_batched_rows(
-                    client=client,
-                    path="/game/player",
-                    base_params={
-                        "LeagueId": league_id,
-                        "SeasonYear": season_label_value,
-                        "SeasonType": season_type_value,
-                        "Grouping": "None",
-                        "TeamGrouping": "Y",
-                        "MeasureType": "Defensive",
-                    },
-                    game_ids=querytool_game_ids,
-                    row_key="players",
-                    batch_size=DEFENSIVE_BATCH_SIZE,
-                    max_rows_returned=TRACKING_MAX_ROWS_RETURNED,
-                )
-                errors.extend([f"defensive_stats: {warning}" for warning in defensive_warnings])
-                for player in defensive_payload_rows:
-                    row = build_defensive_row(player, fetched_at=fetched_at)
-                    if row is None:
-                        continue
-                    defensive_rows.append(row)
-                defensive_metrics["warnings"] = len(defensive_warnings)
-                defensive_metrics["rows_built"] = len(defensive_rows)
-                telemetry["querytool"]["defensive"] = defensive_metrics
+                if defensive_game_ids:
+                    defensive_payload_rows, defensive_warnings, defensive_metrics = fetch_querytool_batched_rows(
+                        client=client,
+                        path="/game/player",
+                        base_params={
+                            "LeagueId": league_id,
+                            "SeasonYear": season_label_value,
+                            "SeasonType": season_type_value,
+                            "Grouping": "None",
+                            "TeamGrouping": "Y",
+                            "MeasureType": "Defensive",
+                        },
+                        game_ids=defensive_game_ids,
+                        row_key="players",
+                        batch_size=DEFENSIVE_BATCH_SIZE,
+                        max_rows_returned=TRACKING_MAX_ROWS_RETURNED,
+                    )
+                    errors.extend([f"defensive_stats: {warning}" for warning in defensive_warnings])
+                    for player in defensive_payload_rows:
+                        row = build_defensive_row(player, fetched_at=fetched_at)
+                        if row is None:
+                            continue
+                        defensive_rows.append(row)
+                    defensive_metrics["warnings"] = len(defensive_warnings)
+                    defensive_metrics["rows_built"] = len(defensive_rows)
+                    telemetry["querytool"]["defensive"] = defensive_metrics
+                else:
+                    telemetry["querytool"]["defensive"] = {
+                        "skipped": True,
+                        "reason": "coverage_complete",
+                        "game_id_count": 0,
+                    }
 
-                violations_payload_rows, violations_warnings, violations_metrics = fetch_querytool_batched_rows(
-                    client=client,
-                    path="/game/player",
-                    base_params={
-                        "LeagueId": league_id,
-                        "SeasonYear": season_label_value,
-                        "SeasonType": season_type_value,
-                        "Grouping": "None",
-                        "TeamGrouping": "Y",
-                        "MeasureType": "Violations",
-                    },
-                    game_ids=querytool_game_ids,
-                    row_key="players",
-                    batch_size=VIOLATIONS_BATCH_SIZE,
-                    max_rows_returned=TRACKING_MAX_ROWS_RETURNED,
-                )
-                errors.extend([f"violations_player: {warning}" for warning in violations_warnings])
-                for player in violations_payload_rows:
-                    row = build_violations_player_row(player, fetched_at=fetched_at)
-                    if row is None:
-                        continue
-                    violations_player_rows.append(row)
-                violations_metrics["warnings"] = len(violations_warnings)
-                violations_metrics["rows_built"] = len(violations_player_rows)
-                telemetry["querytool"]["violations_player"] = violations_metrics
+                if violations_player_game_ids:
+                    violations_payload_rows, violations_warnings, violations_metrics = fetch_querytool_batched_rows(
+                        client=client,
+                        path="/game/player",
+                        base_params={
+                            "LeagueId": league_id,
+                            "SeasonYear": season_label_value,
+                            "SeasonType": season_type_value,
+                            "Grouping": "None",
+                            "TeamGrouping": "Y",
+                            "MeasureType": "Violations",
+                        },
+                        game_ids=violations_player_game_ids,
+                        row_key="players",
+                        batch_size=VIOLATIONS_BATCH_SIZE,
+                        max_rows_returned=TRACKING_MAX_ROWS_RETURNED,
+                    )
+                    errors.extend([f"violations_player: {warning}" for warning in violations_warnings])
+                    for player in violations_payload_rows:
+                        row = build_violations_player_row(player, fetched_at=fetched_at)
+                        if row is None:
+                            continue
+                        violations_player_rows.append(row)
+                    violations_metrics["warnings"] = len(violations_warnings)
+                    violations_metrics["rows_built"] = len(violations_player_rows)
+                    telemetry["querytool"]["violations_player"] = violations_metrics
+                else:
+                    telemetry["querytool"]["violations_player"] = {
+                        "skipped": True,
+                        "reason": "coverage_complete",
+                        "game_id_count": 0,
+                    }
 
-                violations_team_payload_rows, violations_team_warnings, violations_team_metrics = fetch_querytool_batched_rows(
-                    client=client,
-                    path="/game/team",
-                    base_params={
-                        "LeagueId": league_id,
-                        "SeasonYear": season_label_value,
-                        "SeasonType": season_type_value,
-                        "Grouping": "None",
-                        "MeasureType": "Violations",
-                    },
-                    game_ids=querytool_game_ids,
-                    row_key="teams",
-                    batch_size=VIOLATIONS_TEAM_BATCH_SIZE,
-                    max_rows_returned=TRACKING_MAX_ROWS_RETURNED,
-                )
-                errors.extend([f"violations_team: {warning}" for warning in violations_team_warnings])
-                for team in violations_team_payload_rows:
-                    row = build_violations_team_row(team, fetched_at=fetched_at)
-                    if row is None:
-                        continue
-                    violations_team_rows.append(row)
-                violations_team_metrics["warnings"] = len(violations_team_warnings)
-                violations_team_metrics["rows_built"] = len(violations_team_rows)
-                telemetry["querytool"]["violations_team"] = violations_team_metrics
+                if violations_team_game_ids:
+                    violations_team_payload_rows, violations_team_warnings, violations_team_metrics = fetch_querytool_batched_rows(
+                        client=client,
+                        path="/game/team",
+                        base_params={
+                            "LeagueId": league_id,
+                            "SeasonYear": season_label_value,
+                            "SeasonType": season_type_value,
+                            "Grouping": "None",
+                            "MeasureType": "Violations",
+                        },
+                        game_ids=violations_team_game_ids,
+                        row_key="teams",
+                        batch_size=VIOLATIONS_TEAM_BATCH_SIZE,
+                        max_rows_returned=TRACKING_MAX_ROWS_RETURNED,
+                    )
+                    errors.extend([f"violations_team: {warning}" for warning in violations_team_warnings])
+                    for team in violations_team_payload_rows:
+                        row = build_violations_team_row(team, fetched_at=fetched_at)
+                        if row is None:
+                            continue
+                        violations_team_rows.append(row)
+                    violations_team_metrics["warnings"] = len(violations_team_warnings)
+                    violations_team_metrics["rows_built"] = len(violations_team_rows)
+                    telemetry["querytool"]["violations_team"] = violations_team_metrics
+                else:
+                    telemetry["querytool"]["violations_team"] = {
+                        "skipped": True,
+                        "reason": "coverage_complete",
+                        "game_id_count": 0,
+                    }
 
         telemetry["querytool"]["duration_ms"] = elapsed_ms(querytool_started)
 

@@ -167,6 +167,7 @@ These are “safe defaults” from live testing (not theoretical maxima):
 - [ ] **Boxscore migration (optional; only if we preserve semantics)**
   - Keep legacy `/api/stats/boxscore` as the “semantic truth” for roster/DNP metadata.
   - If we batch Query Tool for numeric stat lines (`/game/player`, `/game/team`), keep a legacy call for metadata *or* explicitly change table meaning.
+  - Quick parity note (2026-02-17): `/game/player?MeasureType=Advanced` returned fewer players than legacy boxscore Advanced in sample game `0022500001` (20 vs 27; 7 IDs present only in legacy). Revisit with a broader parity audit before migrating advanced tables.
 
 - [ ] **Season aggregates (optional)**
   - Keep legacy `/api/stats/player` + `/api/stats/team` by default (fast + stable).

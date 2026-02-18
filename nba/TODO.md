@@ -157,6 +157,11 @@ These are “safe defaults” from live testing (not theoretical maxima):
     - Batch 50: ~65–67s (best)
     - Batch 60: ~185s (frequent split-on-truncation)
 
+- [x] **Split Query Tool event streams out of `game_data` and add `game_data` telemetry/concurrency**
+  - New step/script: `import_nba_data.flow/querytool_event_streams.inline_script.py` now owns `nba.querytool_event_streams`.
+  - `game_data.inline_script.py` now focuses on boxscore/pbp/poc/hustle + batched tracking/defensive/violations.
+  - `game_data` now includes structured `telemetry` and uses bounded per-game concurrency (`GAME_DATA_CONCURRENCY=4`) for legacy per-game endpoints.
+
 ### Phase 2 — optional / careful migrations
 
 - [ ] **Boxscore migration (optional; only if we preserve semantics)**

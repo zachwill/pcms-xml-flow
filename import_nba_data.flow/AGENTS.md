@@ -30,7 +30,8 @@ All steps are raw Python inline scripts:
 - `schedules.inline_script.py` → `nba.schedules`
 - `standings.inline_script.py` → `nba.standings`
 - `games.inline_script.py` → `nba.games`, `nba.playoff_series`
-- `game_data.inline_script.py` → per-game detail tables (boxscore/pbp/hustle/tracking/etc.)
+- `game_data.inline_script.py` → per-game detail tables (boxscore/pbp/hustle/tracking/defensive/violations)
+- `querytool_event_streams.inline_script.py` → `nba.querytool_event_streams`
 - `aggregates.inline_script.py` → `nba.player_stats_aggregated`, `nba.team_stats_aggregated`
 - `lineups.inline_script.py` → `nba.lineup_stats_season`, `nba.lineup_stats_game`
   - `season_backfill` mode: fetches season + game lineups.
@@ -49,9 +50,9 @@ The flow input is intentionally simple:
 - `days_back` (refresh only)
 - `start_date`, `end_date` (date backfill only)
 - `game_ids` (optional advanced override for game-level steps)
-- `only_final_games` (game_data/lineups/shot_chart/ngss)
+- `only_final_games` (game_data/querytool_event_streams/lineups/shot_chart/ngss)
 
-There are no per-step `include_*` toggles in the flow. It always runs the full pipeline (reference + games + game data + aggregates + lineups + shot chart + supplemental + NGSS).
+There are no per-step `include_*` toggles in the flow. It always runs the full pipeline (reference + games + game data + querytool event streams + aggregates + lineups + shot chart + supplemental + NGSS).
 
 ---
 
@@ -88,7 +89,8 @@ Notes:
 - Most fetch helpers retry on `429` and `5xx` responses.
 - Many endpoints legitimately return `404` for missing game/date payloads; the scripts usually treat `404` as "no data".
 - Before changing DB schema, confirm the upstream payload shape (log keys/sample rows).
-- `aggregates`, `lineups`, and `shot_chart` each wrap major fetch sections in try/except blocks so a single endpoint failure doesn’t kill the whole step. Errors are collected in each step’s `"errors"` array.
+- `aggregates`, `lineups`, `shot_chart`, `game_data`, and `querytool_event_streams` surface recoverable section/batch failures in `"errors"` arrays.
+- `game_data` and `shot_chart` return `telemetry` payloads with timing/counter breakdowns for hotspot investigation.
 
 See also:
 - `nba/AGENTS.md` — schema design conventions + where the API specs live
@@ -131,3 +133,24 @@ uv run scripts/backfill-shot-chart.py --write --limit 50
 The backfill script is resumable — it only fetches games with no existing `nba.shot_chart` rows.
 
 SQL assertions: `queries/sql/070_nba_shot_chart_assertions.sql`
+
+---
+
+## Game data + Query Tool event streams
+
+`game_data.inline_script.py` now excludes `nba.querytool_event_streams` and focuses on:
+- boxscore traditional/advanced
+- play-by-play + players-on-court
+- hustle (box + events)
+- batched Query Tool game tables (`tracking_stats`, `defensive_stats`, `violations_*`)
+
+`querytool_event_streams.inline_script.py` owns:
+- `nba.querytool_event_streams` (event types: TrackingPasses, DefensiveEvents, TrackingDrives, TrackingIsolations, TrackingPostUps)
+
+`game_data` now includes:
+- bounded per-game concurrency (`GAME_DATA_CONCURRENCY=4`)
+- structured telemetry for game selection, legacy endpoint timings, Query Tool batch metrics, and upsert timing.
+
+`querytool_event_streams` includes:
+- per-event-type batch telemetry (attempts/splits/rows/timing)
+- split/retry on 414/429/5xx and truncation detection.

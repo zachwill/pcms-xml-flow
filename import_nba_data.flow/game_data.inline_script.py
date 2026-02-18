@@ -5,7 +5,8 @@
 import os
 import time
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone, timedelta, date
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import date, datetime, timedelta, timezone
 
 import httpx
 import psycopg
@@ -15,6 +16,9 @@ BASE_URL = "https://api.nba.com/v0"
 HUSTLE_URL = "https://api.nba.com/v0/api/hustlestats"
 QUERY_TOOL_URL = "https://api.nba.com/v0/api/querytool"
 
+GAME_DATA_CONCURRENCY = 4
+GAME_DATA_INCLUDE_PER_GAME_METRICS = False
+
 TRACKING_BATCH_SIZE = 100
 TRACKING_MAX_ROWS_RETURNED = 10000
 QUERY_TOOL_TRUNCATION_THRESHOLD = 9900
@@ -23,21 +27,6 @@ DEFENSIVE_BATCH_SIZE = 100
 VIOLATIONS_BATCH_SIZE = 100
 VIOLATIONS_TEAM_BATCH_SIZE = 200
 
-QUERYTOOL_EVENT_STREAM_MAX_ROWS_RETURNED = 10000
-QUERYTOOL_EVENT_STREAM_BATCH_SIZES = {
-    "TrackingPasses": 15,
-    "DefensiveEvents": 30,
-    "TrackingDrives": 50,
-    "TrackingIsolations": 200,
-    "TrackingPostUps": 200,
-}
-QUERYTOOL_EVENT_STREAM_TYPES = list(QUERYTOOL_EVENT_STREAM_BATCH_SIZES.keys())
-
-QUERYTOOL_EVENT_STREAM_PER_MODE = "Totals"
-QUERYTOOL_EVENT_STREAM_SUM_SCOPE = "Event"
-QUERYTOOL_EVENT_STREAM_GROUPING = "None"
-QUERYTOOL_EVENT_STREAM_TEAM_GROUPING = "Y"
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -45,6 +34,10 @@ QUERYTOOL_EVENT_STREAM_TEAM_GROUPING = "Y"
 
 def now_utc() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def elapsed_ms(started_perf: float) -> float:
+    return round((time.perf_counter() - started_perf) * 1000, 2)
 
 
 def parse_datetime(value: str | None):
@@ -189,7 +182,8 @@ def request_json(
                 raise
             time.sleep(1 + attempt)
             continue
-        if resp.status_code in {429, 500, 502, 503, 504}:
+        retryable_400 = resp.status_code == 400 and "Database Error" in resp.text
+        if resp.status_code in {429, 500, 502, 503, 504} or retryable_400:
             if attempt == retries - 1:
                 resp.raise_for_status()
             time.sleep(1 + attempt)
@@ -899,24 +893,6 @@ def map_violations_team_stats(stats: dict) -> dict:
     return row
 
 
-def reduce_querytool_event_row(payload_row: dict) -> dict:
-    stats = payload_row.get("stats") or {}
-    team_id = parse_int(payload_row.get("teamId"))
-    if team_id == 0:
-        team_id = None
-
-    return {
-        "event_number": parse_int(payload_row.get("eventNumber")),
-        "nba_id": parse_int(payload_row.get("playerId")),
-        "team_id": team_id,
-        "period": parse_int(payload_row.get("period")),
-        "game_clock": parse_float(payload_row.get("gameClock")),
-        "x": parse_int(payload_row.get("x")),
-        "y": parse_int(payload_row.get("y")),
-        "stats": stats,
-    }
-
-
 def camel_to_snake(name: str) -> str:
     out = ""
     for char in name:
@@ -1164,37 +1140,98 @@ def fetch_querytool_batched_rows(
     batch_size: int,
     max_rows_returned: int = TRACKING_MAX_ROWS_RETURNED,
     truncation_threshold: int = QUERY_TOOL_TRUNCATION_THRESHOLD,
-) -> tuple[list[dict], list[str]]:
+    single_batch_max_attempts: int = 4,
+) -> tuple[list[dict], list[str], dict]:
     pending_batches = chunked(game_ids, batch_size)
     all_rows: list[dict] = []
     warnings: list[str] = []
+    single_batch_attempts: dict[str, int] = {}
+
+    metrics = {
+        "batch_size": batch_size,
+        "initial_batch_count": len(pending_batches),
+        "batch_attempt_count": 0,
+        "completed_batch_count": 0,
+        "split_batch_count": 0,
+        "single_batch_retry_count": 0,
+        "rows_seen": 0,
+        "rows_emitted": 0,
+        "truncation_warning_count": 0,
+        "duration_ms": 0.0,
+    }
+
+    started_perf = time.perf_counter()
 
     while pending_batches:
         batch = pending_batches.pop(0)
         if not batch:
             continue
 
+        metrics["batch_attempt_count"] += 1
+
         params = dict(base_params)
         params["GameId"] = ",".join(batch)
         params["MaxRowsReturned"] = max_rows_returned
+
+        batch_key = ",".join(batch)
 
         try:
             payload = request_json(
                 client,
                 path,
                 params,
+                retries=1,
                 base_url=QUERY_TOOL_URL,
             )
         except httpx.HTTPStatusError as exc:
             status = exc.response.status_code if exc.response is not None else None
-            if status == 414 and len(batch) > 1:
+            if status in {414, 429, 500, 502, 503, 504} and len(batch) > 1:
                 left, right = split_batch(batch)
                 pending_batches = [left, right, *pending_batches]
+                metrics["split_batch_count"] += 1
                 continue
+
+            if status in {414, 429, 500, 502, 503, 504}:
+                attempts = single_batch_attempts.get(batch_key, 0) + 1
+                single_batch_attempts[batch_key] = attempts
+                if attempts < single_batch_max_attempts:
+                    time.sleep(min(5, attempts))
+                    pending_batches.append(batch)
+                    metrics["single_batch_retry_count"] += 1
+                    continue
+
+                warnings.append(
+                    f"{path} batch ({batch[0]}...{batch[-1]}) failed with HTTP {status} "
+                    f"after {attempts} attempts; skipping"
+                )
+                continue
+
             raise
+        except httpx.HTTPError as exc:
+            if len(batch) > 1:
+                left, right = split_batch(batch)
+                pending_batches = [left, right, *pending_batches]
+                metrics["split_batch_count"] += 1
+                continue
+
+            attempts = single_batch_attempts.get(batch_key, 0) + 1
+            single_batch_attempts[batch_key] = attempts
+            if attempts < single_batch_max_attempts:
+                time.sleep(min(5, attempts))
+                pending_batches.append(batch)
+                metrics["single_batch_retry_count"] += 1
+                continue
+
+            warnings.append(
+                f"{path} batch ({batch[0]}...{batch[-1]}) transport error ({exc}) "
+                f"after {attempts} attempts; skipping"
+            )
+            continue
 
         rows = payload.get(row_key) or []
         rows_returned = parse_int((payload.get("meta") or {}).get("rowsReturned"))
+        metrics["rows_seen"] += len(rows)
+
         suspicious = (
             (rows_returned is not None and rows_returned >= truncation_threshold)
             or len(rows) >= truncation_threshold
@@ -1203,6 +1240,7 @@ def fetch_querytool_batched_rows(
         if suspicious and len(batch) > 1:
             left, right = split_batch(batch)
             pending_batches = [left, right, *pending_batches]
+            metrics["split_batch_count"] += 1
             continue
 
         if suspicious:
@@ -1210,10 +1248,14 @@ def fetch_querytool_batched_rows(
                 f"{path} batch for game {batch[0]} may be truncated "
                 f"(rows={len(rows)}, rowsReturned={rows_returned})"
             )
+            metrics["truncation_warning_count"] += 1
 
         all_rows.extend(rows)
+        metrics["rows_emitted"] += len(rows)
+        metrics["completed_batch_count"] += 1
 
-    return all_rows, warnings
+    metrics["duration_ms"] = elapsed_ms(started_perf)
+    return all_rows, warnings, metrics
 
 
 def build_tracking_row(player: dict, fallback_game_id: str, fetched_at: datetime) -> dict | None:
@@ -1331,6 +1373,248 @@ def build_violations_team_row(team: dict, fetched_at: datetime) -> dict | None:
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
 
+
+def fetch_legacy_game_payloads(
+    game_id_value: str,
+    status: int | None,
+    allow_unknown_final: bool,
+    fetched_at: datetime,
+) -> dict:
+    is_final = status == 3 or (allow_unknown_final and status is None)
+
+    api_calls = {
+        "boxscore_traditional": 0,
+        "boxscore_advanced": 0,
+        "pbp": 0,
+        "poc": 0,
+        "hustle_boxscore": 0,
+        "hustle_events": 0,
+    }
+    api_duration_ms = {
+        "boxscore_traditional": 0.0,
+        "boxscore_advanced": 0.0,
+        "pbp": 0.0,
+        "poc": 0.0,
+        "hustle_boxscore": 0.0,
+        "hustle_events": 0.0,
+    }
+
+    player_rows: list[dict] = []
+    team_rows: list[dict] = []
+    advanced_rows: list[dict] = []
+    advanced_team_rows: list[dict] = []
+    pbp_rows: list[dict] = []
+    poc_rows: list[dict] = []
+    hustle_player_rows: list[dict] = []
+    hustle_team_rows: list[dict] = []
+    hustle_event_rows: list[dict] = []
+    endpoint_errors: list[str] = []
+
+    game_started_perf = time.perf_counter()
+
+    with httpx.Client(timeout=30) as client:
+        # Traditional boxscore
+        boxscore: dict = {}
+        try:
+            call_started = time.perf_counter()
+            boxscore = request_json(
+                client,
+                "/api/stats/boxscore",
+                {"gameId": game_id_value, "measureType": "Traditional"},
+            )
+            api_calls["boxscore_traditional"] += 1
+            api_duration_ms["boxscore_traditional"] += elapsed_ms(call_started)
+        except Exception as exc:
+            endpoint_errors.append(f"boxscore_traditional: {exc}")
+
+        home_team = boxscore.get("homeTeam") or {}
+        away_team = boxscore.get("awayTeam") or {}
+
+        for team in [home_team, away_team]:
+            team_id = team.get("teamId")
+            team_stats = team.get("statistics") or {}
+
+            team_row = {
+                "game_id": game_id_value,
+                "team_id": team_id,
+                "minutes": parse_iso_duration(team_stats.get("minutes")),
+                "created_at": fetched_at,
+                "updated_at": fetched_at,
+                "fetched_at": fetched_at,
+            }
+            for key, column in TEAM_STAT_MAP.items():
+                if key in team_stats:
+                    team_row[column] = team_stats.get(key)
+
+            compute_fg2(team_row)
+            team_rows.append(team_row)
+
+            for player in team.get("players") or []:
+                stats = player.get("statistics") or {}
+                row = {
+                    "game_id": game_id_value,
+                    "nba_id": player.get("personId"),
+                    "team_id": team_id,
+                    "status": empty_to_none(player.get("status")),
+                    "not_playing_reason": empty_to_none(player.get("notPlayingReason")),
+                    "not_playing_description": empty_to_none(player.get("notPlayingDescription")),
+                    "order_sequence": player.get("order"),
+                    "jersey_num": empty_to_none(player.get("jerseyNum")),
+                    "position": empty_to_none(player.get("position")),
+                    "is_starter": to_bool(player.get("starter")),
+                    "is_on_court": to_bool(player.get("oncourt")),
+                    "played": to_bool(player.get("played")),
+                    "minutes": parse_iso_duration(stats.get("minutes")),
+                    "created_at": fetched_at,
+                    "updated_at": fetched_at,
+                    "fetched_at": fetched_at,
+                }
+                for key, column in PLAYER_STAT_MAP.items():
+                    if key in stats:
+                        row[column] = stats.get(key)
+
+                compute_fg2(row)
+                player_rows.append(row)
+
+        # Advanced boxscore (only if Final)
+        if is_final:
+            advanced: dict = {}
+            try:
+                call_started = time.perf_counter()
+                advanced = request_json(
+                    client,
+                    "/api/stats/boxscore",
+                    {"gameId": game_id_value, "measureType": "Advanced"},
+                )
+                api_calls["boxscore_advanced"] += 1
+                api_duration_ms["boxscore_advanced"] += elapsed_ms(call_started)
+            except Exception as exc:
+                endpoint_errors.append(f"boxscore_advanced: {exc}")
+
+            adv_home = advanced.get("homeTeam") or {}
+            adv_away = advanced.get("awayTeam") or {}
+            advanced_team_rows_for_game: list[dict] = []
+
+            for team in [adv_home, adv_away]:
+                team_id = team.get("teamId")
+                team_stats = team.get("statistics") or {}
+
+                if team_id is not None:
+                    team_row = {
+                        "game_id": game_id_value,
+                        "team_id": team_id,
+                        "minutes": parse_iso_duration(team_stats.get("minutes")),
+                        "created_at": fetched_at,
+                        "updated_at": fetched_at,
+                        "fetched_at": fetched_at,
+                    }
+                    team_row.update(map_advanced_stats(team_stats))
+                    team_row = {k: v for k, v in team_row.items() if k in ADVANCED_TEAM_ALLOWED_COLUMNS}
+                    advanced_team_rows_for_game.append(team_row)
+
+                for player in team.get("players") or []:
+                    stats = player.get("statistics") or {}
+                    row = {
+                        "game_id": game_id_value,
+                        "nba_id": player.get("personId"),
+                        "team_id": team_id,
+                        "minutes": parse_iso_duration(stats.get("minutes")),
+                        "created_at": fetched_at,
+                        "updated_at": fetched_at,
+                        "fetched_at": fetched_at,
+                    }
+                    row.update(map_advanced_stats(stats))
+                    advanced_rows.append(row)
+
+            fill_missing_advanced_team_pace(advanced_team_rows_for_game)
+            advanced_team_rows.extend(advanced_team_rows_for_game)
+
+        # Play-by-play
+        try:
+            call_started = time.perf_counter()
+            pbp = request_json(client, "/api/stats/pbp", {"gameId": game_id_value})
+            api_calls["pbp"] += 1
+            api_duration_ms["pbp"] += elapsed_ms(call_started)
+            pbp_rows.append(
+                {
+                    "game_id": game_id_value,
+                    "pbp_json": Json(pbp) if pbp else None,
+                    "created_at": fetched_at,
+                    "updated_at": fetched_at,
+                    "fetched_at": fetched_at,
+                }
+            )
+        except Exception as exc:
+            endpoint_errors.append(f"pbp: {exc}")
+
+        # Players on court
+        try:
+            call_started = time.perf_counter()
+            poc = request_json(client, "/api/stats/poc", {"gameId": game_id_value})
+            api_calls["poc"] += 1
+            api_duration_ms["poc"] += elapsed_ms(call_started)
+            poc_rows.append(
+                {
+                    "game_id": game_id_value,
+                    "poc_json": Json(poc) if poc else None,
+                    "created_at": fetched_at,
+                    "updated_at": fetched_at,
+                    "fetched_at": fetched_at,
+                }
+            )
+        except Exception as exc:
+            endpoint_errors.append(f"poc: {exc}")
+
+        # Hustle stats + events (final games only)
+        if is_final:
+            try:
+                call_started = time.perf_counter()
+                hustle_box = request_xml(client, f"/{game_id_value}_hustlestats.xml")
+                api_calls["hustle_boxscore"] += 1
+                api_duration_ms["hustle_boxscore"] += elapsed_ms(call_started)
+                player_stats, team_stats = parse_hustle_boxscore(hustle_box, game_id_value, fetched_at)
+                hustle_player_rows.extend(player_stats)
+                hustle_team_rows.extend(team_stats)
+            except Exception as exc:
+                endpoint_errors.append(f"hustle_boxscore: {exc}")
+
+            try:
+                call_started = time.perf_counter()
+                hustle_events_xml = request_xml(client, f"/{game_id_value}_HustleStatsGameEvents.xml")
+                api_calls["hustle_events"] += 1
+                api_duration_ms["hustle_events"] += elapsed_ms(call_started)
+                hustle_events_payload = parse_hustle_events(hustle_events_xml)
+                if hustle_events_payload is not None:
+                    hustle_event_rows.append(
+                        {
+                            "game_id": game_id_value,
+                            "hustle_events_json": Json(hustle_events_payload),
+                            "created_at": fetched_at,
+                            "updated_at": fetched_at,
+                            "fetched_at": fetched_at,
+                        }
+                    )
+            except Exception as exc:
+                endpoint_errors.append(f"hustle_events: {exc}")
+
+    return {
+        "game_id": game_id_value,
+        "is_final": is_final,
+        "player_rows": player_rows,
+        "team_rows": team_rows,
+        "advanced_rows": advanced_rows,
+        "advanced_team_rows": advanced_team_rows,
+        "pbp_rows": pbp_rows,
+        "poc_rows": poc_rows,
+        "hustle_player_rows": hustle_player_rows,
+        "hustle_team_rows": hustle_team_rows,
+        "hustle_event_rows": hustle_event_rows,
+        "api_calls": api_calls,
+        "api_duration_ms": api_duration_ms,
+        "errors": endpoint_errors,
+        "duration_ms": elapsed_ms(game_started_perf),
+    }
+
 def main(
     dry_run: bool = False,
     league_id: str = "00",
@@ -1344,14 +1628,95 @@ def main(
     only_final_games: bool = True,
 ) -> dict:
     started_at = now_utc()
+    started_perf = time.perf_counter()
 
+    telemetry = {
+        "config": {
+            "concurrency": GAME_DATA_CONCURRENCY,
+            "include_per_game_metrics": GAME_DATA_INCLUDE_PER_GAME_METRICS,
+            "tracking_batch_size": TRACKING_BATCH_SIZE,
+            "defensive_batch_size": DEFENSIVE_BATCH_SIZE,
+            "violations_batch_size": VIOLATIONS_BATCH_SIZE,
+            "violations_team_batch_size": VIOLATIONS_TEAM_BATCH_SIZE,
+            "querytool_max_rows": TRACKING_MAX_ROWS_RETURNED,
+            "querytool_truncation_threshold": QUERY_TOOL_TRUNCATION_THRESHOLD,
+            "event_streams_extracted": True,
+        },
+        "game_selection": {
+            "source": "",
+            "candidate_games": 0,
+            "season_type_filtered_games": 0,
+            "selected_games": 0,
+            "final_games": 0,
+            "duration_ms": 0.0,
+        },
+        "legacy_fetch": {
+            "worker_count": 0,
+            "scheduled_games": 0,
+            "completed_games": 0,
+            "failed_games": 0,
+            "endpoint_error_count": 0,
+            "duration_ms": 0.0,
+            "api_calls": {
+                "boxscore_traditional": 0,
+                "boxscore_advanced": 0,
+                "pbp": 0,
+                "poc": 0,
+                "hustle_boxscore": 0,
+                "hustle_events": 0,
+            },
+            "api_duration_ms": {
+                "boxscore_traditional": 0.0,
+                "boxscore_advanced": 0.0,
+                "pbp": 0.0,
+                "poc": 0.0,
+                "hustle_boxscore": 0.0,
+                "hustle_events": 0.0,
+            },
+            "per_game_metrics": [] if GAME_DATA_INCLUDE_PER_GAME_METRICS else None,
+        },
+        "querytool": {
+            "game_id_count": 0,
+            "duration_ms": 0.0,
+            "tracking": {},
+            "defensive": {},
+            "violations_player": {},
+            "violations_team": {},
+        },
+        "upsert": {
+            "executed": False,
+            "duration_ms": 0.0,
+        },
+        "duration_ms": 0.0,
+    }
+
+    conn: psycopg.Connection | None = None
     try:
         season_label_value = season_label
         season_type_value = season_type or "Regular Season"
         desired_season_type = normalize_season_type(season_type_value)
+
         conn = psycopg.connect(os.environ["POSTGRES_URL"])
+
+        errors: list[str] = []
+        player_rows: list[dict] = []
+        team_rows: list[dict] = []
+        advanced_rows: list[dict] = []
+        advanced_team_rows: list[dict] = []
+        pbp_rows: list[dict] = []
+        poc_rows: list[dict] = []
+        hustle_player_rows: list[dict] = []
+        hustle_team_rows: list[dict] = []
+        hustle_event_rows: list[dict] = []
+        tracking_rows: list[dict] = []
+        defensive_rows: list[dict] = []
+        violations_player_rows: list[dict] = []
+        violations_team_rows: list[dict] = []
+
         game_list: list[tuple[str, int | None]] = []
         game_id_list: list[str] = []
+
+        game_resolution_started = time.perf_counter()
         if game_ids:
             game_id_list = [gid.strip() for gid in game_ids.split(",") if gid.strip()]
             if game_id_list:
@@ -1362,6 +1727,15 @@ def main(
                     )
                     status_map = {row[0]: row[1] for row in cur.fetchall()}
                 game_list = [(gid, status_map.get(gid)) for gid in game_id_list]
+
+            telemetry["game_selection"].update(
+                {
+                    "source": "game_ids",
+                    "candidate_games": len(game_id_list),
+                    "season_type_filtered_games": len(game_list),
+                    "selected_games": len(game_list),
+                }
+            )
         else:
             start_dt, end_dt = resolve_date_range(mode, days_back, start_date, end_date, season_label)
             season_label_filter = season_label_value or None
@@ -1377,6 +1751,7 @@ def main(
                 cur.execute(query, (start_dt, end_dt, league_id, season_label_filter, season_label_filter))
                 game_rows = cur.fetchall()
 
+            game_candidates = len(game_rows)
             if desired_season_type:
                 game_rows = [
                     (gid, status, game_season_type)
@@ -1386,6 +1761,20 @@ def main(
 
             game_list = [(gid, status) for gid, status, _ in game_rows]
 
+            telemetry["game_selection"].update(
+                {
+                    "source": "nba.games",
+                    "candidate_games": game_candidates,
+                    "season_type_filtered_games": len(game_rows),
+                    "selected_games": len(game_list),
+                    "date_range": {
+                        "start": start_dt.isoformat(),
+                        "end": end_dt.isoformat(),
+                    },
+                    "only_final_games": bool(only_final_games),
+                }
+            )
+
         allow_unknown_final = bool(game_id_list)
         if only_final_games:
             if allow_unknown_final:
@@ -1393,180 +1782,133 @@ def main(
             else:
                 game_list = [(gid, status) for gid, status in game_list if status == 3]
 
+        telemetry["game_selection"]["selected_games"] = len(game_list)
+        final_game_count = sum(
+            1
+            for _, status in game_list
+            if status == 3 or (allow_unknown_final and status is None)
+        )
+        telemetry["game_selection"]["final_games"] = final_game_count
+        telemetry["game_selection"]["duration_ms"] = elapsed_ms(game_resolution_started)
+
         fetched_at = now_utc()
-        errors: list[str] = []
-        player_rows: list[dict] = []
-        team_rows: list[dict] = []
-        advanced_rows: list[dict] = []
-        advanced_team_rows: list[dict] = []
-        pbp_rows: list[dict] = []
-        poc_rows: list[dict] = []
-        hustle_player_rows: list[dict] = []
-        hustle_team_rows: list[dict] = []
-        hustle_event_rows: list[dict] = []
-        tracking_rows: list[dict] = []
-        defensive_rows: list[dict] = []
-        violations_player_rows: list[dict] = []
-        violations_team_rows: list[dict] = []
-        querytool_event_stream_rows_total = 0
-        querytool_event_stream_upserted_total = 0
-        querytool_game_ids: list[str] = []
 
-        with httpx.Client(timeout=30) as client:
+        # --- Legacy per-game payloads (concurrent) ---
+        legacy_started = time.perf_counter()
+        worker_count = 1
+        if game_list:
+            worker_count = min(max(1, GAME_DATA_CONCURRENCY), len(game_list))
+        telemetry["legacy_fetch"]["worker_count"] = worker_count
+        telemetry["legacy_fetch"]["scheduled_games"] = len(game_list)
+
+        if worker_count <= 1:
             for game_id_value, status in game_list:
-                is_final = status == 3 or (allow_unknown_final and status is None)
-                # Traditional boxscore
-                boxscore = request_json(
-                    client,
-                    "/api/stats/boxscore",
-                    {"gameId": game_id_value, "measureType": "Traditional"},
-                )
+                try:
+                    result = fetch_legacy_game_payloads(game_id_value, status, allow_unknown_final, fetched_at)
+                except Exception as exc:
+                    telemetry["legacy_fetch"]["failed_games"] += 1
+                    errors.append(f"legacy game {game_id_value}: {exc}")
+                    continue
 
-                home_team = boxscore.get("homeTeam") or {}
-                away_team = boxscore.get("awayTeam") or {}
+                player_rows.extend(result["player_rows"])
+                team_rows.extend(result["team_rows"])
+                advanced_rows.extend(result["advanced_rows"])
+                advanced_team_rows.extend(result["advanced_team_rows"])
+                pbp_rows.extend(result["pbp_rows"])
+                poc_rows.extend(result["poc_rows"])
+                hustle_player_rows.extend(result["hustle_player_rows"])
+                hustle_team_rows.extend(result["hustle_team_rows"])
+                hustle_event_rows.extend(result["hustle_event_rows"])
 
-                for team in [home_team, away_team]:
-                    team_id = team.get("teamId")
-                    team_stats = team.get("statistics") or {}
-
-                    team_row = {
-                        "game_id": game_id_value,
-                        "team_id": team_id,
-                        "minutes": parse_iso_duration(team_stats.get("minutes")),
-                        "created_at": fetched_at,
-                        "updated_at": fetched_at,
-                        "fetched_at": fetched_at,
-                    }
-                    for key, column in TEAM_STAT_MAP.items():
-                        if key in team_stats:
-                            team_row[column] = team_stats.get(key)
-
-                    compute_fg2(team_row)
-                    team_rows.append(team_row)
-
-                    for player in team.get("players") or []:
-                        stats = player.get("statistics") or {}
-                        row = {
-                            "game_id": game_id_value,
-                            "nba_id": player.get("personId"),
-                            "team_id": team_id,
-                            "status": empty_to_none(player.get("status")),
-                            "not_playing_reason": empty_to_none(player.get("notPlayingReason")),
-                            "not_playing_description": empty_to_none(player.get("notPlayingDescription")),
-                            "order_sequence": player.get("order"),
-                            "jersey_num": empty_to_none(player.get("jerseyNum")),
-                            "position": empty_to_none(player.get("position")),
-                            "is_starter": to_bool(player.get("starter")),
-                            "is_on_court": to_bool(player.get("oncourt")),
-                            "played": to_bool(player.get("played")),
-                            "minutes": parse_iso_duration(stats.get("minutes")),
-                            "created_at": fetched_at,
-                            "updated_at": fetched_at,
-                            "fetched_at": fetched_at,
-                        }
-                        for key, column in PLAYER_STAT_MAP.items():
-                            if key in stats:
-                                row[column] = stats.get(key)
-
-                        compute_fg2(row)
-                        player_rows.append(row)
-
-                # Advanced boxscore (only if Final)
-                if is_final:
-                    advanced = request_json(
-                        client,
-                        "/api/stats/boxscore",
-                        {"gameId": game_id_value, "measureType": "Advanced"},
+                if result["errors"]:
+                    telemetry["legacy_fetch"]["endpoint_error_count"] += len(result["errors"])
+                    errors.extend(
+                        [f"legacy game {result['game_id']} {endpoint_error}" for endpoint_error in result["errors"]]
                     )
-                    adv_home = advanced.get("homeTeam") or {}
-                    adv_away = advanced.get("awayTeam") or {}
-                    advanced_team_rows_for_game: list[dict] = []
 
-                    for team in [adv_home, adv_away]:
-                        team_id = team.get("teamId")
-                        team_stats = team.get("statistics") or {}
+                telemetry["legacy_fetch"]["completed_games"] += 1
+                for key, value in result["api_calls"].items():
+                    telemetry["legacy_fetch"]["api_calls"][key] += value
+                for key, value in result["api_duration_ms"].items():
+                    telemetry["legacy_fetch"]["api_duration_ms"][key] += value
 
-                        if team_id is not None:
-                            team_row = {
-                                "game_id": game_id_value,
-                                "team_id": team_id,
-                                "minutes": parse_iso_duration(team_stats.get("minutes")),
-                                "created_at": fetched_at,
-                                "updated_at": fetched_at,
-                                "fetched_at": fetched_at,
-                            }
-                            team_row.update(map_advanced_stats(team_stats))
-                            team_row = {k: v for k, v in team_row.items() if k in ADVANCED_TEAM_ALLOWED_COLUMNS}
-                            advanced_team_rows_for_game.append(team_row)
+                if telemetry["legacy_fetch"]["per_game_metrics"] is not None:
+                    telemetry["legacy_fetch"]["per_game_metrics"].append(
+                        {
+                            "game_id": result["game_id"],
+                            "is_final": result["is_final"],
+                            "duration_ms": result["duration_ms"],
+                        }
+                    )
+        else:
+            with ThreadPoolExecutor(max_workers=worker_count) as executor:
+                future_map = {
+                    executor.submit(
+                        fetch_legacy_game_payloads,
+                        game_id_value,
+                        status,
+                        allow_unknown_final,
+                        fetched_at,
+                    ): game_id_value
+                    for game_id_value, status in game_list
+                }
 
-                        for player in team.get("players") or []:
-                            stats = player.get("statistics") or {}
-                            row = {
-                                "game_id": game_id_value,
-                                "nba_id": player.get("personId"),
-                                "team_id": team_id,
-                                "minutes": parse_iso_duration(stats.get("minutes")),
-                                "created_at": fetched_at,
-                                "updated_at": fetched_at,
-                                "fetched_at": fetched_at,
-                            }
-                            row.update(map_advanced_stats(stats))
-                            advanced_rows.append(row)
+                for future in as_completed(future_map):
+                    game_id_value = future_map[future]
+                    try:
+                        result = future.result()
+                    except Exception as exc:
+                        telemetry["legacy_fetch"]["failed_games"] += 1
+                        errors.append(f"legacy game {game_id_value}: {exc}")
+                        continue
 
-                    fill_missing_advanced_team_pace(advanced_team_rows_for_game)
-                    advanced_team_rows.extend(advanced_team_rows_for_game)
+                    player_rows.extend(result["player_rows"])
+                    team_rows.extend(result["team_rows"])
+                    advanced_rows.extend(result["advanced_rows"])
+                    advanced_team_rows.extend(result["advanced_team_rows"])
+                    pbp_rows.extend(result["pbp_rows"])
+                    poc_rows.extend(result["poc_rows"])
+                    hustle_player_rows.extend(result["hustle_player_rows"])
+                    hustle_team_rows.extend(result["hustle_team_rows"])
+                    hustle_event_rows.extend(result["hustle_event_rows"])
 
-                # Play-by-play
-                pbp = request_json(client, "/api/stats/pbp", {"gameId": game_id_value})
-                pbp_rows.append(
-                    {
-                        "game_id": game_id_value,
-                        "pbp_json": Json(pbp) if pbp else None,
-                        "created_at": fetched_at,
-                        "updated_at": fetched_at,
-                        "fetched_at": fetched_at,
-                    }
-                )
+                    if result["errors"]:
+                        telemetry["legacy_fetch"]["endpoint_error_count"] += len(result["errors"])
+                        errors.extend(
+                            [f"legacy game {result['game_id']} {endpoint_error}" for endpoint_error in result["errors"]]
+                        )
 
-                # Players on court
-                poc = request_json(client, "/api/stats/poc", {"gameId": game_id_value})
-                poc_rows.append(
-                    {
-                        "game_id": game_id_value,
-                        "poc_json": Json(poc) if poc else None,
-                        "created_at": fetched_at,
-                        "updated_at": fetched_at,
-                        "fetched_at": fetched_at,
-                    }
-                )
+                    telemetry["legacy_fetch"]["completed_games"] += 1
+                    for key, value in result["api_calls"].items():
+                        telemetry["legacy_fetch"]["api_calls"][key] += value
+                    for key, value in result["api_duration_ms"].items():
+                        telemetry["legacy_fetch"]["api_duration_ms"][key] += value
 
-                # Hustle stats + events (final games only)
-                if is_final:
-                    hustle_box = request_xml(client, f"/{game_id_value}_hustlestats.xml")
-                    player_stats, team_stats = parse_hustle_boxscore(hustle_box, game_id_value, fetched_at)
-                    hustle_player_rows.extend(player_stats)
-                    hustle_team_rows.extend(team_stats)
-
-                    hustle_events_xml = request_xml(client, f"/{game_id_value}_HustleStatsGameEvents.xml")
-                    hustle_events_payload = parse_hustle_events(hustle_events_xml)
-                    if hustle_events_payload is not None:
-                        hustle_event_rows.append(
+                    if telemetry["legacy_fetch"]["per_game_metrics"] is not None:
+                        telemetry["legacy_fetch"]["per_game_metrics"].append(
                             {
-                                "game_id": game_id_value,
-                                "hustle_events_json": Json(hustle_events_payload),
-                                "created_at": fetched_at,
-                                "updated_at": fetched_at,
-                                "fetched_at": fetched_at,
+                                "game_id": result["game_id"],
+                                "is_final": result["is_final"],
+                                "duration_ms": result["duration_ms"],
                             }
                         )
 
-                # Query Tool game-level data (final games only, fetched in batched pass)
-                if is_final and season_label_value and season_type_value:
-                    querytool_game_ids.append(game_id_value)
+        telemetry["legacy_fetch"]["duration_ms"] = elapsed_ms(legacy_started)
 
-            if querytool_game_ids and season_label_value and season_type_value:
-                # --- Tracking stats (MeasureType=Tracking) ---
-                tracking_payload_rows, tracking_warnings = fetch_querytool_batched_rows(
+        # --- Query Tool batched tables (final games only) ---
+        querytool_started = time.perf_counter()
+        querytool_game_ids: list[str] = []
+        if season_label_value and season_type_value:
+            querytool_game_ids = [
+                gid
+                for gid, status in game_list
+                if status == 3 or (allow_unknown_final and status is None)
+            ]
+        telemetry["querytool"]["game_id_count"] = len(querytool_game_ids)
+
+        if querytool_game_ids and season_label_value and season_type_value:
+            with httpx.Client(timeout=60) as client:
+                tracking_payload_rows, tracking_warnings, tracking_metrics = fetch_querytool_batched_rows(
                     client=client,
                     path="/game/player",
                     base_params={
@@ -1583,15 +1925,16 @@ def main(
                     max_rows_returned=TRACKING_MAX_ROWS_RETURNED,
                 )
                 errors.extend([f"tracking_stats: {warning}" for warning in tracking_warnings])
-
                 for player in tracking_payload_rows:
                     row = build_tracking_row(player, fallback_game_id="", fetched_at=fetched_at)
                     if row is None or not row.get("game_id"):
                         continue
                     tracking_rows.append(row)
+                tracking_metrics["warnings"] = len(tracking_warnings)
+                tracking_metrics["rows_built"] = len(tracking_rows)
+                telemetry["querytool"]["tracking"] = tracking_metrics
 
-                # --- Defensive attribution (MeasureType=Defensive) ---
-                defensive_payload_rows, defensive_warnings = fetch_querytool_batched_rows(
+                defensive_payload_rows, defensive_warnings, defensive_metrics = fetch_querytool_batched_rows(
                     client=client,
                     path="/game/player",
                     base_params={
@@ -1608,15 +1951,16 @@ def main(
                     max_rows_returned=TRACKING_MAX_ROWS_RETURNED,
                 )
                 errors.extend([f"defensive_stats: {warning}" for warning in defensive_warnings])
-
                 for player in defensive_payload_rows:
                     row = build_defensive_row(player, fetched_at=fetched_at)
                     if row is None:
                         continue
                     defensive_rows.append(row)
+                defensive_metrics["warnings"] = len(defensive_warnings)
+                defensive_metrics["rows_built"] = len(defensive_rows)
+                telemetry["querytool"]["defensive"] = defensive_metrics
 
-                # --- Violations (player) (MeasureType=Violations) ---
-                violations_payload_rows, violations_warnings = fetch_querytool_batched_rows(
+                violations_payload_rows, violations_warnings, violations_metrics = fetch_querytool_batched_rows(
                     client=client,
                     path="/game/player",
                     base_params={
@@ -1633,15 +1977,16 @@ def main(
                     max_rows_returned=TRACKING_MAX_ROWS_RETURNED,
                 )
                 errors.extend([f"violations_player: {warning}" for warning in violations_warnings])
-
                 for player in violations_payload_rows:
                     row = build_violations_player_row(player, fetched_at=fetched_at)
                     if row is None:
                         continue
                     violations_player_rows.append(row)
+                violations_metrics["warnings"] = len(violations_warnings)
+                violations_metrics["rows_built"] = len(violations_player_rows)
+                telemetry["querytool"]["violations_player"] = violations_metrics
 
-                # --- Violations (team) (MeasureType=Violations) ---
-                violations_team_payload_rows, violations_team_warnings = fetch_querytool_batched_rows(
+                violations_team_payload_rows, violations_team_warnings, violations_team_metrics = fetch_querytool_batched_rows(
                     client=client,
                     path="/game/team",
                     base_params={
@@ -1657,98 +2002,16 @@ def main(
                     max_rows_returned=TRACKING_MAX_ROWS_RETURNED,
                 )
                 errors.extend([f"violations_team: {warning}" for warning in violations_team_warnings])
-
                 for team in violations_team_payload_rows:
                     row = build_violations_team_row(team, fetched_at=fetched_at)
                     if row is None:
                         continue
                     violations_team_rows.append(row)
+                violations_team_metrics["warnings"] = len(violations_team_warnings)
+                violations_team_metrics["rows_built"] = len(violations_team_rows)
+                telemetry["querytool"]["violations_team"] = violations_team_metrics
 
-                # --- Query Tool event streams (store per-game JSONB) ---
-                for event_type in QUERYTOOL_EVENT_STREAM_TYPES:
-                    batch_size = QUERYTOOL_EVENT_STREAM_BATCH_SIZES.get(event_type, 25)
-                    pending_batches = chunked(querytool_game_ids, batch_size)
-
-                    while pending_batches:
-                        batch = pending_batches.pop(0)
-                        if not batch:
-                            continue
-
-                        params = {
-                            "LeagueId": league_id,
-                            "SeasonYear": season_label_value,
-                            "SeasonType": season_type_value,
-                            "PerMode": QUERYTOOL_EVENT_STREAM_PER_MODE,
-                            "SumScope": QUERYTOOL_EVENT_STREAM_SUM_SCOPE,
-                            "Grouping": QUERYTOOL_EVENT_STREAM_GROUPING,
-                            "TeamGrouping": QUERYTOOL_EVENT_STREAM_TEAM_GROUPING,
-                            "EventType": event_type,
-                            "GameId": ",".join(batch),
-                            "MaxRowsReturned": QUERYTOOL_EVENT_STREAM_MAX_ROWS_RETURNED,
-                        }
-
-                        try:
-                            payload = request_json(
-                                client,
-                                "/event/player",
-                                params,
-                                base_url=QUERY_TOOL_URL,
-                            )
-                        except httpx.HTTPStatusError as exc:
-                            status = exc.response.status_code if exc.response is not None else None
-                            if status in {414, 504} and len(batch) > 1:
-                                left, right = split_batch(batch)
-                                pending_batches = [left, right, *pending_batches]
-                                continue
-                            raise
-
-                        rows = payload.get("players") or []
-                        rows_returned = parse_int((payload.get("meta") or {}).get("rowsReturned"))
-                        suspicious = (
-                            (rows_returned is not None and rows_returned >= QUERY_TOOL_TRUNCATION_THRESHOLD)
-                            or len(rows) >= QUERY_TOOL_TRUNCATION_THRESHOLD
-                        )
-
-                        if suspicious and len(batch) > 1:
-                            left, right = split_batch(batch)
-                            pending_batches = [left, right, *pending_batches]
-                            continue
-
-                        if suspicious:
-                            errors.append(
-                                f"querytool_event_streams {event_type}: batch for game {batch[0]} may be truncated "
-                                f"(rows={len(rows)}, rowsReturned={rows_returned})"
-                            )
-
-                        grouped: dict[str, list[dict]] = {gid: [] for gid in batch}
-                        for payload_row in rows:
-                            game_id_row = payload_row.get("gameId")
-                            if not game_id_row or game_id_row not in grouped:
-                                continue
-                            grouped[game_id_row].append(reduce_querytool_event_row(payload_row))
-
-                        stream_rows: list[dict] = []
-                        for gid in batch:
-                            stream_rows.append(
-                                {
-                                    "game_id": gid,
-                                    "event_type": event_type,
-                                    "events_json": Json(grouped.get(gid) or []),
-                                    "created_at": fetched_at,
-                                    "updated_at": fetched_at,
-                                    "fetched_at": fetched_at,
-                                }
-                            )
-
-                        querytool_event_stream_rows_total += len(stream_rows)
-                        if not dry_run:
-                            querytool_event_stream_upserted_total += upsert(
-                                conn,
-                                "nba.querytool_event_streams",
-                                stream_rows,
-                                ["game_id", "event_type"],
-                                update_exclude=["created_at"],
-                            )
+        telemetry["querytool"]["duration_ms"] = elapsed_ms(querytool_started)
 
         inserted_players = 0
         inserted_teams = 0
@@ -1763,9 +2026,10 @@ def main(
         inserted_defensive = 0
         inserted_violations_player = 0
         inserted_violations_team = 0
-        inserted_querytool_event_streams = 0
 
+        upsert_started = time.perf_counter()
         if not dry_run:
+            telemetry["upsert"]["executed"] = True
             inserted_players = upsert(conn, "nba.boxscores_traditional", player_rows, ["game_id", "nba_id"], update_exclude=["created_at"])
             inserted_teams = upsert(conn, "nba.boxscores_traditional_team", team_rows, ["game_id", "team_id"], update_exclude=["created_at"])
             if advanced_rows:
@@ -1806,7 +2070,6 @@ def main(
                     ["game_id", "nba_id"],
                     update_exclude=["created_at"],
                 )
-
             if defensive_rows:
                 inserted_defensive = upsert(
                     conn,
@@ -1815,7 +2078,6 @@ def main(
                     ["game_id", "nba_id"],
                     update_exclude=["created_at"],
                 )
-
             if violations_player_rows:
                 inserted_violations_player = upsert(
                     conn,
@@ -1824,7 +2086,6 @@ def main(
                     ["game_id", "nba_id"],
                     update_exclude=["created_at"],
                 )
-
             if violations_team_rows:
                 inserted_violations_team = upsert(
                     conn,
@@ -1833,11 +2094,12 @@ def main(
                     ["game_id", "team_id"],
                     update_exclude=["created_at"],
                 )
+        telemetry["upsert"]["duration_ms"] = elapsed_ms(upsert_started)
 
-            # Event streams are upserted incrementally during fetch.
-            inserted_querytool_event_streams = querytool_event_stream_upserted_total
+        if conn:
+            conn.close()
 
-        conn.close()
+        telemetry["duration_ms"] = elapsed_ms(started_perf)
 
         return {
             "dry_run": dry_run,
@@ -1857,20 +2119,22 @@ def main(
                 {"table": "nba.defensive_stats", "rows": len(defensive_rows), "upserted": inserted_defensive},
                 {"table": "nba.violations_player", "rows": len(violations_player_rows), "upserted": inserted_violations_player},
                 {"table": "nba.violations_team", "rows": len(violations_team_rows), "upserted": inserted_violations_team},
-                {
-                    "table": "nba.querytool_event_streams",
-                    "rows": querytool_event_stream_rows_total,
-                    "upserted": inserted_querytool_event_streams,
-                },
             ],
+            "telemetry": telemetry,
             "errors": errors,
         }
     except Exception as exc:
+        if conn:
+            conn.close()
+
+        telemetry["duration_ms"] = elapsed_ms(started_perf)
+
         return {
             "dry_run": dry_run,
             "started_at": started_at.isoformat(),
             "finished_at": now_utc().isoformat(),
             "tables": [],
+            "telemetry": telemetry,
             "errors": [str(exc)],
         }
 

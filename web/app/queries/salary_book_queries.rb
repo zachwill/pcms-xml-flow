@@ -310,11 +310,11 @@ class SalaryBookQueries
           SELECT
             sbw_age.player_id,
             (1 - PERCENT_RANK() OVER (
-              PARTITION BY sbw_age.team_code
-              ORDER BY sbw_age.age ASC, sbw_age.player_id ASC
+              ORDER BY sbw_age.age ASC
             ))::numeric AS age_percentile
           FROM pcms.salary_book_warehouse sbw_age
-          WHERE sbw_age.age IS NOT NULL
+          WHERE sbw_age.team_code IS NOT NULL
+            AND sbw_age.age IS NOT NULL
         )
         SELECT
           sbw.player_id,

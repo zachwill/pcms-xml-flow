@@ -21,7 +21,6 @@
 <% trade_restricted_now = player["is_trade_consent_required_now"] || player["is_trade_restricted_now"] || poison_pill_now %>
 
 <% status_tokens = [] %>
-<% status_tokens << { label: "2W", classes: "text-foreground" } if player["is_two_way"] %>
 <% status_tokens << { label: "NTC", classes: "text-red-600 dark:text-red-400" } if player["is_no_trade"] %>
 <% status_tokens << { label: "PP", classes: "text-red-600 dark:text-red-400" } if poison_pill_now %>
 <% if player["is_trade_restricted_now"] || player["is_trade_consent_required_now"] %>

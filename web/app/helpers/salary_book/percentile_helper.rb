@@ -90,45 +90,54 @@ module SalaryBook
     end
 
     # Younger players should read as better (higher percentile -> younger).
-    # Returns { player_id => percentile_01 } using age ranks inside the provided roster.
+    # Returns { player_id => percentile_01 } using global current-NBA age ranks
+    # from pcms.salary_book_warehouse (team_code IS NOT NULL).
     def age_percentiles_by_player_id(players)
-      rows = Array(players).filter_map do |player|
-        player_id = player["player_id"]
-        age_raw = player["age"]
-        next if player_id.blank? || age_raw.nil? || age_raw.to_s.strip.empty?
+      requested_player_ids = Array(players).filter_map do |player|
+        next unless player.respond_to?(:[])
 
-        age = age_raw.to_f
-        next if age.nan?
+        player_id = player["player_id"] || player[:player_id]
+        next if player_id.blank?
 
-        { player_id:, age: }
+        player_id
+      end.uniq
+
+      return {} if requested_player_ids.empty?
+
+      global_lookup = current_nba_age_percentiles_lookup
+
+      requested_player_ids.each_with_object({}) do |player_id, result|
+        percentile = global_lookup[player_id.to_s]
+        result[player_id] = percentile unless percentile.nil?
       end
+    end
 
-      return {} if rows.empty?
+    def current_nba_age_percentiles_lookup
+      @current_nba_age_percentiles_lookup ||= begin
+        rows = ActiveRecord::Base.connection.exec_query(<<~SQL).to_a
+          WITH age_ranked AS (
+            SELECT
+              sbw.player_id,
+              (1 - PERCENT_RANK() OVER (
+                ORDER BY sbw.age ASC
+              ))::numeric AS age_percentile
+            FROM pcms.salary_book_warehouse sbw
+            WHERE sbw.team_code IS NOT NULL
+              AND sbw.age IS NOT NULL
+          )
+          SELECT
+            player_id,
+            age_percentile
+          FROM age_ranked
+        SQL
 
-      sorted = rows.sort_by { |row| [row[:age], row[:player_id].to_s] }
-      count = sorted.length
+        rows.each_with_object({}) do |row, lookup|
+          player_id = row["player_id"]
+          next if player_id.blank?
 
-      if count == 1
-        only_player_id = sorted.first[:player_id]
-        return { only_player_id => 0.5 }
+          lookup[player_id.to_s] = row["age_percentile"]
+        end
       end
-
-      grouped_by_age = sorted.group_by { |row| row[:age] }
-      running_index = 0
-      result = {}
-
-      grouped_by_age.keys.sort.each do |age|
-        group = grouped_by_age[age]
-        start_idx = running_index
-        end_idx = running_index + group.length - 1
-        avg_idx = (start_idx + end_idx) / 2.0
-        percentile = 1.0 - (avg_idx / (count - 1))
-
-        group.each { |row| result[row[:player_id]] = percentile }
-        running_index = end_idx + 1
-      end
-
-      result
     end
 
     def age_percentile_color_class(percentile)

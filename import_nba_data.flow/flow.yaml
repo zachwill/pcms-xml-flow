@@ -152,6 +152,45 @@ value:
         lock: '!inline game_data.inline_script.lock'
         language: python3
 
+    - id: f1
+      summary: Query Tool Event Streams
+      value:
+        type: rawscript
+        content: '!inline querytool_event_streams.inline_script.py'
+        input_transforms:
+          dry_run:
+            type: javascript
+            expr: '!flow_input.save_data'
+          league_id:
+            type: javascript
+            expr: flow_input.league_id
+          season_label:
+            type: javascript
+            expr: flow_input.season_label
+          season_type:
+            type: javascript
+            expr: flow_input.season_type
+          mode:
+            type: javascript
+            expr: flow_input.run_mode
+          days_back:
+            type: javascript
+            expr: flow_input.days_back
+          start_date:
+            type: javascript
+            expr: flow_input.start_date
+          end_date:
+            type: javascript
+            expr: flow_input.end_date
+          game_ids:
+            type: javascript
+            expr: flow_input.game_ids
+          only_final_games:
+            type: javascript
+            expr: flow_input.only_final_games
+        lock: '!inline querytool_event_streams.inline_script.lock'
+        language: python3
+
     - id: g
       summary: Aggregates
       value:
@@ -403,5 +442,5 @@ schema:
       default: ''
     only_final_games:
       type: boolean
-      description: Only fetch final games for game_data/aggregates/ngss steps
+      description: Only fetch final games for game_data/querytool_event_streams/lineups/shot_chart/ngss steps
       default: true

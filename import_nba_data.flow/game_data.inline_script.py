@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["psycopg[binary]", "httpx", "sniffio", "typing-extensions"]
+# dependencies = ["psycopg[binary]", "httpx", "sniffio", "typing-extensions", "tenacity"]
 # ///
 import os
 import time
@@ -11,6 +11,7 @@ from datetime import date, datetime, timedelta, timezone
 import httpx
 import psycopg
 from psycopg.types.json import Json
+from tenacity import RetryCallState, retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 BASE_URL = "https://api.nba.com/v0"
 HUSTLE_URL = "https://api.nba.com/v0/api/hustlestats"
@@ -27,6 +28,11 @@ QUERY_TOOL_TRUNCATION_THRESHOLD = 9900
 DEFENSIVE_BATCH_SIZE = 100
 VIOLATIONS_BATCH_SIZE = 100
 VIOLATIONS_TEAM_BATCH_SIZE = 200
+
+HTTP_RETRYABLE_STATUSES = {403, 429, 500, 502, 503, 504}
+HTTP_RETRY_MAX_ATTEMPTS = 4
+HTTP_RETRY_MIN_WAIT_SECONDS = 1
+HTTP_RETRY_MAX_WAIT_SECONDS = 8
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -165,6 +171,63 @@ def to_bool(value):
         return None
 
 
+def _is_retryable_response(response: httpx.Response) -> bool:
+    retryable_400 = response.status_code == 400 and "Database Error" in response.text
+    return response.status_code in HTTP_RETRYABLE_STATUSES or retryable_400
+
+
+def _is_retryable_http_exception(exc: Exception) -> bool:
+    if isinstance(exc, httpx.TimeoutException):
+        return True
+
+    if isinstance(exc, httpx.HTTPStatusError):
+        response = exc.response
+        if response is None:
+            return False
+        return _is_retryable_response(response)
+
+    if isinstance(exc, httpx.TransportError):
+        return True
+
+    return False
+
+
+def _before_sleep_http_retry(retry_state: RetryCallState) -> None:
+    outcome = retry_state.outcome
+    if outcome is None or not outcome.failed:
+        return
+
+    exc = outcome.exception()
+    if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None:
+        if exc.response.status_code == 403:
+            # 403 usually means temporary upstream gating/throttling; pause longer.
+            extra_sleep = min(20, 5 * retry_state.attempt_number)
+            time.sleep(extra_sleep)
+
+
+@retry(
+    reraise=True,
+    retry=retry_if_exception(_is_retryable_http_exception),
+    stop=stop_after_attempt(HTTP_RETRY_MAX_ATTEMPTS),
+    wait=wait_exponential(
+        multiplier=HTTP_RETRY_MIN_WAIT_SECONDS,
+        min=HTTP_RETRY_MIN_WAIT_SECONDS,
+        max=HTTP_RETRY_MAX_WAIT_SECONDS,
+    ),
+    before_sleep=_before_sleep_http_retry,
+)
+def _http_get_with_retry(
+    client: httpx.Client,
+    url: str,
+    params: dict | None,
+    headers: dict,
+) -> httpx.Response:
+    response = client.get(url, params=params, headers=headers)
+    if _is_retryable_response(response):
+        response.raise_for_status()
+    return response
+
+
 def request_json(
     client: httpx.Client,
     path: str,
@@ -175,26 +238,18 @@ def request_json(
     headers = {"X-NBA-Api-Key": os.environ["NBA_API_KEY"]}
     url = f"{base_url}{path}"
 
-    for attempt in range(retries):
-        try:
-            resp = client.get(url, params=params, headers=headers)
-        except httpx.TimeoutException:
-            if attempt == retries - 1:
-                raise
-            time.sleep(1 + attempt)
-            continue
-        retryable_400 = resp.status_code == 400 and "Database Error" in resp.text
-        if resp.status_code in {429, 500, 502, 503, 504} or retryable_400:
-            if attempt == retries - 1:
-                resp.raise_for_status()
-            time.sleep(1 + attempt)
-            continue
-        if resp.status_code == 404:
-            return {}
-        resp.raise_for_status()
-        return resp.json()
+    if retries <= 1:
+        response = client.get(url, params=params, headers=headers)
+        if _is_retryable_response(response):
+            response.raise_for_status()
+    else:
+        response = _http_get_with_retry(client, url, params, headers)
 
-    raise RuntimeError(f"Failed to fetch {url}")
+    if response.status_code == 404:
+        return {}
+
+    response.raise_for_status()
+    return response.json()
 
 
 def request_xml(

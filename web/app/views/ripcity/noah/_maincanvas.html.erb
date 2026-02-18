@@ -2,17 +2,45 @@
   noah_query_expr = "'timeframe=' + encodeURIComponent($noahtimeframe) +
     '&shot_lens=' + encodeURIComponent($noahshotlens) +
     '&grade_lens=' + encodeURIComponent($noahgradelens) +
-    '&min_attempts=' + encodeURIComponent($noahminattempts)"
+    '&sort=' + encodeURIComponent($noahsort)"
+
+  format_compact_count = lambda do |value|
+    number = value.to_i
+    absolute = number.abs
+
+    if absolute >= 1_000_000
+      "#{number_with_precision(number / 1_000_000.0, precision: 2, strip_insignificant_zeros: false)}M"
+    else
+      number_with_delimiter(number)
+    end
+  end
 
   format_kpi_value = lambda do |kpi|
     value = kpi["value"]
     return "—" if value.nil?
 
     if kpi["value_format"].to_s == "percentage"
-      "#{(value.to_f * 100.0).round(1)}%"
+      "#{number_with_precision(value.to_f * 100.0, precision: 1, strip_insignificant_zeros: false)}%"
     else
-      number_with_delimiter(value.to_i)
+      format_compact_count.call(value)
     end
+  end
+
+  format_percentage = lambda do |value|
+    return "—" if value.nil?
+
+    "#{number_with_precision(value.to_f * 100.0, precision: 1, strip_insignificant_zeros: false)}%"
+  end
+
+  format_number = lambda do |value, precision: 1|
+    return "—" if value.nil?
+
+    number_with_precision(
+      value.to_f,
+      precision: precision,
+      delimiter: ",",
+      strip_insignificant_zeros: false
+    )
   end
 
   grade_class = lambda do |grade|
@@ -27,36 +55,72 @@
   end
 
   metric_one_value = lambda do |row|
-    case @grade_lens
-    when "noah-grades"
-      row["angle_grade"]
-    when "consistency"
-      row["depth_consistency_grade"]
+    if @grade_lens == "consistency-grades"
+      row["angle_consistency_grade"]
     else
-      row["angle"].nil? ? "—" : format("%.1f", row["angle"])
+      format_number.call(row["angle"], precision: 1)
     end
   end
 
   metric_two_value = lambda do |row|
-    case @grade_lens
-    when "noah-grades"
-      row["depth_grade"]
-    when "consistency"
-      row["left_right_consistency_grade"]
+    if @grade_lens == "consistency-grades"
+      row["depth_consistency_grade"]
     else
-      row["depth"].nil? ? "—" : format("%.1f", row["depth"])
+      format_number.call(row["depth"], precision: 1)
     end
   end
 
   metric_three_value = lambda do |row|
-    case @grade_lens
-    when "noah-grades"
-      row["left_right_grade"]
-    when "consistency"
-      row["consistency_grade"]
+    if @grade_lens == "consistency-grades"
+      row["left_right_consistency_grade"]
     else
-      row["left_right"].nil? ? "—" : format("%.2f", row["left_right"])
+      format_number.call(row["left_right"], precision: 2)
     end
+  end
+
+  consistency_value = lambda do |row|
+    if @grade_lens == "consistency-grades"
+      row["consistency_grade"].presence || "—"
+    else
+      return "—" if row["consistency_score"].nil?
+
+      format_number.call(row["consistency_score"], precision: 2)
+    end
+  end
+
+  percentile_meta = lambda do |value, bucket_count: 4|
+    if value.nil?
+      {
+        label: "P—",
+        blocks: "",
+        color_class: "text-muted-foreground/50"
+      }
+    else
+      p = value.to_f.clamp(0.0, 1.0)
+      p_int = (p * 100.0).round.clamp(0, 100)
+      filled_count = (p * bucket_count).round.clamp(0, bucket_count)
+      blocks = ("▰" * filled_count) + ("▱" * (bucket_count - filled_count))
+
+      color_class = if p_int >= 80
+        "text-emerald-600 dark:text-emerald-400"
+      elsif p_int <= 20
+        "text-red-500"
+      else
+        "text-muted-foreground"
+      end
+
+      {
+        label: "P#{p_int}",
+        blocks: blocks,
+        color_class: color_class
+      }
+    end
+  end
+
+  nbsp_pad = lambda do |text, width|
+    value = text.to_s
+    pad_count = [width.to_i - value.length, 0].max
+    ("\u00A0" * pad_count) + value
   end
 %>
 
@@ -64,76 +128,80 @@
   id="maincanvas"
   class="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden bg-background relative overscroll-y-contain scroll-touch isolate"
 >
-  <div class="px-4 py-3 space-y-4">
-    <section class="rounded-lg border border-border bg-background p-3 space-y-3">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Noah workspace</div>
-          <h2 class="text-sm font-semibold text-foreground">
-            Player overview
-            <span class="text-muted-foreground font-medium">· <%= @players.size %> rows</span>
-          </h2>
-          <div class="text-[11px] text-muted-foreground mt-0.5"><%= @window_label %> · <%= @shot_lens_label %> · min <%= @min_attempts %> <%= @shot_volume_label %></div>
+  <div class="py-3">
+    <section class="px-4 pb-3 border-b border-border">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0 space-y-2">
+          <div>
+            <h2 class="text-sm font-semibold text-foreground">
+              Noah Shooting
+              <span class="text-muted-foreground font-medium">· <%= pluralize(@players.size, "player") %></span>
+            </h2>
+            <div class="text-[11px] text-muted-foreground mt-0.5"><%= @shot_lens_caption %></div>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5">
+            <span class="entity-chip entity-chip--muted"><%= @window_label %></span>
+            <span class="entity-chip entity-chip--muted"><%= @shot_lens_label %></span>
+            <span class="entity-chip entity-chip--muted"><%= @metric_headers[:one] %> · <%= @metric_headers[:two] %> · <%= @metric_headers[:three] %></span>
+            <span class="entity-chip entity-chip--muted">Consistency = Depth σ + L/R σ</span>
+          </div>
         </div>
 
-        <div class="text-[10px] text-muted-foreground/80 text-right tabular-nums">
-          <% if @kpi_updated_at.present? %>
-            <div>KPIs updated</div>
-            <div><%= @kpi_updated_at.in_time_zone("Pacific Time (US & Canada)").strftime("%b %-d, %Y · %-I:%M %p %Z") %></div>
-          <% else %>
-            <div>No KPI snapshot</div>
-          <% end %>
+        <div class="ml-auto shrink-0 flex items-start gap-3">
+          <div class="grid grid-cols-3 gap-1.5">
+            <%= render partial: "salary_book/kpi_cell", locals: {
+              label: (@kpis_by_key.dig("total_shots", "display_name") || "Total PF Shots"),
+              value: format_kpi_value.call(@kpis_by_key["total_shots"] || {}),
+              title: @kpis_by_key.dig("total_shots", "description"),
+              class_name: "w-full"
+            } %>
+
+            <%= render partial: "salary_book/kpi_cell", locals: {
+              label: (@kpis_by_key.dig("season_3pa", "display_name") || "Season 3PA"),
+              value: format_kpi_value.call(@kpis_by_key["season_3pa"] || {}),
+              title: @kpis_by_key.dig("season_3pa", "description"),
+              class_name: "w-full"
+            } %>
+
+            <%= render partial: "salary_book/kpi_cell", locals: {
+              label: (@kpis_by_key.dig("season_3p_pct", "display_name") || "Season 3P%"),
+              value: format_kpi_value.call(@kpis_by_key["season_3p_pct"] || {}),
+              title: @kpis_by_key.dig("season_3p_pct", "description"),
+              class_name: "w-full"
+            } %>
+          </div>
+
+          <div class="text-[10px] text-muted-foreground/80 text-right tabular-nums leading-tight">
+            <% if @kpi_updated_at.present? %>
+              <% local_kpi_time = @kpi_updated_at.in_time_zone("Pacific Time (US & Canada)") %>
+              <div>KPIs updated</div>
+              <div><%= local_kpi_time.strftime("%b %-d, %Y") %></div>
+              <div><%= local_kpi_time.strftime("%-I:%M %p %Z") %></div>
+            <% else %>
+              <div>No KPI snapshot</div>
+            <% end %>
+          </div>
         </div>
-      </div>
-
-      <div class="flex flex-wrap gap-1.5">
-        <span class="entity-chip entity-chip--muted"><%= @shot_lens_label %></span>
-        <span class="entity-chip entity-chip--muted"><%= @metric_headers[:one] %> · <%= @metric_headers[:two] %> · <%= @metric_headers[:three] %></span>
-        <span class="entity-chip entity-chip--accent">Lens <%= @grade_lens_options.find { |opt| opt[:key] == @grade_lens }&.dig(:label) || @grade_lens %></span>
-      </div>
-
-      <div class="text-[11px] text-muted-foreground"><%= @shot_lens_caption %></div>
-
-      <div class="grid grid-cols-3 gap-2 max-w-[360px]">
-        <%= render partial: "salary_book/kpi_cell", locals: {
-          label: (@kpis_by_key.dig("total_shots", "display_name") || "Total PF Shots"),
-          value: format_kpi_value.call(@kpis_by_key["total_shots"] || {}),
-          title: @kpis_by_key.dig("total_shots", "description"),
-          class_name: "w-full"
-        } %>
-
-        <%= render partial: "salary_book/kpi_cell", locals: {
-          label: (@kpis_by_key.dig("season_3pa", "display_name") || "Season 3PA"),
-          value: format_kpi_value.call(@kpis_by_key["season_3pa"] || {}),
-          title: @kpis_by_key.dig("season_3pa", "description"),
-          class_name: "w-full"
-        } %>
-
-        <%= render partial: "salary_book/kpi_cell", locals: {
-          label: (@kpis_by_key.dig("season_3p_pct", "display_name") || "Season 3P%"),
-          value: format_kpi_value.call(@kpis_by_key["season_3p_pct"] || {}),
-          title: @kpis_by_key.dig("season_3p_pct", "description"),
-          class_name: "w-full"
-        } %>
       </div>
     </section>
 
     <% if @players.empty? %>
-      <div class="p-6 rounded-lg border border-border bg-muted/20 text-sm text-muted-foreground italic text-center">
+      <div class="px-4 py-6 text-sm text-muted-foreground italic text-center">
         No players meet the current filters.
       </div>
     <% else %>
-      <section class="rounded-lg border border-border overflow-hidden">
+      <section class="border-b border-border">
         <div class="sticky top-0 z-10 bg-muted/70 backdrop-blur-sm border-b border-border">
-          <div class="flex items-center px-4 h-8 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
+          <div class="flex items-center px-4 h-9 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
             <div class="w-64 shrink-0">Player</div>
-            <div class="w-20 shrink-0 text-right font-mono tabular-nums"><%= @shot_volume_label %></div>
-            <div class="w-20 shrink-0 text-right font-mono tabular-nums"><%= @shot_pct_label %></div>
-            <div class="w-20 shrink-0 text-right font-mono tabular-nums">Swish</div>
-            <div class="w-24 shrink-0 text-right"><%= @metric_headers[:one] %></div>
-            <div class="w-24 shrink-0 text-right"><%= @metric_headers[:two] %></div>
-            <div class="w-24 shrink-0 text-right"><%= @metric_headers[:three] %></div>
-            <div class="w-20 shrink-0 text-right">σ Sum</div>
+            <div class="w-24 shrink-0 text-center tabular-nums"><%= @shot_volume_label %></div>
+            <div class="w-24 shrink-0 text-center tabular-nums"><%= @shot_pct_label %></div>
+            <div class="w-24 shrink-0 text-center tabular-nums">Swish</div>
+            <div class="w-24 shrink-0 text-center"><%= @metric_headers[:one] %></div>
+            <div class="w-24 shrink-0 text-center"><%= @metric_headers[:two] %></div>
+            <div class="w-24 shrink-0 text-center"><%= @metric_headers[:three] %></div>
+            <div class="w-24 shrink-0 text-center"><%= @metric_headers[:consistency] %></div>
           </div>
         </div>
 
@@ -141,40 +209,52 @@
           <% @players.each do |row| %>
             <% noah_id = row["noah_id"].to_i %>
             <% selected = @selected_player_id.to_i == noah_id %>
+            <% percentiles = row["percentiles"].is_a?(Hash) ? row["percentiles"] : {} %>
 
             <% metric_one = metric_one_value.call(row) %>
             <% metric_two = metric_two_value.call(row) %>
             <% metric_three = metric_three_value.call(row) %>
 
-            <% metric_one_class = if @grade_lens == "noah-grades"
-              grade_class.call(row["angle_grade"])
-            elsif @grade_lens == "consistency"
-              grade_class.call(row["depth_consistency_grade"])
+            <% metric_one_class = if @grade_lens == "consistency-grades"
+              grade_class.call(row["angle_consistency_grade"])
             elsif row["angle"] && (row["angle"] - 45.0).abs <= 1.0
               "text-emerald-600 dark:text-emerald-400"
             else
               "text-foreground"
             end %>
 
-            <% metric_two_class = if @grade_lens == "noah-grades"
-              grade_class.call(row["depth_grade"])
-            elsif @grade_lens == "consistency"
-              grade_class.call(row["left_right_consistency_grade"])
+            <% metric_two_class = if @grade_lens == "consistency-grades"
+              grade_class.call(row["depth_consistency_grade"])
             elsif row["depth"] && (row["depth"] - 11.0).abs <= 1.0
               "text-emerald-600 dark:text-emerald-400"
             else
               "text-foreground"
             end %>
 
-            <% metric_three_class = if @grade_lens == "noah-grades"
-              grade_class.call(row["left_right_grade"])
-            elsif @grade_lens == "consistency"
-              grade_class.call(row["consistency_grade"])
+            <% metric_three_class = if @grade_lens == "consistency-grades"
+              grade_class.call(row["left_right_consistency_grade"])
             elsif row["left_right"] && row["left_right"].abs <= 0.15
               "text-emerald-600 dark:text-emerald-400"
             else
               "text-foreground"
             end %>
+
+            <% attempts_percentile = percentile_meta.call(percentiles["attempts"]) %>
+            <% fg_pct_percentile = percentile_meta.call(percentiles["fg_pct"]) %>
+            <% swish_pct_percentile = percentile_meta.call(percentiles["swish_pct"]) %>
+            <% metric_one_percentile = percentile_meta.call(percentiles["metric_one"]) %>
+            <% metric_two_percentile = percentile_meta.call(percentiles["metric_two"]) %>
+            <% metric_three_percentile = percentile_meta.call(percentiles["metric_three"]) %>
+            <% consistency_percentile = percentile_meta.call(percentiles["consistency"]) %>
+
+            <% metric_value_width = @grade_lens.to_s == "consistency-grades" ? 4 : 6 %>
+            <% attempts_text = number_with_delimiter(row["attempts"].to_i) %>
+            <% fg_pct_text = format_percentage.call(row["fg_pct"]) %>
+            <% swish_pct_text = format_percentage.call(row["swish_pct"]) %>
+            <% consistency_text = consistency_value.call(row) %>
+            <% consistency_class = @grade_lens == "consistency-grades" ? grade_class.call(row["consistency_grade"]) : "text-muted-foreground" %>
+            <% historical_player = row["roster_group"].to_s.casecmp("historical").zero? %>
+            <% all_time_attempts_text = number_with_delimiter(row["all_time_attempts"].to_i) %>
 
             <div
               class="group cursor-pointer transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 <%= selected ? 'bg-yellow-100/80 dark:bg-yellow-900/20' : '' %>"
@@ -183,7 +263,7 @@
               data-on:click="@get('/ripcity/noah/refresh?' + (<%= noah_query_expr %>) + '&selected_player=<%= noah_id %>'); window.history.replaceState({}, '', '/ripcity/noah?' + (<%= noah_query_expr %>) + '&selected_player=<%= noah_id %>')"
               data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); @get('/ripcity/noah/refresh?' + (<%= noah_query_expr %>) + '&selected_player=<%= noah_id %>'); window.history.replaceState({}, '', '/ripcity/noah?' + (<%= noah_query_expr %>) + '&selected_player=<%= noah_id %>'); }"
             >
-              <div class="flex items-center px-4 min-h-[50px]">
+              <div class="flex items-center px-4 min-h-[58px]">
                 <div class="w-64 shrink-0">
                   <div class="grid grid-cols-[36px_1fr] grid-rows-[24px_16px]">
                     <div class="row-span-2 flex items-center justify-start">
@@ -192,7 +272,7 @@
                           <img
                             src="<%= player_headshot_url(row['nba_id']) %>"
                             alt="<%= row['player_name'] %>"
-                            class="w-full h-full object-cover object-top bg-muted"
+                            class="w-full h-full object-cover object-top bg-muted <%= historical_player ? 'grayscale opacity-70' : '' %>"
                             loading="lazy"
                             decoding="async"
                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
@@ -205,32 +285,111 @@
                     </div>
 
                     <div class="h-[24px] flex items-end min-w-0 pl-2">
-                      <span class="truncate font-medium text-[14px]"><%= row["player_name"] %></span>
+                      <span class="truncate font-medium text-[14px] <%= historical_player ? 'text-muted-foreground' : '' %>"><%= row["player_name"] %></span>
                     </div>
 
-                    <div class="h-[16px] -mt-px flex items-start gap-1.5 min-w-0 pl-2 leading-none text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden">
-                      <span>ID <%= noah_id %></span>
-                      <% if row["roster_group"].present? %>
-                        <span class="entity-chip entity-chip--muted"><%= row["roster_group"] %></span>
-                      <% end %>
+                    <div class="h-[16px] -mt-px flex items-start min-w-0 pl-2 leading-none text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden">
+                      <span>All-time <%= all_time_attempts_text %> <%= @shot_volume_label %></span>
                     </div>
                   </div>
                 </div>
 
-                <div class="w-20 shrink-0 text-right font-mono tabular-nums text-sm"><%= row["attempts"] %></div>
-                <div class="w-20 shrink-0 text-right font-mono tabular-nums text-sm"><%= (row["fg_pct"].to_f * 100.0).round(1) %>%</div>
-                <div class="w-20 shrink-0 text-right font-mono tabular-nums text-sm"><%= (row["swish_pct"].to_f * 100.0).round(1) %>%</div>
+                <div class="w-24 shrink-0 flex flex-col">
+                  <div class="h-[24px] flex items-end justify-center text-sm">
+                    <span class="tabular-nums whitespace-nowrap"><%= nbsp_pad.call(attempts_text, 8) %></span>
+                  </div>
+                  <div class="h-[16px] -mt-px flex items-start justify-center">
+                    <span class="text-[10px] leading-none tabular-nums whitespace-nowrap <%= attempts_percentile[:color_class] %>">
+                      <span><%= nbsp_pad.call(attempts_percentile[:label], 4) %></span>
+                      <% if attempts_percentile[:blocks].present? %>
+                        <span class="ml-px opacity-70 font-mono"><%= attempts_percentile[:blocks] %></span>
+                      <% end %>
+                    </span>
+                  </div>
+                </div>
 
-                <div class="w-24 shrink-0 text-right font-mono tabular-nums text-sm <%= metric_one_class %>"><%= metric_one %></div>
-                <div class="w-24 shrink-0 text-right font-mono tabular-nums text-sm <%= metric_two_class %>"><%= metric_two %></div>
-                <div class="w-24 shrink-0 text-right font-mono tabular-nums text-sm <%= metric_three_class %>"><%= metric_three %></div>
+                <div class="w-24 shrink-0 flex flex-col">
+                  <div class="h-[24px] flex items-end justify-center text-sm">
+                    <span class="tabular-nums whitespace-nowrap"><%= nbsp_pad.call(fg_pct_text, 6) %></span>
+                  </div>
+                  <div class="h-[16px] -mt-px flex items-start justify-center">
+                    <span class="text-[10px] leading-none tabular-nums whitespace-nowrap <%= fg_pct_percentile[:color_class] %>">
+                      <span><%= nbsp_pad.call(fg_pct_percentile[:label], 4) %></span>
+                      <% if fg_pct_percentile[:blocks].present? %>
+                        <span class="ml-px opacity-70 font-mono"><%= fg_pct_percentile[:blocks] %></span>
+                      <% end %>
+                    </span>
+                  </div>
+                </div>
 
-                <div class="w-20 shrink-0 text-right font-mono tabular-nums text-sm text-muted-foreground">
-                  <% if row["consistency_score"].nil? %>
-                    —
-                  <% else %>
-                    <%= format("%.2f", row["consistency_score"]) %>
-                  <% end %>
+                <div class="w-24 shrink-0 flex flex-col">
+                  <div class="h-[24px] flex items-end justify-center text-sm">
+                    <span class="tabular-nums whitespace-nowrap"><%= nbsp_pad.call(swish_pct_text, 6) %></span>
+                  </div>
+                  <div class="h-[16px] -mt-px flex items-start justify-center">
+                    <span class="text-[10px] leading-none tabular-nums whitespace-nowrap <%= swish_pct_percentile[:color_class] %>">
+                      <span><%= nbsp_pad.call(swish_pct_percentile[:label], 4) %></span>
+                      <% if swish_pct_percentile[:blocks].present? %>
+                        <span class="ml-px opacity-70 font-mono"><%= swish_pct_percentile[:blocks] %></span>
+                      <% end %>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="w-24 shrink-0 flex flex-col">
+                  <div class="h-[24px] flex items-end justify-center text-sm">
+                    <span class="tabular-nums whitespace-nowrap <%= metric_one_class %>"><%= nbsp_pad.call(metric_one, metric_value_width) %></span>
+                  </div>
+                  <div class="h-[16px] -mt-px flex items-start justify-center">
+                    <span class="text-[10px] leading-none tabular-nums whitespace-nowrap <%= metric_one_percentile[:color_class] %>">
+                      <span><%= nbsp_pad.call(metric_one_percentile[:label], 4) %></span>
+                      <% if metric_one_percentile[:blocks].present? %>
+                        <span class="ml-px opacity-70 font-mono"><%= metric_one_percentile[:blocks] %></span>
+                      <% end %>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="w-24 shrink-0 flex flex-col">
+                  <div class="h-[24px] flex items-end justify-center text-sm">
+                    <span class="tabular-nums whitespace-nowrap <%= metric_two_class %>"><%= nbsp_pad.call(metric_two, metric_value_width) %></span>
+                  </div>
+                  <div class="h-[16px] -mt-px flex items-start justify-center">
+                    <span class="text-[10px] leading-none tabular-nums whitespace-nowrap <%= metric_two_percentile[:color_class] %>">
+                      <span><%= nbsp_pad.call(metric_two_percentile[:label], 4) %></span>
+                      <% if metric_two_percentile[:blocks].present? %>
+                        <span class="ml-px opacity-70 font-mono"><%= metric_two_percentile[:blocks] %></span>
+                      <% end %>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="w-24 shrink-0 flex flex-col">
+                  <div class="h-[24px] flex items-end justify-center text-sm">
+                    <span class="tabular-nums whitespace-nowrap <%= metric_three_class %>"><%= nbsp_pad.call(metric_three, metric_value_width) %></span>
+                  </div>
+                  <div class="h-[16px] -mt-px flex items-start justify-center">
+                    <span class="text-[10px] leading-none tabular-nums whitespace-nowrap <%= metric_three_percentile[:color_class] %>">
+                      <span><%= nbsp_pad.call(metric_three_percentile[:label], 4) %></span>
+                      <% if metric_three_percentile[:blocks].present? %>
+                        <span class="ml-px opacity-70 font-mono"><%= metric_three_percentile[:blocks] %></span>
+                      <% end %>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="w-24 shrink-0 flex flex-col">
+                  <div class="h-[24px] flex items-end justify-center text-sm">
+                    <span class="tabular-nums whitespace-nowrap <%= consistency_class %>"><%= nbsp_pad.call(consistency_text, metric_value_width) %></span>
+                  </div>
+                  <div class="h-[16px] -mt-px flex items-start justify-center">
+                    <span class="text-[10px] leading-none tabular-nums whitespace-nowrap <%= consistency_percentile[:color_class] %>">
+                      <span><%= nbsp_pad.call(consistency_percentile[:label], 4) %></span>
+                      <% if consistency_percentile[:blocks].present? %>
+                        <span class="ml-px opacity-70 font-mono"><%= consistency_percentile[:blocks] %></span>
+                      <% end %>
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

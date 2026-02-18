@@ -1,10 +1,10 @@
-<% content_for :title, "Noah" %>
+<% content_for :title, "Noah Shooting" %>
 
 <%
   refresh_query_expr = "'timeframe=' + encodeURIComponent($noahtimeframe) +
     '&shot_lens=' + encodeURIComponent($noahshotlens) +
     '&grade_lens=' + encodeURIComponent($noahgradelens) +
-    '&min_attempts=' + encodeURIComponent($noahminattempts)"
+    '&sort=' + encodeURIComponent($noahsort)"
 
   refresh_expr = "@get('/ripcity/noah/refresh?' + (#{refresh_query_expr})); window.history.replaceState({}, '', '/ripcity/noah?' + (#{refresh_query_expr}))"
 %>
@@ -17,13 +17,8 @@
     noahtimeframe: <%= @timeframe_lens.to_json %>,
     noahshotlens: <%= @shot_lens.to_json %>,
     noahgradelens: <%= @grade_lens.to_json %>,
-    noahminattempts: <%= @min_attempts.to_s.to_json %>,
-    selectedzone: '',
-    hoveredzone: ''
+    noahsort: <%= @sort_lens.to_json %>
   }"
-  data-on:noah-zone-hover="$hoveredzone = evt.detail?.zone || ''"
-  data-on:noah-zone-select="$selectedzone = evt.detail?.zone || ''"
-  data-on:noah-zone-clear="$selectedzone = ''"
 >
   <div id="flash">
     <% flash.each do |_kind, message| %>
@@ -61,39 +56,30 @@
         </select>
       </div>
 
-      <div class="min-w-[10rem] space-y-1">
-        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Grade lens</div>
-        <div class="space-y-1">
-          <% @grade_lens_options.each do |option| %>
-            <label class="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="radio"
-                name="noah-grade-lens"
-                value="<%= option[:key] %>"
-                class="size-3.5 accent-primary"
-                <%= "checked" if @grade_lens == option[:key] %>
-                data-bind="noahgradelens"
-                data-on:change="if (el.checked) { <%= refresh_expr %>; }"
-              />
-              <span
-                class="text-[11px] leading-none select-none"
-                data-class="{ 'text-foreground font-semibold': $noahgradelens === '<%= option[:key] %>', 'text-muted-foreground': $noahgradelens !== '<%= option[:key] %>' }"
-              ><%= option[:label] %></span>
-            </label>
-          <% end %>
-        </div>
-      </div>
-
-      <div class="min-w-[8rem] space-y-1">
-        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Min attempts</div>
+      <div class="min-w-[12rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Sort</div>
         <select
-          id="noah-min-attempts"
-          class="h-7 w-28 rounded border border-border bg-background px-2 text-xs text-foreground"
-          data-bind="noahminattempts"
+          id="noah-sort"
+          class="h-7 w-52 rounded border border-border bg-background px-2 text-xs text-foreground"
+          data-bind="noahsort"
           data-on:change="<%= refresh_expr %>"
         >
-          <% [5, 10, 25, 50, 100, 150].each do |value| %>
-            <option value="<%= value %>" <%= "selected" if @min_attempts.to_i == value %>><%= value %>+</option>
+          <% @sort_options.each do |option| %>
+            <option value="<%= option[:key] %>" <%= "selected" if @sort_lens == option[:key] %>><%= option[:label] %></option>
+          <% end %>
+        </select>
+      </div>
+
+      <div class="min-w-[12rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Grade lens</div>
+        <select
+          id="noah-grade-lens"
+          class="h-7 w-44 rounded border border-border bg-background px-2 text-xs text-foreground"
+          data-bind="noahgradelens"
+          data-on:change="<%= refresh_expr %>"
+        >
+          <% @grade_lens_options.each do |option| %>
+            <option value="<%= option[:key] %>" <%= "selected" if @grade_lens == option[:key] %>><%= option[:label] %></option>
           <% end %>
         </select>
       </div>

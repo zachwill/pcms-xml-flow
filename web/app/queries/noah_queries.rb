@@ -67,6 +67,32 @@ class NoahQueries
     SQL
   end
 
+  def fetch_player_lens_totals(include_predraft:, exclude_player_ids:, is_three:, shot_type:, is_corner_three:)
+    where_sql = shot_lens_where_sql(
+      is_three: is_three,
+      shot_type: shot_type,
+      is_corner_three: is_corner_three,
+      table_alias: "s"
+    )
+
+    predraft_clause = include_predraft ? "AND p.email ILIKE '%predraft%'" : ""
+    exclude_clause = noah_id_exclusion_clause(exclude_player_ids)
+
+    conn.exec_query(<<~SQL).to_a
+      SELECT
+        s.noah_id,
+        COUNT(s.made)::integer AS total_attempts
+      FROM noah.shots s
+      LEFT JOIN noah.players p
+        ON p.noah_id = s.noah_id
+      WHERE #{where_sql}
+        AND p.noah_id != 1248674
+        #{predraft_clause}
+        #{exclude_clause}
+      GROUP BY s.noah_id
+    SQL
+  end
+
   def fetch_player_weekly(start_date:, end_date:, noah_id:, is_three:, shot_type:, is_corner_three:)
     where_sql = shot_base_where_sql(
       start_date: start_date,
@@ -173,10 +199,23 @@ class NoahQueries
 
   def shot_base_where_sql(start_date:, end_date:, is_three:, shot_type:, is_corner_three:, table_alias:)
     conditions = [
-      "#{table_alias}.is_layup = 0",
-      "#{table_alias}.is_free_throw = 0",
+      shot_lens_where_sql(
+        is_three: is_three,
+        shot_type: shot_type,
+        is_corner_three: is_corner_three,
+        table_alias: table_alias
+      ),
       "#{table_alias}.shot_date >= #{conn.quote(start_date)}::date",
       "#{table_alias}.shot_date <= #{conn.quote(end_date)}::date"
+    ]
+
+    conditions.join(" AND ")
+  end
+
+  def shot_lens_where_sql(is_three:, shot_type:, is_corner_three:, table_alias:)
+    conditions = [
+      "#{table_alias}.is_layup = 0",
+      "#{table_alias}.is_free_throw = 0"
     ]
 
     conditions << "#{table_alias}.is_three = #{conn.quote(is_three.to_i)}" unless is_three.nil?

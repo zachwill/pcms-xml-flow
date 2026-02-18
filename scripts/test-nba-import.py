@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["psycopg[binary]", "httpx"]
+# dependencies = ["psycopg[binary]", "httpx", "tenacity"]
 # ///
 """
 Test runner for NBA import scripts.

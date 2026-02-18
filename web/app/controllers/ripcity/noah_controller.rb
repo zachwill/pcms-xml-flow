@@ -38,7 +38,7 @@ module RipCity
       },
       "catch-shoot-3pa" => {
         label: "Catch & Shoot 3PA",
-        caption: "Catch & Shoot 3PA includes Noah tagged spot-up jumpers only.",
+        caption: "Catch & Shoot 3PA only includes Noah tagged spot-up jumpers.",
         is_three: 1,
         shot_type: "Catch And Shoot",
         is_corner_three: nil
@@ -88,15 +88,25 @@ module RipCity
     }.freeze
 
     GRADE_LENS_OPTIONS = [
-      { key: "joe-stats", label: "Joe's Stats" },
-      { key: "raw-values", label: "Raw Values" },
-      { key: "noah-grades", label: "Noah Grades" },
-      { key: "consistency", label: "Consistency Lens" }
+      { key: "stat-values", label: "Stat Values" },
+      { key: "consistency-grades", label: "Consistency Grades" }
+    ].freeze
+
+    SORT_OPTIONS = [
+      { key: "attempts-desc", label: "Shot Volume (high to low)" },
+      { key: "fg-pct-desc", label: "Shot % (high to low)" },
+      { key: "swish-desc", label: "Swish % (high to low)" },
+      { key: "angle-close", label: "Angle (closest to 45°)" },
+      { key: "depth-close", label: "Depth (closest to 11)" },
+      { key: "lr-close", label: "L/R (closest to 0)" },
+      { key: "consistency-best", label: "Consistency (best first)" },
+      { key: "name-asc", label: "Player name (A → Z)" }
     ].freeze
 
     DEFAULT_TIMEFRAME = "25-26-season"
     DEFAULT_SHOT_LENS = "catch-shoot-3pa"
-    DEFAULT_GRADE_LENS = "joe-stats"
+    DEFAULT_GRADE_LENS = "stat-values"
+    DEFAULT_SORT = "attempts-desc"
 
     NOAH_GRADE_THRESHOLDS = [
       [1.0, "A+"],
@@ -126,6 +136,18 @@ module RipCity
       [99.0, "F"]
     ].freeze
 
+    ANGLE_CONSISTENCY_THRESHOLDS = [
+      [1.34, "A+"],
+      [1.45, "A"],
+      [1.51, "B+"],
+      [1.61, "B"],
+      [1.71, "C+"],
+      [1.84, "C"],
+      [1.98, "D+"],
+      [2.10, "D"],
+      [99.0, "F"]
+    ].freeze
+
     DEPTH_CONSISTENCY_THRESHOLDS = [
       [3.12, "A+"],
       [3.62, "A"],
@@ -149,6 +171,22 @@ module RipCity
       [4.49, "D"],
       [99.0, "F"]
     ].freeze
+
+    GRADE_SCORES = {
+      "A+" => 13,
+      "A" => 12,
+      "A-" => 11,
+      "B+" => 10,
+      "B" => 9,
+      "B-" => 8,
+      "C+" => 7,
+      "C" => 6,
+      "C-" => 5,
+      "D+" => 4,
+      "D" => 3,
+      "D-" => 2,
+      "F" => 1
+    }.freeze
 
     # GET /ripcity/noah
     def show
@@ -180,10 +218,12 @@ module RipCity
       @timeframe_options = TIMEFRAME_OPTIONS
       @shot_lens_options = SHOT_LENS_OPTIONS
       @grade_lens_options = GRADE_LENS_OPTIONS
+      @sort_options = SORT_OPTIONS
 
       @timeframe_lens = resolve_timeframe(params[:timeframe])
       @shot_lens = resolve_shot_lens(params[:shot_lens])
       @grade_lens = resolve_grade_lens(params[:grade_lens])
+      @sort_lens = resolve_sort(params[:sort])
 
       window = timeframe_window(@timeframe_lens)
       @start_date = window.fetch(:start_date)
@@ -221,7 +261,20 @@ module RipCity
         **filters
       )
 
-      @players = build_player_rows(raw_players).select { |row| row["attempts"].to_i >= @min_attempts }
+      lens_totals_by_noah_id = queries.fetch_player_lens_totals(
+        include_predraft: @include_predraft,
+        exclude_player_ids: @exclude_player_ids,
+        **filters
+      ).each_with_object({}) do |row, memo|
+        memo[row["noah_id"].to_i] = row["total_attempts"].to_i
+      end
+
+      player_rows = build_player_rows(
+        raw_players,
+        all_time_attempts_by_noah_id: lens_totals_by_noah_id
+      ).select { |row| row["attempts"].to_i >= @min_attempts }
+      player_rows = sort_player_rows(player_rows, @sort_lens)
+      @players = attach_percentiles(player_rows, grade_lens: @grade_lens)
 
       selected_player_id = normalize_selected_player_id(params[:selected_player])
       @selected_player = select_player(@players, selected_player_id)
@@ -266,10 +319,12 @@ module RipCity
       @timeframe_options = TIMEFRAME_OPTIONS
       @shot_lens_options = SHOT_LENS_OPTIONS
       @grade_lens_options = GRADE_LENS_OPTIONS
+      @sort_options = SORT_OPTIONS
 
       @timeframe_lens = DEFAULT_TIMEFRAME
       @shot_lens = DEFAULT_SHOT_LENS
       @grade_lens = DEFAULT_GRADE_LENS
+      @sort_lens = DEFAULT_SORT
       @start_date = Date.current - 7
       @end_date = Date.current
       @window_label = "Fallback window"
@@ -311,7 +366,22 @@ module RipCity
 
     def resolve_grade_lens(raw)
       key = raw.to_s.strip
-      GRADE_LENS_OPTIONS.any? { |option| option[:key] == key } ? key : DEFAULT_GRADE_LENS
+
+      normalized = case key
+      when "stat-values", "joe-stats", "raw-values", "noah-grades"
+        "stat-values"
+      when "consistency-grades", "consistency"
+        "consistency-grades"
+      else
+        nil
+      end
+
+      GRADE_LENS_OPTIONS.any? { |option| option[:key] == normalized } ? normalized : DEFAULT_GRADE_LENS
+    end
+
+    def resolve_sort(raw)
+      key = raw.to_s.strip
+      SORT_OPTIONS.any? { |option| option[:key] == key } ? key : DEFAULT_SORT
     end
 
     def normalize_min_attempts(raw, fallback)
@@ -421,32 +491,30 @@ module RipCity
 
     def metric_headers_for(grade_lens)
       case grade_lens.to_s
-      when "noah-grades"
+      when "consistency-grades"
         {
-          one: "Angle Grade",
-          two: "Depth Grade",
-          three: "L/R Grade"
-        }
-      when "consistency"
-        {
-          one: "Depth σ Grade",
-          two: "L/R σ Grade",
-          three: "Consistency"
+          one: "ANGLE Σ",
+          two: "DEPTH Σ",
+          three: "L/R Σ",
+          consistency: "CONSISTENCY Σ"
         }
       else
         {
           one: "Angle",
           two: "Depth",
-          three: "L/R"
+          three: "L/R",
+          consistency: "Consistency"
         }
       end
     end
 
-    def build_player_rows(raw_rows)
+    def build_player_rows(raw_rows, all_time_attempts_by_noah_id: {})
       Array(raw_rows).map do |row|
+        noah_id = row["noah_id"].to_i
         angle = as_float(row["angle_mean"])
         depth = as_float(row["depth_mean"])
         left_right = as_float(row["left_right_mean"])
+        angle_std = as_float(row["angle_std"])
         depth_std = as_float(row["depth_std"])
         left_right_std = as_float(row["left_right_std"])
 
@@ -455,28 +523,139 @@ module RipCity
         end
 
         {
-          "noah_id" => row["noah_id"].to_i,
+          "noah_id" => noah_id,
           "nba_id" => row["nba_id"].presence&.to_i,
           "player_name" => row["player_name"].presence || "Unknown Player",
           "roster_group" => row["roster_group"].presence,
           "attempts" => row["count"].to_i,
+          "all_time_attempts" => all_time_attempts_by_noah_id.fetch(noah_id, row["count"].to_i),
           "fg_pct" => as_float(row["made_mean"]) || 0.0,
           "swish_pct" => as_float(row["is_swish_mean"]) || 0.0,
           "angle" => angle,
           "depth" => depth,
           "left_right" => left_right,
-          "angle_std" => as_float(row["angle_std"]),
+          "angle_std" => angle_std,
           "depth_std" => depth_std,
           "left_right_std" => left_right_std,
           "consistency_score" => consistency_score,
           "angle_grade" => noah_angle_grade(angle),
           "depth_grade" => noah_depth_grade(depth),
           "left_right_grade" => noah_left_right_grade(left_right),
+          "angle_consistency_grade" => consistency_grade_for(angle_std, ANGLE_CONSISTENCY_THRESHOLDS),
           "depth_consistency_grade" => consistency_grade_for(depth_std, DEPTH_CONSISTENCY_THRESHOLDS),
           "left_right_consistency_grade" => consistency_grade_for(left_right_std, LEFT_RIGHT_CONSISTENCY_THRESHOLDS),
           "consistency_grade" => consistency_grade_for(consistency_score, CONSISTENCY_THRESHOLDS)
         }
       end
+    end
+
+    def sort_player_rows(rows, sort_lens)
+      case sort_lens.to_s
+      when "fg-pct-desc"
+        rows.sort_by do |row|
+          value = row["fg_pct"]
+          [value.nil? ? 1 : 0, -(value || 0.0).to_f, -row["attempts"].to_i, row["player_name"].to_s]
+        end
+      when "swish-desc"
+        rows.sort_by do |row|
+          value = row["swish_pct"]
+          [value.nil? ? 1 : 0, -(value || 0.0).to_f, -row["attempts"].to_i, row["player_name"].to_s]
+        end
+      when "angle-close"
+        rows.sort_by do |row|
+          angle = row["angle"]
+          [angle.nil? ? 1 : 0, (angle.to_f - 45.0).abs, -row["attempts"].to_i, row["player_name"].to_s]
+        end
+      when "depth-close"
+        rows.sort_by do |row|
+          depth = row["depth"]
+          [depth.nil? ? 1 : 0, (depth.to_f - 11.0).abs, -row["attempts"].to_i, row["player_name"].to_s]
+        end
+      when "lr-close"
+        rows.sort_by do |row|
+          left_right = row["left_right"]
+          [left_right.nil? ? 1 : 0, left_right.to_f.abs, -row["attempts"].to_i, row["player_name"].to_s]
+        end
+      when "consistency-best"
+        rows.sort_by do |row|
+          consistency = row["consistency_score"]
+          [consistency.nil? ? 1 : 0, consistency.to_f, -row["attempts"].to_i, row["player_name"].to_s]
+        end
+      when "name-asc"
+        rows.sort_by { |row| [row["player_name"].to_s, -row["attempts"].to_i] }
+      else
+        rows.sort_by { |row| [-row["attempts"].to_i, row["player_name"].to_s] }
+      end
+    end
+
+    def attach_percentiles(rows, grade_lens:)
+      metric_one_percentiles, metric_two_percentiles, metric_three_percentiles = metric_percentile_maps(rows, grade_lens: grade_lens)
+
+      attempts_percentiles = percentile_map(rows) { |row| row["attempts"] }
+      fg_pct_percentiles = percentile_map(rows) { |row| row["fg_pct"] }
+      swish_pct_percentiles = percentile_map(rows) { |row| row["swish_pct"] }
+      consistency_percentiles = if grade_lens.to_s == "consistency-grades"
+        percentile_map(rows) { |row| grade_score(row["consistency_grade"]) }
+      else
+        percentile_map(rows) { |row| row["consistency_score"].nil? ? nil : -row["consistency_score"].to_f }
+      end
+
+      rows.map do |row|
+        noah_id = row["noah_id"].to_i
+
+        row.merge(
+          "percentiles" => {
+            "attempts" => attempts_percentiles[noah_id],
+            "fg_pct" => fg_pct_percentiles[noah_id],
+            "swish_pct" => swish_pct_percentiles[noah_id],
+            "metric_one" => metric_one_percentiles[noah_id],
+            "metric_two" => metric_two_percentiles[noah_id],
+            "metric_three" => metric_three_percentiles[noah_id],
+            "consistency" => consistency_percentiles[noah_id]
+          }
+        )
+      end
+    end
+
+    def metric_percentile_maps(rows, grade_lens:)
+      case grade_lens.to_s
+      when "consistency-grades"
+        [
+          percentile_map(rows) { |row| grade_score(row["angle_consistency_grade"]) },
+          percentile_map(rows) { |row| grade_score(row["depth_consistency_grade"]) },
+          percentile_map(rows) { |row| grade_score(row["left_right_consistency_grade"]) }
+        ]
+      else
+        [
+          percentile_map(rows) { |row| row["angle"].nil? ? nil : -(row["angle"].to_f - 45.0).abs },
+          percentile_map(rows) { |row| row["depth"].nil? ? nil : -(row["depth"].to_f - 11.0).abs },
+          percentile_map(rows) { |row| row["left_right"].nil? ? nil : -row["left_right"].to_f.abs }
+        ]
+      end
+    end
+
+    def percentile_map(rows)
+      scored_rows = Array(rows).filter_map do |row|
+        noah_id = row["noah_id"].to_i
+        value = yield(row)
+        next if noah_id <= 0 || value.nil?
+
+        [noah_id, value.to_f]
+      end
+
+      return {} if scored_rows.empty?
+      return { scored_rows.first.first => 1.0 } if scored_rows.length == 1
+
+      ranked_rows = scored_rows.sort_by { |_noah_id, value| value }
+      denominator = (ranked_rows.length - 1).to_f
+
+      ranked_rows.each_with_index.each_with_object({}) do |((noah_id, _value), index), result|
+        result[noah_id] = (index.to_f / denominator).round(4)
+      end
+    end
+
+    def grade_score(grade)
+      GRADE_SCORES[grade.to_s]
     end
 
     def build_zone_rows(raw_zone_rows)

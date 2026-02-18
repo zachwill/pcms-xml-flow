@@ -1,6 +1,9 @@
 const MAP_NAME = "NoahShotchartSvg";
 const SVG_URL = "/shotchart.svg";
 
+const FONT_SANS = "ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif";
+const FONT_MONO = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace";
+
 const FALLBACK_ZONES = [
   { name: "left-corner-three", attempts: 45, made: 18 },
   { name: "left-wing-three", attempts: 62, made: 24 },
@@ -24,17 +27,61 @@ function formatZoneLabel(zoneName) {
     .join(" ");
 }
 
+function numberWithDelimiter(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) return "0";
+  return number.toLocaleString("en-US");
+}
+
+function currentThemePalette() {
+  const rootStyles = getComputedStyle(document.documentElement);
+  const isDark = document.documentElement.classList.contains("dark");
+
+  const cssVar = (name, fallback) => {
+    const value = rootStyles.getPropertyValue(name);
+    return value && value.trim() ? value.trim() : fallback;
+  };
+
+  return {
+    isDark,
+    foreground: cssVar("--foreground", isDark ? "#ededed" : "#171717"),
+    mutedForeground: cssVar("--muted-foreground", isDark ? "#a3a3a3" : "#737373"),
+    border: cssVar("--border", isDark ? "#262626" : "#e5e5e5"),
+    noShots: "#E9EAEC",
+    tooltipBackground: isDark ? "rgba(17, 17, 17, 0.96)" : "rgba(255, 255, 255, 0.96)",
+    tooltipBorder: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.10)",
+    tooltipShadow: isDark ? "0 8px 24px rgba(0, 0, 0, 0.50)" : "0 8px 24px rgba(0, 0, 0, 0.12)"
+  };
+}
+
 function zoneToSeriesDatum(zone) {
   const attempts = Number(zone?.attempts || 0);
   const made = Number(zone?.made || 0);
-  const fgPct = attempts > 0 ? (made / attempts) * 100 : 0;
+  const fgPct = attempts > 0 ? (made / attempts) * 100 : null;
+  const heatValue = fgPct == null ? null : Math.round(fgPct * 10) / 10;
 
   return {
     name: String(zone?.name || "unassigned"),
-    value: Math.round(fgPct * 10) / 10,
+    value: heatValue,
+    fgPct,
     attempts,
-    made
+    made,
+    noAttempts: attempts <= 0
   };
+}
+
+function buildSeriesData(zones, theme) {
+  return zones.map((zone) => {
+    const datum = zoneToSeriesDatum(zone);
+    if (!datum.noAttempts) return datum;
+
+    return {
+      ...datum,
+      itemStyle: {
+        areaColor: theme.noShots
+      }
+    };
+  });
 }
 
 function parsePayload(container) {
@@ -57,21 +104,51 @@ function parsePayload(container) {
   }
 }
 
-function buildBaseOption() {
+function buildBaseOption(theme) {
   return {
     backgroundColor: "transparent",
     animationDuration: 250,
+    textStyle: {
+      fontFamily: FONT_SANS
+    },
     tooltip: {
       trigger: "item",
+      backgroundColor: theme.tooltipBackground,
+      borderColor: theme.tooltipBorder,
+      borderWidth: 1,
+      textStyle: {
+        color: theme.foreground,
+        fontFamily: FONT_SANS,
+        fontSize: 12
+      },
+      extraCssText: `box-shadow: ${theme.tooltipShadow}; border-radius: 8px;`,
       formatter(params) {
         if (!params?.data) return params?.name || "";
 
         const datum = params.data;
+        const attempts = Number(datum.attempts || 0);
+        const made = Number(datum.made || 0);
+        const hasAttempts = attempts > 0;
+
+        const fgText = hasAttempts
+          ? `${Number(datum.fgPct || 0).toFixed(1)}%`
+          : "—";
+
+        const shotText = hasAttempts
+          ? `${numberWithDelimiter(made)} / ${numberWithDelimiter(attempts)}`
+          : "No shots";
+
         return `
-          <div style="min-width:130px;">
-            <div style="font-weight:600; margin-bottom:4px;">${formatZoneLabel(datum.name)}</div>
-            <div>FG%: ${Number(datum.value || 0).toFixed(1)}%</div>
-            <div>Made: ${datum.made || 0} / ${datum.attempts || 0}</div>
+          <div style="min-width: 148px; font-family: ${FONT_SANS};">
+            <div style="font-size: 12px; font-weight: 600; margin-bottom: 6px;">${formatZoneLabel(datum.name)}</div>
+            <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 11px; margin-bottom: 2px;">
+              <span style="color: ${theme.mutedForeground};">FG%</span>
+              <span style="font-family: ${FONT_MONO}; font-variant-numeric: tabular-nums;">${fgText}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 11px;">
+              <span style="color: ${theme.mutedForeground};">Made</span>
+              <span style="font-family: ${FONT_MONO}; font-variant-numeric: tabular-nums;">${shotText}</span>
+            </div>
           </div>
         `;
       }
@@ -87,8 +164,12 @@ function buildBaseOption() {
       inRange: {
         color: ["#2E90FA", "#58A6FB", "#82BCFC", "#F3F9FD", "#FFC766", "#FFB433", "#FFA100"]
       },
+      outOfRange: {
+        color: [theme.noShots]
+      },
       textStyle: {
-        color: "inherit"
+        color: theme.mutedForeground,
+        fontFamily: FONT_SANS
       }
     },
     series: [
@@ -96,7 +177,7 @@ function buildBaseOption() {
         name: "Shotchart",
         type: "map",
         map: MAP_NAME,
-        selectedMode: "single",
+        selectedMode: false,
         roam: false,
         layoutCenter: ["50%", "46%"],
         layoutSize: "98%",
@@ -108,23 +189,13 @@ function buildBaseOption() {
           label: {
             show: true,
             fontWeight: 700,
+            fontFamily: FONT_SANS,
             color: "#fff"
           },
           itemStyle: {
             borderColor: "#fff",
             borderWidth: 4,
             areaColor: "#F92994"
-          }
-        },
-        select: {
-          label: {
-            show: true,
-            color: "#fff"
-          },
-          itemStyle: {
-            areaColor: "#F92994",
-            borderColor: "#fff",
-            borderWidth: 4
           }
         },
         data: []
@@ -153,29 +224,20 @@ function init() {
   }
 
   const chart = echarts.init(chartHost);
-  let zonesByName = new Map();
-  let selectedZone = "";
-
-  const sendEvent = (name, detail = {}) => {
-    chartHost.dispatchEvent(new CustomEvent(name, { bubbles: true, detail }));
-  };
 
   const applyPayload = () => {
     const payload = parsePayload(payloadContainer);
-    const seriesData = payload.zones.map(zoneToSeriesDatum);
+    const theme = currentThemePalette();
+    const seriesData = buildSeriesData(payload.zones, theme);
 
-    zonesByName = new Map(seriesData.map((zone) => [zone.name, zone]));
-
-    if (selectedZone && !zonesByName.has(selectedZone)) {
-      selectedZone = "";
-      sendEvent("noah-zone-clear", {});
-    }
-
-    chart.setOption({ series: [{ data: seriesData }] });
-
-    if (selectedZone) {
-      chart.dispatchAction({ type: "select", seriesIndex: 0, name: selectedZone });
-    }
+    chart.setOption({
+      visualMap: {
+        outOfRange: {
+          color: [theme.noShots]
+        }
+      },
+      series: [{ data: seriesData }]
+    });
   };
 
   const resizeObserver = new ResizeObserver(() => chart.resize());
@@ -184,54 +246,22 @@ function init() {
   const payloadObserver = new MutationObserver(() => applyPayload());
   payloadObserver.observe(payloadContainer, { childList: true, subtree: true, characterData: true });
 
-  chart.on("mouseover", { seriesIndex: 0 }, (event) => {
-    if (!event?.name) return;
-    sendEvent("noah-zone-hover", { zone: event.name });
+  const themeObserver = new MutationObserver((mutations) => {
+    const classChanged = mutations.some((mutation) => mutation.type === "attributes" && mutation.attributeName === "class");
+    if (!classChanged) return;
+    if (!echarts.getMap(MAP_NAME)) return;
+
+    chart.setOption(buildBaseOption(currentThemePalette()), true);
+    applyPayload();
+    chart.resize();
   });
-
-  chart.on("mouseout", { seriesIndex: 0 }, () => {
-    sendEvent("noah-zone-hover", { zone: "" });
-  });
-
-  chart.on("click", { seriesIndex: 0 }, (event) => {
-    if (!event?.name) return;
-
-    if (selectedZone === event.name) {
-      chart.dispatchAction({ type: "unselect", seriesIndex: 0, name: selectedZone });
-      selectedZone = "";
-      sendEvent("noah-zone-clear", {});
-      return;
-    }
-
-    if (selectedZone) {
-      chart.dispatchAction({ type: "unselect", seriesIndex: 0, name: selectedZone });
-    }
-
-    selectedZone = event.name;
-    chart.dispatchAction({ type: "select", seriesIndex: 0, name: selectedZone });
-
-    const selectedData = zonesByName.get(selectedZone);
-    sendEvent("noah-zone-select", {
-      zone: selectedZone,
-      attempts: selectedData?.attempts ?? 0,
-      made: selectedData?.made ?? 0,
-      fgpct: selectedData?.value ?? 0
-    });
-  });
-
-  const onZoneClear = () => {
-    if (!selectedZone) return;
-    chart.dispatchAction({ type: "unselect", seriesIndex: 0, name: selectedZone });
-    selectedZone = "";
-  };
-
-  root.addEventListener("noah-zone-clear", onZoneClear);
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
 
   fetch(SVG_URL)
     .then((response) => response.text())
     .then((svgText) => {
       echarts.registerMap(MAP_NAME, { svg: svgText });
-      chart.setOption(buildBaseOption(), true);
+      chart.setOption(buildBaseOption(currentThemePalette()), true);
       applyPayload();
       chart.resize();
     })
@@ -240,9 +270,9 @@ function init() {
     });
 
   root.__noahShotchartCleanup = () => {
-    root.removeEventListener("noah-zone-clear", onZoneClear);
     resizeObserver.disconnect();
     payloadObserver.disconnect();
+    themeObserver.disconnect();
     chart.dispose();
     delete root.__noahShotchartCleanup;
   };

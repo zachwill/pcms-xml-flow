@@ -162,6 +162,11 @@ These are “safe defaults” from live testing (not theoretical maxima):
   - `game_data.inline_script.py` now focuses on boxscore/pbp/poc/hustle + batched tracking/defensive/violations.
   - `game_data` now includes structured `telemetry` and uses bounded per-game concurrency (`GAME_DATA_CONCURRENCY=4`) for legacy per-game endpoints.
 
+- [x] **Add coverage-aware season backfill skipping + tenacity retry guards**
+  - `game_data` and `querytool_event_streams` now skip already-populated games by section/event-type when running `season_backfill` (and no explicit `game_ids`).
+  - JSON HTTP calls now use tenacity retry wrappers (max 4 attempts, exponential backoff, extra delay on 403).
+  - TrackingPasses batch seed moved to **16**; 200-game sample benchmark was faster vs 15 with no split events.
+
 ### Phase 2 — optional / careful migrations
 
 - [ ] **Boxscore migration (optional; only if we preserve semantics)**

@@ -5,7 +5,27 @@
 >
   <% if @selected_player.present? %>
     <% historical_player = @selected_player["roster_group"].to_s.casecmp("historical").zero? %>
-    <section class="rounded border border-border bg-background p-3 space-y-3">
+    <% shot_type_kpi = @shot_type_rows.first&.dig("shot_type").presence || @shot_lens_label %>
+    <% shot_type_kpi = case shot_type_kpi.to_s
+    when "Catch And Shoot"
+      "Catch & Shoot"
+    when "Off The Dribble"
+      "Off Dribble"
+    else
+      shot_type_kpi.to_s
+    end %>
+    <% consistency_grade_class = lambda do |grade|
+      case grade.to_s
+      when "A+", "A", "A-", "B+"
+        "text-emerald-600 dark:text-emerald-400"
+      when "D+", "D", "D-", "F"
+        "text-red-600 dark:text-red-400"
+      else
+        "text-foreground"
+      end
+    end %>
+
+    <section class="space-y-3">
       <div class="flex items-start gap-3">
         <div class="w-12 h-12 rounded border border-border bg-muted/30 overflow-hidden flex items-center justify-center">
           <% if @selected_player["nba_id"].present? %>
@@ -36,7 +56,14 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-3 gap-1.5">
+      <div class="grid grid-cols-4 gap-1.5">
+        <%= render partial: "salary_book/kpi_cell", locals: {
+          label: "Shot Type",
+          value: shot_type_kpi.presence || "—",
+          class_name: "w-full",
+          value_class_name: "text-[11px] leading-tight"
+        } %>
+
         <%= render partial: "salary_book/kpi_cell", locals: {
           label: "Swish",
           value: "#{(@selected_player['swish_pct'].to_f * 100.0).round(1)}%",
@@ -44,15 +71,17 @@
         } %>
 
         <%= render partial: "salary_book/kpi_cell", locals: {
-          label: "Depth σ",
-          value: (@selected_player["depth_std"].present? ? format("%.2f", @selected_player["depth_std"]) : "—"),
-          class_name: "w-full"
+          label: "Depth Cons.",
+          value: @selected_player["depth_consistency_grade"].presence || "—",
+          class_name: "w-full",
+          value_class_name: consistency_grade_class.call(@selected_player["depth_consistency_grade"])
         } %>
 
         <%= render partial: "salary_book/kpi_cell", locals: {
-          label: "L/R σ",
-          value: (@selected_player["left_right_std"].present? ? format("%.2f", @selected_player["left_right_std"]) : "—"),
-          class_name: "w-full"
+          label: "L/R Cons.",
+          value: @selected_player["left_right_consistency_grade"].presence || "—",
+          class_name: "w-full",
+          value_class_name: consistency_grade_class.call(@selected_player["left_right_consistency_grade"])
         } %>
       </div>
     </section>
@@ -63,7 +92,7 @@
         <div class="text-[11px] text-muted-foreground mt-0.5"><%= @window_label %> · <%= @shot_lens_label %></div>
       </div>
 
-      <div id="noah-shotchart" class="h-[38vh] min-h-[320px] w-full" data-ignore-morph></div>
+      <div id="noah-shotchart" class="h-[48vh] min-h-[390px] w-full" data-ignore-morph></div>
 
       <div id="noah-shotchart-data" class="hidden" aria-hidden="true">
         <script id="noah-shotchart-payload" type="application/json"><%= raw(json_escape(@shotchart_payload.to_json)) %></script>

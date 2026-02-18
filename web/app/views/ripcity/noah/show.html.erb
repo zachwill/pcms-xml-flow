@@ -7,6 +7,26 @@
     '&sort=' + encodeURIComponent($noahsort)"
 
   refresh_expr = "@get('/ripcity/noah/refresh?' + (#{refresh_query_expr})); window.history.replaceState({}, '', '/ripcity/noah?' + (#{refresh_query_expr}))"
+
+  sort_options_by_key = @sort_options.index_by { |option| option[:key].to_s }
+  sort_primary_keys = %w[attempts-desc fg-pct-desc swish-desc name-asc]
+  sort_secondary_keys = %w[angle-close depth-close lr-close consistency-best]
+
+  shot_lens_options_by_key = @shot_lens_options.transform_keys(&:to_s)
+  timeframe_options_by_key = @timeframe_options.index_by { |option| option[:key].to_s }
+
+  shot_profile_optgroups = [
+    { label: nil, options: [["all-3pa", "All 3PA"]] },
+    { label: "Catch & Shoot", options: [["catch-shoot-3pa", "C&S 3PA"], ["cs-above-break-3pa", "C&S Above Break"], ["cs-corner-3pa", "C&S Corner"]] },
+    { label: "Location", options: [["all-fga", "All FGA"], ["above-break-3pa", "Above Break 3PA"], ["corner-3pa", "Corner 3PA"]] },
+    { label: "Misc", options: [["off-dribble-3pa", "Off-Dribble 3PA"], ["form-shooting", "Form Shooting"]] }
+  ]
+
+  timeframe_optgroups = [
+    { label: "Season", options: [["25-26-season", "25-26"], ["24-25-season", "24-25"], ["23-24-season", "23-24"]] },
+    { label: "Recent", options: [["past-24-hours", "Past 24 hours"], ["past-3-days", "Past 3 days"], ["past-week", "Past week"], ["past-month", "Past month"]] },
+    { label: "Draft Workouts", options: [["2025-draft-workouts", "2025 Draft"], ["2024-draft-workouts", "2024 Draft"], ["2023-draft-workouts", "2023 Draft"]] }
+  ]
 %>
 
 <div
@@ -27,61 +47,147 @@
   </div>
 
   <header id="commandbar" class="shrink-0 h-[130px] border-b border-border bg-background px-4 pt-3 flex items-start gap-4 select-none">
-    <div class="flex items-start gap-4 min-w-0 overflow-x-auto pb-1">
-      <div class="min-w-[12rem] space-y-1">
-        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Timeframe</div>
-        <select
-          id="noah-timeframe"
-          class="h-7 w-44 rounded border border-border bg-background px-2 text-xs text-foreground"
-          data-bind="noahtimeframe"
-          data-on:change="<%= refresh_expr %>"
-        >
-          <% @timeframe_options.each do |option| %>
-            <option value="<%= option[:key] %>" <%= "selected" if @timeframe_lens == option[:key] %>><%= option[:label] %></option>
-          <% end %>
-        </select>
+    <div class="flex items-start min-w-0 overflow-x-auto pb-1">
+      <div class="min-w-[13rem] w-[13rem] space-y-2">
+        <div class="space-y-1">
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Shot Profile</div>
+          <select
+            id="noah-shot-profile"
+            class="h-7 w-full rounded border border-border bg-background px-2 text-xs text-foreground"
+            data-bind="noahshotlens"
+            data-on:change="<%= refresh_expr %>"
+          >
+            <% shot_profile_optgroups.each do |group| %>
+              <% group_options = group[:options].filter_map do |(key, label)|
+                option_meta = shot_lens_options_by_key[key.to_s]
+                next nil if option_meta.blank?
+
+                [key.to_s, label.to_s]
+              end %>
+              <% next if group_options.empty? %>
+
+              <% if group[:label].present? %>
+                <optgroup label="<%= group[:label] %>">
+                  <% group_options.each do |(value, label)| %>
+                    <option value="<%= value %>" <%= "selected" if @shot_lens == value %>><%= label %></option>
+                  <% end %>
+                </optgroup>
+              <% else %>
+                <% group_options.each do |(value, label)| %>
+                  <option value="<%= value %>" <%= "selected" if @shot_lens == value %>><%= label %></option>
+                <% end %>
+              <% end %>
+            <% end %>
+          </select>
+        </div>
+
+        <div class="space-y-1">
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Timeframe</div>
+          <select
+            id="noah-timeframe"
+            class="h-7 w-full rounded border border-border bg-background px-2 text-xs text-foreground"
+            data-bind="noahtimeframe"
+            data-on:change="<%= refresh_expr %>"
+          >
+            <% timeframe_optgroups.each do |group| %>
+              <% group_options = group[:options].filter_map do |(key, label)|
+                option_meta = timeframe_options_by_key[key.to_s]
+                next nil if option_meta.blank?
+
+                [key.to_s, label.to_s]
+              end %>
+              <% next if group_options.empty? %>
+
+              <optgroup label="<%= group[:label] %>">
+                <% group_options.each do |(value, label)| %>
+                  <option value="<%= value %>" <%= "selected" if @timeframe_lens == value %>><%= label %></option>
+                <% end %>
+              </optgroup>
+            <% end %>
+          </select>
+        </div>
       </div>
 
-      <div class="min-w-[13rem] space-y-1">
-        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Shot profile</div>
-        <select
-          id="noah-shot-profile"
-          class="h-7 w-52 rounded border border-border bg-background px-2 text-xs text-foreground"
-          data-bind="noahshotlens"
-          data-on:change="<%= refresh_expr %>"
-        >
-          <% @shot_lens_options.each do |key, option| %>
-            <option value="<%= key %>" <%= "selected" if @shot_lens == key %>><%= option[:label] %></option>
-          <% end %>
-        </select>
-      </div>
+      <div class="h-20 w-px bg-border self-center shrink-0 mx-3"></div>
 
-      <div class="min-w-[12rem] space-y-1">
-        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Sort</div>
-        <select
-          id="noah-sort"
-          class="h-7 w-52 rounded border border-border bg-background px-2 text-xs text-foreground"
-          data-bind="noahsort"
-          data-on:change="<%= refresh_expr %>"
-        >
-          <% @sort_options.each do |option| %>
-            <option value="<%= option[:key] %>" <%= "selected" if @sort_lens == option[:key] %>><%= option[:label] %></option>
-          <% end %>
-        </select>
-      </div>
-
-      <div class="min-w-[12rem] space-y-1">
-        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Grade lens</div>
-        <select
-          id="noah-grade-lens"
-          class="h-7 w-44 rounded border border-border bg-background px-2 text-xs text-foreground"
-          data-bind="noahgradelens"
-          data-on:change="<%= refresh_expr %>"
-        >
+      <div id="noah-grade-lens" class="w-fit min-w-[9.25rem] shrink-0 space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Grade Lens</div>
+        <div class="space-y-1">
           <% @grade_lens_options.each do |option| %>
-            <option value="<%= option[:key] %>" <%= "selected" if @grade_lens == option[:key] %>><%= option[:label] %></option>
+            <% value = option[:key].to_s %>
+            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="radio"
+                id="noah-grade-lens-<%= value.tr('_', '-') %>"
+                name="noah-grade-lens"
+                value="<%= value %>"
+                class="size-3.5 accent-primary"
+                <%= "checked" if @grade_lens == value %>
+                data-bind="noahgradelens"
+                data-on:change="if (el.checked) { <%= refresh_expr %>; }"
+              />
+              <span
+                class="text-[11px] leading-none select-none whitespace-nowrap"
+                data-class="{ 'text-foreground font-semibold': $noahgradelens === '<%= value %>', 'text-muted-foreground': $noahgradelens !== '<%= value %>' }"
+              ><%= option[:label] %></span>
+            </label>
           <% end %>
-        </select>
+        </div>
+      </div>
+
+      <div class="h-20 w-px bg-border self-center shrink-0 mx-3"></div>
+
+      <div id="noah-sort" class="min-w-[12.5rem] w-[12.5rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Sort</div>
+        <div class="grid grid-cols-2 gap-x-2 gap-y-1">
+          <div class="space-y-1">
+            <% sort_primary_keys.each do |key| %>
+              <% option = sort_options_by_key[key] %>
+              <% next if option.blank? %>
+              <% value = option[:key].to_s %>
+              <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="radio"
+                  id="noah-sort-<%= value.tr('_', '-') %>"
+                  name="noah-sort"
+                  value="<%= value %>"
+                  class="size-3.5 accent-primary"
+                  <%= "checked" if @sort_lens == value %>
+                  data-bind="noahsort"
+                  data-on:change="if (el.checked) { <%= refresh_expr %>; }"
+                />
+                <span
+                  class="text-[11px] leading-none select-none"
+                  data-class="{ 'text-foreground font-semibold': $noahsort === '<%= value %>', 'text-muted-foreground': $noahsort !== '<%= value %>' }"
+                ><%= option[:label] %></span>
+              </label>
+            <% end %>
+          </div>
+
+          <div class="space-y-1">
+            <% sort_secondary_keys.each do |key| %>
+              <% option = sort_options_by_key[key] %>
+              <% next if option.blank? %>
+              <% value = option[:key].to_s %>
+              <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="radio"
+                  id="noah-sort-<%= value.tr('_', '-') %>"
+                  name="noah-sort"
+                  value="<%= value %>"
+                  class="size-3.5 accent-primary"
+                  <%= "checked" if @sort_lens == value %>
+                  data-bind="noahsort"
+                  data-on:change="if (el.checked) { <%= refresh_expr %>; }"
+                />
+                <span
+                  class="text-[11px] leading-none select-none"
+                  data-class="{ 'text-foreground font-semibold': $noahsort === '<%= value %>', 'text-muted-foreground': $noahsort !== '<%= value %>' }"
+                ><%= option[:label] %></span>
+              </label>
+            <% end %>
+          </div>
+        </div>
       </div>
     </div>
 

@@ -54,9 +54,20 @@
     end
   end
 
+  format_consistency_grade = lambda do |grade|
+    normalized = grade.to_s.strip
+    return "—" if normalized.blank? || normalized == "—"
+
+    if normalized.match?(/\A[A-F]\z/)
+      "#{normalized}\u00A0"
+    else
+      normalized
+    end
+  end
+
   metric_one_value = lambda do |row|
     if @grade_lens == "consistency-grades"
-      row["angle_consistency_grade"]
+      format_consistency_grade.call(row["angle_consistency_grade"])
     else
       format_number.call(row["angle"], precision: 1)
     end
@@ -64,7 +75,7 @@
 
   metric_two_value = lambda do |row|
     if @grade_lens == "consistency-grades"
-      row["depth_consistency_grade"]
+      format_consistency_grade.call(row["depth_consistency_grade"])
     else
       format_number.call(row["depth"], precision: 1)
     end
@@ -72,7 +83,7 @@
 
   metric_three_value = lambda do |row|
     if @grade_lens == "consistency-grades"
-      row["left_right_consistency_grade"]
+      format_consistency_grade.call(row["left_right_consistency_grade"])
     else
       format_number.call(row["left_right"], precision: 2)
     end
@@ -80,7 +91,7 @@
 
   consistency_value = lambda do |row|
     if @grade_lens == "consistency-grades"
-      row["consistency_grade"].presence || "—"
+      format_consistency_grade.call(row["consistency_grade"])
     else
       return "—" if row["consistency_score"].nil?
 
@@ -137,13 +148,11 @@
               Noah Shooting
               <span class="text-muted-foreground font-medium">· <%= pluralize(@players.size, "player") %></span>
             </h2>
-            <div class="text-[11px] text-muted-foreground mt-0.5"><%= @shot_lens_caption %></div>
           </div>
 
           <div class="flex flex-wrap gap-1.5">
             <span class="entity-chip entity-chip--muted"><%= @window_label %></span>
             <span class="entity-chip entity-chip--muted"><%= @shot_lens_label %></span>
-            <span class="entity-chip entity-chip--muted"><%= @metric_headers[:one] %> · <%= @metric_headers[:two] %> · <%= @metric_headers[:three] %></span>
             <span class="entity-chip entity-chip--muted">Consistency = Depth σ + L/R σ</span>
           </div>
         </div>
@@ -175,7 +184,7 @@
           <div class="text-[10px] text-muted-foreground/80 text-right tabular-nums leading-tight">
             <% if @kpi_updated_at.present? %>
               <% local_kpi_time = @kpi_updated_at.in_time_zone("Pacific Time (US & Canada)") %>
-              <div>KPIs updated</div>
+              <div>As of</div>
               <div><%= local_kpi_time.strftime("%b %-d, %Y") %></div>
               <div><%= local_kpi_time.strftime("%-I:%M %p %Z") %></div>
             <% else %>

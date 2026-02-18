@@ -23,6 +23,7 @@ module RipCity
       { key: "past-month", label: "Past Month" },
       { key: "25-26-season", label: "25-26 Season" },
       { key: "24-25-season", label: "24-25 Season" },
+      { key: "23-24-season", label: "23-24 Season" },
       { key: "2025-draft-workouts", label: "2025 Draft Workouts" },
       { key: "2024-draft-workouts", label: "2024 Draft Workouts" },
       { key: "2023-draft-workouts", label: "2023 Draft Workouts" }
@@ -71,6 +72,13 @@ module RipCity
         shot_type: nil,
         is_corner_three: 1
       },
+      "above-break-3pa" => {
+        label: "Above Break 3PA",
+        caption: "All above-break three-point attempts (corner threes removed).",
+        is_three: 1,
+        shot_type: nil,
+        is_corner_three: 0
+      },
       "form-shooting" => {
         label: "Form Shooting",
         caption: "Form shooting attempts (mostly short-range drill reps).",
@@ -93,15 +101,29 @@ module RipCity
     ].freeze
 
     SORT_OPTIONS = [
-      { key: "attempts-desc", label: "Shot Volume (high to low)" },
-      { key: "fg-pct-desc", label: "Shot % (high to low)" },
-      { key: "swish-desc", label: "Swish % (high to low)" },
-      { key: "angle-close", label: "Angle (closest to 45°)" },
-      { key: "depth-close", label: "Depth (closest to 11)" },
-      { key: "lr-close", label: "L/R (closest to 0)" },
-      { key: "consistency-best", label: "Consistency (best first)" },
-      { key: "name-asc", label: "Player name (A → Z)" }
+      { key: "attempts-desc", label: "Shot Volume" },
+      { key: "fg-pct-desc", label: "Shot %" },
+      { key: "swish-desc", label: "Swish %" },
+      { key: "name-asc", label: "A → Z" },
+      { key: "angle-close", label: "Angle" },
+      { key: "depth-close", label: "Depth" },
+      { key: "lr-close", label: "L/R" },
+      { key: "consistency-best", label: "Consistency" }
     ].freeze
+
+    # Static shotchart calibration by lens (p10..p90 FG% across player-zone cells, attempts >= 10).
+    # This keeps colors comparable across players for the same lens.
+    SHOTCHART_HEAT_SCALE_BY_SHOT_LENS = {
+      "all-3pa" => { min: 37.5, max: 68.8 },
+      "catch-shoot-3pa" => { min: 40.0, max: 71.1 },
+      "cs-above-break-3pa" => { min: 38.9, max: 70.0 },
+      "cs-corner-3pa" => { min: 42.4, max: 71.9 },
+      "off-dribble-3pa" => { min: 30.9, max: 63.6 },
+      "corner-3pa" => { min: 40.7, max: 70.2 },
+      "above-break-3pa" => { min: 35.1, max: 67.3 },
+      "form-shooting" => { min: 50.0, max: 88.0 },
+      "all-fga" => { min: 41.7, max: 77.8 }
+    }.freeze
 
     DEFAULT_TIMEFRAME = "25-26-season"
     DEFAULT_SHOT_LENS = "catch-shoot-3pa"
@@ -310,6 +332,8 @@ module RipCity
 
       @shotchart_payload = {
         zones: @zone_rows.map { |row| { name: row[:name], attempts: row[:attempts], made: row[:made] } },
+        shot_lens: @shot_lens,
+        heat_scale: shotchart_heat_scale_for(@shot_lens),
         player_name: @selected_player&.dig("player_name"),
         updated_at: Time.current.iso8601
       }
@@ -348,6 +372,8 @@ module RipCity
       @shot_type_rows = []
       @shotchart_payload = {
         zones: @zone_rows.map { |row| { name: row[:name], attempts: row[:attempts], made: row[:made] } },
+        shot_lens: @shot_lens,
+        heat_scale: shotchart_heat_scale_for(@shot_lens),
         updated_at: Time.current.iso8601
       }
 
@@ -448,6 +474,12 @@ module RipCity
           start_date: Date.new(2024, 8, 1),
           end_date: Date.new(2025, 4, 15)
         }
+      when "23-24-season"
+        {
+          label: "23-24 season",
+          start_date: Date.new(2023, 8, 1),
+          end_date: Date.new(2024, 4, 15)
+        }
       when "2025-draft-workouts"
         {
           label: "2025 draft workouts",
@@ -506,6 +538,15 @@ module RipCity
           consistency: "Consistency"
         }
       end
+    end
+
+    def shotchart_heat_scale_for(shot_lens)
+      scale = SHOTCHART_HEAT_SCALE_BY_SHOT_LENS.fetch(shot_lens.to_s, SHOTCHART_HEAT_SCALE_BY_SHOT_LENS.fetch(DEFAULT_SHOT_LENS))
+
+      {
+        min: scale.fetch(:min).to_f,
+        max: scale.fetch(:max).to_f
+      }
     end
 
     def build_player_rows(raw_rows, all_time_attempts_by_noah_id: {})

@@ -2,6 +2,11 @@ Rails.application.routes.draw do
   # Health endpoint (200 if app boots).
   get "up" => "rails/health#show", as: :rails_health_check
 
+  # Authentication
+  get "login", to: "sessions#new", as: :login
+  post "login", to: "sessions#create"
+  delete "logout", to: "sessions#destroy", as: :logout
+
   # Tools (dense instruments)
   # Primary tool surface
   get "/", to: "salary_book#show", as: :salary_book

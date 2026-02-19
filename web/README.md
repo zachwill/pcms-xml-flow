@@ -53,6 +53,42 @@ Notes:
 - `web/config/master.key` is ignored (do not commit it).
 - Datastar requires CSP `unsafe-eval` (configured in `config/initializers/content_security_policy.rb`).
 
+## Authentication + roles
+
+- Authentication is enforced for non-localhost hosts.
+  - Requests on `localhost`, `127.0.0.1`, `::1`, and `*.localhost` bypass auth.
+- Login routes:
+  - `GET /login`
+  - `POST /login`
+  - `DELETE /logout`
+- Roles are stored on `web.users.role` with hierarchy:
+  - `viewer` < `analyst` < `admin`
+- Admin-only routes (current defaults):
+  - `/liveline`
+  - `/ripcity/noah`
+
+Create an admin user:
+
+```bash
+cd web
+WEB_ADMIN_EMAIL="you@example.com" WEB_ADMIN_PASSWORD="change-me" bin/rails db:seed
+```
+
+Or in console:
+
+```ruby
+User.create!(email: "you@example.com", role: "admin", password: "change-me")
+```
+
+To restrict a controller action by role:
+
+```ruby
+class SomeController < ApplicationController
+  require_role :analyst           # analyst + admin
+  # or: require_role :admin, only: :destroy
+end
+```
+
 ## Where to look next
 
 - `web/AGENTS.md` (front door + non-negotiables)

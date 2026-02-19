@@ -44,5 +44,18 @@
       />
       <span class="text-[11px] leading-none text-foreground/80">Dark Mode</span>
     </label>
+
+    <% if user_signed_in? %>
+      <div class="space-y-1 pt-1 border-t border-border/80">
+        <div class="text-[10px] text-muted-foreground truncate"><%= current_user.email %></div>
+        <div class="flex items-center justify-between gap-2">
+          <span class="inline-flex items-center rounded border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground"><%= current_user.role %></span>
+          <%= button_to "Sign out",
+            logout_path,
+            method: :delete,
+            class: "text-[10px] text-foreground/80 hover:text-foreground underline cursor-pointer" %>
+        </div>
+      </div>
+    <% end %>
   </div>
 </div>

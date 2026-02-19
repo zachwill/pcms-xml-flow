@@ -1,0 +1,9 @@
+viewer:
+  email: viewer@example.com
+  password_digest: <%= BCrypt::Password.create("password123", cost: BCrypt::Engine::MIN_COST) %>
+  role: viewer
+
+admin:
+  email: admin@example.com
+  password_digest: <%= BCrypt::Password.create("password123", cost: BCrypt::Engine::MIN_COST) %>
+  role: admin

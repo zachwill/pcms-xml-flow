@@ -1,0 +1,44 @@
+<% content_for :title, "Sign in" %>
+
+<div class="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
+  <div class="w-full max-w-sm rounded-lg border border-border bg-background p-6 space-y-4">
+    <div class="space-y-1">
+      <h1 class="text-lg font-semibold">Sign in</h1>
+      <p class="text-xs text-muted-foreground">Use your account to access this workspace.</p>
+    </div>
+
+    <% if flash[:alert].present? %>
+      <div class="rounded border border-red-500/60 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
+        <%= flash[:alert] %>
+      </div>
+    <% end %>
+
+    <% if flash[:notice].present? %>
+      <div class="rounded border border-emerald-500/60 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+        <%= flash[:notice] %>
+      </div>
+    <% end %>
+
+    <%= form_with url: login_path, method: :post, class: "space-y-3" do |form| %>
+      <div class="space-y-1">
+        <%= form.label :email, class: "block text-[11px] uppercase tracking-wider text-muted-foreground" %>
+        <%= form.email_field :email,
+          required: true,
+          autofocus: true,
+          autocomplete: "username",
+          class: "h-9 w-full rounded border border-border bg-background px-2 text-sm outline-none focus-visible:border-foreground" %>
+      </div>
+
+      <div class="space-y-1">
+        <%= form.label :password, class: "block text-[11px] uppercase tracking-wider text-muted-foreground" %>
+        <%= form.password_field :password,
+          required: true,
+          autocomplete: "current-password",
+          class: "h-9 w-full rounded border border-border bg-background px-2 text-sm outline-none focus-visible:border-foreground" %>
+      </div>
+
+      <%= form.submit "Sign in",
+        class: "h-9 w-full rounded bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer" %>
+    <% end %>
+  </div>
+</div>

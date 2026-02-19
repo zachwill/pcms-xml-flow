@@ -1,6 +1,10 @@
 require "test_helper"
 
 class LivelineTestPageTest < ActionDispatch::IntegrationTest
+  setup do
+    host! "localhost"
+  end
+
   test "liveline page renders chart shell and command bar controls" do
     get "/liveline"
 

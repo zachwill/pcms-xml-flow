@@ -8,7 +8,16 @@
     '&sort=' + encodeURIComponent($noahsort) +
     '&selected_player=' + encodeURIComponent($noahselectedplayer || '')"
 
-  refresh_expr = "@get('/ripcity/noah/refresh?' + (#{refresh_query_expr})); window.history.replaceState({}, '', '/ripcity/noah?' + (#{refresh_query_expr}))"
+  initial_refresh_query = {
+    timeframe: @timeframe_lens.to_s,
+    shot_lens: @shot_lens.to_s,
+    grade_lens: @grade_lens.to_s,
+    percentile_lens: @percentile_lens.to_s,
+    sort: @sort_lens.to_s,
+    selected_player: (@selected_player_id || "").to_s
+  }.to_query
+
+  refresh_loader_expr = "const nextQuery = (#{refresh_query_expr}); if ($_noahrefreshquery !== nextQuery) { $_noahrefreshquery = nextQuery; @get('/ripcity/noah/refresh?' + nextQuery); const nextUrl = '/ripcity/noah?' + nextQuery; if ((window.location.pathname + window.location.search) !== nextUrl) { window.history.replaceState({}, '', nextUrl); } }"
 
   sort_options_by_key = @sort_options.index_by { |option| option[:key].to_s }
   sort_primary_keys = %w[attempts-desc fg-pct-desc swish-desc name-asc]
@@ -41,7 +50,8 @@
     noahgradelens: <%= @grade_lens.to_json %>,
     noahpercentilelens: <%= @percentile_lens.to_json %>,
     noahselectedplayer: <%= @selected_player_id.to_json %>,
-    noahsort: <%= @sort_lens.to_json %>
+    noahsort: <%= @sort_lens.to_json %>,
+    _noahrefreshquery: <%= initial_refresh_query.to_json %>
   }"
 >
   <div id="flash">
@@ -49,6 +59,13 @@
       <div class="mx-4 mt-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-300"><%= message %></div>
     <% end %>
   </div>
+
+  <div
+    id="noah-refresh-loader"
+    class="hidden"
+    aria-hidden="true"
+    data-effect="<%= refresh_loader_expr %>"
+  ></div>
 
   <header id="commandbar" class="shrink-0 h-[130px] border-b border-border bg-background px-4 pt-3 flex items-start gap-4 select-none">
     <div class="flex items-start min-w-0 overflow-x-auto pb-1">
@@ -59,7 +76,6 @@
             id="noah-shot-profile"
             class="h-7 w-full rounded border border-border bg-background px-2 text-xs text-foreground"
             data-bind="noahshotlens"
-            data-on:change="<%= refresh_expr %>"
           >
             <% shot_profile_optgroups.each do |group| %>
               <% group_options = group[:options].filter_map do |(key, label)|
@@ -91,7 +107,6 @@
             id="noah-timeframe"
             class="h-7 w-full rounded border border-border bg-background px-2 text-xs text-foreground"
             data-bind="noahtimeframe"
-            data-on:change="<%= refresh_expr %>"
           >
             <% timeframe_optgroups.each do |group| %>
               <% group_options = group[:options].filter_map do |(key, label)|
@@ -129,7 +144,6 @@
                   class="size-3.5 accent-primary"
                   <%= "checked" if @grade_lens == value %>
                   data-bind="noahgradelens"
-                  data-on:change="if (el.checked) { <%= refresh_expr %>; }"
                 />
                 <span
                   class="text-[11px] leading-none select-none whitespace-nowrap"
@@ -148,7 +162,7 @@
               id="noah-percentile-lens-toggle"
               class="size-3.5 accent-primary"
               <%= "checked" if @percentile_lens == "noah-ideals" %>
-              data-on:change="$noahpercentilelens = el.checked ? 'noah-ideals' : 'consistency'; <%= refresh_expr %>"
+              data-on:change="$noahpercentilelens = el.checked ? 'noah-ideals' : 'consistency'"
             />
             <span
               class="text-[11px] leading-none select-none whitespace-nowrap"
@@ -177,7 +191,6 @@
                   class="size-3.5 accent-primary"
                   <%= "checked" if @sort_lens == value %>
                   data-bind="noahsort"
-                  data-on:change="if (el.checked) { <%= refresh_expr %>; }"
                 />
                 <span
                   class="text-[11px] leading-none select-none"
@@ -201,7 +214,6 @@
                   class="size-3.5 accent-primary"
                   <%= "checked" if @sort_lens == value %>
                   data-bind="noahsort"
-                  data-on:change="if (el.checked) { <%= refresh_expr %>; }"
                 />
                 <span
                   class="text-[11px] leading-none select-none"
@@ -241,6 +253,5 @@
   <script type="module" src="https://cdn.jsdelivr.net/npm/echarts@6.0.0/dist/echarts.min.js"></script>
   <script type="module">
     import "ripcity/noah_shotchart";
-    import "ripcity/noah_player_sparklines";
   </script>
 <% end %>

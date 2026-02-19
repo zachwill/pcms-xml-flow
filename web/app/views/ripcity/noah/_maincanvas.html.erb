@@ -1,11 +1,4 @@
 <%
-  noah_query_expr = "'timeframe=' + encodeURIComponent($noahtimeframe) +
-    '&shot_lens=' + encodeURIComponent($noahshotlens) +
-    '&grade_lens=' + encodeURIComponent($noahgradelens) +
-    '&percentile_lens=' + encodeURIComponent($noahpercentilelens) +
-    '&sort=' + encodeURIComponent($noahsort) +
-    '&selected_player=' + encodeURIComponent($noahselectedplayer || '')"
-
   format_compact_count = lambda do |value|
     number = value.to_i
     absolute = number.abs
@@ -151,12 +144,39 @@
     pad_count = [width.to_i - value.length, 0].max
     ("\u00A0" * pad_count) + value
   end
+
+  sparkline_polyline_points = lambda do |points, width: 48.0, height: 11.0|
+    values = Array(points).map { |value| [value.to_f, 0.0].max }
+    values = [0.0, 0.0] if values.empty?
+    values = [values.first, values.first] if values.length == 1
+
+    min = values.min
+    max = values.max
+    span = max - min
+    min_y = 0.5
+    max_y = height - 0.5
+
+    values.each_with_index.map do |value, index|
+      x = if values.length == 1
+        0.0
+      else
+        (index.to_f / (values.length - 1)) * (width - 1.0)
+      end
+
+      y = if span <= 0.0
+        (min_y + max_y) / 2.0
+      else
+        max_y - (((value - min) / span) * (max_y - min_y))
+      end
+
+      format("%.2f,%.2f", x, y)
+    end.join(" ")
+  end
 %>
 
 <main
   id="maincanvas"
   class="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden bg-background relative overscroll-y-contain scroll-touch isolate"
-  data-init="window.__noahSparklinesInit && window.__noahSparklinesInit()"
 >
   <div class="py-3">
     <section class="px-4 pb-3 border-b border-border">
@@ -291,15 +311,15 @@
             end %>
             <% all_time_attempts_text = number_with_delimiter(row["all_time_attempts"].to_i) %>
             <% sparkline_points = Array(row["sparkline_points"]).map(&:to_i) %>
-            <% sparkline_payload = sparkline_points.presence || [0] %>
+            <% sparkline_points_attr = sparkline_polyline_points.call(sparkline_points) %>
             <% player_initials = initials_for.call(row["player_name"]) %>
 
             <div
               class="group cursor-pointer transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 <%= selected ? 'bg-yellow-100/80 dark:bg-yellow-900/20' : '' %>"
               role="button"
               tabindex="0"
-              data-on:click="$noahselectedplayer = '<%= noah_id %>'; @get('/ripcity/noah/refresh?' + (<%= noah_query_expr %>)); window.history.replaceState({}, '', '/ripcity/noah?' + (<%= noah_query_expr %>))"
-              data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); $noahselectedplayer = '<%= noah_id %>'; @get('/ripcity/noah/refresh?' + (<%= noah_query_expr %>)); window.history.replaceState({}, '', '/ripcity/noah?' + (<%= noah_query_expr %>)); }"
+              data-on:click="$noahselectedplayer = '<%= noah_id %>'"
+              data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); $noahselectedplayer = '<%= noah_id %>'; }"
             >
               <div class="flex px-4 h-[40px]">
                 <div class="w-52 shrink-0">
@@ -327,14 +347,23 @@
                     </div>
 
                     <div class="h-[16px] -mt-px flex items-start min-w-0 pl-2 leading-none text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden">
-                      <span class="inline-flex items-center whitespace-nowrap" title="Total <%= all_time_attempts_text %> <%= @shot_volume_label %>">
-                        <span
-                          class="h-[11px] w-0 overflow-hidden shrink-0"
-                          data-noah-sparkline
-                          data-noah-sparkline-values="<%= json_escape(sparkline_payload.to_json) %>"
+                      <span class="inline-flex items-center whitespace-nowrap" title="Total <%= all_time_attempts_text %> 3PA">
+                        <svg
+                          class="h-[11px] w-[48px] mr-1.5 shrink-0 text-muted-foreground/70"
+                          viewBox="0 0 48 11"
                           aria-hidden="true"
-                        ></span>
-                        <span><%= all_time_attempts_text %> Total <%= @shot_volume_label %></span>
+                          preserveAspectRatio="none"
+                        >
+                          <polyline
+                            points="<%= sparkline_points_attr %>"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                        <span><%= all_time_attempts_text %> Total 3PA</span>
                       </span>
                     </div>
                   </div>

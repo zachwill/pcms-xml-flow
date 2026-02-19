@@ -130,6 +130,7 @@ module RipCity
     DEFAULT_GRADE_LENS = "stat-values"
     DEFAULT_PERCENTILE_LENS = "consistency"
     DEFAULT_SORT = "attempts-desc"
+    SPARKLINE_SHOT_LENS = "all-3pa"
     SPARKLINE_POINT_LIMIT = 18
 
     NOAH_GRADE_THRESHOLDS = [
@@ -270,17 +271,24 @@ module RipCity
         **filters
       )
 
-      lens_totals_by_noah_id = queries.fetch_player_lens_totals(
+      sparkline_lens = SHOT_LENS_OPTIONS.fetch(SPARKLINE_SHOT_LENS)
+      sparkline_filters = {
+        is_three: sparkline_lens[:is_three],
+        shot_type: sparkline_lens[:shot_type],
+        is_corner_three: sparkline_lens[:is_corner_three]
+      }
+
+      all_time_3pa_by_noah_id = queries.fetch_player_lens_totals(
         include_predraft: @include_predraft,
         exclude_player_ids: @exclude_player_ids,
-        **filters
+        **sparkline_filters
       ).each_with_object({}) do |row, memo|
         memo[row["noah_id"].to_i] = row["total_attempts"].to_i
       end
 
       player_rows = build_player_rows(
         raw_players,
-        all_time_attempts_by_noah_id: lens_totals_by_noah_id
+        all_time_attempts_by_noah_id: all_time_3pa_by_noah_id
       ).select { |row| row["attempts"].to_i >= @min_attempts }
       player_rows = sort_player_rows(player_rows, @sort_lens)
       player_rows = attach_percentiles(player_rows, percentile_lens: @percentile_lens)
@@ -290,7 +298,7 @@ module RipCity
           include_predraft: @include_predraft,
           exclude_player_ids: @exclude_player_ids,
           noah_ids: player_rows.map { |row| row["noah_id"] },
-          **filters
+          **sparkline_filters
         )
       )
 
@@ -584,7 +592,7 @@ module RipCity
           "player_name" => row["player_name"].presence || "Unknown Player",
           "roster_group" => row["roster_group"].presence,
           "attempts" => row["count"].to_i,
-          "all_time_attempts" => all_time_attempts_by_noah_id.fetch(noah_id, row["count"].to_i),
+          "all_time_attempts" => all_time_attempts_by_noah_id.fetch(noah_id, 0),
           "fg_pct" => as_float(row["made_mean"]) || 0.0,
           "swish_pct" => as_float(row["is_swish_mean"]) || 0.0,
           "angle" => angle,

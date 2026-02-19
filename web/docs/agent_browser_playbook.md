@@ -49,12 +49,25 @@ agent-browser wait --load networkidle
 agent-browser snapshot -i -C -c
 
 # 4) Capture visual baseline
-agent-browser screenshot --annotate tmp/agent-browser/team-summary-before.png
+agent-browser screenshot --annotate /tmp/agent-browser/team-summary-before.png
 
 # 5) Interact via refs (@eN), then re-snapshot
 agent-browser click @e12
 agent-browser snapshot -i -C -c
 ```
+
+## Evidence package contract (required for redesign tasks)
+
+Use this order every time:
+1. Baseline evidence (`/`, `/ripcity/noah`, then the target route).
+2. Diagnosis (what to keep, what is weak/confusing, highest-leverage flow issue).
+3. Options (1-2 chunk options) for interaction-sensitive redesigns.
+4. Approval on direction.
+5. Implementation + after evidence.
+
+Artifact path convention:
+- Save all snapshots/screenshots under `/tmp/agent-browser/...`.
+- Do **not** use repo-local `tmp/agent-browser/...` paths.
 
 ### Why this pattern
 
@@ -126,7 +139,7 @@ For each page (`/two-way-utility`, `/system-values`, `/team-summary`, `/drafts`,
 7. **Dark mode sanity check**
    - `dark:` variants remain readable and consistent.
 
-Capture before/after screenshots in `tmp/agent-browser/` during active work.
+Capture before/after screenshots in `/tmp/agent-browser/` during active work.
 
 ---
 
@@ -151,7 +164,7 @@ agent-browser close
 ```bash
 agent-browser open http://localhost:3000/team-summary && \
 agent-browser wait --load networkidle && \
-agent-browser screenshot --full tmp/agent-browser/team-summary.png
+agent-browser screenshot --full /tmp/agent-browser/team-summary.png
 ```
 
 Repeat for each route; compare against Salary Book + Noah visual language.

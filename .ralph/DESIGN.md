@@ -14,22 +14,19 @@ Guardrails:
 
 ---
 
-- [ ] [P1] [PROCESS] Tankathon redesign playbook codification — capture directional pick-impact UX rules + evidence workflow
-  - Problem: Recent Tankathon redesign succeeded only after multiple directional corrections from user intent; those learnings are easy to lose.
-  - Hypothesis: Codifying the flow rules (what users care about, what to highlight, what to suppress) will reduce future churn and improve first-pass quality.
+- [ ] [P2] [PROCESS] Tankathon codification adoption audit — verify directional pick-impact rules stay intact in future edits
+  - Problem: Tankathon process rules are now codified in prompts/docs, but future UI iterations can still drift without a lightweight adoption audit.
+  - Hypothesis: A quick codification audit after the next Tankathon UI change will catch regressions (implied clicks/hover, direction mistakes) before they spread.
   - Scope (files):
     - `.ralph/DESIGN.md`
-    - `agents/design.ts` (prompt/process guidance + artifact path preference)
-    - `web/docs/agent_browser_playbook.md` (optional small note on artifact path convention)
+    - `/tmp/agent-browser/tankathon-codification-audit/*`
   - Acceptance criteria:
-    - Process notes capture this sequence explicitly: evidence-first baseline → diagnosis → options → approval → implementation.
-    - Tankathon UX rules captured: non-clickable standings rows; no hover affordance for non-actions; directional highlight semantics from selected team perspective; team-column-first pick context.
-    - Include explicit artifact path convention: prefer `/tmp/agent-browser/...` over repo-local `tmp/agent-browser/...`.
-    - Include a reminder to validate conveyance direction via DB evidence (`pcms.draft_pick_summary_assets` / `pcms.draft_pick_shorthand_assets`) before changing implication UI.
+    - Audit references the codified sequence: baseline evidence → diagnosis → options → approval → implementation.
+    - Audit confirms directional rules remain intact: non-clickable rows, no non-action hover affordance, selected-team directional semantics, team-column-first pick context.
+    - Audit records one DB-backed spot check against `pcms.draft_pick_summary_assets` + `pcms.draft_pick_shorthand_assets` when implication labels are touched.
   - Rubric (before → target):
-    - Interaction predictability: 3 → 5
-    - Navigation/pivots: 3 → 4
-    - Process repeatability: 2 → 5
+    - Process repeatability: 4 → 5
+    - Interaction predictability: 4 → 5
   - Guardrails:
     - Do not modify Salary Book files (except Tankathon exception when task explicitly requires it).
 

@@ -115,8 +115,9 @@ North star:
 
 const EVIDENCE_GATE = `
 Evidence-first execution (mandatory):
+- Required sequence: baseline evidence → diagnosis → options (if interaction-sensitive) → approval → implementation.
 - Before coding, inspect / and /ripcity/noah, then the target route.
-- Capture fresh artifacts in /tmp/agent-browser/:
+- Capture fresh artifacts in /tmp/agent-browser/... (never repo-local tmp/agent-browser/...):
   - snapshot -i -C -c
   - annotated screenshot(s)
 - Write a short diagnosis before implementation:
@@ -124,6 +125,17 @@ Evidence-first execution (mandatory):
   - what is weak/confusing
   - highest-leverage flow problem for this chunk
 - For interaction-sensitive redesigns, propose 1-2 chunk options and confirm direction before implementation.
+`.trim();
+
+const TANKATHON_DIRECTION_RULES = `
+Tankathon directional pick-impact rules (when touching Tankathon UX):
+- Keep standings rows non-clickable scan rows.
+- Do not use hover/cursor affordance for non-actions.
+- Highlight implications directionally from the selected team perspective (keeps vs conveys).
+- Keep team-column-first pick context (team identity + pick-control implication before record metrics).
+- Before changing implication labels/chips, validate conveyance direction using DB evidence from:
+  - pcms.draft_pick_summary_assets
+  - pcms.draft_pick_shorthand_assets
 `.trim();
 
 const RUBRIC = `
@@ -218,6 +230,7 @@ Drive meaningful UX/design improvements in coherent flow chunks, not cosmetic sw
 
 ${STRATEGY}
 ${EVIDENCE_GATE}
+${TANKATHON_DIRECTION_RULES}
 
 Reference docs:
 ${bullets([TASK_FILE, ...DESIGN_DOCS])}
@@ -260,6 +273,7 @@ ${nextTodo}
 
 ${STRATEGY}
 ${EVIDENCE_GATE}
+${TANKATHON_DIRECTION_RULES}
 
 Read first:
 ${bullets([TASK_FILE, ...DESIGN_DOCS])}
@@ -318,6 +332,7 @@ Generate a fresh design-evolution backlog (not hygiene chores).
 
 ${STRATEGY}
 ${EVIDENCE_GATE}
+${TANKATHON_DIRECTION_RULES}
 ${RUBRIC}
 
 Read first:

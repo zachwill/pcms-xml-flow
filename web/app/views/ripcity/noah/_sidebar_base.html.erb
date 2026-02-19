@@ -41,29 +41,30 @@
 
     <section class="space-y-3">
       <div class="flex items-start gap-3">
-        <div class="w-12 h-12 rounded border border-border bg-muted/30 overflow-hidden flex items-center justify-center">
-          <% if @selected_player["nba_id"].present? %>
-            <img
-              src="<%= player_headshot_url(@selected_player['nba_id']) %>"
-              alt="<%= @selected_player['player_name'] %>"
-              class="w-full h-full object-cover object-top <%= historical_player ? 'grayscale opacity-70' : '' %>"
-              loading="lazy"
-              decoding="async"
-              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-            />
-            <span class="hidden text-[10px] font-semibold text-muted-foreground"><%= selected_player_initials %></span>
-          <% else %>
-            <span class="text-[10px] font-semibold text-muted-foreground"><%= selected_player_initials %></span>
-          <% end %>
-        </div>
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-14 h-14 rounded-lg bg-background border border-border flex items-center justify-center overflow-hidden">
+            <% if @selected_player["nba_id"].present? %>
+              <img
+                src="<%= player_headshot_url(@selected_player['nba_id']) %>"
+                alt="<%= @selected_player['player_name'] %>"
+                class="w-full h-full object-cover object-top <%= historical_player ? 'grayscale opacity-70' : '' %>"
+                loading="lazy"
+                decoding="async"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+              />
+              <span class="hidden text-sm font-semibold text-muted-foreground"><%= selected_player_initials %></span>
+            <% else %>
+              <span class="text-sm font-semibold text-muted-foreground"><%= selected_player_initials %></span>
+            <% end %>
+          </div>
 
-        <div class="min-w-0">
-          <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Selected player</div>
-          <div class="text-sm font-semibold truncate <%= historical_player ? 'text-muted-foreground' : '' %>"><%= @selected_player["player_name"] %></div>
-          <div class="text-[11px] text-muted-foreground mt-0.5">
-            <%= number_with_delimiter(@selected_player["attempts"].to_i) %> <%= @shot_volume_label %>
-            <span class="mx-1">·</span>
-            <%= number_with_precision(@selected_player["fg_pct"].to_f * 100.0, precision: 1, strip_insignificant_zeros: false) %>% <%= @shot_pct_label %>
+          <div class="min-w-0">
+            <div class="font-semibold text-lg leading-tight truncate <%= historical_player ? 'text-muted-foreground' : 'text-foreground' %>"><%= @selected_player["player_name"] %></div>
+            <div class="text-sm text-muted-foreground truncate mt-0.5 tabular-nums">
+              <%= number_with_delimiter(@selected_player["attempts"].to_i) %> <%= @shot_volume_label %>
+              <span class="mx-1">·</span>
+              <%= number_with_precision(@selected_player["fg_pct"].to_f * 100.0, precision: 1, strip_insignificant_zeros: false) %>% <%= @shot_pct_label %>
+            </div>
           </div>
         </div>
       </div>

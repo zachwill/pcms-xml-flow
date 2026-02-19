@@ -1,8 +1,8 @@
 # web/AGENTS.md — Rails + Datastar
 
-> Read the hard rules. Follow the decision trees. Read the design guide. Check the checklist before coding.
+> Read the hard rules. Follow the decision trees. Read the docs guides. Check the checklist before coding.
 >
-> **New here?** Read in this order: hard rules → `web/docs/design_guide.md` (30-second startup + shell patterns) → checklist below.
+> **New here?** Read in this order: hard rules → `web/docs/AGENTS.md` → `web/docs/design_guide.md` (30-second startup + shell patterns) → `web/docs/agent_browser_playbook.md` (design QA workflow) → checklist below.
 
 ---
 
@@ -154,6 +154,7 @@ For non-trivial refactors, read `reference/rails/architecture.md` before extract
 | Doc | What it covers |
 |-----|----------------|
 | `web/docs/design_guide.md` | Concrete visual patterns (shells, row/cell anatomy, table conventions, checklist) |
+| `web/docs/agent_browser_playbook.md` | Practical browser automation workflow for design QA + interaction smoke tests |
 | `web/docs/datastar_sse_playbook.md` | SSE response templates, Rails `ActionController::Live` patterns |
 | `reference/rails/architecture.md` | Durable Rails architecture principles (layer collapse, I/O boundaries, extraction over import) |
 | `reference/sites/INTERACTION_MODELS.md` | Scroll-driven tools, entity workspaces, catalog surfaces |
@@ -177,6 +178,21 @@ Pinned to Ruby 3.4.x via `web/.ruby-version`. Before running Rails commands:
 export PATH="/opt/homebrew/opt/ruby@3.4/bin:/opt/homebrew/lib/ruby/gems/3.4.0/bin:$PATH"
 ruby -v  # should be 3.4.x
 ```
+
+### agent-browser (design QA quickstart)
+
+Use `agent-browser` when reviewing layout/interaction quality on `web/` pages.
+
+```bash
+agent-browser open http://localhost:3000/team-summary
+agent-browser wait --load networkidle
+agent-browser snapshot -i -C -c
+agent-browser screenshot --annotate tmp/agent-browser/team-summary.png
+```
+
+- Preferred interaction model: refs from `snapshot` (`@e1`, `@e2`, ...)
+- Re-snapshot after page changes before the next action
+- Full workflow: `web/docs/agent_browser_playbook.md`
 
 ### Datastar signal conventions
 

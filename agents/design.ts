@@ -116,13 +116,14 @@ North star:
 const EVIDENCE_GATE = `
 Evidence-first execution (mandatory):
 - Before coding, inspect / and /ripcity/noah, then the target route.
-- Capture fresh artifacts in tmp/agent-browser/:
+- Capture fresh artifacts in /tmp/agent-browser/:
   - snapshot -i -C -c
   - annotated screenshot(s)
 - Write a short diagnosis before implementation:
   - what is strong and should remain
   - what is weak/confusing
   - highest-leverage flow problem for this chunk
+- For interaction-sensitive redesigns, propose 1-2 chunk options and confirm direction before implementation.
 `.trim();
 
 const RUBRIC = `
@@ -292,7 +293,7 @@ Hard rules:
 
 Agent-browser QA loop (when app is runnable):
 - Session: pcms-web
-- Capture before/after artifacts in tmp/agent-browser/
+- Capture before/after artifacts in /tmp/agent-browser/
 - Preferred baseline routes:
 ${bullets(QA_ROUTES)}
 - If blocked, document exact blocker in task notes.

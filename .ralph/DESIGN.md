@@ -14,6 +14,25 @@ Guardrails:
 
 ---
 
+- [ ] [P1] [PROCESS] Tankathon redesign playbook codification — capture directional pick-impact UX rules + evidence workflow
+  - Problem: Recent Tankathon redesign succeeded only after multiple directional corrections from user intent; those learnings are easy to lose.
+  - Hypothesis: Codifying the flow rules (what users care about, what to highlight, what to suppress) will reduce future churn and improve first-pass quality.
+  - Scope (files):
+    - `.ralph/DESIGN.md`
+    - `agents/design.ts` (prompt/process guidance + artifact path preference)
+    - `web/docs/agent_browser_playbook.md` (optional small note on artifact path convention)
+  - Acceptance criteria:
+    - Process notes capture this sequence explicitly: evidence-first baseline → diagnosis → options → approval → implementation.
+    - Tankathon UX rules captured: non-clickable standings rows; no hover affordance for non-actions; directional highlight semantics from selected team perspective; team-column-first pick context.
+    - Include explicit artifact path convention: prefer `/tmp/agent-browser/...` over repo-local `tmp/agent-browser/...`.
+    - Include a reminder to validate conveyance direction via DB evidence (`pcms.draft_pick_summary_assets` / `pcms.draft_pick_shorthand_assets`) before changing implication UI.
+  - Rubric (before → target):
+    - Interaction predictability: 3 → 5
+    - Navigation/pivots: 3 → 4
+    - Process repeatability: 2 → 5
+  - Guardrails:
+    - Do not modify Salary Book files (except Tankathon exception when task explicitly requires it).
+
 - [ ] [P1] [PROCESS] /web multi-surface baseline audit — establish agent-browser evidence + gap matrix
   - Problem: We do not have a current, shared visual/interaction baseline tied to Salary Book + Noah references, so design work drifts or overfits to tiny edits.
   - Hypothesis: A single baseline pass (before-state snapshots/screenshots + explicit gaps) will anchor taste and enable larger, coherent chunks.
@@ -21,7 +40,7 @@ Guardrails:
     - `.ralph/DESIGN.md`
     - `web/docs/agent_browser_playbook.md`
     - `web/docs/design_guide.md`
-    - `tmp/agent-browser/design-baseline/*` (artifacts)
+    - `/tmp/agent-browser/design-baseline/*` (artifacts)
   - Acceptance criteria:
     - Baseline captured for routes: `/`, `/ripcity/noah`, `/team-summary`, `/system-values`, `/two-way-utility`, `/players`, `/teams`, `/drafts`.
     - Each baseline route has: fresh `snapshot -i -C -c` output + annotated screenshot.

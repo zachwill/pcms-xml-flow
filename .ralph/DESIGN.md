@@ -1,148 +1,162 @@
 # Design Evolution Backlog (`web/`)
 
 North star:
-- Entity index pages are explorer workbenches (fast scan, dense rows, low-friction pivots).
-- Entity detail pages are decision dossiers (what changed, why it matters, what to do next).
-- Canonical Datastar patch boundaries remain stable: `#commandbar`, `#maincanvas`, `#rightpanel-base`, `#rightpanel-overlay`.
-- Salary Book is read-only reference quality except explicit Tankathon allow-list work.
+- Salary Book + Noah are the interaction/taste references.
+- Non-Salary surfaces should converge toward dense explorer workbenches.
+- Optimize for scan speed, predictable interaction, and low-friction pivots.
+- Work in **logical chunks** (cohesive flow bundles), not myopic one-class edits.
 
 Guardrails:
 - Default: do **not** modify Salary Book files.
-- Allowed exception only: `web/app/views/tools/salary_book/_maincanvas_tankathon_frame.html.erb`.
+- Allowed exception only: `web/app/views/salary_book/_maincanvas_tankathon_frame.html.erb`.
 - Do not modify Salary Book controllers/helpers/tests.
-
-Execution mode:
-- Current priority is **entity detail page elevation**.
-- INDEX and TOOL work continues in parallel where high leverage.
-- ENTITY work is explicitly approved in this queue.
-
-Supervisor override: ENTITY
-[ENTITY-OVERRIDE]
-
-Backlog hygiene policy (active-only):
-- Keep only active unchecked tasks (`- [ ] ...`) in this file.
-- Archive completed-task detail to git history (commit diffs/messages), not long in-file history.
+- Keep this file active-only: unchecked tasks only.
 
 ---
 
-Audit note (2026-02-14) — completed [P1] [INDEX] Entity navigation pivots (Draft Selections first-class nav)
-- What changed (files):
-  - `web/app/views/entities/shared/_commandbar.html.erb`
-  - `web/app/views/shared/_commandbar_navigation.html.erb`
-  - `web/app/views/entities/draft_selections/index.html.erb`
-  - `web/app/views/entities/draft_selections/show.html.erb`
-  - `web/test/integration/entities_draft_selections_index_test.rb`
-  - `web/test/integration/entities_draft_selections_show_test.rb`
-- Why this improves flow:
-  - Draft Selections is now a first-class destination in both shared entity commandbar and global navigation, reducing indirect pivots through Drafts.
-  - Draft Selections index + detail now carry consistent active-nav context (`Selections` active) while keeping direct `Draft` links available.
-- Rubric (before → after):
-  - Scan speed: 3 → 4
-  - Information hierarchy: 4 → 4
-  - Interaction predictability: 3 → 4
-  - Density/readability: 5 → 5
-  - Navigation/pivots: 2 → 4
-- Follow-up discovered:
-  - Consider migrating `entities/draft_selections/index` commandbar entity grid to the shared entity commandbar partial to remove duplicated nav markup.
+- [ ] [P1] [PROCESS] /web multi-surface baseline audit — establish agent-browser evidence + gap matrix
+  - Problem: We do not have a current, shared visual/interaction baseline tied to Salary Book + Noah references, so design work drifts or overfits to tiny edits.
+  - Hypothesis: A single baseline pass (before-state snapshots/screenshots + explicit gaps) will anchor taste and enable larger, coherent chunks.
+  - Scope (files):
+    - `.ralph/DESIGN.md`
+    - `web/docs/agent_browser_playbook.md`
+    - `web/docs/design_guide.md`
+    - `tmp/agent-browser/design-baseline/*` (artifacts)
+  - Acceptance criteria:
+    - Baseline captured for routes: `/`, `/ripcity/noah`, `/team-summary`, `/system-values`, `/two-way-utility`, `/players`, `/teams`, `/drafts`.
+    - Each baseline route has: fresh `snapshot -i -C -c` output + annotated screenshot.
+    - Gap matrix identifies top 5 chunk opportunities (surface, user-flow impact, confidence).
+  - Rubric (before → target):
+    - Scan speed: 2 → 4
+    - Information hierarchy: 3 → 4
+    - Interaction predictability: 3 → 4
+    - Density/readability: 3 → 4
+    - Navigation/pivots: 3 → 4
+  - Guardrails:
+    - Do not modify Salary Book files.
 
+- [ ] [P1] [TOOL] /team-summary selection-to-sidebar workflow — stabilize row focus, compare context, and overlay return behavior
+  - Problem: Team row selection, sidebar drill-in, and return-to-scan behavior can feel fragmented when filters/sorts change mid-analysis.
+  - Hypothesis: Tightening the selection → sidebar → back-to-scan loop as one chunk will improve confidence and reduce rescanning.
+  - Scope (files):
+    - `web/app/views/team_summary/show.html.erb`
+    - `web/app/views/team_summary/_workspace_main.html.erb`
+    - `web/app/views/team_summary/_rightpanel_base.html.erb`
+    - `web/app/views/team_summary/_rightpanel_overlay_team.html.erb`
+    - `web/app/controllers/team_summary_controller.rb`
+    - `web/app/javascript/team_summary.js`
+    - `web/test/integration/tools_team_summary_test.rb`
+  - Acceptance criteria:
+    - Selected team context survives sort/filter changes when row remains in scope.
+    - Sidebar clear/close behavior always returns users to an obvious active row context.
+    - Commandbar + maincanvas + sidebar updates keep one-response semantics and stable patch boundaries.
+    - agent-browser before/after artifacts show improved predictability for select → drill-in → close loop.
+  - Rubric (before → target):
+    - Scan speed: 3 → 4
+    - Information hierarchy: 4 → 4
+    - Interaction predictability: 3 → 5
+    - Density/readability: 4 → 4
+    - Navigation/pivots: 3 → 4
+  - Guardrails:
+    - Do not modify Salary Book files.
 
-Audit note (2026-02-14) — completed [P2] [TOOL] Team Summary commandbar team-find/jump
-- What changed (files):
-  - `web/app/views/tools/team_summary/show.html.erb`
-  - `web/app/views/tools/team_summary/_workspace_main.html.erb`
-  - `web/app/controllers/tools/team_summary_controller.rb`
-  - `web/test/integration/tools_team_summary_test.rb`
-- Why this improves flow:
-  - Added commandbar Team Finder (code/name intent + Cmd/Ctrl+K focus + Enter/Jump) so users can target/open a team sidebar directly without table scan/scroll.
-  - Team jump keeps compare slot state intact and writes through canonical `selectedteam` semantics.
-  - URL/query sync now carries `team_finder_query`, and refresh/sort/compare/sidebar flows preserve this state while keeping existing Datastar patch boundaries.
-- Rubric (before → after):
-  - Scan speed: 3 → 5
-  - Information hierarchy: 4 → 4
-  - Interaction predictability: 3 → 4
-  - Density/readability: 4 → 4
-  - Navigation/pivots: 3 → 4
-- Follow-up discovered:
-  - Consider upgrading Team Finder from datalist matching to ranked shortlist chips (+ arrow-key cursor) if team filters/lenses expand further.
+- [ ] [P1] [TOOL] /system-values metric discovery workflow — unify finder intent, section wayfinding, and overlay continuity
+  - Problem: Metric finder, section anchors, and overlay state are strong individually but can desync during rapid query/section changes.
+  - Hypothesis: One chunk focused on finder → section jump → overlay continuity will improve trust in exploratory workflows.
+  - Scope (files):
+    - `web/app/views/system_values/show.html.erb`
+    - `web/app/views/system_values/_commandbar.html.erb`
+    - `web/app/views/system_values/_workspace_main.html.erb`
+    - `web/app/views/system_values/_rightpanel_base.html.erb`
+    - `web/app/views/system_values/_rightpanel_overlay_metric.html.erb`
+    - `web/app/controllers/system_values_controller.rb`
+    - `web/test/integration/tools_system_values_test.rb`
+  - Acceptance criteria:
+    - Finder query/cursor, active section, and overlay state remain coherent through refresh interactions.
+    - Wayfinding cues make active section + selected metric explicit without adding card-heavy UI.
+    - Multi-region updates preserve canonical boundaries and deterministic ordering.
+    - agent-browser before/after artifacts demonstrate smoother finder-to-overlay flow.
+  - Rubric (before → target):
+    - Scan speed: 4 → 5
+    - Information hierarchy: 4 → 5
+    - Interaction predictability: 3 → 5
+    - Density/readability: 4 → 4
+    - Navigation/pivots: 4 → 5
+  - Guardrails:
+    - Do not modify Salary Book files.
 
-Audit note (2026-02-14) — completed [P2] [TOOL] Tool overlay behavior parity (Escape close semantics)
-- What changed (files):
-  - `web/app/views/tools/system_values/show.html.erb`
-  - `web/app/views/tools/two_way_utility/show.html.erb`
-  - `web/app/views/tools/system_values/_rightpanel_overlay_metric.html.erb`
-  - `web/app/views/tools/two_way_utility/_rightpanel_overlay_player.html.erb`
-  - `web/app/javascript/tools/team_summary.js`
-  - `web/test/integration/tools_system_values_test.rb`
-  - `web/test/integration/tools_two_way_utility_test.rb`
-- Why this improves flow:
-  - System Values and Two-Way Utility now support Escape-to-close overlays with the same non-editable-focus guard used in Team Summary semantics.
-  - Close behavior routes through each tool’s canonical sidebar-clear control, keeping `#rightpanel-overlay` patch/clear behavior consistent with existing Datastar boundaries.
-  - Cmd/Ctrl+K finder shortcuts remain intact on both tools while Escape now behaves predictably across tool overlays.
-- Rubric (before → after):
-  - Scan speed: 4 → 4
-  - Information hierarchy: 4 → 4
-  - Interaction predictability: 3 → 5
-  - Density/readability: 4 → 4
-  - Navigation/pivots: 3 → 3
-- Follow-up discovered:
-  - Consider extracting a small shared keyboard utility for overlay-close + finder-shortcut guards to reduce duplicated inline keydown expressions across tool shells.
+- [ ] [P2] [TOOL] /two-way-utility intent shortlist to compare loop — reinforce deterministic cursor, pin, and clear semantics
+  - Problem: Shortlist intent/cursor, compare pins, and overlay actions are powerful but still vulnerable to subtle state-loss perceptions during rapid iteration.
+  - Hypothesis: A coherent chunk focused on shortlist → compare slots → overlay clear/pin behavior will reduce “did the tool lose my place?” moments.
+  - Scope (files):
+    - `web/app/views/two_way_utility/show.html.erb`
+    - `web/app/views/two_way_utility/_commandbar.html.erb`
+    - `web/app/views/two_way_utility/_workspace_main.html.erb`
+    - `web/app/views/two_way_utility/_rightpanel_base.html.erb`
+    - `web/app/views/two_way_utility/_rightpanel_overlay_player.html.erb`
+    - `web/app/controllers/two_way_utility_controller.rb`
+    - `web/test/integration/tools_two_way_utility_test.rb`
+  - Acceptance criteria:
+    - Cursor and shortlist intent survive pin/clear actions and overlay transitions when candidate remains valid.
+    - Compare slot actions preserve explicit user intent with no hidden resets.
+    - Keyboard and click paths produce equivalent outcomes for shortlist/open/pin/clear flows.
+    - agent-browser before/after artifacts validate deterministic flow behavior.
+  - Rubric (before → target):
+    - Scan speed: 4 → 5
+    - Information hierarchy: 4 → 4
+    - Interaction predictability: 4 → 5
+    - Density/readability: 4 → 4
+    - Navigation/pivots: 4 → 5
+  - Guardrails:
+    - Do not modify Salary Book files.
 
-Audit note (2026-02-14) — completed [P1] [ENTITY] teams/show roster + cap horizon dossier lanes
-- What changed (files):
-  - `web/app/views/entities/teams/_roster_breakdown.html.erb`
-  - `web/app/views/entities/teams/_section_roster.html.erb`
-  - `web/app/views/entities/teams/_cap_horizon_table.html.erb`
-  - `web/test/integration/entities_teams_show_test.rb`
-- Why this improves flow:
-  - Replaced roster/cap horizon table islands with lane-native row treatment (`entity-cell-two-line`, dense identity rows, chip-based status) so scan and pivots are consistent with other upgraded dossier sections.
-  - Standard + two-way + accounting buckets now stay numerically complete while keeping canonical player/agent/team pivots visible in-row.
-  - Cap horizon now foregrounds current-year pressure posture and keeps full multi-year fidelity in compact lanes, with direct jump links to constraints/activity context.
-  - Added bootstrap integration assertions to lock the no-table lane rendering and section-id morph stability for roster + cap horizon.
-- Rubric (before → after):
-  - Scan speed: 2 → 4
-  - Information hierarchy: 3 → 5
-  - Interaction predictability: 3 → 4
-  - Density/readability: 2 → 4
-  - Navigation/pivots: 4 → 4
-- Follow-up discovered:
-  - Consider adding lightweight sort/lens toggles within roster accounting buckets (amount/type/expiry) once query-param restoration patterns are defined for entity detail sections.
+- [ ] [P2] [INDEX] /players commandbar-to-lane triage workflow — improve urgency lens clarity and preserve sidebar drill context
+  - Problem: Players index has deep filtering power, but multi-lens triage can still force extra rescans before a confident drill-in.
+  - Hypothesis: A chunk that sharpens lens visibility + lane context + drill preservation will speed high-volume triage.
+  - Scope (files):
+    - `web/app/views/players/index.html.erb`
+    - `web/app/views/players/_workspace_main.html.erb`
+    - `web/app/views/players/_rightpanel_base.html.erb`
+    - `web/app/views/players/_rightpanel_overlay_player.html.erb`
+    - `web/app/controllers/players_controller.rb`
+    - `web/app/controllers/players_sse_controller.rb`
+    - `web/test/integration/entities_players_index_test.rb`
+  - Acceptance criteria:
+    - Active urgency lenses/sub-lenses are always visible and interpretable while scanning lanes.
+    - Sidebar drill-in remains stable across filter changes when selected row is still in scope.
+    - Clearing/invalidating selection is explicit and predictable when rows fall out of scope.
+    - agent-browser before/after artifacts show faster lane triage with fewer context losses.
+  - Rubric (before → target):
+    - Scan speed: 4 → 5
+    - Information hierarchy: 4 → 5
+    - Interaction predictability: 4 → 5
+    - Density/readability: 4 → 4
+    - Navigation/pivots: 4 → 5
+  - Guardrails:
+    - Do not modify Salary Book files.
 
-Audit note (2026-02-14) — completed [P1] [INDEX] drafts/index rightpanel provenance drill-ins lane-native + URL-restorable
-- What changed (files):
-  - `web/app/controllers/entities/drafts_controller.rb`
-  - `web/app/views/entities/drafts/index.html.erb`
-  - `web/app/views/entities/drafts/_rightpanel_overlay_pick.html.erb`
-  - `web/app/views/entities/drafts/_rightpanel_overlay_selection.html.erb`
-  - `web/test/integration/entities_pane_endpoints_test.rb`
-- Why this improves flow:
-  - Draft pick + selection overlays now render provenance as lane-native rows (no table island), with explicit severity chips and compact swap/future/conditional flags for faster chain triage.
-  - Drafts index now hydrates overlay-open state on first load from `selected_type` + `selected_key` when the target row/cell is in-scope, so refresh/share workflows preserve drill-in continuity.
-  - Existing SSE refresh behavior remains aligned with the same visibility contract (preserve when visible, clear when filtered out).
-- Rubric (before → after):
-  - Scan speed: 3 → 4
-  - Information hierarchy: 3 → 4
-  - Interaction predictability: 2 → 4
-  - Density/readability: 3 → 4
-  - Navigation/pivots: 4 → 5
-- Follow-up discovered:
-  - Apply the same first-load overlay hydration + lane-native provenance treatment to `draft_selections/index`.
-
-Audit note (2026-02-14) — completed [P2] [INDEX] draft_selections/index provenance lanes + selected overlay URL bootstrap
-- What changed (files):
-  - `web/app/controllers/entities/draft_selections_controller.rb`
-  - `web/app/controllers/entities/draft_selections_sse_controller.rb`
-  - `web/app/views/entities/draft_selections/index.html.erb`
-  - `web/app/views/entities/draft_selections/_rightpanel_overlay_selection.html.erb`
-  - `web/test/integration/entities_draft_selections_index_test.rb`
-- Why this improves flow:
-  - Draft Selections now restores overlay drill-in on initial page load from `selected_id` when the row remains in-scope, matching index continuity behavior used on adjacent explorer surfaces.
-  - Overlay provenance chain moved from table island to lane-native rows with severity chips plus compact swap/future/conditional flags, making contested ownership trails scannable without horizontal table parsing.
-  - Existing SSE refresh semantics remain stable: selected overlay persists only while row visibility remains valid, otherwise clear state is patched with no dangling selection signal.
-- Rubric (before → after):
-  - Scan speed: 3 → 4
-  - Information hierarchy: 3 → 4
-  - Interaction predictability: 2 → 4
-  - Density/readability: 3 → 4
-  - Navigation/pivots: 4 → 5
-- Follow-up discovered:
-  - Consider extracting a shared partial/helper for draft provenance lane rows used by both `drafts` and `draft_selections` overlays to reduce duplicate severity/flag rendering logic.
+- [ ] [P2] [INDEX] /teams cap-pressure board workflow — strengthen filter discoverability, row comparison cadence, and sidebar persistence
+  - Problem: Teams index is dense but long-session comparison can still lose rhythm when toggling between pressure lenses and team drill-ins.
+  - Hypothesis: A chunk focused on pressure filter discoverability + comparison cadence + sidebar persistence will improve board-style decision speed.
+  - Scope (files):
+    - `web/app/views/teams/index.html.erb`
+    - `web/app/views/teams/_commandbar.html.erb`
+    - `web/app/views/teams/_workspace_main.html.erb`
+    - `web/app/views/teams/_rightpanel_base.html.erb`
+    - `web/app/views/teams/_rightpanel_overlay_team.html.erb`
+    - `web/app/controllers/teams_controller.rb`
+    - `web/app/controllers/teams_sse_controller.rb`
+    - `web/test/integration/entities_teams_index_test.rb`
+  - Acceptance criteria:
+    - Pressure/conference controls remain obvious and stateful during dense board scanning.
+    - Row-to-sidebar drill loop preserves active comparison context where valid.
+    - Keyboard and pointer interactions produce equivalent row selection behavior.
+    - agent-browser before/after artifacts confirm improved comparison cadence.
+  - Rubric (before → target):
+    - Scan speed: 4 → 5
+    - Information hierarchy: 4 → 5
+    - Interaction predictability: 4 → 5
+    - Density/readability: 4 → 4
+    - Navigation/pivots: 4 → 5
+  - Guardrails:
+    - Do not modify Salary Book files.

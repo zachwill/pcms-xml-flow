@@ -1,7 +1,7 @@
 <% content_for :title, "Agencies" %>
 
 <%
-  signals_literal = "{ agencyquery: #{@query.to_json}, agencyactivity: #{@activity_lens.to_json}, agencyyear: #{@book_year.to_s.to_json}, agencysort: #{@sort_key.to_json}, agencydir: #{@sort_dir.to_json}, overlaytype: 'none', overlayid: '' }"
+  signals_literal = "{ agencyquery: #{@query.to_json}, agencyactivity: #{@activity_lens.to_json}, agencyyear: #{@book_year.to_s.to_json}, agencysort: #{@sort_key.to_json}, agencydir: #{@sort_dir.to_json}, overlaytype: 'none', overlayid: '', _agencieshovercolumn: '' }"
 %>
 
 <div id="agencies-workspace" class="h-screen w-full flex flex-col overflow-hidden bg-background" style="height: 100dvh;" data-signals="<%= signals_literal %>">
@@ -23,7 +23,8 @@
     >
       <div
         id="rightpanel-base-layer"
-        class="absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-contain scroll-touch pt-3 px-4 pb-4"
+        class="absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-contain scroll-touch pt-2 px-4 pb-4 transition-opacity duration-200"
+        data-class="{ 'opacity-0 pointer-events-none': $overlaytype === 'agency' }"
       >
         <%= render partial: "agencies/rightpanel_base" %>
       </div>

@@ -9,6 +9,7 @@
 
   refresh_expr = "@get('/agencies/sse/refresh?' + (#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr})); window.history.replaceState({}, '', '/agencies?' + (#{pane_query_expr}))"
   clear_query_expr = "$agencyquery = ''; #{refresh_expr}"
+  reset_expr = "$agencyquery = ''; $agencyactivity = 'all'; $agencyyear = '2025'; $agencysort = 'book'; $agencydir = 'desc'; $overlaytype = 'none'; $overlayid = ''; #{refresh_expr}"
 
   posture_options = [
     ["all", "All"],
@@ -28,11 +29,14 @@
     ["options", "Opts"],
     ["name", "Name"]
   ]
+
+  selected_posture_label = posture_options.to_h[@activity_lens.to_s] || "All"
+  selected_sort_label = sort_options.to_h[@sort_key.to_s] || "Book"
 %>
 
 <header id="commandbar" class="shrink-0 h-[130px] border-b border-border bg-background px-4 pt-3 flex items-start gap-4 select-none">
   <div class="flex items-start min-w-0 overflow-x-auto pb-1">
-    <div class="min-w-[16rem] w-[16rem] space-y-2">
+    <div class="min-w-[18rem] w-[18rem] space-y-2">
       <div class="space-y-1">
         <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Search</div>
         <div class="flex items-center gap-1.5">
@@ -59,31 +63,44 @@
         </div>
       </div>
 
-      <div class="space-y-1">
-        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Book year</div>
-        <div class="flex items-center gap-2">
-          <% [2025, 2026, 2027].each do |year| %>
-            <label class="flex items-center gap-1 cursor-pointer select-none">
-              <input
-                type="radio"
-                id="agencies-book-year-<%= year %>"
-                name="agencies-book-year"
-                value="<%= year %>"
-                class="size-3.5 accent-primary"
-                <%= "checked" if @book_year == year %>
-                data-bind="agencyyear"
-                data-on:change="<%= refresh_expr %>"
-              />
-              <span class="text-[11px] leading-none tabular-nums text-foreground/90"><%= year %></span>
-            </label>
-          <% end %>
-        </div>
+      <div class="flex items-center gap-1.5 text-[10px] uppercase tracking-wide">
+        <span class="entity-chip entity-chip--muted"><%= @agencies.size %> rows</span>
+        <span class="entity-chip entity-chip--muted">Book <%= @book_year %></span>
+        <% if @activity_lens != "all" %>
+          <span class="entity-chip entity-chip--warning"><%= selected_posture_label %></span>
+        <% end %>
       </div>
     </div>
 
     <div class="h-20 w-px bg-border self-center shrink-0 mx-3"></div>
 
-    <div class="min-w-[12.5rem] w-[12.5rem] space-y-1">
+    <div class="min-w-[10rem] w-[10rem] space-y-1">
+      <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Book year</div>
+      <div class="space-y-1">
+        <% [2025, 2026, 2027].each do |year| %>
+          <label class="flex items-center gap-1.5 cursor-pointer select-none">
+            <input
+              type="radio"
+              id="agencies-book-year-<%= year %>"
+              name="agencies-book-year"
+              value="<%= year %>"
+              class="size-3.5 accent-primary"
+              <%= "checked" if @book_year == year %>
+              data-bind="agencyyear"
+              data-on:change="if (el.checked) { <%= refresh_expr %>; }"
+            />
+            <span
+              class="text-[11px] leading-none tabular-nums"
+              data-class="{ 'text-foreground font-semibold': $agencyyear === '<%= year %>', 'text-muted-foreground': $agencyyear !== '<%= year %>' }"
+            ><%= year %></span>
+          </label>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="h-20 w-px bg-border self-center shrink-0 mx-3"></div>
+
+    <div class="min-w-[12rem] w-[12rem] space-y-1">
       <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Posture lens</div>
       <div class="space-y-1">
         <% posture_options.each do |value, label| %>
@@ -109,7 +126,7 @@
 
     <div class="h-20 w-px bg-border self-center shrink-0 mx-3"></div>
 
-    <div class="min-w-[11.5rem] w-[11.5rem] space-y-2">
+    <div class="min-w-[12.5rem] w-[12.5rem] space-y-2">
       <div class="space-y-1">
         <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Sort</div>
         <div class="flex items-center gap-1.5">
@@ -133,7 +150,7 @@
               class="size-3.5 accent-primary"
               <%= "checked" if @sort_dir == "desc" %>
               data-bind="agencydir"
-              data-on:change="<%= refresh_expr %>"
+              data-on:change="if (el.checked) { <%= refresh_expr %>; }"
             />
             <span class="text-[11px] leading-none text-foreground/90">↓</span>
           </label>
@@ -147,15 +164,20 @@
               class="size-3.5 accent-primary"
               <%= "checked" if @sort_dir == "asc" %>
               data-bind="agencydir"
-              data-on:change="<%= refresh_expr %>"
+              data-on:change="if (el.checked) { <%= refresh_expr %>; }"
             />
             <span class="text-[11px] leading-none text-foreground/90">↑</span>
           </label>
         </div>
       </div>
 
-      <div class="rounded border border-border/60 bg-muted/20 px-2 py-1 text-[10px] leading-tight text-muted-foreground">
-        <div>Live risk = Book year &gt; 0 + restrictions</div>
+      <div class="flex items-center gap-1.5 text-[10px] uppercase tracking-wide">
+        <span class="entity-chip entity-chip--muted"><%= selected_sort_label %> <%= @sort_dir.to_s.upcase %></span>
+        <button
+          type="button"
+          class="cursor-pointer rounded border border-border px-1.5 py-0.5 text-muted-foreground hover:text-foreground hover:border-foreground/20"
+          data-on:click="<%= reset_expr %>"
+        >Reset</button>
       </div>
     </div>
   </div>

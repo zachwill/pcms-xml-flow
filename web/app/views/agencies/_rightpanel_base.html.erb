@@ -9,7 +9,6 @@
   top_rows = Array(summary[:top_rows])
   overlay_query_expr = "'year=' + encodeURIComponent($agencyyear) + '&sort=' + encodeURIComponent($agencysort) + '&dir=' + encodeURIComponent($agencydir)"
 
-  # Batch-load canonical slugs for agencies in top rows to avoid N+1 queries.
   prefetch_canonical_slugs(entity_type: "agency", entity_ids: top_rows.map { |r| r[:id] })
 %>
 
@@ -25,54 +24,30 @@
 
     <div class="grid grid-cols-2 gap-1.5">
       <%= render partial: "salary_book/kpi_cell", locals: {
-        label: "Rows",
-        value: summary[:row_count].to_i.to_s,
-        class_name: "w-full"
-      } %>
-
-      <%= render partial: "salary_book/kpi_cell", locals: {
         label: "Book '#{year_label}",
         value: format_compact_currency(summary[:book_total]),
         class_name: "w-full"
       } %>
 
       <%= render partial: "salary_book/kpi_cell", locals: {
-        label: "Active",
-        value: summary[:active_count].to_i.to_s,
-        class_name: "w-full"
-      } %>
-
-      <%= render partial: "salary_book/kpi_cell", locals: {
-        label: "Inactive",
-        value: summary[:inactive_count].to_i.to_s,
-        class_name: "w-full"
-      } %>
-    </div>
-
-    <div class="grid grid-cols-3 gap-1.5">
-      <%= render partial: "salary_book/kpi_cell", locals: {
         label: "Live books",
         value: summary[:live_book_count].to_i.to_s,
         class_name: "w-full"
       } %>
+
       <%= render partial: "salary_book/kpi_cell", locals: {
         label: "Inactive+Live",
         value: summary[:inactive_live_book_count].to_i.to_s,
         variant: (summary[:inactive_live_book_count].to_i.positive? ? "negative" : "muted"),
         class_name: "w-full"
       } %>
+
       <%= render partial: "salary_book/kpi_cell", locals: {
         label: "Live risk",
         value: summary[:live_book_risk_count].to_i.to_s,
         variant: (summary[:live_book_risk_count].to_i.positive? ? "option_eto" : "muted"),
         class_name: "w-full"
       } %>
-    </div>
-
-    <div class="rounded border border-border/60 bg-muted/20 px-2 py-1.5 text-[10px] leading-tight text-muted-foreground space-y-1">
-      <div><span class="text-foreground/90">Inactive + live</span>: <%= raw(inactive_live_threshold_text) %></div>
-      <div><span class="text-foreground/90">Live risk</span>: <%= raw(live_risk_threshold_text) %></div>
-      <div><span class="text-foreground/90">Restrictions</span>: <%= restrictions_definition_text %></div>
     </div>
 
     <div class="grid grid-cols-3 gap-1.5">
@@ -93,22 +68,10 @@
       } %>
     </div>
 
-    <div class="grid grid-cols-3 gap-1.5">
-      <%= render partial: "salary_book/kpi_cell", locals: {
-        label: "Max",
-        value: summary[:max_total].to_i.to_s,
-        class_name: "w-full"
-      } %>
-      <%= render partial: "salary_book/kpi_cell", locals: {
-        label: "Exp",
-        value: summary[:expiring_total].to_i.to_s,
-        class_name: "w-full"
-      } %>
-      <%= render partial: "salary_book/kpi_cell", locals: {
-        label: "Opts",
-        value: summary[:option_total].to_i.to_s,
-        class_name: "w-full"
-      } %>
+    <div class="rounded border border-border/60 bg-muted/20 px-2 py-1.5 text-[10px] leading-tight text-muted-foreground space-y-1">
+      <div><span class="text-foreground/90">Inactive + live</span>: <%= raw(inactive_live_threshold_text) %></div>
+      <div><span class="text-foreground/90">Live risk</span>: <%= raw(live_risk_threshold_text) %></div>
+      <div><span class="text-foreground/90">Restrictions</span>: <%= restrictions_definition_text %></div>
     </div>
 
     <% if Array(summary[:filters]).any? %>
@@ -120,7 +83,7 @@
     <% end %>
   </div>
 
-  <div class="rounded-lg border border-border bg-background">
+  <div class="rounded-lg border border-border bg-background overflow-hidden">
     <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">
       Top agencies by current sort
     </div>
@@ -134,18 +97,29 @@
 
           <button
             type="button"
-            class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+            class="cursor-pointer group w-full px-3 py-1.5 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
             data-on:click="$overlaytype = 'agency'; $overlayid = '<%= row_id %>'; @get('/agencies/sidebar/<%= row_id %>?' + (<%= overlay_query_expr %>))"
           >
-            <div class="entity-cell-two-line">
-              <div class="entity-cell-primary justify-between gap-2">
-                <a href="<%= agency_href(row_id) %>" class="truncate font-medium hover:underline" onclick="event.stopPropagation()"><%= row[:title] %></a>
+            <div class="grid grid-cols-[30px_1fr_auto] grid-rows-[24px_16px] gap-x-2">
+              <div class="row-span-2 flex items-center justify-start">
+                <div class="w-7 h-7 rounded border border-border bg-muted/40 flex items-center justify-center text-[10px] font-semibold uppercase text-muted-foreground"><%= row[:title].to_s.first(2) %></div>
+              </div>
+
+              <div class="h-[24px] flex items-end min-w-0">
+                <a href="<%= agency_href(row_id) %>" class="truncate font-medium text-[13px] group-hover:text-primary transition-colors hover:underline" onclick="event.stopPropagation()"><%= row[:title] %></a>
+              </div>
+
+              <div class="h-[24px] flex items-end justify-end">
                 <span class="font-mono tabular-nums text-[11px] shrink-0"><%= format_compact_currency(row[:book_total]) %></span>
               </div>
-              <div class="entity-cell-secondary justify-between gap-2">
+
+              <div class="h-[16px] -mt-px flex items-start min-w-0 text-[10px] text-muted-foreground/80 leading-none truncate">
                 <span class="truncate"><%= row[:subtitle] %></span>
+              </div>
+
+              <div class="h-[16px] -mt-px flex items-start justify-end">
                 <% if representation_percentile_int(row[:percentile]).present? %>
-                  <span class="font-mono tabular-nums <%= representation_percentile_color_class(row[:percentile]) %>">P<%= representation_percentile_int(row[:percentile]) %></span>
+                  <span class="text-[10px] leading-none font-mono tabular-nums <%= representation_percentile_color_class(row[:percentile]) %>">P<%= representation_percentile_int(row[:percentile]) %></span>
                 <% end %>
               </div>
             </div>

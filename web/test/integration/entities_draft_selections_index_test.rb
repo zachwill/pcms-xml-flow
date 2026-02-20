@@ -146,6 +146,25 @@ class EntitiesDraftSelectionsIndexTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "draft selections commandbar lane context surfaces active lens focus" do
+    with_fake_connection do
+      get "/draft-selections", params: {
+        q: "",
+        year: "2026",
+        round: "all",
+        team: "",
+        sort: "provenance",
+        lens: "with_trade"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, "Focus"
+      assert_includes response.body, "Contested lanes only"
+      assert_includes response.body, "Clean lane excluded; contested rows stay in scope."
+      assert_includes response.body, "$draftselectionlens === 'deep_chain'"
+    end
+  end
+
   test "draft selections sidebar overlay includes provenance pivots and clear endpoint resets overlay" do
     with_fake_connection do
       get "/draft-selections/sidebar/777001", headers: modern_headers

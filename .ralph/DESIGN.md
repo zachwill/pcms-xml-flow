@@ -167,6 +167,7 @@ Each task is one iteration of focused work (~10 min). Commit when done.
   Why: Severity/route guidance is currently repeated in both the pre-table summary block and lane headers, creating avoidable vertical tax before first rows in explorer mode.
   Note: Replaced the stacked pre-table legend block with a single horizontal scan rail (scope + severity lane chips + route totals), and removed duplicate lane-header route chips to keep first-row access tighter.
 
-- [ ] [P2] [INDEX] /draft-selections — surface active lens focus in commandbar lane context
+- [x] [P2] [INDEX] /draft-selections — surface active lens focus in commandbar lane context
   Files: web/app/views/draft_selections/index.html.erb, web/app/controllers/draft_selections_controller.rb
   Why: Lane counts are visible, but active lens intent (all vs contested vs deep-contested) is not explicit in commandbar context, reducing wayfinding predictability after filter pivots.
+  Note: Commandbar severity lane rail now shows an explicit Focus chip + scope sentence tied to `draftselectionlens` signals, and controller snapshot payload now emits canonical focus label/note copy.

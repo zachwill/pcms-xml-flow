@@ -23,6 +23,10 @@
   with_trade_count = severity_snapshot[:with_trade_count].to_i
   deep_chain_count = severity_snapshot[:deep_chain_count].to_i
   contested_count = severity_snapshot[:contested_count].to_i
+
+  lens_focus = severity_snapshot[:lens_focus].is_a?(Hash) ? severity_snapshot[:lens_focus] : {}
+  lens_focus_label = lens_focus[:label].to_s.presence || "All severity lanes"
+  lens_focus_note = lens_focus[:note].to_s.presence || "Clean and contested rows are both in scope."
 %>
 
 <div id="draft-selections-workspace" class="h-screen w-screen flex flex-col overflow-hidden bg-background" data-signals="<%= signals_literal %>">
@@ -113,8 +117,20 @@
       </div>
     </div>
 
-    <div class="min-w-[12rem] space-y-1">
+    <div class="min-w-[15rem] space-y-1">
       <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Severity lanes</div>
+      <div class="flex items-center gap-1 text-[10px] text-muted-foreground">
+        <span class="uppercase tracking-wide text-muted-foreground/80">Focus</span>
+        <span
+          class="entity-chip entity-chip--muted"
+          data-class="{ 'entity-chip entity-chip--muted': $draftselectionlens === 'all', 'entity-chip entity-chip--warning': $draftselectionlens === 'with_trade', 'entity-chip entity-chip--danger': $draftselectionlens === 'deep_chain' }"
+          data-text="$draftselectionlens === 'deep_chain' ? 'Deep-contested lane only' : ($draftselectionlens === 'with_trade' ? 'Contested lanes only' : 'All severity lanes')"
+        ><%= lens_focus_label %></span>
+      </div>
+      <div
+        class="text-[10px] leading-tight text-muted-foreground/80"
+        data-text="$draftselectionlens === 'deep_chain' ? 'Only deep-chain rows (P2+) remain in scope.' : ($draftselectionlens === 'with_trade' ? 'Clean lane excluded; contested rows stay in scope.' : 'Clean and contested rows are both in scope.')"
+      ><%= lens_focus_note %></div>
       <div class="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
         <span class="entity-chip entity-chip--danger">Deep <span class="font-mono tabular-nums"><%= deep_chain_count %></span></span>
         <span class="entity-chip entity-chip--warning">With trade <span class="font-mono tabular-nums"><%= with_trade_count %></span></span>

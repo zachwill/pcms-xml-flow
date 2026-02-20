@@ -191,13 +191,16 @@ class DraftSelectionsController < ApplicationController
     severity_counts = normalized_severity_counts(@sidebar_summary)
     contested_count = severity_counts.fetch("with_trade", 0) + severity_counts.fetch("deep_chain", 0)
 
+    lens_focus = severity_lens_focus_payload(@lens)
+
     @workspace_severity_snapshot = {
       clean_count: severity_counts.fetch("clean", 0),
       with_trade_count: severity_counts.fetch("with_trade", 0),
       deep_chain_count: severity_counts.fetch("deep_chain", 0),
       contested_count: contested_count,
       total_count: rows.size,
-      lens_label: severity_lens_focus_label(@lens)
+      lens_label: lens_focus[:label],
+      lens_focus: lens_focus
     }
 
     @workspace_severity_lanes = SEVERITY_LANE_ORDER.filter_map do |severity_key|
@@ -235,14 +238,26 @@ class DraftSelectionsController < ApplicationController
     "clean"
   end
 
-  def severity_lens_focus_label(raw_lens)
+  def severity_lens_focus_payload(raw_lens)
     case raw_lens.to_s
     when "with_trade"
-      "Contested lanes only"
+      {
+        key: "with_trade",
+        label: "Contested lanes only",
+        note: "Clean lane excluded; contested rows stay in scope."
+      }
     when "deep_chain"
-      "Deep-contested lane only"
+      {
+        key: "deep_chain",
+        label: "Deep-contested lane only",
+        note: "Only deep-chain rows (P2+) remain in scope."
+      }
     else
-      "All severity lanes"
+      {
+        key: "all",
+        label: "All severity lanes",
+        note: "Clean and contested rows are both in scope."
+      }
     end
   end
 

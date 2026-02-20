@@ -16,20 +16,19 @@
 
   refresh_expr = "@get('/transactions/sse/refresh?' + (#{refresh_query_expr})); window.history.replaceState({}, '', '/transactions?' + (#{pane_query_expr}))"
 
-  signals_literal = "{ txnquery: #{@query.to_s.to_json}, txndaterange: #{@daterange.to_json}, txnteam: #{(@team || '').to_json}, txnsignings: #{@signings.to_json}, txnwaivers: #{@waivers.to_json}, txnextensions: #{@extensions.to_json}, txnother: #{@other.to_json}, txnimpact: #{@impact.to_json}, overlaytype: 'none', overlayid: '' }"
+  signals_literal = "{ txnquery: #{@query.to_s.to_json}, txndaterange: #{@daterange.to_json}, txnteam: #{(@team || '').to_json}, txnsignings: #{@signings.to_json}, txnwaivers: #{@waivers.to_json}, txnextensions: #{@extensions.to_json}, txnother: #{@other.to_json}, txnimpact: #{@impact.to_json}, overlaytype: '', overlayid: '' }"
 %>
 
-<div id="transactions-workspace" class="h-screen w-screen flex flex-col overflow-hidden bg-background" data-signals="<%= signals_literal %>">
+<div id="transactions-workspace" class="h-screen w-full flex flex-col overflow-hidden bg-background" style="height: 100dvh;" data-signals="<%= signals_literal %>">
   <div id="flash"></div>
 
   <header
     id="commandbar"
-    class="sticky top-0 z-40 shrink-0 h-[130px] border-b border-border bg-background flex items-start px-4 pt-3 gap-4 select-none"
+    class="shrink-0 h-[130px] border-b border-border bg-background px-4 pt-3 flex items-start gap-4 select-none"
   >
-
-    <div class="flex items-start gap-4" role="group" aria-label="Transactions filters">
-      <div class="min-w-[7.5rem] space-y-1">
-        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Date range</div>
+    <div class="flex items-start min-w-0 overflow-x-auto pb-1" role="group" aria-label="Transactions filters">
+      <div class="min-w-[8.5rem] w-[8.5rem] space-y-1.5">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Date Range</div>
         <div class="space-y-1">
           <% [["today", "Today"], ["week", "This Week"], ["month", "This Month"], ["season", "This Season"], ["all", "All"]].each do |value, label| %>
             <label class="flex items-center gap-1.5 cursor-pointer">
@@ -48,27 +47,53 @@
         </div>
       </div>
 
-      <div class="min-w-[11rem] space-y-1">
-        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Team</div>
-        <select
-          id="transactions-team-select"
-          class="h-7 w-52 rounded border border-border bg-background px-2 text-xs text-foreground"
-          data-bind="txnteam"
-          data-on:change="<%= refresh_expr %>"
-        >
-          <option value="" <%= "selected" if @team.blank? %>>All teams</option>
-          <% Array(@team_options).each do |team| %>
-            <% code = team["team_code"].to_s.upcase %>
-            <option value="<%= code %>" <%= "selected" if @team == code %>><%= code %> · <%= team["team_name"] %></option>
-          <% end %>
-        </select>
+      <div class="h-20 w-px bg-border self-center shrink-0 mx-3"></div>
+
+      <div class="min-w-[16rem] w-[16rem] space-y-2">
+        <div class="space-y-1">
+          <label for="transactions-query" class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Search</label>
+          <div class="flex items-center gap-1.5">
+            <input
+              id="transactions-query"
+              type="text"
+              class="h-7 w-full rounded border border-border bg-background px-2 text-xs text-foreground"
+              placeholder="Player, team, tx id"
+              value="<%= @query.to_s %>"
+              data-bind="txnquery"
+              data-on:keydown="if (evt.key === 'Enter') { evt.preventDefault(); <%= refresh_expr %>; }"
+            />
+            <button
+              type="button"
+              class="h-7 shrink-0 rounded border border-border px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground"
+              data-on:click="<%= refresh_expr %>"
+            >Apply</button>
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Team</div>
+          <select
+            id="transactions-team-select"
+            class="h-7 w-full rounded border border-border bg-background px-2 text-xs text-foreground"
+            data-bind="txnteam"
+            data-on:change="<%= refresh_expr %>"
+          >
+            <option value="" <%= "selected" if @team.blank? %>>All teams</option>
+            <% Array(@team_options).each do |team| %>
+              <% code = team["team_code"].to_s.upcase %>
+              <option value="<%= code %>" <%= "selected" if @team == code %>><%= code %> · <%= team["team_name"] %></option>
+            <% end %>
+          </select>
+        </div>
       </div>
 
-      <div class="min-w-[10rem] space-y-1">
-        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Severity lane</div>
+      <div class="h-20 w-px bg-border self-center shrink-0 mx-3"></div>
+
+      <div class="min-w-[13rem] w-[13rem] space-y-1.5">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Severity Lane</div>
         <select
           id="transactions-impact-select"
-          class="h-7 w-52 rounded border border-border bg-background px-2 text-xs text-foreground"
+          class="h-7 w-full rounded border border-border bg-background px-2 text-xs text-foreground"
           data-bind="txnimpact"
           data-on:change="<%= refresh_expr %>"
         >
@@ -81,9 +106,11 @@
         <div class="text-[10px] leading-none text-muted-foreground/70" data-text="$txnteam ? ($txnteam + ' route perspective') : 'League-wide route perspective'"></div>
       </div>
 
-      <div class="min-w-[7.5rem] space-y-1">
+      <div class="h-20 w-px bg-border self-center shrink-0 mx-3"></div>
+
+      <div class="min-w-[11.5rem] w-[11.5rem] space-y-1">
         <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Type</div>
-        <div class="space-y-1">
+        <div class="grid grid-cols-2 gap-x-2 gap-y-1">
           <div class="flex items-center gap-1.5">
             <input
               type="checkbox"
@@ -140,7 +167,7 @@
   </header>
 
   <div id="viewport" class="flex flex-1 overflow-hidden relative">
-    <main id="maincanvas" class="flex-1 min-w-0 overflow-y-auto overflow-x-auto bg-background relative overscroll-y-contain scroll-touch isolate">
+    <main id="maincanvas" class="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-auto bg-background relative overscroll-y-contain scroll-touch isolate">
       <%= render partial: "transactions/results" %>
     </main>
 
@@ -150,7 +177,8 @@
     >
       <div
         id="rightpanel-base-layer"
-        class="absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-contain scroll-touch pt-2 px-4 pb-4"
+        class="absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-y-contain scroll-touch pt-2 px-4 pb-4 transition-opacity duration-150"
+        data-class="{ 'opacity-0 pointer-events-none': $overlaytype === 'transaction', 'opacity-100': $overlaytype !== 'transaction' }"
       >
         <%= render partial: "transactions/rightpanel_base" %>
       </div>

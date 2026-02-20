@@ -93,7 +93,7 @@ class PlayersSseController < PlayersController
   end
 
   def refreshed_overlay_payload(requested_overlay_id:)
-    return [overlay_clear_html, "none", ""] unless selected_overlay_visible?(overlay_id: requested_overlay_id)
+    return [overlay_clear_html, "", ""] unless selected_overlay_visible?(overlay_id: requested_overlay_id)
 
     html = without_view_annotations do
       player_payload = load_sidebar_player_payload(requested_overlay_id)
@@ -108,7 +108,7 @@ class PlayersSseController < PlayersController
 
     [html, "player", requested_overlay_id.to_s]
   rescue ActiveRecord::RecordNotFound
-    [overlay_clear_html, "none", ""]
+    [overlay_clear_html, "", ""]
   end
 
   def overlay_clear_html

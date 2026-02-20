@@ -33,7 +33,7 @@
   end
 %>
 
-<main id="maincanvas" class="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden bg-background relative overscroll-y-contain scroll-touch isolate">
+<main id="maincanvas" class="flex-1 min-w-0 min-h-0 overflow-auto bg-background relative overscroll-y-contain scroll-touch isolate">
   <div class="py-3">
     <section class="px-4 pb-3 border-b border-border">
       <div class="flex flex-wrap items-start justify-between gap-4">
@@ -110,19 +110,21 @@
       </div>
     <% else %>
       <section class="border-b border-border">
-        <div class="sticky top-0 z-10 bg-muted border-b border-border">
-          <div class="flex items-center px-4 h-9 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium cursor-default select-none">
-            <div class="w-64 shrink-0">Player</div>
-            <div class="w-32 shrink-0">Team</div>
-            <div class="w-56 shrink-0">Contract Flags</div>
-            <div class="w-44 shrink-0">Agent</div>
-            <div class="w-24 shrink-0 text-right font-mono tabular-nums">Cap <%= cap_horizon_label %></div>
-            <div class="w-24 shrink-0 text-right font-mono tabular-nums">Cap <%= next_horizon_label %></div>
-            <div class="w-24 shrink-0 text-right font-mono tabular-nums">Total</div>
-          </div>
-        </div>
+        <div class="overflow-x-auto">
+          <div class="min-w-[1060px]">
+            <div class="sticky top-0 z-10 bg-muted border-b border-border">
+              <div class="flex items-center px-4 h-9 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium cursor-default select-none">
+                <div class="w-[17rem] shrink-0">Player</div>
+                <div class="w-36 shrink-0">Team</div>
+                <div class="w-56 shrink-0">Contract Flags</div>
+                <div class="w-44 shrink-0">Agent</div>
+                <div class="w-24 shrink-0 text-right font-mono tabular-nums">Cap <%= cap_horizon_label %></div>
+                <div class="w-24 shrink-0 text-right font-mono tabular-nums">Cap <%= next_horizon_label %></div>
+                <div class="w-24 shrink-0 text-right font-mono tabular-nums">Total</div>
+              </div>
+            </div>
 
-        <div id="players-table-body" class="divide-y divide-border/60">
+            <div id="players-table-body" class="divide-y divide-border/60">
           <% @players.each do |player| %>
             <% player_id = player["player_id"] %>
             <% team_code = player["team_code"].to_s.upcase.presence %>
@@ -159,7 +161,7 @@
               data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); <%= row_click_expr %>; }"
             >
               <div class="flex items-center px-4 h-[44px]">
-                <div class="w-64 shrink-0">
+                <div class="w-[17rem] shrink-0">
                   <div class="grid grid-cols-[36px_1fr] grid-rows-[24px_16px]">
                     <div class="row-span-2 flex items-center justify-start">
                       <div class="w-8 h-8 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
@@ -190,7 +192,7 @@
                   </div>
                 </div>
 
-                <div class="w-32 shrink-0">
+                <div class="w-36 shrink-0">
                   <% if team_code.present? %>
                     <div class="grid grid-cols-[28px_1fr] grid-rows-[24px_16px]">
                       <div class="row-span-2 flex items-center justify-start">
@@ -272,6 +274,8 @@
               </div>
             </div>
           <% end %>
+            </div>
+          </div>
         </div>
       </section>
     <% end %>

@@ -31,7 +31,7 @@
     <button
       type="button"
       class="cursor-pointer flex items-center gap-1.5 text-sm transition-colors text-muted-foreground hover:text-foreground"
-      data-on:click="$overlaytype = 'none'; $selectedplayerid = ''; @get('/players/sidebar/clear')"
+      data-on:click="$overlaytype = ''; $selectedplayerid = ''; @get('/players/sidebar/clear')"
     >
       <%= lucide_icon("arrow-left", class: "w-4 h-4", "aria-hidden": true) %>
       <span class="font-medium">Back</span>

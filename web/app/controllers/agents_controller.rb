@@ -139,6 +139,67 @@ class AgentsController < ApplicationController
     state.each do |key, value|
       instance_variable_set("@#{key}", value)
     end
+
+    rehydrate_agency_scope_state!
+  end
+
+  def rehydrate_agency_scope_state!
+    scope_state = agency_scope_state_from_params
+    return if scope_state.nil?
+
+    @agency_scope_active = scope_state[:active]
+    @agency_scope_id = scope_state[:id]
+
+    @sidebar_summary ||= {}
+    @sidebar_summary[:agency_scope_active] = @agency_scope_active
+    @sidebar_summary[:agency_scope_id] = @agency_scope_id
+
+    existing_scope_name = @sidebar_summary[:agency_scope_name].to_s.strip.presence
+    @sidebar_summary[:agency_scope_name] = resolved_agency_scope_name(@agency_scope_id).presence || existing_scope_name
+
+    scope_filters = Array(@sidebar_summary[:filters]).reject { |label| label.to_s.start_with?("Scoped to agency") }
+    if @agency_scope_active && @agency_scope_id.present?
+      label_name = @sidebar_summary[:agency_scope_name].presence || "##{@agency_scope_id}"
+      scope_filters << "Scoped to agency #{label_name}"
+    end
+    @sidebar_summary[:filters] = scope_filters
+  end
+
+  def agency_scope_state_from_params
+    return nil unless scope_param_provided?
+
+    scope_id = parse_positive_integer(params[:agency_scope_id])
+    scope_active = if params.key?(:agency_scope) || params.key?("agency_scope")
+      ActiveModel::Type::Boolean.new.cast(params[:agency_scope])
+    else
+      scope_id.present?
+    end
+
+    return { active: false, id: nil } unless scope_active && scope_id.present?
+
+    { active: true, id: scope_id }
+  end
+
+  def scope_param_provided?
+    params.key?(:agency_scope) || params.key?("agency_scope") || params.key?(:agency_scope_id) || params.key?("agency_scope_id")
+  end
+
+  def parse_positive_integer(raw_value)
+    parsed = Integer(raw_value, 10)
+    parsed.positive? ? parsed : nil
+  rescue ArgumentError, TypeError
+    nil
+  end
+
+  def resolved_agency_scope_name(agency_id)
+    return nil unless agency_id.present?
+
+    scoped_row_name = Array(@agents).find { |row| row["agency_id"].to_i == agency_id }&.dig("agency_name") ||
+      Array(@agencies).find { |row| row["agency_id"].to_i == agency_id }&.dig("agency_name")
+
+    filter_option_name = Array(@agency_filter_options).find { |row| row["agency_id"].to_i == agency_id }&.dig("agency_name")
+
+    scoped_row_name.presence || filter_option_name.presence || queries.fetch_agency_name(agency_id)
   end
 
   def selected_overlay_visible?(overlay_type:, overlay_id:)

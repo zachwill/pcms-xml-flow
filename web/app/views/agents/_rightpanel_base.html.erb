@@ -17,8 +17,8 @@
     '&year=' + $bookyear +
     '&sort=' + $sortkey +
     '&dir=' + $sortdir +
-    '&agency_scope=' + (($entitykind === 'agents' && $agencyscopeactive) ? '1' : '0') +
-    '&agency_scope_id=' + encodeURIComponent($entitykind === 'agents' ? $agencyscopeid : '')"
+    '&agency_scope=' + ($agencyscopeactive ? '1' : '0') +
+    '&agency_scope_id=' + encodeURIComponent($agencyscopeid)"
 
   selected_overlay_query_expr = "'selected_type=' + encodeURIComponent($overlaytype) + '&selected_id=' + encodeURIComponent($overlayid)"
   refresh_expr = "@get('/agents/sse/refresh?' + (#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr})); window.history.replaceState({}, '', '/agents?' + (#{pane_query_expr}))"

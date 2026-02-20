@@ -11,8 +11,8 @@
     '&year=' + $bookyear +
     '&sort=' + $sortkey +
     '&dir=' + $sortdir +
-    '&agency_scope=' + (($entitykind === 'agents' && $agencyscopeactive) ? '1' : '0') +
-    '&agency_scope_id=' + encodeURIComponent($entitykind === 'agents' ? $agencyscopeid : '')"
+    '&agency_scope=' + ($agencyscopeactive ? '1' : '0') +
+    '&agency_scope_id=' + encodeURIComponent($agencyscopeid)"
 
   selected_overlay_query_expr = "'selected_type=' + encodeURIComponent($overlaytype) + '&selected_id=' + encodeURIComponent($overlayid)"
 
@@ -51,6 +51,14 @@
       "#{row['agency_name']} · #{row['client_count'].to_i} clients"
     ]
   end.compact
+
+  agency_scope_choices = [["", "No scope (all agents)"]] + agency_filter_choices.drop(1)
+  scope_name = @sidebar_summary&.dig(:agency_scope_name).presence || Array(@agency_filter_options).find { |row| row["agency_id"].to_i == @agency_scope_id.to_i }&.dig("agency_name")
+  scope_label = scope_name.presence || (@agency_scope_id.present? ? "Agency ##{@agency_scope_id}" : nil)
+  scope_checkbox_label = scope_label.present? ? "Scoped: #{scope_label}" : "Agency scope"
+
+  scope_toggle_expr = "if ($agencyscopeactive && !$agencyscopeid) { $agencyscopeid = $overlaytype === 'agency' ? $overlayid : $agencyfilterid; }; if (!$agencyscopeid) { $agencyscopeactive = false; }; #{refresh_expr}"
+  scope_select_expr = "$agencyscopeactive = $agencyscopeid !== ''; #{refresh_expr}"
 %>
 
 <%= render partial: "shared/commandbar", locals: {
@@ -163,6 +171,29 @@
           on_change: refresh_expr,
           width_class: "w-64",
           choices: agency_filter_choices
+        }
+      ]
+    },
+    {
+      label: "Agent scope",
+      min_width_class: "min-w-[16rem]",
+      options: [
+        {
+          type: "checkbox",
+          id: "agent-scope-active",
+          label: scope_checkbox_label,
+          checked: @agency_scope_active && @agency_scope_id.present?,
+          bind: "agencyscopeactive",
+          on_change: scope_toggle_expr
+        },
+        {
+          type: "select",
+          id: "agent-scope-select",
+          value: @agency_scope_id.to_s,
+          bind: "agencyscopeid",
+          on_change: scope_select_expr,
+          width_class: "w-64",
+          choices: agency_scope_choices
         }
       ]
     },

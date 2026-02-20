@@ -13,8 +13,8 @@
     '&year=' + $bookyear +
     '&sort=' + $sortkey +
     '&dir=' + $sortdir +
-    '&agency_scope=' + (($entitykind === 'agents' && $agencyscopeactive) ? '1' : '0') +
-    '&agency_scope_id=' + encodeURIComponent($entitykind === 'agents' ? $agencyscopeid : '')"
+    '&agency_scope=' + ($agencyscopeactive ? '1' : '0') +
+    '&agency_scope_id=' + encodeURIComponent($agencyscopeid)"
 
   selected_overlay_query_expr = "'selected_type=' + encodeURIComponent($overlaytype) + '&selected_id=' + encodeURIComponent($overlayid)"
   refresh_expr = "@get('/agents/sse/refresh?' + (#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr})); window.history.replaceState({}, '', '/agents?' + (#{pane_query_expr}))"
@@ -33,14 +33,13 @@
     dir: @sort_dir
   }
 
-  agents_lens_query = shared_lens_query.merge(
-    kind: "agents",
+  scoped_lens_query = shared_lens_query.merge(
     agency_scope: (@agency_scope_active ? 1 : 0),
     agency_scope_id: @agency_scope_id
   ).compact
 
-  agents_lens_href = "/agents?#{agents_lens_query.to_query}"
-  agencies_lens_href = "/agents?#{shared_lens_query.merge(kind: 'agencies').to_query}"
+  agents_lens_href = "/agents?#{scoped_lens_query.merge(kind: 'agents').to_query}"
+  agencies_lens_href = "/agents?#{scoped_lens_query.merge(kind: 'agencies').to_query}"
   scope_agency_label = @sidebar_summary&.dig(:agency_scope_name).presence || (@agency_scope_id.present? ? "Agency ##{@agency_scope_id}" : "Agency")
   active_agency_filter_label = @sidebar_summary&.dig(:agency_filter_name).presence || (@agency_filter_id.present? ? "Agency ##{@agency_filter_id}" : nil)
 %>
@@ -109,6 +108,11 @@
             data-show="$agencyscopeactive"
             style="display: none;"
           >Scoped: <%= scope_agency_label %></span>
+        </div>
+      <% elsif @agency_scope_active && @agency_scope_id.present? %>
+        <div class="flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-wide text-violet-800 dark:text-violet-200">
+          <span class="rounded border border-violet-400/60 bg-violet-100/60 px-1.5 py-0.5 font-semibold dark:border-violet-500/50 dark:bg-violet-900/25">Agent scope saved: <%= scope_agency_label %></span>
+          <a href="<%= agents_lens_href %>" class="rounded border border-border px-1.5 py-0.5 text-muted-foreground transition-colors hover:text-foreground hover:border-foreground/20">Return to agents scope</a>
         </div>
       <% end %>
     </div>

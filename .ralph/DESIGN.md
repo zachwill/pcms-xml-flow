@@ -54,9 +54,10 @@ Each task is one iteration of focused work (~10 min). Commit when done.
 
 ## /agents + /agencies — directory coherence
 
-- [ ] [P1] [INDEX] /agents — make agency scope state visible and persistent
+- [x] [P1] [INDEX] /agents — make agency scope state visible and persistent
   Files: web/app/views/agents/index.html.erb, web/app/views/agents/_commandbar.html.erb, web/app/controllers/agents_controller.rb
   Why: Mode/scope feels split; users lose track of whether they're scoped to an agency.
+  Note: Added explicit Agent scope controls in commandbar, carried scope params through lens pivots/SSE URLs, and rehydrated scope state in agencies mode so scope context stays visible until cleared.
 
 - [ ] [P2] [INDEX] /agents — smooth agent↔agency overlay pivots
   Files: web/app/views/agents/_rightpanel_overlay_agent.html.erb, web/app/views/agents/_rightpanel_overlay_agency.html.erb, web/app/controllers/agents_sse_controller.rb

@@ -246,6 +246,8 @@ class EntitiesAgentsIndexTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_includes response.body, 'id="agent-directory-kind-agents"'
       assert_includes response.body, 'id="agent-filter-agency-select"'
+      assert_includes response.body, 'id="agent-scope-active"'
+      assert_includes response.body, 'id="agent-scope-select"'
       assert_includes response.body, 'id="maincanvas"'
       assert_includes response.body, 'id="agent-sort-key-select"'
       assert_includes response.body, "$overlaytype === 'agent'"
@@ -270,6 +272,22 @@ class EntitiesAgentsIndexTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_includes response.body, "Alpha Agent"
       refute_includes response.body, "Beta Agent"
+      assert_includes response.body, "Scoped: Summit Sports"
+      assert_includes response.body, "agencyscopeactive: true"
+      assert_includes response.body, "agencyscopeid: '501'"
+    end
+  end
+
+  test "agencies lens keeps scoped agency context visible" do
+    with_fake_connection do
+      get "/agents", params: {
+        kind: "agencies",
+        agency_scope: "1",
+        agency_scope_id: "501"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.body, "Agent scope saved: Summit Sports"
       assert_includes response.body, "Scoped: Summit Sports"
       assert_includes response.body, "agencyscopeactive: true"
       assert_includes response.body, "agencyscopeid: '501'"
@@ -431,6 +449,35 @@ class EntitiesAgentsIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, '"overlayid":"11"'
       assert_includes response.body, '"agencyscopeactive":false'
       assert_includes response.body, '"agencyscopeid":""'
+    end
+  end
+
+  test "agents refresh keeps scoped agency state while scanning agencies" do
+    with_fake_connection do
+      get "/agents/sse/refresh", params: {
+        q: "",
+        kind: "agencies",
+        active_only: "0",
+        certified_only: "0",
+        with_clients: "0",
+        with_book: "0",
+        with_restrictions: "0",
+        with_expiring: "0",
+        year: "2025",
+        sort: "book",
+        dir: "desc",
+        agency_scope: "1",
+        agency_scope_id: "501",
+        selected_type: "agency",
+        selected_id: "501"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, '"agencyscopeactive":true'
+      assert_includes response.body, '"agencyscopeid":"501"'
+      assert_includes response.body, "Agent scope saved: Summit Sports"
+      assert_includes response.body, "Scoped: Summit Sports"
     end
   end
 

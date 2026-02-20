@@ -46,6 +46,7 @@ bin/dev
 
 Notes:
 - Repo convention is `POSTGRES_URL`. Rails convention is `DATABASE_URL`. We support both.
+- Destructive DB reset tasks are intentionally blocked in this app (including `db:seed:replant`, `db:reset`, and `bin/setup --reset`) to protect `web.users`.
 - Rails writes its own tables to `RAILS_APP_SCHEMA` (default: `web`).
   - Override the full search path via `DB_SCHEMA_SEARCH_PATH` if you want to include read-side schemas (ex: `pcms`):
     - `export DB_SCHEMA_SEARCH_PATH="web,pcms,public"`

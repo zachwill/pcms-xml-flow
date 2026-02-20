@@ -42,3 +42,10 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .venv/
+
+# Keep only required Rails binstubs in web/ tracked (overrides global ignore patterns like `bin`)
+!/web/bin/
+/web/bin/*
+!/web/bin/dev
+!/web/bin/rails
+!/web/bin/setup

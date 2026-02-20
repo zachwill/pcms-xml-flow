@@ -16,6 +16,17 @@
     end
   end %>
 
+  <% urgency_lane_label = lambda do |key|
+    case key.to_s
+    when "urgent"
+      "Urgent decisions"
+    when "upcoming"
+      "Upcoming pressure"
+    else
+      "Stable commitments"
+    end
+  end %>
+
   <div id="rightpanel-base" class="space-y-4">
     <div class="rounded-lg border border-border bg-background p-3 space-y-3">
       <div>
@@ -70,9 +81,9 @@
       </div>
 
       <div class="pt-1 flex flex-wrap gap-1.5">
-        <span class="<%= urgency_chip_class.call('urgent') %>">Urgent <%= summary[:urgent_count].to_i %></span>
-        <span class="<%= urgency_chip_class.call('upcoming') %>">Upcoming <%= summary[:upcoming_count].to_i %></span>
-        <span class="<%= urgency_chip_class.call('stable') %>">Stable <%= summary[:stable_count].to_i %></span>
+        <span class="<%= urgency_chip_class.call('urgent') %>"><%= urgency_lane_label.call('urgent') %> <%= summary[:urgent_count].to_i %></span>
+        <span class="<%= urgency_chip_class.call('upcoming') %>"><%= urgency_lane_label.call('upcoming') %> <%= summary[:upcoming_count].to_i %></span>
+        <span class="<%= urgency_chip_class.call('stable') %>"><%= urgency_lane_label.call('stable') %> <%= summary[:stable_count].to_i %></span>
         <% if summary[:urgency_sub_lens].to_s != "all" %>
           <span class="entity-chip entity-chip--accent"><%= summary[:urgency_sub_lens_label].presence || "Focused" %></span>
         <% end %>
@@ -96,7 +107,7 @@
     <div class="rounded-lg border border-border bg-background">
       <div class="px-3 py-2 border-b border-border">
         <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Urgency quick feed · <%= cap_horizon_label %></div>
-        <div class="text-[10px] text-muted-foreground/70">Mirrors the same urgent/upcoming/stable grammar as the main scan lanes.</div>
+        <div class="text-[10px] text-muted-foreground/70">Mirrors main-row badges: Urgent decisions, Upcoming pressure, Stable commitments.</div>
       </div>
 
       <% top_row_lanes = Array(summary[:top_row_lanes]) %>
@@ -107,7 +118,7 @@
           <% top_row_lanes.each do |lane| %>
             <section id="players-quick-lane-<%= lane[:key] %>" class="border-b border-border/60 last:border-b-0">
               <div class="px-3 py-1.5 bg-muted/30 border-b border-border/50 flex items-center justify-between gap-2 text-[10px] uppercase tracking-wide">
-                <span class="<%= urgency_chip_class.call(lane[:key]) %>"><%= lane[:title] %></span>
+                <span class="<%= urgency_chip_class.call(lane[:key]) %>"><%= lane[:title].presence || urgency_lane_label.call(lane[:key]) %></span>
                 <span class="font-mono tabular-nums text-muted-foreground"><%= lane[:row_count] %></span>
               </div>
 

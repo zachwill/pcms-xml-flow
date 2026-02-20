@@ -30,9 +30,10 @@ Each task is one iteration of focused work (~10 min). Commit when done.
   Why: Too many controls with no implied ordering; users need scope → urgency → drill-in progression.
   Note: Commandbar now groups controls into explicit 1) Scope, 2) Urgency triage, 3) Drill-in steps, with mirrored sequence summaries in main-canvas header context.
 
-- [ ] [P2] [INDEX] /players — align sidebar quick-feed urgency semantics with row badges
+- [x] [P2] [INDEX] /players — align sidebar quick-feed urgency semantics with row badges
   Files: web/app/views/players/_rightpanel_base.html.erb, web/app/views/players/_workspace_main.html.erb
   Why: Sidebar and row sections use different language for the same urgency concepts.
+  Note: Workspace + sidebar urgency chips/headers now use the same lane vocabulary as row badges (Urgent decisions, Upcoming pressure, Stable commitments).
 
 - [ ] [P2] [INDEX] /players — deterministic overlay clear on filter refresh
   Files: web/app/views/players/_rightpanel_overlay_player.html.erb, web/app/controllers/players_sse_controller.rb

@@ -20,6 +20,16 @@
     end
   end
 
+  urgency_lane_label = lambda do |key|
+    case key.to_s
+    when "urgent"
+      "Urgent decisions"
+    when "upcoming"
+      "Upcoming pressure"
+    else
+      "Stable commitments"
+    end
+  end
 %>
 
 <main id="maincanvas" class="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-background">
@@ -44,9 +54,9 @@
     </div>
 
     <div class="flex flex-wrap gap-1.5">
-      <span class="<%= urgency_chip_class.call('urgent') %>">Urgent <%= @sidebar_summary[:urgent_count].to_i %></span>
-      <span class="<%= urgency_chip_class.call('upcoming') %>">Upcoming <%= @sidebar_summary[:upcoming_count].to_i %></span>
-      <span class="<%= urgency_chip_class.call('stable') %>">Stable <%= @sidebar_summary[:stable_count].to_i %></span>
+      <span class="<%= urgency_chip_class.call('urgent') %>"><%= urgency_lane_label.call('urgent') %> <%= @sidebar_summary[:urgent_count].to_i %></span>
+      <span class="<%= urgency_chip_class.call('upcoming') %>"><%= urgency_lane_label.call('upcoming') %> <%= @sidebar_summary[:upcoming_count].to_i %></span>
+      <span class="<%= urgency_chip_class.call('stable') %>"><%= urgency_lane_label.call('stable') %> <%= @sidebar_summary[:stable_count].to_i %></span>
       <span class="entity-chip entity-chip--muted">Horizon <%= cap_horizon_label %></span>
       <% if active_urgency_sub_lens != "all" %>
         <span class="entity-chip entity-chip--accent">Focus <%= active_urgency_sub_label %></span>
@@ -78,7 +88,7 @@
               <div class="sticky top-8 z-[6] border-b border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
                 <div class="flex items-center px-4 h-8 text-[10px] uppercase tracking-wide text-muted-foreground/90">
                   <div class="w-64 shrink-0 min-w-0 pr-2 truncate">
-                    <span class="<%= urgency_chip_class.call(section[:key]) %>"><%= section[:title] %></span>
+                    <span class="<%= urgency_chip_class.call(section[:key]) %>"><%= section[:title].presence || urgency_lane_label.call(section[:key]) %></span>
                     <span class="ml-1 normal-case text-muted-foreground/80"><%= section[:subtitle] %></span>
                   </div>
                   <div class="w-32 shrink-0 font-mono tabular-nums text-muted-foreground/80">Rows <%= section[:row_count] %> · Teams <%= section[:team_count] %></div>
@@ -194,7 +204,7 @@
                       <div class="w-52 shrink-0">
                         <div class="entity-cell-two-line">
                           <div class="entity-cell-primary justify-start gap-1.5 min-w-0">
-                            <span class="<%= urgency_chip_class.call(player['urgency_key']) %>"><%= player["urgency_label"].presence || "Stable commitments" %></span>
+                            <span class="<%= urgency_chip_class.call(player['urgency_key']) %>"><%= player["urgency_label"].presence || urgency_lane_label.call(player['urgency_key']) %></span>
                             <% if matched_constraint_chip.present? %>
                               <span class="entity-chip entity-chip--accent ring-1 ring-foreground/35 dark:ring-foreground/45 font-semibold"><%= active_constraint_chip_label || matched_constraint_chip[:label] %></span>
                             <% end %>

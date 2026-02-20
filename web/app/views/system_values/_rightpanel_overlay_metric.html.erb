@@ -1,13 +1,6 @@
 <% payload = @overlay_payload || {} %>
 <% context_label = payload[:context_label].presence || payload[:bracket_label].presence %>
 <% context_row_label = context_label.presence || "League row" %>
-<% overlay_identity_token = [
-  payload[:section].to_s,
-  payload[:metric].to_s,
-  payload[:focus_year].to_s,
-  payload[:overlay_lower].presence || "-",
-  payload[:overlay_upper].presence || "-"
-].join("|") %>
 <% overlay_state_params = @state_params.merge(
   overlay_section: payload[:section].to_s,
   overlay_metric: payload[:metric].to_s,
@@ -75,8 +68,8 @@ end %>
         <span class="entity-chip entity-chip--muted">Focus <%= payload[:focus_year_label] %></span>
         <span class="entity-chip entity-chip--muted"><%= context_row_label %></span>
       </div>
-      <div class="font-mono tabular-nums text-[10px] text-muted-foreground/90">Key <%= overlay_identity_token %> · baseline <%= payload[:baseline_year_label] %></div>
-      <div class="text-muted-foreground text-[10px]">This key stays anchored through refresh/apply cycles until the row leaves the active year range.</div>
+      <div class="font-mono tabular-nums text-[10px] text-muted-foreground/90">Baseline <%= payload[:baseline_year_label] %> · selected <%= payload[:selected_year_label] %></div>
+      <div class="text-muted-foreground text-[10px]">This context stays anchored through refresh/apply cycles until the row leaves the active year range.</div>
     </div>
 
     <% if tax_overlay %>

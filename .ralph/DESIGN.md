@@ -91,7 +91,7 @@ Each task is one iteration of focused work (~10 min). Commit when done.
 - [x] [P2] [TOOL] /system-values — stable metric context across refreshes
   Files: web/app/views/system_values/_rightpanel_overlay_metric.html.erb, web/app/views/system_values/_rightpanel_base.html.erb
   Why: Metric drill-in should maintain section/baseline/row identity when year or section toggles change.
-  Note: Sidebar base + overlay now render a pinned drill-in context key (section/metric/year/row bounds), preserve canonical links with overlay params, and keep context legible even when finder scope changes.
+  Note: Sidebar base + overlay now keep pinned drill-in context in human-readable chips/labels and preserve canonical links with overlay params through refresh/apply cycles.
 
 ## /trades — team impact scan
 
@@ -102,7 +102,17 @@ Each task is one iteration of focused work (~10 min). Commit when done.
 
 - [ ] [P2] [TOOL] /trades — sync overlay and row state on filter refresh
   Files: web/app/views/trades/_rightpanel_overlay_trade.html.erb, web/app/controllers/trades_sse_controller.rb
-  Why: Overlay should stay consistent (or clear) when filters change the visible row set.
+  Why: Overlay should stay consistent (or clear) when filters change the visible row set, and row highlight should always match active overlay trade id.
+
+## Supervisor corrective tasks (2026-02-20, review pass)
+
+- [ ] [P1] [TOOL] /trades — preserve scan density when per-team impact maps run long
+  Files: web/app/views/trades/_results.html.erb, web/app/controllers/trades_controller.rb
+  Why: Rendering every team impact line can create tall rows on 4+ team deals, slowing side-by-side scan in explorer mode.
+
+- [ ] [P2] [TOOL] /trades — stabilize non-focus team impact ordering after scope pin
+  Files: web/app/views/trades/_results.html.erb
+  Why: After pinning the selected team first, remaining teams should sort deterministically (e.g., by team code) so refreshes do not reshuffle row interpretation.
 
 ## /transactions — severity lanes
 

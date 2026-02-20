@@ -2,17 +2,6 @@
 <%
   overlay_payload = @overlay_payload || {}
   overlay_context_label = overlay_payload[:context_label].presence || overlay_payload[:bracket_label].presence || "League row"
-  overlay_identity_token = if overlay_payload.present?
-    [
-      overlay_payload[:section].to_s,
-      overlay_payload[:metric].to_s,
-      overlay_payload[:focus_year].to_s,
-      overlay_payload[:overlay_lower].presence || "-",
-      overlay_payload[:overlay_upper].presence || "-"
-    ].join("|")
-  else
-    ""
-  end
   overlay_state_params = if overlay_payload.present?
     @state_params.merge(
       overlay_section: overlay_payload[:section].to_s,
@@ -56,7 +45,7 @@
       <div class="rounded border border-amber-500/50 bg-amber-100/60 dark:bg-amber-900/20 px-2 py-1.5 text-xs space-y-1">
         <div class="font-medium text-foreground">Pinned drill-in context</div>
         <div class="text-muted-foreground"><%= overlay_payload[:section_title] %> · <%= overlay_payload[:metric_label] %></div>
-        <div class="font-mono tabular-nums text-[10px] text-muted-foreground/90">Focus <%= overlay_payload[:focus_year_label] %> · <%= overlay_context_label %> · key <%= overlay_identity_token %></div>
+        <div class="font-mono tabular-nums text-[10px] text-muted-foreground/90">Focus <%= overlay_payload[:focus_year_label] %> · <%= overlay_context_label %> · baseline <%= format_year_label(@baseline_year) %></div>
       </div>
     <% elsif @active_metric_finder_option.present? %>
       <div class="rounded border border-amber-500/50 bg-amber-100/60 dark:bg-amber-900/20 px-2 py-1.5 text-xs">

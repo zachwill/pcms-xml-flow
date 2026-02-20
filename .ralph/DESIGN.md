@@ -35,9 +35,10 @@ Each task is one iteration of focused work (~10 min). Commit when done.
   Why: Sidebar and row sections use different language for the same urgency concepts.
   Note: Workspace + sidebar urgency chips/headers now use the same lane vocabulary as row badges (Urgent decisions, Upcoming pressure, Stable commitments).
 
-- [ ] [P2] [INDEX] /players — deterministic overlay clear on filter refresh
+- [x] [P2] [INDEX] /players — deterministic overlay clear on filter refresh
   Files: web/app/views/players/_rightpanel_overlay_player.html.erb, web/app/controllers/players_sse_controller.rb
   Why: Overlay should clear when its player leaves the filtered result set.
+  Note: Player overlay now self-gates against live `overlaytype` + `selectedplayerid`, so stale sidebar responses stay hidden after filter-driven clear and refresh keeps selection signals canonical.
 
 ## /agents + /agencies — directory coherence
 

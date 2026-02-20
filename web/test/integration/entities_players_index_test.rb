@@ -307,6 +307,8 @@ class EntitiesPlayersIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, 'id="rightpanel-overlay"'
       assert_includes response.body, "Open player page"
+      assert_includes response.body, 'data-player-overlay-id="1"'
+      assert_includes response.body, "data-show=\"$overlaytype === 'player' && $selectedplayerid === '1'\""
       assert_includes response.body, '"overlaytype":"player"'
       assert_includes response.body, '"selectedplayerid":"1"'
       assert_includes response.body, "$selectedplayerid === '1'"
@@ -438,6 +440,8 @@ class EntitiesPlayersIndexTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_includes response.body, 'id="rightpanel-overlay"'
+      assert_includes response.body, 'data-player-overlay-id="1"'
+      assert_includes response.body, "data-show=\"$overlaytype === 'player' && $selectedplayerid === '1'\""
       assert_includes response.body, "/players/1"
       assert_includes response.body, "Open canonical player page"
       assert_includes response.body, "Open team page"

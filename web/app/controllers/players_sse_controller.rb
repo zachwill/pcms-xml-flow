@@ -96,7 +96,14 @@ class PlayersSseController < PlayersController
     return [overlay_clear_html, "none", ""] unless selected_overlay_visible?(overlay_id: requested_overlay_id)
 
     html = without_view_annotations do
-      render_to_string(partial: "players/rightpanel_overlay_player", locals: { player: load_sidebar_player_payload(requested_overlay_id) })
+      player_payload = load_sidebar_player_payload(requested_overlay_id)
+      render_to_string(
+        partial: "players/rightpanel_overlay_player",
+        locals: {
+          player: player_payload,
+          overlay_player_id: requested_overlay_id.to_s
+        }
+      )
     end
 
     [html, "player", requested_overlay_id.to_s]

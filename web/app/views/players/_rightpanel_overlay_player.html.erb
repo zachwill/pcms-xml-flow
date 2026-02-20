@@ -18,9 +18,15 @@
 
   player_path_value = player_href(player_id)
   agent_path_value = agent_id.present? ? agent_href(agent_id) : nil
+  overlay_player_id = local_assigns[:overlay_player_id].presence || player_id.to_s
 %>
 
-<div id="rightpanel-overlay" class="h-full">
+<div
+  id="rightpanel-overlay"
+  class="h-full"
+  data-player-overlay-id="<%= overlay_player_id %>"
+  data-show="$overlaytype === 'player' && $selectedplayerid === '<%= overlay_player_id %>'"
+>
   <div class="sticky top-0 z-20 h-10 px-4 flex items-center justify-between border-b border-border bg-background">
     <button
       type="button"

@@ -102,4 +102,4 @@ end
 - `reference/datastar/insights.md` + `reference/datastar/rails.md` (Datastar conventions)
 - `prototypes/salary-book-react/docs/legacy-web-specs/*` (archived OG specs)
 
-Backlog is tracked in PRs/issues (we intentionally avoid a `web/TODO.md` file to reduce staleness).
+Restructuring roadmap: `web/TODO.md`

@@ -1,227 +1,228 @@
-# web/TODO.md — Schema & Data Gaps Audit
+# web/TODO.md — Rails Restructuring Roadmap
 
-**Generated:** 2026-02-07  
-**Source:** Comparison of Sean's workbook (`reference/warehouse/`) vs `pcms.*` schema
-
----
-
-## Summary
-
-The **data foundation is strong** — salaries, contracts, protections, cap holds, dead money, trade matching functions all work. The gaps are mostly:
-
-1. **Display/derived fields** (position, tier/band)
-2. **Empty schema tables** awaiting data (depth_charts, ui_projections, waiver_priority_ranks)
-3. **Advanced multi-team trade tooling** (The Matrix equivalent)
+**Created:** 2026-02-15
+**Context:** MVP is working well — entities, tools, Datastar patches, SSE, sidebar overlays all function. This roadmap captures the structural improvements needed to iterate confidently toward v1.
 
 ---
 
-## Priority Ranking
+## What we got right in the MVP
 
-| Priority | Gap | Impact | Effort |
-|----------|-----|--------|--------|
-| **High** | Player position missing from salary_book_warehouse | Analyst UX (filtering by pos) | Medium — need source |
-| **High** | Salary tier/band not computed | Analyst mental model | Medium — compute from cap % |
-| **Medium** | depth_charts empty | Starter/bench context | ? (depends on XML source) |
-| **Medium** | GLG teams missing | Two-way context | Low — add teams data |
-| **Low** | Multi-team trade planner | Advanced tooling | High |
-| ~~Low~~ | ~~Pick grid view~~ | ~~UX convenience~~ | ✅ Done |
+- **Datastar + server HTML** pattern is correct and should stay
+- **Entity / Tool split** (controllers, views, routes) is a good top-level organization
+- **SSE controllers** are well-sized (70–130 lines) — good reference pattern
+- **Patch boundary IDs** (`#commandbar`, `#maincanvas`, `#rightpanel-base`, `#rightpanel-overlay`) are stable
+- **SQL-first business logic** (`pcms.fn_*`, warehouses) keeps CBA math out of Ruby — keep it there
+- **Slug model** and entity URL structure (`/players/:slug`, `/teams/:slug`) are clean
 
 ---
 
-## Detailed Gaps
+## What needs restructuring
 
-### 1. Player Position (`Pos` column)
+### 1. Fat controllers → extract query objects + service objects
 
-**Sean has:** Position (PG, SG, SF, PF, C) in Y warehouse column `AN`
+**Problem:** Most controllers are 600–1,300 lines. They inline SQL query construction, row-level annotation, sorting/filtering logic, and response formatting.
 
-**We have:**
-- `pcms.lookups` with `lk_positions` (lookup codes exist)
-- `pcms.depth_charts.position_lk` column — but **table is empty**
-- **No position on `salary_book_warehouse`** or `people`
+| Controller | Lines | Priority |
+|------------|-------|----------|
+| `tools/salary_book_controller.rb` | 1,293 | 🔴 Critical |
+| `tools/system_values_controller.rb` | 1,070 | 🔴 Critical |
+| `entities/players_controller.rb` | 1,056 | 🔴 Critical |
+| `entities/drafts_controller.rb` | 900 | 🟡 High |
+| `entities/transactions_controller.rb` | 868 | 🟡 High |
+| `entities/teams_controller.rb` | 828 | 🟡 High |
+| `entities/trades_controller.rb` | 772 | 🟡 High |
+| `entities/agents_controller.rb` | 768 | 🟡 High |
+| `tools/two_way_utility_controller.rb` | 741 | 🟡 High |
 
-**Gap:** Position is not exposed on players. The `depth_charts` table exists but has 0 rows. Either PCMS XML doesn't provide position, or we're not importing it.
+**Target:** Controllers should be ≤200 lines. They call into query/service objects and render.
 
-**Action:** Investigate PCMS XML for position data. If not available, consider enriching from NBA API (`nba.*` schema) or SportRadar (`sr.*`).
+**Pattern:**
 
----
+```
+app/
+  queries/                      # SQL query builders (return result sets)
+    salary_book_queries.rb
+    player_queries.rb
+    ...
+  services/                     # Multi-step orchestration
+    salary_book/
+      team_frame_builder.rb
+      sidebar_builder.rb
+    ...
+```
 
-### 2. Salary Tier / Band (`Tier`, `Top`, `Bottom`, `SB`)
+Each query class encapsulates one SQL concern. Controllers become thin orchestration:
 
-**Sean has:**
-- `Tier` (1–10) salary band classification
-- `Top` / `Bottom` (rank within tier)
-- `SB` display string like `"6 | 1-12"`
+```ruby
+# Before (inline in controller)
+def show
+  rows = ActiveRecord::Base.connection.select_all(<<~SQL)
+    SELECT ... FROM pcms.salary_book_warehouse ...
+  SQL
+  # 80 lines of annotation, sorting, grouping
+end
 
-**We have:** Nothing. No tier, no salary band concept.
-
-**Gap:** This is **analyst-derived classification**, not raw PCMS data. Sean computes it based on salary relative to cap.
-
-**Action:** Add computed columns to `salary_book_warehouse` or create a view:
-```sql
--- Example tier logic (needs refinement based on Sean's actual bands)
-CASE
-  WHEN pct_cap_2025 >= 0.35 THEN 1
-  WHEN pct_cap_2025 >= 0.30 THEN 2
-  WHEN pct_cap_2025 >= 0.25 THEN 3
-  -- ... etc
-END AS salary_tier
+# After
+def show
+  @frame = SalaryBook::TeamFrameBuilder.call(team: params[:team], year: params[:year])
+end
 ```
 
 ---
 
-### 3. G-League / Affiliate Data (`ga.json`)
+### 2. Missing model / domain layer
 
-**Sean has:** `ga.json` sheet with G-League rosters, two-way depth charts
+**Problem:** Only `Slug` model exists. All data access is raw SQL in controllers. No place to put shared query logic, computed attributes, or cross-controller reuse.
 
-**We have:**
-- `pcms.teams` has `league_lk` column but **0 GLG teams**
-- `pcms.two_way_utility_warehouse` (89 rows) — two-way player tracking
-- `pcms.two_way_daily_statuses` (28k rows)
+**Action:** Introduce lightweight read-only models or plain Ruby domain objects for core concepts:
 
-**Gap:** GLG (G-League) teams themselves are missing from `pcms.teams`. Two-way tracking exists but the parent G-League rosters/teams aren't present.
+```
+app/models/
+  salary_entry.rb        # Wraps a salary_book_warehouse row
+  team_cap_sheet.rb      # Team-level cap summary
+  draft_asset.rb         # Pick ownership record
+  trade_record.rb        # Trade with annotations
+```
 
-**Action:** Import GLG teams into `pcms.teams` (or create separate G-League team reference).
-
----
-
-### 4. `depth_charts` is Empty
-
-**Schema exists:** 19 columns including `position_lk`, `depth_rank`, `is_starter`
-
-**Rows:** 0
-
-**Gap:** Either we're not importing depth chart data from PCMS, or it's not in the XML feed.
-
-**Action:** Check if PCMS XML contains depth chart data. If not, consider populating from NBA API or leaving as UI-driven.
+These don't need full ActiveRecord — `Struct`, `Data`, or read-only AR models work fine. The point is a named object with computed methods instead of hash manipulation in controllers.
 
 ---
 
-### 5. `ui_projections` / `ui_projected_salaries` / `ui_projection_overrides` are Empty
+### 3. Helper bloat → presenters or view models
 
-These tables exist for **scenario planning** (user-defined salary projections).
+**Problem:** `salary_book_helper.rb` is 641 lines. `entities_helper.rb` is 336 lines. Helpers are grab-bags of formatting, conditional logic, and HTML generation.
 
-**Rows:** 0 in all three tables
+**Action:** Move display logic into presenter objects or view-specific helpers:
 
-**Updated direction:** We are standardizing on a richer **state model** (`Official` / `Live` / `Scenario`) with external-report ingestion + interpretation + reconciliation, documented in:
+```
+app/presenters/
+  player_row_presenter.rb
+  salary_book_sidebar_presenter.rb
+  cap_hold_presenter.rb
+```
 
-- `SALARY_BOOK_STATE_MODEL.md`
+Or, at minimum, split the monolithic helpers:
 
-That spec supersedes the older `ui_*` direction and proposes deprecating the `ui_*` tables after the new state tables are implemented.
-
----
-
-### 6. Multi-Team Trade Planning Function
-
-**Sean has:** `the_matrix.json` — 4-team trade scenario calculator with:
-- Proration (days responsible based on trade date)
-- Roster fill logic (auto-add minimums to reach 12/14)
-- Trade validity checks per apron level (Expanded vs Standard mode)
-- Pick exchange tracking
-
-**We have:**
-- `fn_trade_salary_range()` — 2-team matching range
-- `fn_trade_plan_tpe()` — TPE trade planner
-- `fn_post_trade_apron()` — post-trade apron calculation
-- `fn_can_bring_back()` / `fn_min_outgoing_for_incoming()` — inverse matching
-
-**Gap:** No **multi-team (3-4 party) trade planner** function. The Matrix logic isn't fully implemented.
-
-**Action:** Build `fn_multi_team_trade_validation(...)` or handle in application layer. Low priority unless trade machine is on roadmap.
+```
+app/helpers/
+  salary_book/
+    formatting_helper.rb
+    sidebar_helper.rb
+    filter_helper.rb
+```
 
 ---
 
-### 7. Pick Database Grid View ✅ DONE
+### 4. View partial decomposition
 
-**Sean has:** `pick_database.json` — grid showing team × year × round → ownership status
+**Problem:** Several partials are 250–500 lines:
 
-**We have:** `pcms.draft_pick_summary_assets` with detailed asset-level data (swaps, conditionals, endnotes)
+| Partial | Lines |
+|---------|-------|
+| `salary_book/_sidebar_player.html.erb` | 494 |
+| `salary_book/_sidebar_agent.html.erb` | 368 |
+| `players/_workspace_main.html.erb` | 345 |
+| `salary_book/show.html.erb` | 332 |
+| `players/_rightpanel_base.html.erb` | 270 |
+| `salary_book/_player_row.html.erb` | 260 |
+| `salary_book/_sidebar_team_tab_cap.html.erb` | 256 |
+| `salary_book/_team_section.html.erb` | 249 |
 
-**Status:** Implemented in commit `df15af8`. The `/drafts` page now has a "Grid" view mode showing:
-- Team × year × round ownership matrix
-- Color-coded cells (amber=outgoing, purple=swap, yellow=conditional)
-- Sticky team column with truncated cell text and tooltips
-
----
-
-### 8. Waiver Priority Team Association
-
-**Sean has:** Waiver priority tied to teams
-
-**We have:** `pcms.waiver_priority` (570 rows) with columns: `priority_date`, `seqno`, `status_lk`, `comments` — **no team_id or team_code**
-
-**Gap:** Waiver priority isn't linked to teams. May need a join table or a `team_id` FK.
-
-**Action:** Investigate PCMS XML structure for waiver priority. Add team linkage if available.
+**Target:** Partials should be ≤100 lines. Extract sub-partials for logical sections (contract details, guarantee rows, agent info, etc.).
 
 ---
 
-### 9. `waiver_priority_ranks` is Empty
+### 5. Test coverage
 
-Related to waiver priority — schema exists, 0 rows.
+**Problem:** Only one test exists (`test/models/slug_test.rb`). No controller tests, no integration tests, no system tests.
 
-**Action:** Same as above — investigate source data.
+**Priority tests to add (in order):**
 
----
+1. **Controller smoke tests** — each action returns 200 (requires DB fixtures or factory setup)
+2. **Query object tests** — once extracted, test SQL builders in isolation
+3. **Helper / presenter tests** — formatting and display logic
+4. **Integration tests** — key user flows (team switch, sidebar drill-in, entity navigation)
 
-## Tables with Data (Healthy)
-
-For reference, these core tables are populated and working:
-
-| Table | Rows | Status |
-|-------|------|--------|
-| `salary_book_warehouse` | 528 | ✅ Core player salaries |
-| `team_salary_warehouse` | 210 | ✅ Team totals by year |
-| `cap_holds_warehouse` | 218 | ✅ Cap holds |
-| `dead_money_warehouse` | 471 | ✅ Dead money / waivers |
-| `exceptions_warehouse` | 87 | ✅ TPE/MLE/BAE |
-| `player_rights_warehouse` | 447 | ✅ Bird rights, RFA |
-| `two_way_utility_warehouse` | 89 | ✅ Two-way tracking |
-| `contract_protections` | 17,782 | ✅ Guarantees |
-| `salaries` | 22,288 | ✅ Raw salary rows |
-| `contracts` | 8,082 | ✅ Contract records |
-| `contract_versions` | 10,453 | ✅ Version history |
-| `trades` | 1,750 | ✅ Trade records |
-| `draft_pick_summary_assets` | 1,505 | ✅ Pick ownership |
-| `league_system_values` | 112 | ✅ CBA constants |
-| `league_tax_rates` | 119 | ✅ Tax brackets |
-| `rookie_scale_amounts` | 1,556 | ✅ Rookie scale |
-| `league_salary_scales` | 440 | ✅ Minimum salary scale |
+Test infrastructure decisions:
+- [ ] Decide on fixture strategy (SQL fixtures from warehouse snapshots vs factory_bot)
+- [ ] Set up `test/queries/` mirroring `app/queries/`
+- [ ] Consider `test/integration/` for Datastar patch flow tests
 
 ---
 
-## SQL Functions Available
+### 6. Route organization
 
-| Function | Purpose |
-|----------|---------|
-| `fn_trade_salary_range()` | Min/max incoming for outgoing salary |
-| `fn_can_bring_back()` | Max incoming given outgoing |
-| `fn_min_outgoing_for_incoming()` | Inverse of above |
-| `fn_luxury_tax_amount()` | Calculate luxury tax owed |
-| `fn_team_luxury_tax()` | Team-specific tax calculation |
-| `fn_all_teams_luxury_tax()` | League-wide tax summary |
-| `fn_buyout_scenario()` | Buyout dead money projection |
-| `fn_stretch_waiver()` | Stretch provision calculation |
-| `fn_setoff_amount()` | Waiver set-off calculation |
-| `fn_minimum_salary()` | Min salary by YOS/year |
-| `fn_post_trade_apron()` | Post-trade apron total |
-| `fn_trade_plan_tpe()` | TPE trade planning |
-| `fn_tpe_trade_math()` | TPE allowance calculations |
-| `fn_player_current_team_from_transactions()` | Current team lookup |
+**Current state:** Routes are well-organized but verbose (160+ lines). As entity count grows, consider:
+
+- [ ] Extract entity routes into a shared concern/helper (`draw :entities`)
+- [ ] Use `resources` where the pattern fits (sidebar, SSE, pane are consistent across entities)
 
 ---
 
-## Next Steps
+### 7. JavaScript organization
 
-1. **Quick wins:**
-   - [ ] Add salary tier/band computed column to `salary_book_warehouse`
-   - [x] Create pick grid view from `draft_pick_summary_assets` — **Done** (`df15af8`): Grid view added to `/drafts` page with team × year × round matrix, color-coded cells, tooltips
+**Current state:** JS is minimal and well-scoped (one file per tool/entity workspace). This is fine for now.
 
-2. **Investigation needed:**
-   - [ ] Check PCMS XML for player position data
-   - [ ] Check PCMS XML for depth chart data
-   - [ ] Check PCMS XML for waiver priority team linkage
-   - [ ] Verify GLG team data availability
+**Future:** If JS grows, consider:
+- [ ] Shared utility module for common Datastar signal patterns
+- [ ] Extract scroll/measure/sync helpers into a shared module
 
-3. **Deferred:**
-   - [ ] Multi-team trade planner (The Matrix)
-   - [ ] UI projection tables (wait for feature build)
+---
+
+## Sequencing (recommended order)
+
+### Phase 1 — Extract query objects from the biggest controllers
+
+Focus on the three 1,000+ line controllers first:
+
+- [ ] `SalaryBookQueries` — extract from `salary_book_controller.rb`
+- [ ] `SystemValuesQueries` — extract from `system_values_controller.rb`
+- [ ] `PlayerQueries` — extract from `players_controller.rb`
+
+**Gate:** Each controller drops below 400 lines. Existing behavior unchanged.
+
+### Phase 2 — Introduce presenters for sidebar/overlay views
+
+- [ ] `PlayerSidebarPresenter` — extract from `_sidebar_player.html.erb` + helper
+- [ ] `AgentSidebarPresenter` — extract from `_sidebar_agent.html.erb` + helper
+- [ ] `SalaryBookHelper` → split into focused modules
+
+**Gate:** `salary_book_helper.rb` < 200 lines. Sidebar partials < 150 lines each.
+
+### Phase 3 — Add controller smoke tests
+
+- [ ] Set up test fixtures / factory approach
+- [ ] Smoke tests for all tool controllers
+- [ ] Smoke tests for all entity controllers (index + show)
+
+**Gate:** `bin/rails test` passes with coverage of every public action.
+
+### Phase 4 — Decompose remaining entity controllers
+
+- [ ] Extract query objects for drafts, transactions, teams, trades, agents
+- [ ] Each controller ≤ 300 lines
+
+### Phase 5 — View partial cleanup
+
+- [ ] Break 250+ line partials into sub-partials
+- [ ] Establish shared partial library for common row patterns (identity cells, money cells, date cells)
+
+---
+
+## What NOT to change
+
+- **Datastar as UI runtime** — no Turbo/Hotwire/Stimulus
+- **Server HTML responses** — no JSON API layer
+- **SQL-first business logic** — CBA math stays in `pcms.fn_*`
+- **Patch boundary IDs** — keep `#commandbar`, `#maincanvas`, `#rightpanel-base`, `#rightpanel-overlay` stable
+- **Entity/Tool top-level split** — this organization is correct
+- **SSE controller pattern** — these are already well-structured
+
+---
+
+## Related docs
+
+- `web/REFACTOR.md` — Salary Book "apps can take over" refactor (specific feature)
+- `web/AGENTS.md` — hard rules, decision trees, Datastar conventions
+- `web/docs/design_guide.md` — visual patterns and shell anatomy
+- `web/docs/datastar_sse_playbook.md` — SSE response templates

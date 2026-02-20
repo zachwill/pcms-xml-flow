@@ -162,9 +162,10 @@ Each task is one iteration of focused work (~10 min). Commit when done.
 
 ## Supervisor corrective tasks (2026-02-20, review pass 3)
 
-- [ ] [P2] [TOOL] /transactions — compress pre-table cue stack into one scan-first rail
+- [x] [P2] [TOOL] /transactions — compress pre-table cue stack into one scan-first rail
   Files: web/app/views/transactions/_results.html.erb, web/app/controllers/transactions_controller.rb
   Why: Severity/route guidance is currently repeated in both the pre-table summary block and lane headers, creating avoidable vertical tax before first rows in explorer mode.
+  Note: Replaced the stacked pre-table legend block with a single horizontal scan rail (scope + severity lane chips + route totals), and removed duplicate lane-header route chips to keep first-row access tighter.
 
 - [ ] [P2] [INDEX] /draft-selections — surface active lens focus in commandbar lane context
   Files: web/app/views/draft_selections/index.html.erb, web/app/controllers/draft_selections_controller.rb

@@ -149,22 +149,26 @@ class TransactionsController < ApplicationController
     route_summary_rows = summarize_route_cues(rows: @transactions)
 
     lane_scan_rows = severity_lanes.map do |lane|
-      lane_rows = Array(lane[:date_groups]).flat_map { |group| Array(group[:rows]) }
-
       {
         key: lane[:key].to_s,
         headline: lane[:headline],
         row_count: lane[:row_count].to_i,
-        rubric: severity_rule_rubric_for(lane[:key], fallback: lane[:subline]),
-        route_cues: summarize_route_cues(rows: lane_rows).first(2)
+        rubric: severity_rule_rubric_for(lane[:key], fallback: lane[:subline])
       }
     end
+
+    scan_rail = {
+      title: "Severity + route scan rail",
+      lane_chips: lane_scan_rows,
+      route_chips: route_summary_rows
+    }
 
     @transaction_results_payload = {
       severity_lanes: severity_lanes,
       lane_scan_rows: lane_scan_rows,
       route_summary_rows: route_summary_rows,
-      route_scope_label: route_scope_label
+      route_scope_label: route_scope_label,
+      scan_rail: scan_rail
     }
 
     # Keep existing ivars for compatibility with any sidebar/test code still reading them.

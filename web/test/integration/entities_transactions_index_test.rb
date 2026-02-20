@@ -19,9 +19,9 @@ class EntitiesTransactionsIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "Critical impact · dead money / Δ20M+"
       assert_includes response.body, 'id="transactions-severity-lanes"'
       assert_includes response.body, 'id="transactions-severity-lane-critical"'
-      assert_includes response.body, "Severity + route scan cues"
+      assert_includes response.body, 'id="transactions-scan-rail"'
+      assert_includes response.body, "Severity + route scan rail"
       assert_includes response.body, "Dead-money rows or max Δ ≥ $20M / apron Δ ≥ $8M"
-      assert_includes response.body, "Route totals"
       assert_includes response.body, "Route cue"
       assert_includes response.body, "Critical impact"
       assert_includes response.body, "Max Δ"
@@ -57,7 +57,7 @@ class EntitiesTransactionsIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="rightpanel-overlay"'
       assert_includes response.body, 'data-transaction-overlay-id="9001"'
       assert_includes response.body, "data-show=\"$overlaytype === 'transaction' && $overlayid === '9001'\""
-      assert_includes response.body, "Severity + route scan cues"
+      assert_includes response.body, "Severity + route scan rail"
       assert_includes response.body, "League-wide route perspective"
       assert_includes response.body, "Open transaction page"
       assert_includes response.body, "event: datastar-patch-signals"

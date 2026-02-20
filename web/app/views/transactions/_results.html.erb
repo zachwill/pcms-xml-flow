@@ -1,9 +1,11 @@
 <%
   results_payload = @transaction_results_payload.is_a?(Hash) ? @transaction_results_payload : {}
+  scan_rail_payload = results_payload[:scan_rail].is_a?(Hash) ? results_payload[:scan_rail] : {}
   severity_lanes = Array(results_payload[:severity_lanes] || @transaction_severity_lanes)
-  lane_scan_rows = Array(results_payload[:lane_scan_rows] || @transaction_lane_scan_rows)
-  route_summary_rows = Array(results_payload[:route_summary_rows] || @transaction_route_cues)
+  lane_scan_rows = Array(scan_rail_payload[:lane_chips] || results_payload[:lane_scan_rows] || @transaction_lane_scan_rows)
+  route_summary_rows = Array(scan_rail_payload[:route_chips] || results_payload[:route_summary_rows] || @transaction_route_cues)
   route_scope_label = results_payload[:route_scope_label].to_s.presence || @transaction_route_scope_label.to_s.presence || "League-wide route perspective"
+  scan_rail_title = scan_rail_payload[:title].to_s.presence || "Severity + route scan rail"
 
   severity_chip_class = lambda do |key|
     case key.to_s
@@ -68,35 +70,35 @@
       No transactions found for this time period and filters.
     </div>
   <% else %>
-    <div class="rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
-      <div class="flex items-center justify-between gap-2 text-[10px] uppercase tracking-wide text-muted-foreground/80">
-        <span>Severity + route scan cues</span>
-        <span class="font-medium text-foreground/80"><%= route_scope_label %></span>
-      </div>
+    <div id="transactions-scan-rail" class="rounded-lg border border-border/60 bg-muted/10">
+      <div class="overflow-x-auto">
+        <div class="flex h-8 min-w-max items-center gap-1.5 px-3 text-[10px] leading-none text-muted-foreground">
+          <span class="uppercase tracking-wide text-muted-foreground/80"><%= scan_rail_title %></span>
+          <span class="entity-chip entity-chip--muted"><%= route_scope_label %></span>
 
-      <div class="mt-1.5 space-y-1">
-        <% lane_scan_rows.each do |lane| %>
-          <div class="flex flex-wrap items-center gap-1.5 text-[10px] leading-none text-muted-foreground">
-            <span class="<%= severity_chip_class.call(lane[:key]) %>">
-              <%= lane[:headline] %>
-              <span class="font-mono tabular-nums"><%= lane[:row_count].to_i %></span>
+          <% lane_scan_rows.each do |lane| %>
+            <% lane_key = lane[:key].to_s.presence || lane["key"].to_s.presence || "low" %>
+            <% lane_headline = lane[:headline].to_s.presence || lane["headline"].to_s.presence || "Lane" %>
+            <% lane_count = lane[:row_count].to_i.positive? ? lane[:row_count].to_i : lane["row_count"].to_i %>
+            <% lane_rubric = lane[:rubric].to_s.presence || lane["rubric"].to_s.presence %>
+            <span class="<%= severity_chip_class.call(lane_key) %>" title="<%= lane_rubric %>">
+              <%= lane_headline %>
+              <span class="font-mono tabular-nums"><%= lane_count %></span>
             </span>
-            <span><%= lane[:rubric] %></span>
-            <% Array(lane[:route_cues]).each do |route_cue| %>
-              <span class="<%= route_chip_class.call(route_cue[:key]) %>"><%= route_cue[:label] %> <span class="font-mono tabular-nums"><%= route_cue[:count].to_i %></span></span>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
+          <% end %>
 
-      <% if route_summary_rows.any? %>
-        <div class="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
-          <span class="uppercase tracking-wide text-muted-foreground/80">Route totals</span>
-          <% route_summary_rows.each do |route_cue| %>
-            <span class="<%= route_chip_class.call(route_cue[:key]) %>"><%= route_cue[:label] %> <span class="font-mono tabular-nums"><%= route_cue[:count].to_i %></span></span>
+          <% if route_summary_rows.any? %>
+            <span class="text-muted-foreground/40">|</span>
+            <span class="uppercase tracking-wide text-muted-foreground/70">Routes</span>
+            <% route_summary_rows.each do |route_cue| %>
+              <% route_key = route_cue[:key].to_s.presence || route_cue["key"].to_s.presence || "unmapped" %>
+              <% route_label = route_cue[:label].to_s.presence || route_cue["label"].to_s.presence || "Unmapped" %>
+              <% route_count = route_cue[:count].to_i.positive? ? route_cue[:count].to_i : route_cue["count"].to_i %>
+              <span class="<%= route_chip_class.call(route_key) %>"><%= route_label %> <span class="font-mono tabular-nums"><%= route_count %></span></span>
+            <% end %>
           <% end %>
         </div>
-      <% end %>
+      </div>
     </div>
 
     <div id="transactions-board" class="min-w-[92rem] border-y border-border bg-background">
@@ -115,17 +117,11 @@
         <div id="transactions-severity-lanes" class="divide-y divide-border/70">
           <% severity_lanes.each do |lane| %>
             <% lane_key = lane[:key].to_s.parameterize.presence || "all" %>
-            <% lane_scan = lane_scan_rows.find { |cue| cue[:key].to_s == lane[:key].to_s } || {} %>
             <section id="transactions-severity-lane-<%= lane_key %>" class="border-b border-border/70 last:border-b-0">
               <div class="sticky top-8 z-20 border-b border-border bg-muted/40 backdrop-blur supports-[backdrop-filter]:bg-background/90">
                 <div class="flex items-center gap-2 px-3 h-8 text-[10px] uppercase tracking-wide">
                   <div class="w-36 shrink-0"><span class="<%= severity_chip_class.call(lane[:key]) %>"><%= lane[:headline] %></span></div>
                   <div class="min-w-0 flex-1 text-muted-foreground/80 truncate"><%= lane[:subline] %></div>
-                  <div class="shrink-0 flex items-center gap-1">
-                    <% Array(lane_scan[:route_cues]).each do |route_cue| %>
-                      <span class="<%= route_chip_class.call(route_cue[:key]) %>"><%= route_cue[:label] %> <span class="font-mono tabular-nums"><%= route_cue[:count].to_i %></span></span>
-                    <% end %>
-                  </div>
                   <div class="w-20 shrink-0 text-right font-mono tabular-nums text-foreground/85"><%= lane[:row_count] %></div>
                 </div>
               </div>

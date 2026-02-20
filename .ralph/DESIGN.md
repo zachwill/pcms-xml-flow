@@ -155,6 +155,7 @@ Each task is one iteration of focused work (~10 min). Commit when done.
   Why: Users need to shortlist contested picks fast; severity lanes should separate clean from contested.
   Note: Added server-owned severity lane payload (contested deep-chain, contested with-trade, clean), grouped maincanvas rows into sticky lane sections, and surfaced contested/clean lane counts directly in commandbar context.
 
-- [ ] [P2] [INDEX] /draft-selections — overlay persistence tied to visible result set
+- [x] [P2] [INDEX] /draft-selections — overlay persistence tied to visible result set
   Files: web/app/views/draft_selections/_rightpanel_overlay_selection.html.erb, web/app/controllers/draft_selections_sse_controller.rb
   Why: Same overlay-clear pattern; overlay for a hidden row should auto-clear.
+  Note: Selection overlay now self-gates with `data-show` against live `overlaytype/overlayid`, and SSE refresh stamps explicit `overlay_selection_id` locals so stale responses stay hidden when the selected row leaves the visible result set.

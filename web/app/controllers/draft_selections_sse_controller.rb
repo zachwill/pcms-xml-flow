@@ -45,7 +45,12 @@ class DraftSelectionsSseController < DraftSelectionsController
     return [overlay_clear_html, "none", ""] unless selected_overlay_visible?(overlay_id: requested_overlay_id)
 
     html = without_view_annotations do
-      render_to_string(partial: "draft_selections/rightpanel_overlay_selection", locals: load_sidebar_selection_payload(requested_overlay_id))
+      render_to_string(
+        partial: "draft_selections/rightpanel_overlay_selection",
+        locals: load_sidebar_selection_payload(requested_overlay_id).merge(
+          overlay_selection_id: requested_overlay_id.to_s
+        )
+      )
     end
 
     [html, "selection", requested_overlay_id.to_s]

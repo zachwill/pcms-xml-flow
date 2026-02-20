@@ -8,6 +8,7 @@
   pick_number = selection["pick_number"]
   drafting_team_code = selection["drafting_team_code"].to_s
   transaction_id = selection["transaction_id"]
+  overlay_selection_id = local_assigns[:overlay_selection_id].presence || transaction_id.to_s
   provenance_count = provenance_rows.size
 
   draft_selection_page_href = draft_selection_href(transaction_id)
@@ -16,7 +17,12 @@
   end
 %>
 
-<div id="rightpanel-overlay" class="h-full">
+<div
+  id="rightpanel-overlay"
+  class="h-full"
+  data-selection-overlay-id="<%= overlay_selection_id %>"
+  data-show="$overlaytype === 'selection' && $overlayid === '<%= overlay_selection_id %>'"
+>
   <div class="sticky top-0 z-20 h-10 px-4 flex items-center justify-between border-b border-border bg-background">
     <button
       type="button"

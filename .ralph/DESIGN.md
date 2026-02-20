@@ -95,9 +95,10 @@ Each task is one iteration of focused work (~10 min). Commit when done.
 
 ## /trades — team impact scan
 
-- [ ] [P1] [TOOL] /trades — surface per-team OUT/IN impact in index rows
+- [x] [P1] [TOOL] /trades — surface per-team OUT/IN impact in index rows
   Files: web/app/views/trades/index.html.erb, web/app/views/trades/_results.html.erb, web/app/controllers/trades_controller.rb
   Why: Users bounce between row and overlay to understand team impact; enough context should be in the row.
+  Note: Trades rows now render the full per-team impact map (OUT/IN + net chip) inline, with scoped team impacts pinned first for faster scan.
 
 - [ ] [P2] [TOOL] /trades — sync overlay and row state on filter refresh
   Files: web/app/views/trades/_rightpanel_overlay_trade.html.erb, web/app/controllers/trades_sse_controller.rb

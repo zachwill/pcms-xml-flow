@@ -454,6 +454,7 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "Team impact (OUT / IN)"
       assert_includes response.body, "Net out"
       assert_includes response.body, "OUT 1P + 1K"
+      assert_includes response.body, "OUT 1 TPE"
       assert_not_includes response.body, "<table"
       assert_not_includes response.body, "DoubleRenderError"
     end
@@ -470,6 +471,7 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="trades-composition-select"'
       assert_includes response.body, 'id="trades-flex-header"'
       assert_includes response.body, "Team impact (OUT / IN)"
+      assert_includes response.body, "OUT 1 TPE"
       assert_includes response.body, 'id="rightpanel-base"'
       assert_includes response.body, 'id="rightpanel-overlay"'
       assert_not_includes response.body, "<table"
@@ -496,6 +498,7 @@ class EntitiesPaneEndpointsTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "Quick deals"
       assert_includes response.body, "Net out"
       assert_includes response.body, "OUT 1P + 1K"
+      assert_includes response.body, "OUT 1 TPE"
       assert_includes response.body, "Trade #88001"
       assert_includes response.body, '"tradesort":"most_assets"'
       assert_includes response.body, '"tradelens":"complex"'

@@ -159,3 +159,13 @@ Each task is one iteration of focused work (~10 min). Commit when done.
   Files: web/app/views/draft_selections/_rightpanel_overlay_selection.html.erb, web/app/controllers/draft_selections_sse_controller.rb
   Why: Same overlay-clear pattern; overlay for a hidden row should auto-clear.
   Note: Selection overlay now self-gates with `data-show` against live `overlaytype/overlayid`, and SSE refresh stamps explicit `overlay_selection_id` locals so stale responses stay hidden when the selected row leaves the visible result set.
+
+## Supervisor corrective tasks (2026-02-20, review pass 3)
+
+- [ ] [P2] [TOOL] /transactions — compress pre-table cue stack into one scan-first rail
+  Files: web/app/views/transactions/_results.html.erb, web/app/controllers/transactions_controller.rb
+  Why: Severity/route guidance is currently repeated in both the pre-table summary block and lane headers, creating avoidable vertical tax before first rows in explorer mode.
+
+- [ ] [P2] [INDEX] /draft-selections — surface active lens focus in commandbar lane context
+  Files: web/app/views/draft_selections/index.html.erb, web/app/controllers/draft_selections_controller.rb
+  Why: Lane counts are visible, but active lens intent (all vs contested vs deep-contested) is not explicit in commandbar context, reducing wayfinding predictability after filter pivots.

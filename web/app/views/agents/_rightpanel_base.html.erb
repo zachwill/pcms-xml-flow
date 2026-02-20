@@ -5,6 +5,12 @@
   year_label = format_year_label(year).split("-").first
   top_rows = Array(summary[:top_rows])
 
+  # Batch-load canonical slugs for agents and agencies in top rows to avoid N+1 queries.
+  agent_ids = top_rows.select { |r| r[:type].to_s != "agency" }.map { |r| r[:id] }
+  agency_ids = top_rows.select { |r| r[:type].to_s == "agency" }.map { |r| r[:id] }
+  prefetch_canonical_slugs(entity_type: "agent", entity_ids: agent_ids) if agent_ids.any?
+  prefetch_canonical_slugs(entity_type: "agency", entity_ids: agency_ids) if agency_ids.any?
+
   pane_query_expr = "'q=' + encodeURIComponent($agentquery) +
     '&kind=' + $entitykind +
     '&active_only=' + ($activeonly ? '1' : '0') +

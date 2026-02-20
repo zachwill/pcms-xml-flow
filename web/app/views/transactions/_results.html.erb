@@ -1,4 +1,11 @@
 <%
+  # Batch-load canonical slugs for all players to avoid N+1 queries.
+  prefetch_canonical_slugs(
+    entity_type: "player",
+    entity_ids: Array(@transactions).map { |t| t["player_id"] }
+  )
+%>
+<%
   results_payload = @transaction_results_payload.is_a?(Hash) ? @transaction_results_payload : {}
   scan_rail_payload = results_payload[:scan_rail].is_a?(Hash) ? results_payload[:scan_rail] : {}
   severity_lanes = Array(results_payload[:severity_lanes] || @transaction_severity_lanes)

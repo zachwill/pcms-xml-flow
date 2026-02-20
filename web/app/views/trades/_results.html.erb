@@ -1,3 +1,10 @@
+<%
+  # Batch-load canonical slugs for all player previews to avoid N+1 queries.
+  prefetch_canonical_slugs(
+    entity_type: "player",
+    entity_ids: Array(@trades).flat_map { |t| Array(t["player_previews"]).map { |p| p["player_id"] } }
+  )
+%>
 <div id="trades-results" class="py-2">
   <% if @trades.empty? %>
     <div class="px-4 py-8 text-sm text-muted-foreground italic text-center border-b border-border">

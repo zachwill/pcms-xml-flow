@@ -25,9 +25,10 @@ Each task is one iteration of focused work (~10 min). Commit when done.
 
 ## Supervisor corrective tasks (2026-02-20)
 
-- [ ] [P1] [INDEX] /teams — restore one-click canonical team pivot while preserving row-click overlay primary action
+- [x] [P1] [INDEX] /teams — restore one-click canonical team pivot while preserving row-click overlay primary action
   Files: web/app/views/teams/_pressure_section.html.erb, web/app/views/teams/_rightpanel_base.html.erb
   Why: Recent drill-in unification removed inline canonical pivots, adding friction to entity navigation from scan rows.
+  Note: Team-name anchors are back in both main scan rows and pressure-board quick rows, with click propagation stopped so row-click still opens overlay.
 
 - [ ] [P2] [INDEX] /teams — replace selector parsing with explicit row ids for active-row sync
   Files: web/app/views/teams/_pressure_section.html.erb, web/app/javascript/teams_index.js

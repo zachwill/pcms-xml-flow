@@ -141,6 +141,7 @@
           <% rows.each do |team| %>
             <% team_id = team["team_id"] %>
             <% team_code = team["team_code"].to_s %>
+            <% team_page_href = team_href(team_code: team_code, team_id: team_id) %>
             <% pressure_label, pressure_chip_classes = case team["pressure_bucket"].to_s
               when "over_apron2"
                 ["Over Apron 2", "entity-chip entity-chip--danger"]
@@ -191,9 +192,13 @@
                   </div>
 
                   <div class="h-[24px] flex items-end min-w-0 pl-1 pr-2">
-                    <span class="block truncate font-medium text-[14px] text-foreground transition-colors group-hover:text-primary">
+                    <a
+                      href="<%= team_page_href %>"
+                      class="block truncate font-medium text-[14px] text-foreground transition-colors group-hover:text-primary hover:underline"
+                      onclick="event.stopPropagation()"
+                    >
                       <%= team["team_name"] %>
-                    </span>
+                    </a>
                   </div>
 
                   <div class="h-[16px] -mt-px flex items-start min-w-0 pl-1 pr-2 leading-none text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden">

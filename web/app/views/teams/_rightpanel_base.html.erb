@@ -169,6 +169,7 @@
                 ["Under Cap", "text-emerald-600 dark:text-emerald-400"]
               end %>
             <% open_expr = "$selectedteamid = '#{team_id}'; $overlaytype = 'team'; @get('/teams/sidebar/#{team_id}')" %>
+            <% team_page_href = team_href(team_code: row["team_code"], team_id: team_id) %>
 
             <button
               type="button"
@@ -178,7 +179,7 @@
             >
               <div class="entity-cell-two-line">
                 <div class="entity-cell-primary justify-between gap-2">
-                  <span class="truncate font-medium"><%= row["team_name"] %></span>
+                  <a href="<%= team_page_href %>" class="truncate font-medium hover:underline" onclick="event.stopPropagation()"><%= row["team_name"] %></a>
                   <span class="font-mono tabular-nums text-[11px] shrink-0 <%= row['room_under_apron2'].to_f < 0 ? 'text-red-600 dark:text-red-400' : '' %>"><%= row["room_under_apron2"].nil? ? "—" : format_room_amount(row["room_under_apron2"]) %></span>
                 </div>
                 <div class="entity-cell-secondary justify-between gap-2">

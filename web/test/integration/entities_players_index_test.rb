@@ -190,23 +190,20 @@ class EntitiesPlayersIndexTest < ActionDispatch::IntegrationTest
     host! "localhost"
   end
 
-  test "players index renders workbench commandbar and urgency surfaces" do
+  test "players index renders compact commandbar and dense table surface" do
     with_fake_connection do
       get "/players", headers: modern_headers
 
       assert_response :success
       assert_includes response.body, 'id="players-team-lens"'
       assert_includes response.body, 'id="players-constraint-lens"'
-      assert_includes response.body, 'data-bind="playerurgency"'
-      assert_includes response.body, 'id="players-urgency-sub-lens"'
-      assert_includes response.body, 'data-bind="playerurgencysub"'
+      assert_includes response.body, 'name="players-status-lens"'
       assert_includes response.body, 'id="players-cap-horizon-2026"'
       assert_includes response.body, 'id="maincanvas"'
-      assert_includes response.body, 'id="players-sections-board"'
-      assert_includes response.body, 'id="players-section-urgent"'
-      assert_includes response.body, 'id="players-section-upcoming"'
-      assert_includes response.body, "Contract-horizon lane rollup"
+      assert_includes response.body, 'id="players-table-body"'
       assert_includes response.body, 'id="rightpanel-base"'
+      assert_not_includes response.body, "Scope"
+      assert_not_includes response.body, "Urgency Triage"
       assert_not_includes response.body, 'id="players-search-input"'
       assert_not_includes response.body, 'id="players-compare-strip"'
       assert_not_includes response.body, ">Pin A</button>"
@@ -243,10 +240,7 @@ class EntitiesPlayersIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.media_type, "text/event-stream"
       assert_includes response.body, "event: datastar-patch-elements"
       assert_includes response.body, "id=\"maincanvas\""
-      assert_includes response.body, "id=\"players-sections-board\""
-      assert_includes response.body, "id=\"players-section-urgent\""
-      assert_includes response.body, "id=\"players-section-upcoming\""
-      assert_includes response.body, "sticky top-8"
+      assert_includes response.body, "id=\"players-table-body\""
       assert_includes response.body, "id=\"rightpanel-base\""
       assert_includes response.body, "id=\"rightpanel-overlay\""
       assert_includes response.body, "event: datastar-patch-signals"
@@ -349,10 +343,9 @@ class EntitiesPlayersIndexTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_includes response.media_type, "text/event-stream"
       assert_includes response.body, "Cap 26-27"
-      assert_includes response.body, "Urgency quick feed · 26-27"
+      assert_includes response.body, "Cap board · 26-27"
       assert_includes response.body, "Trade kicker clause on file"
-      assert_includes response.body, 'id="players-section-urgent"'
-      assert_not_includes response.body, 'id="players-section-upcoming"'
+      assert_includes response.body, 'id="players-table-body"'
       assert_includes response.body, "Alpha Guard"
       assert_not_includes response.body, "Beta Wing"
       assert_includes response.body, '"playerconstraint":"trade_kicker"'
@@ -362,7 +355,7 @@ class EntitiesPlayersIndexTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "players refresh applies urgency lens and keeps URL-state signal in sync" do
+  test "players refresh ignores urgency params and keeps signals pinned to all" do
     with_fake_connection do
       get "/players/sse/refresh", params: {
         q: "",
@@ -376,17 +369,15 @@ class EntitiesPlayersIndexTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_includes response.media_type, "text/event-stream"
-      assert_includes response.body, 'id="players-section-urgent"'
-      assert_not_includes response.body, 'id="players-section-upcoming"'
-      assert_includes response.body, "Urgent decisions"
-      assert_includes response.body, '"playerurgency":"urgent"'
+      assert_includes response.body, 'id="players-table-body"'
+      assert_includes response.body, '"playerurgency":"all"'
       assert_includes response.body, '"playerurgencysub":"all"'
       assert_includes response.body, "Alpha Guard"
-      assert_not_includes response.body, "Beta Wing"
+      assert_includes response.body, "Beta Wing"
     end
   end
 
-  test "players refresh applies urgency sub-lens intersection and keeps signals in sync" do
+  test "players refresh ignores urgency sub-lens params and keeps signals pinned to all" do
     with_fake_connection do
       get "/players/sse/refresh", params: {
         q: "",
@@ -401,25 +392,21 @@ class EntitiesPlayersIndexTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_includes response.media_type, "text/event-stream"
-      assert_includes response.body, 'id="players-section-urgent"'
-      assert_not_includes response.body, 'id="players-section-upcoming"'
-      assert_includes response.body, "Focus Option-only"
-      assert_includes response.body, "Urgency focus: Option-only"
-      assert_includes response.body, '"playerurgency":"urgent"'
-      assert_includes response.body, '"playerurgencysub":"option_only"'
+      assert_includes response.body, 'id="players-table-body"'
+      assert_includes response.body, '"playerurgency":"all"'
+      assert_includes response.body, '"playerurgencysub":"all"'
       assert_includes response.body, "Alpha Guard"
-      assert_not_includes response.body, "Beta Wing"
+      assert_includes response.body, "Beta Wing"
     end
   end
 
-  test "players refresh urgency sub-lens clears overlay when selected row falls out" do
+  test "players refresh clears overlay when constraint filter removes selected row" do
     with_fake_connection do
       get "/players/sse/refresh", params: {
         q: "",
         team: "ALL",
         status: "all",
-        constraint: "all",
-        urgency_sub: "option_only",
+        constraint: "trade_kicker",
         horizon: "2025",
         sort: "cap_desc",
         selected_id: "2"
@@ -430,7 +417,7 @@ class EntitiesPlayersIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, '<div id="rightpanel-overlay"></div>'
       assert_includes response.body, '"overlaytype":"none"'
       assert_includes response.body, '"selectedplayerid":""'
-      assert_includes response.body, '"playerurgencysub":"option_only"'
+      assert_includes response.body, '"playerconstraint":"trade_kicker"'
     end
   end
 

@@ -2,39 +2,42 @@
   <% summary = @sidebar_summary %>
   <% cap_horizon = summary[:cap_horizon].to_i %>
   <% cap_horizon_label = summary[:cap_horizon_label].presence || format_year_label(cap_horizon) %>
-  <% next_horizon_label = format_year_label(cap_horizon + 1) %>
   <% active_constraint_reason = summary[:constraint_lens_match_reason].to_s.presence %>
+  <% top_rows = Array(summary[:top_rows]) %>
+  <% active_filter_labels = Array(summary[:filters]).reject { |label| label.to_s.downcase.include?("urgency") } %>
 
-  <% urgency_chip_class = lambda do |key|
-    case key.to_s
-    when "urgent"
-      "entity-chip entity-chip--danger"
-    when "upcoming"
-      "entity-chip entity-chip--warning"
-    else
-      "entity-chip entity-chip--muted"
+  <%
+    contract_note_for_row = lambda do |row|
+      if row["has_lock_now"]
+        "Lock-now terms"
+      elsif row["expires_after_horizon"]
+        "Expires after #{cap_horizon_label}"
+      elsif row["has_next_horizon_option"]
+        option_code = row["next_horizon_option"].to_s.presence || "Option"
+        "#{option_code} before #{format_year_label(cap_horizon + 1)}"
+      elsif row["has_next_horizon_non_guaranteed"]
+        "Non-guaranteed next horizon"
+      elsif row["has_future_option"]
+        "Future option years"
+      elsif row["has_non_guaranteed"]
+        "Future non-guaranteed years"
+      elsif row["is_trade_bonus"]
+        "Trade kicker"
+      else
+        "No immediate triggers"
+      end
     end
-  end %>
-
-  <% urgency_lane_label = lambda do |key|
-    case key.to_s
-    when "urgent"
-      "Urgent decisions"
-    when "upcoming"
-      "Upcoming pressure"
-    else
-      "Stable commitments"
-    end
-  end %>
+  %>
 
   <div id="rightpanel-base" class="space-y-4">
-    <div class="rounded-lg border border-border bg-background p-3 space-y-3">
+    <section class="space-y-3">
       <div>
-        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Workspace snapshot</div>
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Players snapshot</div>
         <div class="text-sm font-semibold text-foreground">
           Players
           <span class="text-muted-foreground font-medium">· <%= summary[:row_count].to_i %> rows</span>
         </div>
+        <div class="text-[10px] text-muted-foreground/80">Cap horizon <%= cap_horizon_label %></div>
       </div>
 
       <div class="grid grid-cols-2 gap-1.5">
@@ -51,108 +54,99 @@
         } %>
 
         <%= render partial: "salary_book/kpi_cell", locals: {
-          label: "Urgent",
-          value: summary[:urgent_count].to_i.to_s,
-          class_name: "w-full",
-          variant: (summary[:urgent_count].to_i.positive? ? "negative" : "muted")
+          label: "Two-Way",
+          value: summary[:two_way_count].to_i.to_s,
+          class_name: "w-full"
         } %>
 
         <%= render partial: "salary_book/kpi_cell", locals: {
-          label: "Upcoming",
-          value: summary[:upcoming_count].to_i.to_s,
-          class_name: "w-full",
-          variant: (summary[:upcoming_count].to_i.positive? ? "default" : "muted")
+          label: "Restricted",
+          value: summary[:restricted_count].to_i.to_s,
+          class_name: "w-full"
         } %>
-      </div>
 
-      <div class="grid grid-cols-2 gap-1.5">
         <%= render partial: "salary_book/kpi_cell", locals: {
-          label: "Stable",
-          value: summary[:stable_count].to_i.to_s,
+          label: "No-Trade",
+          value: summary[:no_trade_count].to_i.to_s,
+          class_name: "w-full"
+        } %>
+
+        <%= render partial: "salary_book/kpi_cell", locals: {
+          label: "Constrained",
+          value: summary[:constrained_count].to_i.to_s,
           class_name: "w-full"
         } %>
 
         <%= render partial: "salary_book/kpi_cell", locals: {
           label: "Cap #{cap_horizon_label}",
           value: format_compact_currency(summary[:total_cap]),
-          value_class_name: "text-[11px]",
-          class_name: "w-full"
+          class_name: "w-full",
+          value_class_name: "text-[11px]"
         } %>
       </div>
 
-      <div class="pt-1 flex flex-wrap gap-1.5">
-        <span class="<%= urgency_chip_class.call('urgent') %>"><%= urgency_lane_label.call('urgent') %> <%= summary[:urgent_count].to_i %></span>
-        <span class="<%= urgency_chip_class.call('upcoming') %>"><%= urgency_lane_label.call('upcoming') %> <%= summary[:upcoming_count].to_i %></span>
-        <span class="<%= urgency_chip_class.call('stable') %>"><%= urgency_lane_label.call('stable') %> <%= summary[:stable_count].to_i %></span>
-        <% if summary[:urgency_sub_lens].to_s != "all" %>
-          <span class="entity-chip entity-chip--accent"><%= summary[:urgency_sub_lens_label].presence || "Focused" %></span>
-        <% end %>
-      </div>
+      <% if active_constraint_reason.present? %>
+        <div class="rounded border border-border/60 bg-muted/20 px-2 py-1.5 text-[10px] leading-tight text-muted-foreground">
+          <span class="text-foreground/90">Contract filter</span>: <%= active_constraint_reason %>
+        </div>
+      <% end %>
 
-      <% if Array(summary[:filters]).any? %>
+      <% if active_filter_labels.any? %>
         <div class="pt-1 flex flex-wrap gap-1">
-          <% Array(summary[:filters]).each do |label| %>
+          <% active_filter_labels.each do |label| %>
             <span class="entity-chip entity-chip--muted"><%= label %></span>
           <% end %>
         </div>
       <% end %>
+    </section>
 
-      <% if active_constraint_reason.present? %>
-        <div class="rounded border border-border/60 bg-muted/20 px-2 py-1.5 text-[10px] leading-tight text-muted-foreground">
-          <span class="text-foreground/90">Constraint filter</span>: <%= active_constraint_reason %>
-        </div>
-      <% end %>
-    </div>
-
-    <div class="rounded-lg border border-border bg-background">
-      <div class="px-3 py-2 border-b border-border">
-        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Urgency quick feed · <%= cap_horizon_label %></div>
-        <div class="text-[10px] text-muted-foreground/70">Mirrors main-row badges: Urgent decisions, Upcoming pressure, Stable commitments.</div>
+    <section class="rounded border border-border overflow-hidden">
+      <div class="px-3 py-2 border-b border-border bg-muted/40">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Cap board · <%= cap_horizon_label %></div>
+        <div class="text-[10px] text-muted-foreground/70">Top rows in current scope</div>
       </div>
 
-      <% top_row_lanes = Array(summary[:top_row_lanes]) %>
-      <% if top_row_lanes.empty? %>
+      <% if top_rows.empty? %>
         <div class="p-3 text-sm text-muted-foreground italic">No rows.</div>
       <% else %>
-        <div class="divide-y divide-border">
-          <% top_row_lanes.each do |lane| %>
-            <section id="players-quick-lane-<%= lane[:key] %>" class="border-b border-border/60 last:border-b-0">
-              <div class="px-3 py-1.5 bg-muted/30 border-b border-border/50 flex items-center justify-between gap-2 text-[10px] uppercase tracking-wide">
-                <span class="<%= urgency_chip_class.call(lane[:key]) %>"><%= lane[:title].presence || urgency_lane_label.call(lane[:key]) %></span>
-                <span class="font-mono tabular-nums text-muted-foreground"><%= lane[:row_count] %></span>
-              </div>
+        <div class="divide-y divide-border/60">
+          <% top_rows.each do |row| %>
+            <% player_id = row["player_id"] %>
+            <% open_expr = "$selectedplayerid = '#{player_id}'; $overlaytype = 'player'; @get('/players/sidebar/#{player_id}')" %>
+            <% player_team = row["team_code"].presence || "FA" %>
+            <% contract_note = contract_note_for_row.call(row) %>
 
-              <div class="divide-y divide-border/50">
-                <% Array(lane[:rows]).each do |row| %>
-                  <% player_id = row["player_id"] %>
-                  <% open_expr = "$selectedplayerid = '#{player_id}'; $overlaytype = 'player'; @get('/players/sidebar/#{player_id}')" %>
-
-                  <button
-                    type="button"
-                    class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
-                    data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $selectedplayerid === '<%= player_id %>' }"
-                    data-on:click="<%= open_expr %>"
-                  >
-                    <div class="entity-cell-two-line">
-                      <div class="entity-cell-primary justify-between gap-2">
-                        <a href="<%= player_href(player_id) %>" class="truncate font-medium hover:underline" onclick="event.stopPropagation()"><%= row["player_name"] %></a>
-                        <span class="font-mono tabular-nums text-[11px] shrink-0"><%= row["cap_lens_value"].present? ? format_compact_currency(row["cap_lens_value"]) : "—" %></span>
-                      </div>
-                      <div class="entity-cell-secondary justify-between gap-2">
-                        <span class="truncate"><%= row["team_code"].presence || "Free Agent" %> · <%= row["urgency_reason"].presence || "No immediate horizon trigger" %></span>
-                        <% if row["is_two_way"] %>
-                          <span class="entity-chip entity-chip--muted">2W</span>
-                        <% end %>
-                      </div>
-                    </div>
-                  </button>
-                <% end %>
+            <button
+              type="button"
+              class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+              data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $selectedplayerid === '<%= player_id %>' }"
+              data-on:click="<%= open_expr %>"
+            >
+              <div class="entity-cell-two-line">
+                <div class="entity-cell-primary justify-between gap-2">
+                  <a href="<%= player_href(player_id) %>" class="truncate font-medium hover:underline" onclick="event.stopPropagation()"><%= row["player_name"] %></a>
+                  <span class="font-mono tabular-nums text-[11px] shrink-0"><%= row["cap_lens_value"].present? ? format_compact_currency(row["cap_lens_value"]) : "—" %></span>
+                </div>
+                <div class="entity-cell-secondary justify-between gap-2">
+                  <span class="truncate"><%= player_team %> · <%= contract_note %></span>
+                  <span class="flex items-center gap-1.5">
+                    <% if row["is_two_way"] %>
+                      <span class="entity-chip entity-chip--muted">2W</span>
+                    <% end %>
+                    <% if row["is_trade_restricted_now"] %>
+                      <span class="entity-chip entity-chip--danger">TR</span>
+                    <% end %>
+                    <% if row["is_no_trade"] %>
+                      <span class="entity-chip entity-chip--danger">NTC</span>
+                    <% end %>
+                  </span>
+                </div>
               </div>
-            </section>
+            </button>
           <% end %>
         </div>
       <% end %>
-    </div>
+    </section>
   </div>
 <% elsif @player_id.present? %>
   <%

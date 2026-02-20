@@ -69,6 +69,7 @@
   header_knobs: [
     {
       label: "Directory",
+      min_width_class: "min-w-[6.5rem]",
       options: [
         {
           type: "radio",
@@ -94,6 +95,7 @@
     },
     {
       label: "Year",
+      min_width_class: "min-w-[4.5rem]",
       options: [
         {
           type: "radio",
@@ -129,7 +131,7 @@
     },
     {
       label: "Sort",
-      min_width_class: "min-w-[9rem]",
+      min_width_class: "min-w-[8.5rem]",
       options: [
         {
           type: "select",
@@ -164,7 +166,7 @@
     },
     {
       label: "Agency",
-      min_width_class: "min-w-[16rem]",
+      min_width_class: "min-w-[14rem]",
       options: [
         {
           type: "select",
@@ -172,14 +174,14 @@
           value: @agency_filter_id.to_s,
           bind: "agencyfilterid",
           on_change: refresh_expr,
-          width_class: "w-64",
+          width_class: "w-56",
           choices: agency_filter_choices
         }
       ]
     },
     {
       label: "Agent scope",
-      min_width_class: "min-w-[16rem]",
+      min_width_class: "min-w-[14rem]",
       options: [
         {
           type: "checkbox",
@@ -195,13 +197,14 @@
           value: @agency_scope_id.to_s,
           bind: "agencyscopeid",
           on_change: scope_select_expr,
-          width_class: "w-64",
+          width_class: "w-56",
           choices: agency_scope_choices
         }
       ]
     },
     {
       label: "Filters",
+      min_width_class: "min-w-[7rem]",
       options: [
         {
           type: "checkbox",
@@ -247,6 +250,7 @@
     },
     {
       label: "Flags",
+      min_width_class: "min-w-[6rem]",
       options: [
         {
           type: "checkbox",

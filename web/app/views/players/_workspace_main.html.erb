@@ -2,79 +2,114 @@
 <% cap_horizon_label = format_year_label(cap_horizon) %>
 <% next_horizon = cap_horizon + 1 %>
 <% next_horizon_label = format_year_label(next_horizon) %>
-<% active_constraint_key = @sidebar_summary&.dig(:constraint_lens_match_key).to_s.presence %>
-<% active_constraint_reason = @sidebar_summary&.dig(:constraint_lens_match_reason).to_s.presence %>
-<% active_constraint_chip_label = @sidebar_summary&.dig(:constraint_lens_match_chip_label).to_s.presence %>
-<% active_urgency_sub_lens = @sidebar_summary&.dig(:urgency_sub_lens).to_s.presence || "all" %>
-<% active_urgency_sub_label = @sidebar_summary&.dig(:urgency_sub_lens_label).to_s.presence || "All triggers" %>
+<% summary = @sidebar_summary || {} %>
+<% active_constraint_key = summary[:constraint_lens_match_key].to_s.presence %>
 
 <%
-  urgency_chip_class = lambda do |key|
-    case key.to_s
-    when "urgent"
-      "entity-chip entity-chip--danger"
-    when "upcoming"
-      "entity-chip entity-chip--warning"
+  contract_reason_for = lambda do |player|
+    if player["has_lock_now"]
+      "Lock-now terms (TR / consent / no-trade)"
+    elsif player["expires_after_horizon"]
+      "Expires after #{cap_horizon_label}"
+    elsif player["has_next_horizon_option"]
+      option_code = player["next_horizon_option"].to_s.presence || "Option"
+      "#{option_code} decision before #{next_horizon_label}"
+    elsif player["has_next_horizon_non_guaranteed"]
+      "Non-guaranteed in #{next_horizon_label}"
+    elsif player["has_future_option"]
+      "Future option years"
+    elsif player["has_non_guaranteed"]
+      "Future non-guaranteed years"
+    elsif player["is_trade_bonus"]
+      "Trade kicker on file"
     else
-      "entity-chip entity-chip--muted"
-    end
-  end
-
-  urgency_lane_label = lambda do |key|
-    case key.to_s
-    when "urgent"
-      "Urgent decisions"
-    when "upcoming"
-      "Upcoming pressure"
-    else
-      "Stable commitments"
+      "No immediate contract triggers"
     end
   end
 %>
 
-<main id="maincanvas" class="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-background">
-  <div id="players-maincanvas" class="px-4 py-4 space-y-4">
-    <div class="flex items-end justify-between gap-4">
-      <div>
-        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Players workspace · Scope → urgency → drill-in</div>
-        <h2 class="text-sm font-semibold text-foreground">
-          Contract-horizon urgency scan
-          <span class="text-muted-foreground font-medium">· <%= @players.size %> rows</span>
-        </h2>
+<main id="maincanvas" class="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden bg-background relative overscroll-y-contain scroll-touch isolate">
+  <div class="py-3">
+    <section class="px-4 pb-3 border-b border-border">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0 space-y-2">
+          <div>
+            <h2 class="text-sm font-semibold text-foreground">
+              Players
+              <span class="text-muted-foreground font-medium">· <%= pluralize(@players.size, "row") %></span>
+            </h2>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5">
+            <span class="entity-chip entity-chip--muted"><%= @team_lens_label %></span>
+            <span class="entity-chip entity-chip--muted"><%= @status_lens_label %></span>
+            <% if @constraint_lens.to_s != "all" %>
+              <span class="entity-chip entity-chip--accent"><%= @constraint_lens_label %></span>
+            <% end %>
+            <span class="entity-chip entity-chip--muted">Cap <%= cap_horizon_label %></span>
+            <span class="entity-chip entity-chip--muted"><%= @sort_lens_label %></span>
+          </div>
+        </div>
+
+        <div class="ml-auto shrink-0 flex items-start gap-3">
+          <div class="grid grid-cols-3 gap-1.5">
+            <%= render partial: "salary_book/kpi_cell", locals: {
+              label: "Rows",
+              value: summary[:row_count].to_i.to_s,
+              class_name: "w-full"
+            } %>
+
+            <%= render partial: "salary_book/kpi_cell", locals: {
+              label: "Teams",
+              value: summary[:team_count].to_i.to_s,
+              class_name: "w-full"
+            } %>
+
+            <%= render partial: "salary_book/kpi_cell", locals: {
+              label: "Two-Way",
+              value: summary[:two_way_count].to_i.to_s,
+              class_name: "w-full"
+            } %>
+
+            <%= render partial: "salary_book/kpi_cell", locals: {
+              label: "Restricted",
+              value: summary[:restricted_count].to_i.to_s,
+              class_name: "w-full"
+            } %>
+
+            <%= render partial: "salary_book/kpi_cell", locals: {
+              label: "No-Trade",
+              value: summary[:no_trade_count].to_i.to_s,
+              class_name: "w-full"
+            } %>
+
+            <%= render partial: "salary_book/kpi_cell", locals: {
+              label: "Cap #{cap_horizon_label}",
+              value: format_compact_currency(summary[:total_cap]),
+              class_name: "w-full",
+              value_class_name: "text-[11px]"
+            } %>
+          </div>
+
+          <div class="text-[10px] text-muted-foreground/80 text-right tabular-nums leading-tight">
+            <div>Contract board</div>
+            <div>Cap <%= cap_horizon_label %> snapshot</div>
+          </div>
+        </div>
       </div>
-
-      <div class="text-[11px] text-muted-foreground tabular-nums text-right leading-tight">
-        <div class="truncate" title="<%= @scope_sequence_label %>">Scope: <%= @scope_sequence_label %></div>
-        <div class="truncate" title="<%= @urgency_sequence_label %>">Urgency: <%= @urgency_sequence_label %></div>
-        <div>Drill-in: <%= @drill_in_sequence_label %> · Cap <%= cap_horizon_label %> total: <%= format_compact_currency(@sidebar_summary[:total_cap]) %></div>
-        <% if active_constraint_reason.present? %>
-          <div class="text-[10px] text-muted-foreground/80">Constraint match: <%= active_constraint_reason %></div>
-        <% end %>
-      </div>
-    </div>
-
-    <div class="flex flex-wrap gap-1.5">
-      <span class="<%= urgency_chip_class.call('urgent') %>"><%= urgency_lane_label.call('urgent') %> <%= @sidebar_summary[:urgent_count].to_i %></span>
-      <span class="<%= urgency_chip_class.call('upcoming') %>"><%= urgency_lane_label.call('upcoming') %> <%= @sidebar_summary[:upcoming_count].to_i %></span>
-      <span class="<%= urgency_chip_class.call('stable') %>"><%= urgency_lane_label.call('stable') %> <%= @sidebar_summary[:stable_count].to_i %></span>
-      <span class="entity-chip entity-chip--muted">Horizon <%= cap_horizon_label %></span>
-      <% if active_urgency_sub_lens != "all" %>
-        <span class="entity-chip entity-chip--accent">Focus <%= active_urgency_sub_label %></span>
-      <% end %>
-    </div>
-
+    </section>
 
     <% if @players.empty? %>
-      <div class="p-6 rounded-lg border border-border bg-muted/20 text-sm text-muted-foreground italic text-center">
-        No players match these filters.
+      <div class="px-4 py-6 text-sm text-muted-foreground italic text-center">
+        No players meet the current filters.
       </div>
     <% else %>
-      <div class="rounded-lg border border-border overflow-hidden">
-        <div class="sticky top-0 z-10 bg-muted/70 backdrop-blur-sm border-b border-border">
-          <div class="flex items-center px-4 h-8 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
+      <section class="border-b border-border">
+        <div class="sticky top-0 z-10 bg-muted border-b border-border">
+          <div class="flex items-center px-4 h-9 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium cursor-default select-none">
             <div class="w-64 shrink-0">Player</div>
             <div class="w-32 shrink-0">Team</div>
-            <div class="w-52 shrink-0">Urgency trigger</div>
+            <div class="w-56 shrink-0">Contract Flags</div>
             <div class="w-44 shrink-0">Agent</div>
             <div class="w-24 shrink-0 text-right font-mono tabular-nums">Cap <%= cap_horizon_label %></div>
             <div class="w-24 shrink-0 text-right font-mono tabular-nums">Cap <%= next_horizon_label %></div>
@@ -82,173 +117,158 @@
           </div>
         </div>
 
-        <div id="players-sections-board" class="divide-y divide-border/60">
-          <% Array(@player_sections).each do |section| %>
-            <section id="players-section-<%= section[:key] %>" class="border-b border-border/70 last:border-b-0">
-              <div class="sticky top-8 z-[6] border-b border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
-                <div class="flex items-center px-4 h-8 text-[10px] uppercase tracking-wide text-muted-foreground/90">
-                  <div class="w-64 shrink-0 min-w-0 pr-2 truncate">
-                    <span class="<%= urgency_chip_class.call(section[:key]) %>"><%= section[:title].presence || urgency_lane_label.call(section[:key]) %></span>
-                    <span class="ml-1 normal-case text-muted-foreground/80"><%= section[:subtitle] %></span>
-                  </div>
-                  <div class="w-32 shrink-0 font-mono tabular-nums text-muted-foreground/80">Rows <%= section[:row_count] %> · Teams <%= section[:team_count] %></div>
-                  <div class="w-52 shrink-0 text-muted-foreground/70">Contract-horizon lane rollup</div>
-                  <div class="w-44 shrink-0 text-muted-foreground/70">Agent + status context</div>
-                  <div class="w-24 shrink-0 text-right font-mono tabular-nums text-foreground/85"><%= format_compact_currency(section[:cap_lens_total]) %></div>
-                  <div class="w-24 shrink-0 text-right font-mono tabular-nums text-foreground/85"><%= format_compact_currency(section[:cap_next_total]) %></div>
-                  <div class="w-24 shrink-0 text-right font-mono tabular-nums text-foreground/85"><%= format_compact_currency(section[:total_salary_total]) %></div>
-                </div>
-              </div>
+        <div id="players-table-body" class="divide-y divide-border/60">
+          <% @players.each do |player| %>
+            <% player_id = player["player_id"] %>
+            <% team_code = player["team_code"].to_s.upcase.presence %>
+            <% team_name = player["team_name"].presence || "Free Agent" %>
+            <% player_path_value = player_href(player_id) %>
+            <% agent_id = player["agent_id"] %>
+            <% agent_path_value = agent_id.present? ? agent_href(agent_id) : nil %>
 
-              <div class="divide-y divide-border/50">
-                <% section[:rows].each do |player| %>
-                  <% player_id = player["player_id"] %>
-                  <% team_code = player["team_code"].to_s.upcase.presence %>
-                  <% team_name = player["team_name"].presence || "Free Agent" %>
-                  <% player_path_value = player_href(player_id) %>
-                  <% agent_id = player["agent_id"] %>
-                  <% agent_path_value = agent_id.present? ? agent_href(agent_id) : nil %>
+            <% status_tokens = [] %>
+            <% status_tokens << { key: "two_way", label: "2W", classes: "entity-chip entity-chip--muted" } if player["is_two_way"] %>
+            <% status_tokens << { key: "restricted", label: "TR", classes: "entity-chip entity-chip--danger" } if player["is_trade_restricted_now"] %>
+            <% status_tokens << { key: "no_trade", label: "NTC", classes: "entity-chip entity-chip--danger" } if player["is_no_trade"] %>
 
-                  <% status_tokens = [] %>
-                  <% status_tokens << { key: "two_way", label: "2W", classes: "entity-chip entity-chip--muted" } if player["is_two_way"] %>
-                  <% status_tokens << { key: "restricted", label: "TR", classes: "entity-chip entity-chip--danger" } if player["is_trade_restricted_now"] %>
-                  <% status_tokens << { key: "no_trade", label: "NTC", classes: "entity-chip entity-chip--danger" } if player["is_no_trade"] %>
+            <% contract_tokens = [] %>
+            <% contract_tokens << { key: "lock_now", label: "Lock now", classes: "entity-chip entity-chip--danger" } if player["has_lock_now"] %>
+            <% contract_tokens << { key: "options", label: "Options", classes: "entity-chip entity-chip--accent" } if player["has_future_option"] %>
+            <% contract_tokens << { key: "non_guaranteed", label: "Non-Gtd", classes: "entity-chip entity-chip--warning" } if player["has_non_guaranteed"] %>
+            <% contract_tokens << { key: "trade_kicker", label: "Trade Kicker", classes: "entity-chip entity-chip--warning" } if player["is_trade_bonus"] %>
+            <% if player["expires_after_horizon"] %>
+              <% contract_tokens << { key: "expiring", label: "Expires #{next_horizon}", classes: "entity-chip entity-chip--muted" } %>
+            <% end %>
 
-                  <% constraint_tokens = [] %>
-                  <% constraint_tokens << { key: "lock_now", label: "Lock now", classes: "entity-chip entity-chip--danger" } if player["has_lock_now"] %>
-                  <% constraint_tokens << { key: "options", label: "Options", classes: "entity-chip entity-chip--accent" } if player["has_future_option"] %>
-                  <% constraint_tokens << { key: "non_guaranteed", label: "Non-Gtd", classes: "entity-chip entity-chip--warning" } if player["has_non_guaranteed"] %>
-                  <% constraint_tokens << { key: "trade_kicker", label: "Trade Kicker", classes: "entity-chip entity-chip--warning" } if player["is_trade_bonus"] %>
-                  <% if player["expires_after_horizon"] %>
-                    <% constraint_tokens << { key: "expiring", label: "Expires #{next_horizon}", classes: "entity-chip entity-chip--muted" } %>
-                  <% end %>
+            <% row_click_expr = "$selectedplayerid = '#{player_id}'; $overlaytype = 'player'; @get('/players/sidebar/#{player_id}')" %>
+            <% cap_lens_value = player["cap_lens_value"] %>
+            <% cap_next_value = player["cap_next_value"] %>
+            <% contract_reason = contract_reason_for.call(player) %>
 
-                  <% matched_constraint_chip = active_constraint_key.present? ? constraint_tokens.find { |token| token[:key] == active_constraint_key } : nil %>
-
-                  <% row_click_expr = "$selectedplayerid = '#{player_id}'; $overlaytype = 'player'; @get('/players/sidebar/#{player_id}')" %>
-                  <% cap_lens_value = player["cap_lens_value"] %>
-                  <% cap_next_value = player["cap_next_value"] %>
-
-                  <div
-                    class="group cursor-pointer transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10"
-                    role="button"
-                    tabindex="0"
-                    data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $selectedplayerid === '<%= player_id %>' }"
-                    data-on:click="<%= row_click_expr %>"
-                    data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); <%= row_click_expr %>; }"
-                  >
-                    <div class="flex items-center px-4 min-h-[50px]">
-                      <div class="w-64 shrink-0">
-                        <div class="grid grid-cols-[36px_1fr] grid-rows-[24px_16px]">
-                          <div class="row-span-2 flex items-center justify-start">
-                            <div class="w-8 h-8 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
-                              <img
-                                src="<%= player_headshot_url(player_id) %>"
-                                alt="<%= player['player_name'] %>"
-                                class="w-full h-full object-cover object-top bg-muted"
-                                loading="lazy"
-                                decoding="async"
-                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                              />
-                              <span class="hidden text-[9px] font-semibold text-muted-foreground">NBA</span>
-                            </div>
-                          </div>
-
-                          <div class="h-[24px] flex items-end min-w-0 pl-2">
-                            <a href="<%= player_path_value %>" class="truncate font-medium text-[14px] group-hover:text-primary transition-colors" onclick="event.stopPropagation()"><%= player["player_name"] %></a>
-                          </div>
-
-                          <div class="h-[16px] -mt-px flex items-start gap-1.5 min-w-0 pl-2 leading-none text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden">
-                            <% if player["years_of_service"].present? %>
-                              <span><%= player["years_of_service"].to_i %> YOS</span>
-                            <% end %>
-                            <% status_tokens.each do |token| %>
-                              <span class="<%= token[:classes] %>"><%= token[:label] %></span>
-                            <% end %>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="w-32 shrink-0">
-                        <% if team_code.present? %>
-                          <div class="grid grid-cols-[28px_1fr] grid-rows-[24px_16px]">
-                            <div class="row-span-2 flex items-center justify-start">
-                              <div class="w-6 h-6 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
-                                <% if player["team_id"].present? %>
-                                  <img
-                                    src="<%= team_logo_url(player['team_id']) %>"
-                                    alt="<%= team_code %>"
-                                    class="w-full h-full object-contain"
-                                    loading="lazy"
-                                    decoding="async"
-                                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                                  />
-                                  <span class="hidden text-[9px] font-mono text-muted-foreground"><%= team_code %></span>
-                                <% else %>
-                                  <span class="text-[9px] font-mono text-muted-foreground"><%= team_code %></span>
-                                <% end %>
-                              </div>
-                            </div>
-
-                            <div class="h-[24px] flex items-end min-w-0 pl-1">
-                              <a href="<%= team_href(team_code: team_code, team_id: player['team_id']) %>" class="font-medium text-[13px] hover:underline" onclick="event.stopPropagation()"><%= team_code %></a>
-                            </div>
-
-                            <div class="h-[16px] -mt-px flex items-start min-w-0 pl-1 leading-none text-[10px] text-muted-foreground/80 truncate"><%= team_name %></div>
-                          </div>
-                        <% else %>
-                          <span class="text-[11px] text-muted-foreground">Free Agent</span>
-                        <% end %>
-                      </div>
-
-                      <div class="w-52 shrink-0">
-                        <div class="entity-cell-two-line">
-                          <div class="entity-cell-primary justify-start gap-1.5 min-w-0">
-                            <span class="<%= urgency_chip_class.call(player['urgency_key']) %>"><%= player["urgency_label"].presence || urgency_lane_label.call(player['urgency_key']) %></span>
-                            <% if matched_constraint_chip.present? %>
-                              <span class="entity-chip entity-chip--accent ring-1 ring-foreground/35 dark:ring-foreground/45 font-semibold"><%= active_constraint_chip_label || matched_constraint_chip[:label] %></span>
-                            <% end %>
-                          </div>
-                          <div class="entity-cell-secondary justify-start gap-1 truncate">
-                            <span class="truncate" title="<%= player['urgency_reason'] %>"><%= player["urgency_reason"].presence || "No immediate horizon trigger" %></span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="w-44 shrink-0">
-                        <% if player["agent_name"].present? && agent_path_value.present? %>
-                          <div class="grid grid-rows-[24px_16px]">
-                            <div class="h-[24px] flex items-end min-w-0">
-                              <a href="<%= agent_path_value %>" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline truncate" onclick="event.stopPropagation()"><%= player["agent_name"] %></a>
-                            </div>
-                            <div class="h-[16px] -mt-px flex items-start min-w-0 leading-none text-[10px] text-muted-foreground/60 truncate">Representation</div>
-                          </div>
-                        <% elsif player["agent_name"].present? %>
-                          <span class="text-[13px] text-muted-foreground truncate"><%= player["agent_name"] %></span>
-                        <% else %>
-                          <span class="text-[11px] text-muted-foreground/60">—</span>
-                        <% end %>
-                      </div>
-
-                      <div class="w-24 shrink-0 flex items-center justify-end">
-                        <span class="font-mono tabular-nums text-sm"><%= cap_lens_value.present? ? format_salary(cap_lens_value) : "—" %></span>
-                      </div>
-
-                      <div class="w-24 shrink-0 flex items-center justify-end">
-                        <span class="font-mono tabular-nums text-sm <%= player['expires_after_horizon'] ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground' %>"><%= cap_next_value.present? ? format_salary(cap_next_value) : "—" %></span>
-                      </div>
-
-                      <div class="w-24 shrink-0 flex items-center justify-end">
-                        <span class="font-mono tabular-nums text-sm text-muted-foreground"><%= player["total_salary_from_2025"].present? ? format_salary(player["total_salary_from_2025"]) : "—" %></span>
+            <div
+              class="group cursor-pointer transition-colors duration-75 hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10"
+              role="button"
+              tabindex="0"
+              data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $selectedplayerid === '<%= player_id %>' }"
+              data-on:click="<%= row_click_expr %>"
+              data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); <%= row_click_expr %>; }"
+            >
+              <div class="flex items-center px-4 h-[44px]">
+                <div class="w-64 shrink-0">
+                  <div class="grid grid-cols-[36px_1fr] grid-rows-[24px_16px]">
+                    <div class="row-span-2 flex items-center justify-start">
+                      <div class="w-8 h-8 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
+                        <img
+                          src="<%= player_headshot_url(player_id) %>"
+                          alt="<%= player['player_name'] %>"
+                          class="w-full h-full object-cover object-top bg-muted"
+                          loading="lazy"
+                          decoding="async"
+                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        />
+                        <span class="hidden text-[9px] font-semibold text-muted-foreground">NBA</span>
                       </div>
                     </div>
+
+                    <div class="h-[24px] flex items-end min-w-0 pl-2">
+                      <a href="<%= player_path_value %>" class="truncate font-medium text-[14px] group-hover:text-primary transition-colors" onclick="event.stopPropagation()"><%= player["player_name"] %></a>
+                    </div>
+
+                    <div class="h-[16px] -mt-px flex items-start gap-1.5 min-w-0 pl-2 leading-none text-[10px] text-muted-foreground/80 tabular-nums overflow-hidden">
+                      <% if player["years_of_service"].present? %>
+                        <span><%= player["years_of_service"].to_i %> YOS</span>
+                      <% end %>
+                      <% status_tokens.each do |token| %>
+                        <span class="<%= token[:classes] %>"><%= token[:label] %></span>
+                      <% end %>
+                    </div>
                   </div>
-                <% end %>
+                </div>
+
+                <div class="w-32 shrink-0">
+                  <% if team_code.present? %>
+                    <div class="grid grid-cols-[28px_1fr] grid-rows-[24px_16px]">
+                      <div class="row-span-2 flex items-center justify-start">
+                        <div class="w-6 h-6 rounded border border-border bg-background overflow-hidden flex items-center justify-center">
+                          <% if player["team_id"].present? %>
+                            <img
+                              src="<%= team_logo_url(player['team_id']) %>"
+                              alt="<%= team_code %>"
+                              class="w-full h-full object-contain"
+                              loading="lazy"
+                              decoding="async"
+                              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                            />
+                            <span class="hidden text-[9px] font-mono text-muted-foreground"><%= team_code %></span>
+                          <% else %>
+                            <span class="text-[9px] font-mono text-muted-foreground"><%= team_code %></span>
+                          <% end %>
+                        </div>
+                      </div>
+
+                      <div class="h-[24px] flex items-end min-w-0 pl-1">
+                        <a href="<%= team_href(team_code: team_code, team_id: player['team_id']) %>" class="font-medium text-[13px] hover:underline" onclick="event.stopPropagation()"><%= team_code %></a>
+                      </div>
+
+                      <div class="h-[16px] -mt-px flex items-start min-w-0 pl-1 leading-none text-[10px] text-muted-foreground/80 truncate"><%= team_name %></div>
+                    </div>
+                  <% else %>
+                    <span class="text-[11px] text-muted-foreground">Free Agent</span>
+                  <% end %>
+                </div>
+
+                <div class="w-56 shrink-0">
+                  <div class="entity-cell-two-line">
+                    <div class="entity-cell-primary justify-start gap-1.5 min-w-0">
+                      <% if contract_tokens.any? %>
+                        <% contract_tokens.first(3).each do |token| %>
+                          <% token_classes = token[:classes] %>
+                          <% if active_constraint_key.present? && token[:key] == active_constraint_key %>
+                            <% token_classes = "#{token_classes} ring-1 ring-foreground/35 dark:ring-foreground/45 font-semibold" %>
+                          <% end %>
+                          <span class="<%= token_classes %>"><%= token[:label] %></span>
+                        <% end %>
+                      <% else %>
+                        <span class="text-[11px] text-muted-foreground">—</span>
+                      <% end %>
+                    </div>
+                    <div class="entity-cell-secondary justify-start gap-1 truncate">
+                      <span class="truncate" title="<%= contract_reason %>"><%= contract_reason %></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="w-44 shrink-0">
+                  <% if player["agent_name"].present? && agent_path_value.present? %>
+                    <div class="grid grid-rows-[24px_16px]">
+                      <div class="h-[24px] flex items-end min-w-0">
+                        <a href="<%= agent_path_value %>" class="text-[13px] text-muted-foreground hover:text-foreground hover:underline truncate" onclick="event.stopPropagation()"><%= player["agent_name"] %></a>
+                      </div>
+                      <div class="h-[16px] -mt-px flex items-start min-w-0 leading-none text-[10px] text-muted-foreground/60 truncate">Representation</div>
+                    </div>
+                  <% elsif player["agent_name"].present? %>
+                    <span class="text-[13px] text-muted-foreground truncate"><%= player["agent_name"] %></span>
+                  <% else %>
+                    <span class="text-[11px] text-muted-foreground/60">—</span>
+                  <% end %>
+                </div>
+
+                <div class="w-24 shrink-0 flex items-center justify-end">
+                  <span class="font-mono tabular-nums text-sm"><%= cap_lens_value.present? ? format_salary(cap_lens_value) : "—" %></span>
+                </div>
+
+                <div class="w-24 shrink-0 flex items-center justify-end">
+                  <span class="font-mono tabular-nums text-sm <%= player['expires_after_horizon'] ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground' %>"><%= cap_next_value.present? ? format_salary(cap_next_value) : "—" %></span>
+                </div>
+
+                <div class="w-24 shrink-0 flex items-center justify-end">
+                  <span class="font-mono tabular-nums text-sm text-muted-foreground"><%= player["total_salary_from_2025"].present? ? format_salary(player["total_salary_from_2025"]) : "—" %></span>
+                </div>
               </div>
-            </section>
+            </div>
           <% end %>
         </div>
-      </div>
+      </section>
     <% end %>
   </div>
 </main>

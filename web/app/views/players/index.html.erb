@@ -5,17 +5,15 @@
     '&team=' + encodeURIComponent($playerteam) +
     '&status=' + encodeURIComponent($playerstatus) +
     '&constraint=' + encodeURIComponent($playerconstraint) +
-    '&urgency=' + encodeURIComponent($playerurgency) +
-    '&urgency_sub=' + encodeURIComponent($playerurgencysub) +
     '&horizon=' + encodeURIComponent($playerhorizon) +
     '&sort=' + encodeURIComponent($playersort)"
 
   selected_overlay_query_expr = "'selected_id=' + encodeURIComponent($overlaytype === 'player' ? $selectedplayerid : '')"
   refresh_query_expr = "(#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr})"
 
-  refresh_expr = "@get('/players/sse/refresh?' + (#{refresh_query_expr})); window.history.replaceState({}, '', '/players?' + (#{pane_query_expr}))"
+  refresh_expr = "$playerurgency = 'all'; $playerurgencysub = 'all'; @get('/players/sse/refresh?' + (#{refresh_query_expr})); window.history.replaceState({}, '', '/players?' + (#{pane_query_expr}))"
 
-  signals_literal = "{ playerquery: #{@query.to_json}, playerteam: #{@team_lens.to_json}, playerstatus: #{@status_lens.to_json}, playerconstraint: #{@constraint_lens.to_json}, playerurgency: #{@urgency_lens.to_json}, playerurgencysub: #{@urgency_sub_lens.to_json}, playerhorizon: #{@cap_horizon.to_s.to_json}, playersort: #{@sort_lens.to_json}, selectedplayerid: #{@selected_player_id.to_s.to_json}, overlaytype: #{@selected_player_id.present? ? 'player'.to_json : 'none'.to_json} }"
+  signals_literal = "{ playerquery: #{@query.to_json}, playerteam: #{@team_lens.to_json}, playerstatus: #{@status_lens.to_json}, playerconstraint: #{@constraint_lens.to_json}, playerurgency: #{'all'.to_json}, playerurgencysub: #{'all'.to_json}, playerhorizon: #{@cap_horizon.to_s.to_json}, playersort: #{@sort_lens.to_json}, selectedplayerid: #{@selected_player_id.to_s.to_json}, overlaytype: #{@selected_player_id.present? ? 'player'.to_json : 'none'.to_json} }"
 %>
 
 <div id="players-workspace" class="h-screen w-screen flex flex-col overflow-hidden bg-background" data-signals="<%= signals_literal %>">
@@ -23,153 +21,100 @@
 
   <header
     id="commandbar"
-    class="shrink-0 h-[130px] border-b border-border bg-background flex items-start px-4 pt-3 gap-4 select-none"
+    class="shrink-0 h-[130px] border-b border-border bg-background px-4 pt-3 flex items-start gap-4 select-none"
   >
-    <div class="flex items-start min-w-0 overflow-x-auto pb-1" role="group" aria-label="Players triage filters">
-      <section class="min-w-[30rem] shrink-0 space-y-1.5">
-        <div class="flex items-baseline justify-between gap-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-          <span>1 · Scope</span>
-          <span class="font-mono tabular-nums normal-case tracking-normal text-muted-foreground truncate" title="<%= @scope_sequence_label %>"><%= @scope_sequence_label %></span>
+    <div class="flex items-start min-w-0 overflow-x-auto pb-1" role="group" aria-label="Players filters">
+      <div class="min-w-[13rem] w-[13rem] space-y-2">
+        <div class="space-y-1">
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Team</div>
+          <select
+            id="players-team-lens"
+            class="h-7 w-full rounded border border-border bg-background px-2 text-xs text-foreground"
+            data-bind="playerteam"
+            data-on:change="<%= refresh_expr %>"
+          >
+            <option value="ALL" <%= "selected" if @team_lens == "ALL" %>>All teams</option>
+            <option value="FA" <%= "selected" if @team_lens == "FA" %>>Free agents</option>
+            <% Array(@team_options).each do |team| %>
+              <% code = team["team_code"].to_s.upcase %>
+              <option value="<%= code %>" <%= "selected" if @team_lens == code %>><%= code %> · <%= team["team_name"] %></option>
+            <% end %>
+          </select>
         </div>
 
-        <div class="flex items-start gap-3">
-          <div class="min-w-[11rem] space-y-1">
-            <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Team</div>
-            <select
-              id="players-team-lens"
-              class="h-7 w-44 rounded border border-border bg-background px-2 text-xs text-foreground"
-              data-bind="playerteam"
-              data-on:change="<%= refresh_expr %>"
-            >
-              <option value="ALL" <%= "selected" if @team_lens == "ALL" %>>All teams</option>
-              <option value="FA" <%= "selected" if @team_lens == "FA" %>>Free agents</option>
-              <% Array(@team_options).each do |team| %>
-                <% code = team["team_code"].to_s.upcase %>
-                <option value="<%= code %>" <%= "selected" if @team_lens == code %>><%= code %> · <%= team["team_name"] %></option>
-              <% end %>
-            </select>
-          </div>
-
-          <div class="min-w-[7rem] space-y-1">
-            <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Status</div>
-            <div class="space-y-1">
-              <% [
-                ["all", "All"],
-                ["two_way", "Two-Way"],
-                ["restricted", "Restricted"],
-                ["no_trade", "No-Trade"]
-              ].each do |status_value, status_label| %>
-                <label class="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="players-status-lens"
-                    value="<%= status_value %>"
-                    class="size-3.5 accent-primary"
-                    <%= "checked" if @status_lens == status_value %>
-                    data-bind="playerstatus"
-                    data-on:change="if (el.checked) { <%= refresh_expr %>; }"
-                  />
-                  <span class="text-[11px] leading-none select-none" data-class="{ 'text-foreground font-semibold': $playerstatus === '<%= status_value %>', 'text-muted-foreground': $playerstatus !== '<%= status_value %>' }"><%= status_label %></span>
-                </label>
-              <% end %>
-            </div>
-          </div>
-
-          <div class="min-w-[9rem] space-y-1">
-            <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Horizon</div>
-            <div class="space-y-1">
-              <% [2025, 2026, 2027].each do |horizon_year| %>
-                <% horizon_label = format_year_label(horizon_year) %>
-                <label class="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    id="players-cap-horizon-<%= horizon_year %>"
-                    type="radio"
-                    name="players-cap-horizon"
-                    value="<%= horizon_year %>"
-                    class="size-3.5 accent-primary"
-                    <%= "checked" if @cap_horizon.to_i == horizon_year %>
-                    data-bind="playerhorizon"
-                    data-on:change="if (el.checked) { <%= refresh_expr %>; }"
-                  />
-                  <span class="text-[11px] leading-none select-none" data-class="{ 'text-foreground font-semibold': String($playerhorizon) === '<%= horizon_year %>', 'text-muted-foreground': String($playerhorizon) !== '<%= horizon_year %>' }">Cap <%= horizon_label %></span>
-                </label>
-              <% end %>
-            </div>
+        <div class="space-y-1">
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Cap Horizon</div>
+          <div class="space-y-1">
+            <% [2025, 2026, 2027].each do |horizon_year| %>
+              <% horizon_label = format_year_label(horizon_year) %>
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  id="players-cap-horizon-<%= horizon_year %>"
+                  type="radio"
+                  name="players-cap-horizon"
+                  value="<%= horizon_year %>"
+                  class="size-3.5 accent-primary"
+                  <%= "checked" if @cap_horizon.to_i == horizon_year %>
+                  data-bind="playerhorizon"
+                  data-on:change="if (el.checked) { <%= refresh_expr %>; }"
+                />
+                <span class="text-[11px] leading-none select-none" data-class="{ 'text-foreground font-semibold': String($playerhorizon) === '<%= horizon_year %>', 'text-muted-foreground': String($playerhorizon) !== '<%= horizon_year %>' }">Cap <%= horizon_label %></span>
+              </label>
+            <% end %>
           </div>
         </div>
-      </section>
+      </div>
 
       <div class="h-20 w-px bg-border self-center shrink-0 mx-3"></div>
 
-      <section class="min-w-[31rem] shrink-0 space-y-1.5">
-        <div class="flex items-baseline justify-between gap-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-          <span>2 · Urgency triage</span>
-          <span class="font-mono tabular-nums normal-case tracking-normal text-muted-foreground truncate" title="<%= @urgency_sequence_label %>"><%= @urgency_sequence_label %></span>
-        </div>
-
-        <div class="flex items-start gap-3">
-          <div class="min-w-[8rem] space-y-1">
-            <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Lane</div>
-            <div class="space-y-1">
-              <% [["all", "All"], ["urgent", "Urgent"], ["upcoming", "Upcoming"], ["stable", "Stable"]].each do |urgency_value, urgency_label| %>
-                <label class="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="players-urgency-lens"
-                    value="<%= urgency_value %>"
-                    class="size-3.5 accent-primary"
-                    <%= "checked" if @urgency_lens == urgency_value %>
-                    data-bind="playerurgency"
-                    data-on:change="if (el.checked) { <%= refresh_expr %>; }"
-                  />
-                  <span class="text-[11px] leading-none select-none" data-class="{ 'text-foreground font-semibold': $playerurgency === '<%= urgency_value %>', 'text-muted-foreground': $playerurgency !== '<%= urgency_value %>' }"><%= urgency_label %></span>
-                </label>
-              <% end %>
-            </div>
-          </div>
-
-          <div class="min-w-[11rem] space-y-1">
-            <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Focus</div>
-            <select
-              id="players-urgency-sub-lens"
-              class="h-7 w-44 rounded border border-border bg-background px-2 text-xs text-foreground"
-              data-bind="playerurgencysub"
-              data-on:change="<%= refresh_expr %>"
-            >
-              <option value="all" <%= "selected" if @urgency_sub_lens == "all" %>>All triggers</option>
-              <option value="option_only" <%= "selected" if @urgency_sub_lens == "option_only" %>>Option-only</option>
-              <option value="expiring_only" <%= "selected" if @urgency_sub_lens == "expiring_only" %>>Expiring-only</option>
-              <option value="non_guaranteed_only" <%= "selected" if @urgency_sub_lens == "non_guaranteed_only" %>>Non-guaranteed-only</option>
-            </select>
-          </div>
-
-          <div class="min-w-[11rem] space-y-1">
-            <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Trigger lens</div>
-            <select
-              id="players-constraint-lens"
-              class="h-7 w-44 rounded border border-border bg-background px-2 text-xs text-foreground"
-              data-bind="playerconstraint"
-              data-on:change="<%= refresh_expr %>"
-            >
-              <option value="all" <%= "selected" if @constraint_lens == "all" %>>All commitments</option>
-              <option value="lock_now" <%= "selected" if @constraint_lens == "lock_now" %>>Lock now (TR/NTC/consent)</option>
-              <option value="options" <%= "selected" if @constraint_lens == "options" %>>Options ahead</option>
-              <option value="non_guaranteed" <%= "selected" if @constraint_lens == "non_guaranteed" %>>Non-guaranteed years</option>
-              <option value="trade_kicker" <%= "selected" if @constraint_lens == "trade_kicker" %>>Trade kicker</option>
-              <option value="expiring" <%= "selected" if @constraint_lens == "expiring" %>>Expiring after horizon</option>
-            </select>
+      <div class="min-w-[12rem] w-[12rem] space-y-2">
+        <div class="space-y-1">
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Status</div>
+          <div class="space-y-1">
+            <% [
+              ["all", "All"],
+              ["two_way", "Two-Way"],
+              ["restricted", "Restricted"],
+              ["no_trade", "No-Trade"]
+            ].each do |status_value, status_label| %>
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  name="players-status-lens"
+                  value="<%= status_value %>"
+                  class="size-3.5 accent-primary"
+                  <%= "checked" if @status_lens == status_value %>
+                  data-bind="playerstatus"
+                  data-on:change="if (el.checked) { <%= refresh_expr %>; }"
+                />
+                <span class="text-[11px] leading-none select-none" data-class="{ 'text-foreground font-semibold': $playerstatus === '<%= status_value %>', 'text-muted-foreground': $playerstatus !== '<%= status_value %>' }"><%= status_label %></span>
+              </label>
+            <% end %>
           </div>
         </div>
-      </section>
+
+        <div class="space-y-1">
+          <label for="players-constraint-lens" class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Contract Lens</label>
+          <select
+            id="players-constraint-lens"
+            class="h-7 w-full rounded border border-border bg-background px-2 text-xs text-foreground"
+            data-bind="playerconstraint"
+            data-on:change="<%= refresh_expr %>"
+          >
+            <option value="all" <%= "selected" if @constraint_lens == "all" %>>All commitments</option>
+            <option value="lock_now" <%= "selected" if @constraint_lens == "lock_now" %>>Lock now (TR/NTC/consent)</option>
+            <option value="options" <%= "selected" if @constraint_lens == "options" %>>Options ahead</option>
+            <option value="non_guaranteed" <%= "selected" if @constraint_lens == "non_guaranteed" %>>Non-guaranteed years</option>
+            <option value="trade_kicker" <%= "selected" if @constraint_lens == "trade_kicker" %>>Trade kicker</option>
+            <option value="expiring" <%= "selected" if @constraint_lens == "expiring" %>>Expiring after horizon</option>
+          </select>
+        </div>
+      </div>
 
       <div class="h-20 w-px bg-border self-center shrink-0 mx-3"></div>
 
-      <section class="min-w-[10.5rem] shrink-0 space-y-1.5">
-        <div class="flex items-baseline justify-between gap-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-          <span>3 · Drill-in</span>
-          <span class="font-mono tabular-nums normal-case tracking-normal text-muted-foreground"><%= @drill_in_sequence_label %></span>
-        </div>
-
+      <div id="players-sort" class="min-w-[12rem] w-[12rem] space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Sort By</div>
         <div class="space-y-1">
           <% [
             ["cap_desc", "Cap ↓"],
@@ -191,7 +136,7 @@
             </label>
           <% end %>
         </div>
-      </section>
+      </div>
     </div>
 
     <div class="h-20 w-px bg-border self-center ml-auto shrink-0"></div>

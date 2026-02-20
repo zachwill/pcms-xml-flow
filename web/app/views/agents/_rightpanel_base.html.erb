@@ -31,8 +31,8 @@
   agency_scope_label = agency_scope_name.presence || (agency_scope_id.positive? ? "Agency ##{agency_scope_id}" : "Agency")
 %>
 
-<div id="rightpanel-base" class="space-y-4">
-  <div class="rounded-lg border border-border bg-background p-3 space-y-3">
+<div id="rightpanel-base" class="space-y-3">
+  <div class="border border-border bg-background p-3 space-y-2">
     <div>
       <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Workspace snapshot</div>
       <div class="text-sm font-semibold">
@@ -42,7 +42,7 @@
     </div>
 
     <% if summary[:kind].to_s == "agents" %>
-      <div class="rounded border border-border bg-muted/20 px-2 py-1.5 space-y-1">
+      <div class="border border-border bg-muted/20 px-2 py-1.5 space-y-1">
         <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Agency narrowing</div>
         <div class="flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-wide">
           <button
@@ -125,7 +125,7 @@
     <% end %>
   </div>
 
-  <div class="rounded-lg border border-border bg-background">
+  <div class="border border-border bg-background">
     <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">
       Top <%= summary[:kind].to_s == "agencies" ? "agencies" : "agents" %> by current sort
     </div>
@@ -142,7 +142,7 @@
 
           <button
             type="button"
-            class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+            class="cursor-pointer w-full px-2.5 py-1.5 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
             data-on:click="$overlaytype = '<%= is_agency ? 'agency' : 'agent' %>'; $overlayid = '<%= row_id %>'; $overlayreturntype = 'none'; $overlayreturnid = ''; @get('<%= sidebar_url %>')"
           >
             <div class="entity-cell-two-line">
@@ -163,7 +163,7 @@
     <% end %>
   </div>
 
-  <div class="text-[10px] text-muted-foreground/70 tabular-nums px-1 space-y-0.5">
+  <div class="border-t border-border pt-2 text-[10px] text-muted-foreground/70 tabular-nums px-1 space-y-0.5">
     <% if summary[:query].present? %>
       <div>Search: <span class="text-foreground"><%= summary[:query] %></span></div>
     <% end %>

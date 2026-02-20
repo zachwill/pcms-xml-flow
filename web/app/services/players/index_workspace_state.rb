@@ -79,11 +79,11 @@ module Players
       requested_constraint = params[:constraint].to_s.strip
       @constraint_lens = constraint_lenses.include?(requested_constraint) ? requested_constraint : "all"
 
-      requested_urgency = params[:urgency].to_s.strip
-      @urgency_lens = urgency_lenses.include?(requested_urgency) ? requested_urgency : "all"
-
-      requested_urgency_sub = params[:urgency_sub].to_s.strip
-      @urgency_sub_lens = urgency_sub_lenses.include?(requested_urgency_sub) ? requested_urgency_sub : "all"
+      # Urgency lanes are intentionally retired from the /players workspace UI.
+      # Keep these signals pinned to "all" so old deep links cannot silently apply
+      # hidden filters.
+      @urgency_lens = "all"
+      @urgency_sub_lens = "all"
 
       requested_horizon = normalize_cap_horizon_param(params[:horizon])
       @cap_horizon = requested_horizon || index_cap_horizons.first
@@ -216,9 +216,6 @@ module Players
         next_cap_column:
       )
 
-      annotate_player_urgency!(rows: @players)
-      apply_urgency_filter!
-      apply_urgency_sub_filter!
     end
 
     def build_index_compare_state!
@@ -239,13 +236,11 @@ module Players
       active_filters << "Team: #{team_lens_label(@team_lens)}" unless @team_lens == "ALL"
       active_filters << "Status: #{status_lens_label(@status_lens)}" unless @status_lens == "all"
       active_filters << "Constraint: #{constraint_lens_label(@constraint_lens)}" unless @constraint_lens == "all"
-      active_filters << "Urgency: #{urgency_lens_label(@urgency_lens)}" unless @urgency_lens == "all"
-      active_filters << "Urgency focus: #{urgency_sub_lens_label(@urgency_sub_lens)}" unless @urgency_sub_lens == "all"
       active_filters << "Horizon: #{cap_horizon_label(@cap_horizon)}" unless @cap_horizon == index_cap_horizons.first
       active_filters << "Sort: #{sort_lens_label(@sort_lens)}" unless @sort_lens == "cap_desc"
 
       top_rows = rows
-                 .sort_by { |row| [urgency_rank(row["urgency_key"]), -(row["cap_lens_value"].to_f), row["player_name"].to_s] }
+                 .sort_by { |row| [-(row["cap_lens_value"].to_f), row["player_name"].to_s] }
                  .first(18)
 
       selected_id = selected_player_id.to_i
@@ -253,12 +248,10 @@ module Players
         selected_row = rows.find { |row| row["player_id"].to_i == selected_id }
         if selected_row.present? && top_rows.none? { |row| row["player_id"].to_i == selected_id }
           top_rows = (top_rows + [ selected_row ]).uniq { |row| row["player_id"].to_i }
-            .sort_by { |row| [urgency_rank(row["urgency_key"]), -(row["cap_lens_value"].to_f), row["player_name"].to_s] }
+            .sort_by { |row| [-(row["cap_lens_value"].to_f), row["player_name"].to_s] }
             .first(18)
         end
       end
-
-      top_row_lanes = build_player_urgency_lanes(rows: top_rows, assign: false, lane_row_limit: 5)
 
       @sidebar_summary = {
         row_count: rows.size,
@@ -267,15 +260,15 @@ module Players
         restricted_count: rows.count { |row| row["is_trade_restricted_now"] },
         no_trade_count: rows.count { |row| row["is_no_trade"] },
         constrained_count: rows.count { |row| constrained_row?(row) },
-        urgent_count: rows.count { |row| row["urgency_key"].to_s == "urgent" },
-        upcoming_count: rows.count { |row| row["urgency_key"].to_s == "upcoming" },
-        stable_count: rows.count { |row| row["urgency_key"].to_s == "stable" },
+        urgent_count: 0,
+        upcoming_count: 0,
+        stable_count: rows.size,
         cap_horizon: @cap_horizon,
         cap_horizon_label: cap_horizon_label(@cap_horizon),
-        urgency_lens: @urgency_lens,
-        urgency_lens_label: urgency_lens_label(@urgency_lens),
-        urgency_sub_lens: @urgency_sub_lens,
-        urgency_sub_lens_label: urgency_sub_lens_label(@urgency_sub_lens),
+        urgency_lens: "all",
+        urgency_lens_label: "All players",
+        urgency_sub_lens: "all",
+        urgency_sub_lens_label: "All triggers",
         constraint_lens: @constraint_lens,
         constraint_lens_label: constraint_lens_label(@constraint_lens),
         constraint_lens_match_key: constraint_lens_match_key(@constraint_lens),
@@ -284,7 +277,7 @@ module Players
         total_cap: rows.sum { |row| row["cap_lens_value"].to_f },
         filters: active_filters,
         top_rows:,
-        top_row_lanes: top_row_lanes,
+        top_row_lanes: [],
         compare_a_id: @compare_a_id,
         compare_b_id: @compare_b_id,
         compare_a_row: @compare_a_row,
@@ -419,7 +412,20 @@ module Players
     end
 
     def build_index_player_sections!
-      @player_sections = build_player_urgency_lanes(rows: Array(@players), assign: false)
+      rows = Array(@players)
+      @player_sections = [
+        {
+          key: "all",
+          title: "Players",
+          subtitle: "Current scope",
+          row_count: rows.size,
+          team_count: rows.map { |row| row["team_code"].presence }.compact.uniq.size,
+          cap_lens_total: rows.sum { |row| row["cap_lens_value"].to_f },
+          cap_next_total: rows.sum { |row| row["cap_next_value"].to_f },
+          total_salary_total: rows.sum { |row| row["total_salary_from_2025"].to_f },
+          rows: rows
+        }
+      ]
     end
 
     def build_player_urgency_lanes(rows:, assign: true, lane_row_limit: nil)

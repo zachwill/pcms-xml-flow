@@ -115,12 +115,20 @@ class TradesController < ApplicationController
   end
 
   def order_trade_team_impacts(impacts, focus_team_code:)
-    return impacts if focus_team_code.blank?
+    normalized_impacts = Array(impacts)
+    return normalized_impacts if normalized_impacts.empty?
+    return normalized_impacts if focus_team_code.blank?
 
-    impacts.each_with_index.sort_by do |impact, index|
-      team_code = impact["team_code"].to_s.upcase
-      [team_code == focus_team_code ? 0 : 1, index]
-    end.map(&:first)
+    focus_rows, non_focus_rows = normalized_impacts.partition do |impact|
+      impact["team_code"].to_s.upcase == focus_team_code
+    end
+
+    focus_rows + non_focus_rows.sort_by { |impact| trade_team_impact_sort_key(impact) }
+  end
+
+  def trade_team_impact_sort_key(impact)
+    normalized_code = impact["team_code"].to_s.upcase
+    [normalized_code.present? ? 0 : 1, normalized_code.presence || "ZZZ", impact["team_id"].to_i]
   end
 
   def selected_overlay_visible?(overlay_type:, overlay_id:)

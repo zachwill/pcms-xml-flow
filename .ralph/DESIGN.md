@@ -113,9 +113,9 @@ Each task is one iteration of focused work (~10 min). Commit when done.
   Note: Trades rows now cap inline impact-map lines to two when a deal has 4+ teams and show a compact +N-more chip on the last visible line.
 
 - [x] [P2] [TOOL] /trades — stabilize non-focus team impact ordering after scope pin
-  Files: web/app/views/trades/_results.html.erb
+  Files: web/app/controllers/trades_controller.rb, web/app/views/trades/_results.html.erb
   Why: After pinning the selected team first, remaining teams should sort deterministically (e.g., by team code) so refreshes do not reshuffle row interpretation.
-  Note: Scoped rows now derive impact display from the full team-impact map, keep the focus team pinned first, and alphabetize non-focus team codes before truncating to scan lines.
+  Note: Trade scan impact ordering/truncation now lives in controller state prep (focus team pinned, non-focus codes alphabetized), and the row renderer consumes that canonical payload without recomputing order.
 
 ## /transactions — severity lanes
 
@@ -128,6 +128,12 @@ Each task is one iteration of focused work (~10 min). Commit when done.
   Files: web/app/views/transactions/_rightpanel_overlay_transaction.html.erb, web/app/controllers/transactions_sse_controller.rb
   Why: Same overlay-clear-on-filter pattern needed here.
   Note: Transaction overlay now self-gates on live `overlaytype/overlayid`, and both sidebar + SSE renders stamp explicit overlay ids so stale responses stay hidden after filter-driven clears.
+
+## Supervisor corrective tasks (2026-02-20, review pass 2)
+
+- [ ] [P2] [TOOL] /transactions — consolidate route/severity cue derivation into one server-owned payload contract
+  Files: web/app/controllers/transactions_controller.rb, web/app/views/transactions/_results.html.erb, web/test/integration/entities_transactions_index_test.rb
+  Why: Route cue derivation and severity rubric fallbacks currently exist in both controller and ERB, which risks semantic drift and harder future edits.
 
 ## /drafts — cross-view consistency
 

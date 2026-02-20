@@ -24,28 +24,10 @@
             <% teams = trade["teams_involved"].to_s.split(", ").reject(&:blank?) %>
             <% composition_labels = Array(trade["composition_labels"]) %>
             <% focus_team_code = @team.to_s.upcase.presence %>
-            <% all_team_impacts = Array(trade["team_impacts"]) %>
-            <% if all_team_impacts.empty? %>
-              <% all_team_impacts = Array(trade["scan_team_impacts"]) %>
-            <% end %>
-            <% ordered_team_impacts = if focus_team_code.present? && all_team_impacts.any? %>
-              <% focus_rows, non_focus_rows = all_team_impacts.partition { |impact| impact["team_code"].to_s.upcase == focus_team_code } %>
-              <% sorted_non_focus_rows = non_focus_rows.sort_by do |impact| %>
-                <% normalized_code = impact["team_code"].to_s.upcase %>
-                <% [normalized_code.present? ? 0 : 1, normalized_code.presence || "ZZZ", impact["team_id"].to_i] %>
-              <% end %>
-              <% focus_rows + sorted_non_focus_rows %>
-            <% else %>
-              <% all_team_impacts %>
-            <% end %>
             <% team_impacts = Array(trade["scan_team_impacts"]) %>
             <% additional_team_impact_count = trade["scan_additional_team_impact_count"].to_i %>
-            <% if focus_team_code.present? && ordered_team_impacts.any? %>
-              <% visible_team_impact_count = ordered_team_impacts.size >= 4 ? 2 : ordered_team_impacts.size %>
-              <% team_impacts = ordered_team_impacts.first(visible_team_impact_count) %>
-              <% additional_team_impact_count = [ordered_team_impacts.size - visible_team_impact_count, 0].max %>
-            <% elsif team_impacts.empty? %>
-              <% team_impacts = ordered_team_impacts %>
+            <% if team_impacts.empty? %>
+              <% team_impacts = Array(trade["team_impacts"]) %>
               <% additional_team_impact_count = 0 %>
             <% end %>
             <% player_previews = Array(trade["player_previews"]) %>

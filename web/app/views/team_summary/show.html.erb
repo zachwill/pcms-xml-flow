@@ -20,11 +20,7 @@
   conference_east_checked = @conference != "Western"
   conference_west_checked = @conference != "Eastern"
 
-  state_query_expr = "'year=' + encodeURIComponent($tsyear) +
-    '&conference=' + encodeURIComponent(($tsconferenceeast && $tsconferencewest) ? 'all' : ($tsconferenceeast ? 'Eastern' : ($tsconferencewest ? 'Western' : 'all'))) +
-    '&pressure=' + encodeURIComponent($tspressure) +
-    '&sort=' + encodeURIComponent(($tssortmetric === 'pressure' ? 'pressure_desc' : ($tssortmetric === 'team' ? 'team_asc' : ($tssortmetric === 'tax_overage' ? ($tssortasc ? 'tax_overage_asc' : 'tax_overage_desc') : ($tssortasc ? 'cap_space_asc' : 'cap_space_desc'))))) +
-    '&selected=' + encodeURIComponent($selectedteam || '')"
+  state_query_expr = team_summary_state_query_expr
 
   refresh_expr = "@get('#{team_summary_sse_refresh_path}?' + (#{state_query_expr}))"
   submit_refresh_expr = "evt.preventDefault(); #{refresh_expr}"

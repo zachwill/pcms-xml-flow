@@ -1,6 +1,8 @@
 class TeamSummaryController < ApplicationController
   include Datastar
 
+  helper_method :team_summary_state_query_expr
+
   CURRENT_SALARY_YEAR = 2025
   SALARY_YEAR_HORIZON = 7
   AVAILABLE_SALARY_YEARS = (CURRENT_SALARY_YEAR...(CURRENT_SALARY_YEAR + SALARY_YEAR_HORIZON)).to_a.freeze
@@ -51,7 +53,16 @@ class TeamSummaryController < ApplicationController
 
     with_sse_stream do |sse|
       patch_elements_by_id(sse, render_to_string(partial: overlay_partial_name, layout: false))
-      patch_signals(sse, selectedteam: @selected_team_code.to_s)
+      patch_signals(
+        sse,
+        tsyear: @selected_year.to_s,
+        tspressure: @pressure.to_s,
+        tssortmetric: sort_metric_for(@sort),
+        tssortasc: sort_ascending_for(@sort),
+        tsconferenceeast: @conference != "Western",
+        tsconferencewest: @conference != "Eastern",
+        selectedteam: @selected_team_code.to_s
+      )
     end
   rescue ActiveRecord::StatementInvalid => e
     with_sse_stream do |sse|
@@ -91,6 +102,16 @@ class TeamSummaryController < ApplicationController
     with_sse_stream do |sse|
       patch_flash(sse, "Team Summary refresh failed: #{e.message.to_s.truncate(160)}")
     end
+  end
+
+  def team_summary_state_query_expr(selected_expression: "$selectedteam || ''")
+    <<~JS.squish
+      'year=' + encodeURIComponent($tsyear) +
+      '&conference=' + encodeURIComponent(($tsconferenceeast && $tsconferencewest) ? 'all' : ($tsconferenceeast ? 'Eastern' : ($tsconferencewest ? 'Western' : 'all'))) +
+      '&pressure=' + encodeURIComponent($tspressure) +
+      '&sort=' + encodeURIComponent(($tssortmetric === 'pressure' ? 'pressure_desc' : ($tssortmetric === 'team' ? 'team_asc' : ($tssortmetric === 'tax_overage' ? ($tssortasc ? 'tax_overage_asc' : 'tax_overage_desc') : ($tssortasc ? 'cap_space_asc' : 'cap_space_desc'))))) +
+      '&selected=' + encodeURIComponent(#{selected_expression})
+    JS
   end
 
   private

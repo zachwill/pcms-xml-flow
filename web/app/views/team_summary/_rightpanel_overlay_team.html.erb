@@ -21,9 +21,9 @@
     "—"
   end
 
-  step_params = @state_params.merge(selected: team_code)
-  prev_step_path = team_summary_sse_step_path(step_params.merge(direction: "prev"))
-  next_step_path = team_summary_sse_step_path(step_params.merge(direction: "next"))
+  step_state_query_expr = team_summary_state_query_expr(selected_expression: "$selectedteam || '#{team_code}'")
+  prev_step_expr = "@get('#{team_summary_sse_step_path}?direction=prev&' + (#{step_state_query_expr}))"
+  next_step_expr = "@get('#{team_summary_sse_step_path}?direction=next&' + (#{step_state_query_expr}))"
 
   pressure_bucket = row["pressure_bucket"].to_s
   pressure_label, pressure_chip_classes = case pressure_bucket
@@ -100,7 +100,7 @@
           type="button"
           class="cursor-pointer h-8 rounded border border-border text-[11px] font-medium hover:bg-muted transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           data-team-summary-step-prev
-          data-on:click="@get('<%= prev_step_path %>')"
+          data-on:click="<%= prev_step_expr %>"
           <%= "disabled" unless can_step_prev %>
         >← Prev</button>
 
@@ -108,7 +108,7 @@
           type="button"
           class="cursor-pointer h-8 rounded border border-border text-[11px] font-medium hover:bg-muted transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           data-team-summary-step-next
-          data-on:click="@get('<%= next_step_path %>')"
+          data-on:click="<%= next_step_expr %>"
           <%= "disabled" unless can_step_next %>
         >Next →</button>
       </div>

@@ -145,6 +145,9 @@ class ToolsTeamSummaryTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "/team-summary/sse/step?"
       assert_includes response.body, "direction=prev"
       assert_includes response.body, "direction=next"
+      assert_includes response.body, "$tsyear"
+      assert_includes response.body, "$tspressure"
+      assert_includes response.body, "$tssortmetric"
       assert_not_includes response.body, "compare_a="
       assert_not_includes response.body, "compare_b="
     end
@@ -205,6 +208,10 @@ class ToolsTeamSummaryTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "Portland Trail Blazers"
       assert_includes response.body, "event: datastar-patch-signals"
       assert_includes response.body, '"selectedteam":"POR"'
+      assert_includes response.body, '"tssortmetric":"team"'
+      assert_includes response.body, '"tssortasc":false'
+      assert_includes response.body, '"tsconferenceeast":true'
+      assert_includes response.body, '"tsconferencewest":true'
     end
   end
 

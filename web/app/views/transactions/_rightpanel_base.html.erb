@@ -33,23 +33,15 @@
 %>
 
 <div id="rightpanel-base" class="space-y-4">
-  <section class="space-y-1">
-    <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Workspace Snapshot</div>
-    <div class="text-sm font-semibold text-foreground">
-      Transactions
-      <span class="text-muted-foreground font-medium">· <%= summary[:row_count].to_i %> rows · <%= summary[:severity_lane_count].to_i %> impact lanes</span>
+  <section class="rounded-lg border border-border bg-background p-3 space-y-3">
+    <div>
+      <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Workspace snapshot</div>
+      <div class="text-sm font-semibold text-foreground">
+        Transactions
+        <span class="text-muted-foreground font-medium">· <%= summary[:row_count].to_i %> rows · <%= summary[:severity_lane_count].to_i %> impact lanes</span>
+      </div>
     </div>
 
-    <% if Array(summary[:filters]).any? %>
-      <div class="pt-1 flex flex-wrap gap-1">
-        <% Array(summary[:filters]).each do |label| %>
-          <span class="entity-chip entity-chip--muted"><%= label %></span>
-        <% end %>
-      </div>
-    <% end %>
-  </section>
-
-  <section class="border-t border-border pt-4 space-y-2.5">
     <div class="grid grid-cols-2 gap-1.5">
       <%= render partial: "salary_book/kpi_cell", locals: { label: "Signings", value: summary[:signings_count].to_i.to_s, class_name: "w-full" } %>
       <%= render partial: "salary_book/kpi_cell", locals: { label: "Waivers", value: summary[:waivers_count].to_i.to_s, class_name: "w-full" } %>
@@ -63,13 +55,21 @@
       <%= render partial: "salary_book/kpi_cell", locals: { label: "Medium", value: summary[:medium_count].to_i.to_s, class_name: "w-full", variant: (summary[:medium_count].to_i.positive? ? "default" : "muted") } %>
       <%= render partial: "salary_book/kpi_cell", locals: { label: "Low", value: summary[:low_count].to_i.to_s, class_name: "w-full", variant: (summary[:low_count].to_i.positive? ? "default" : "muted") } %>
     </div>
+
+    <% if Array(summary[:filters]).any? %>
+      <div class="pt-1 flex flex-wrap gap-1">
+        <% Array(summary[:filters]).each do |label| %>
+          <span class="entity-chip entity-chip--muted"><%= label %></span>
+        <% end %>
+      </div>
+    <% end %>
   </section>
 
-  <section class="border-t border-border pt-4">
-    <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Severity quick feed</div>
+  <section class="rounded-lg border border-border bg-background">
+    <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">Severity quick feed</div>
 
     <% if top_row_lanes.any? %>
-      <div class="mt-2 divide-y divide-border border border-border">
+      <div class="divide-y divide-border">
         <% top_row_lanes.each do |lane| %>
           <section id="transactions-quick-lane-<%= lane[:key].to_s.parameterize.presence || 'all' %>">
             <div class="px-3 py-1.5 border-b border-border/60 bg-muted/20">
@@ -122,9 +122,7 @@
         <% end %>
       </div>
     <% else %>
-      <div class="mt-2 p-3 border border-border bg-muted/20 text-sm text-muted-foreground">
-        No transactions in the current filter set.
-      </div>
+      <div class="p-4 text-sm text-muted-foreground">No transactions in the current filter set.</div>
     <% end %>
   </section>
 </div>

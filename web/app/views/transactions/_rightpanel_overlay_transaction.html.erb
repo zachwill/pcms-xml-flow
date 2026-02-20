@@ -25,7 +25,7 @@
 
 <div
   id="rightpanel-overlay"
-  class="h-full overflow-y-auto overflow-x-hidden overscroll-y-contain scroll-touch"
+  class="absolute inset-0 z-20 h-full overflow-y-auto overflow-x-hidden overscroll-y-contain scroll-touch bg-background pointer-events-auto"
   data-transaction-overlay-id="<%= overlay_transaction_id %>"
   data-show="$overlaytype === 'transaction' && $overlayid === '<%= overlay_transaction_id %>'"
 >

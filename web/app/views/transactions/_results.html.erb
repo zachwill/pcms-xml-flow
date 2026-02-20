@@ -65,20 +65,21 @@
   headshot_fallback = fallback_headshot_data_uri
 %>
 
-<div id="transactions-results" class="pb-4">
+<div id="transactions-results" class="py-3">
   <% if @transactions.empty? %>
     <div class="px-4 py-6 text-sm text-muted-foreground italic text-center border-b border-border">
       No transactions found for this time period and filters.
     </div>
   <% else %>
-    <section class="px-4 py-3 border-b border-border">
-      <div class="flex flex-wrap items-start justify-between gap-3">
-        <div class="min-w-0">
+    <section class="px-4 pb-3 border-b border-border">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0 space-y-2">
           <h2 class="text-sm font-semibold text-foreground">
             Transactions
             <span class="text-muted-foreground font-medium">· <%= total_rows %> rows</span>
           </h2>
-          <div class="mt-1.5 flex flex-wrap gap-1.5">
+
+          <div class="flex flex-wrap gap-1.5">
             <span class="entity-chip entity-chip--muted"><%= @team.present? ? "#{@team} scope" : "All teams" %></span>
             <span class="entity-chip entity-chip--muted"><%= @daterange.to_s.humanize %></span>
             <span class="entity-chip entity-chip--muted"><%= @impact == "all" ? "All impact lanes" : "#{@impact.humanize} impact" %></span>
@@ -88,11 +89,19 @@
           </div>
         </div>
 
-        <div class="ml-auto shrink-0 grid grid-cols-2 gap-1.5">
-          <%= render partial: "salary_book/kpi_cell", locals: { label: "Signings", value: @transactions.count { |row| %w[SIGN RSIGN].include?(row["transaction_type_lk"].to_s) }.to_s, class_name: "w-full" } %>
-          <%= render partial: "salary_book/kpi_cell", locals: { label: "Waivers", value: @transactions.count { |row| %w[WAIVE WAIVR].include?(row["transaction_type_lk"].to_s) }.to_s, class_name: "w-full" } %>
-          <%= render partial: "salary_book/kpi_cell", locals: { label: "Critical", value: @transactions.count { |row| row["severity_key"].to_s == "critical" }.to_s, class_name: "w-full", variant: (@transactions.any? { |row| row["severity_key"].to_s == "critical" } ? "negative" : "muted") } %>
-          <%= render partial: "salary_book/kpi_cell", locals: { label: "High", value: @transactions.count { |row| row["severity_key"].to_s == "high" }.to_s, class_name: "w-full", variant: (@transactions.any? { |row| row["severity_key"].to_s == "high" } ? "default" : "muted") } %>
+        <div class="ml-auto shrink-0 flex items-start gap-3">
+          <div class="grid grid-cols-2 gap-1.5">
+            <%= render partial: "salary_book/kpi_cell", locals: { label: "Signings", value: @transactions.count { |row| %w[SIGN RSIGN].include?(row["transaction_type_lk"].to_s) }.to_s, class_name: "w-full" } %>
+            <%= render partial: "salary_book/kpi_cell", locals: { label: "Waivers", value: @transactions.count { |row| %w[WAIVE WAIVR].include?(row["transaction_type_lk"].to_s) }.to_s, class_name: "w-full" } %>
+            <%= render partial: "salary_book/kpi_cell", locals: { label: "Critical", value: @transactions.count { |row| row["severity_key"].to_s == "critical" }.to_s, class_name: "w-full", variant: (@transactions.any? { |row| row["severity_key"].to_s == "critical" } ? "negative" : "muted") } %>
+            <%= render partial: "salary_book/kpi_cell", locals: { label: "High", value: @transactions.count { |row| row["severity_key"].to_s == "high" }.to_s, class_name: "w-full", variant: (@transactions.any? { |row| row["severity_key"].to_s == "high" } ? "default" : "muted") } %>
+          </div>
+
+          <div class="text-[10px] text-muted-foreground/80 text-right tabular-nums leading-tight">
+            <div>Route lens</div>
+            <div><%= route_scope_label %></div>
+            <div><%= severity_lanes.size %> impact lanes</div>
+          </div>
         </div>
       </div>
     </section>
@@ -128,238 +137,237 @@
       </div>
     </div>
 
-    <div id="transactions-board" class="min-w-[92rem] border-b border-border bg-background">
-      <div id="transactions-flex-header" class="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90">
-          <div class="flex items-center h-8 px-3 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
-            <div class="w-32 shrink-0">When</div>
-            <div class="w-36 shrink-0">Severity</div>
-            <div class="w-24 shrink-0">Type</div>
-            <div class="w-52 shrink-0">Player</div>
-            <div class="w-52 shrink-0">Route cue</div>
-            <div class="w-56 shrink-0">Impact deltas</div>
-            <div class="w-[20rem] shrink-0">Description / match cue</div>
-          </div>
+    <div id="transactions-board" class="min-w-[96rem] border-b border-border bg-background">
+      <div id="transactions-flex-header" class="sticky top-0 z-30 border-b border-border bg-muted">
+        <div class="flex items-center h-9 px-3 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
+          <div class="w-32 shrink-0">When</div>
+          <div class="w-36 shrink-0">Severity</div>
+          <div class="w-24 shrink-0">Type</div>
+          <div class="w-52 shrink-0">Player</div>
+          <div class="w-52 shrink-0">Route cue</div>
+          <div class="w-56 shrink-0">Impact deltas</div>
+          <div class="w-[20rem] shrink-0">Description / match cue</div>
         </div>
+      </div>
 
-        <div id="transactions-severity-lanes" class="divide-y divide-border/70">
-          <% severity_lanes.each do |lane| %>
-            <% lane_key = lane[:key].to_s.parameterize.presence || "all" %>
-            <section id="transactions-severity-lane-<%= lane_key %>" class="border-b border-border/70 last:border-b-0">
-              <div class="sticky top-8 z-20 border-b border-border bg-muted/40 backdrop-blur supports-[backdrop-filter]:bg-background/90">
-                <div class="flex items-center gap-2 px-3 h-8 text-[10px] uppercase tracking-wide">
-                  <div class="w-36 shrink-0"><span class="<%= severity_chip_class.call(lane[:key]) %>"><%= lane[:headline] %></span></div>
-                  <div class="min-w-0 flex-1 text-muted-foreground/80 truncate"><%= lane[:subline] %></div>
-                  <div class="w-20 shrink-0 text-right font-mono tabular-nums text-foreground/85"><%= lane[:row_count] %></div>
-                </div>
+      <div id="transactions-severity-lanes" class="divide-y divide-border/70">
+        <% severity_lanes.each do |lane| %>
+          <% lane_key = lane[:key].to_s.parameterize.presence || "all" %>
+          <section id="transactions-severity-lane-<%= lane_key %>" class="border-b border-border/70 last:border-b-0">
+            <div class="sticky top-9 z-20 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90">
+              <div class="flex items-center gap-2 px-3 h-8 text-[10px] uppercase tracking-wide">
+                <div class="w-36 shrink-0"><span class="<%= severity_chip_class.call(lane[:key]) %>"><%= lane[:headline] %></span></div>
+                <div class="min-w-0 flex-1 text-muted-foreground/80 truncate"><%= lane[:subline] %></div>
+                <div class="w-20 shrink-0 text-right font-mono tabular-nums text-foreground/85"><%= lane[:row_count] %></div>
               </div>
+            </div>
 
-              <div class="divide-y divide-border/60">
-                <% Array(lane[:date_groups]).each do |group| %>
-                  <% group_key = group[:key].to_s.parameterize.presence || "undated" %>
-                  <div id="transactions-severity-lane-<%= lane_key %>-group-<%= group_key %>" class="border-b border-border/40 last:border-b-0">
-                    <div class="flex items-center px-3 h-7 text-[10px] uppercase tracking-wide text-muted-foreground/80 bg-muted/20 border-b border-border/40">
-                      <div class="w-32 shrink-0 font-semibold text-foreground/90"><%= group[:headline] %></div>
-                      <div class="w-36 shrink-0"><%= [group[:subline], group[:relative_label]].compact.join(" · ") %></div>
-                      <div class="w-24 shrink-0">Rows</div>
-                      <div class="w-52 shrink-0 text-right font-mono tabular-nums"><%= group[:row_count] %></div>
-                    </div>
+            <div class="divide-y divide-border/60">
+              <% Array(lane[:date_groups]).each do |group| %>
+                <% group_key = group[:key].to_s.parameterize.presence || "undated" %>
+                <div id="transactions-severity-lane-<%= lane_key %>-group-<%= group_key %>" class="border-b border-border/40 last:border-b-0">
+                  <div class="flex items-center px-3 h-7 text-[10px] uppercase tracking-wide text-muted-foreground/80 bg-muted/20 border-b border-border/40">
+                    <div class="w-32 shrink-0 font-semibold text-foreground/90"><%= group[:headline] %></div>
+                    <div class="w-40 shrink-0"><%= [group[:subline], group[:relative_label]].compact.join(" · ") %></div>
+                    <div class="min-w-0 flex-1 text-right font-mono tabular-nums"><%= group[:row_count] %> rows</div>
+                  </div>
 
-                    <div class="divide-y divide-border/40">
-                      <% Array(group[:rows]).each do |txn| %>
-                        <% row_id = txn["transaction_id"].to_s %>
-                        <% open_expr = "$overlaytype = 'transaction'; $overlayid = '#{row_id}'; @get('/transactions/sidebar/#{row_id}')" %>
-                        <% type_code = txn["transaction_type_lk"].to_s %>
-                        <% type_variant = case type_code
-                           when "SIGN", "RSIGN" then "entity-chip--success"
-                           when "WAIVE", "WAIVR" then "entity-chip--danger"
-                           when "EXTSN" then "entity-chip--accent"
-                           else "entity-chip--muted"
-                           end %>
-                        <% row_date = format_plain_date(txn["transaction_date"]) %>
-                        <% artifact_tags = [] %>
-                        <% artifact_tags << "#{txn['dead_money_count'].to_i} dead" if txn["dead_money_count"].to_i.positive? %>
-                        <% artifact_tags << "#{txn['exception_usage_count'].to_i} exc" if txn["exception_usage_count"].to_i.positive? %>
-                        <% artifact_tags << "#{txn['budget_snapshot_count'].to_i} budget" if txn["budget_snapshot_count"].to_i.positive? %>
-                        <% max_delta = txn["impact_max_delta"].to_f %>
-                        <% player_id = txn["player_id"].to_i %>
-                        <% player_name = txn["player_name"].presence || (player_id.positive? ? "Player ##{player_id}" : "—") %>
-                        <% from_team_code = txn["from_team_code"].presence || "—" %>
-                        <% to_team_code = txn["to_team_code"].presence || "—" %>
-                        <% from_team_logo = txn["from_team_id"].present? ? team_logo_url(txn["from_team_id"]) : nil %>
-                        <% to_team_logo = txn["to_team_id"].present? ? team_logo_url(txn["to_team_id"]) : nil %>
-                        <% route_cue = route_cue_for_row.call(txn) %>
+                  <div class="divide-y divide-border/40">
+                    <% Array(group[:rows]).each do |txn| %>
+                      <% row_id = txn["transaction_id"].to_s %>
+                      <% open_expr = "$overlaytype = 'transaction'; $overlayid = '#{row_id}'; @get('/transactions/sidebar/#{row_id}')" %>
+                      <% type_code = txn["transaction_type_lk"].to_s %>
+                      <% type_variant = case type_code
+                         when "SIGN", "RSIGN" then "entity-chip--success"
+                         when "WAIVE", "WAIVR" then "entity-chip--danger"
+                         when "EXTSN" then "entity-chip--accent"
+                         else "entity-chip--muted"
+                         end %>
+                      <% row_date = format_plain_date(txn["transaction_date"]) %>
+                      <% artifact_tags = [] %>
+                      <% artifact_tags << "#{txn['dead_money_count'].to_i} dead" if txn["dead_money_count"].to_i.positive? %>
+                      <% artifact_tags << "#{txn['exception_usage_count'].to_i} exc" if txn["exception_usage_count"].to_i.positive? %>
+                      <% artifact_tags << "#{txn['budget_snapshot_count'].to_i} budget" if txn["budget_snapshot_count"].to_i.positive? %>
+                      <% max_delta = txn["impact_max_delta"].to_f %>
+                      <% player_id = txn["player_id"].to_i %>
+                      <% player_name = txn["player_name"].presence || (player_id.positive? ? "Player ##{player_id}" : "—") %>
+                      <% from_team_code = txn["from_team_code"].presence || "—" %>
+                      <% to_team_code = txn["to_team_code"].presence || "—" %>
+                      <% from_team_logo = txn["from_team_id"].present? ? team_logo_url(txn["from_team_id"]) : nil %>
+                      <% to_team_logo = txn["to_team_id"].present? ? team_logo_url(txn["to_team_id"]) : nil %>
+                      <% route_cue = route_cue_for_row.call(txn) %>
 
-                        <div
-                          class="group cursor-pointer hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
-                          role="button"
-                          tabindex="0"
-                          data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'transaction' && $overlayid === '<%= row_id %>' }"
-                          data-on:click="<%= open_expr %>"
-                          data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); <%= open_expr %>; }"
-                        >
-                          <div class="flex items-center min-h-[58px] px-3 text-xs">
-                            <div class="w-32 shrink-0 pr-2">
-                              <div class="entity-cell-two-line">
-                                <div class="entity-cell-primary justify-start">
-                                  <a href="<%= transaction_path(txn['transaction_id']) %>" class="font-medium font-mono tabular-nums hover:underline" onclick="event.stopPropagation()">#<%= txn["transaction_id"] %></a>
-                                </div>
-                                <div class="entity-cell-secondary justify-start font-mono tabular-nums"><%= row_date %></div>
+                      <div
+                        class="group cursor-pointer hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+                        role="button"
+                        tabindex="0"
+                        data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'transaction' && $overlayid === '<%= row_id %>' }"
+                        data-on:click="<%= open_expr %>"
+                        data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); <%= open_expr %>; }"
+                      >
+                        <div class="flex items-center min-h-[58px] px-3 text-xs">
+                          <div class="w-32 shrink-0 pr-2">
+                            <div class="entity-cell-two-line">
+                              <div class="entity-cell-primary justify-start">
+                                <a href="<%= transaction_path(txn['transaction_id']) %>" class="font-medium font-mono tabular-nums hover:underline" onclick="event.stopPropagation()">#<%= txn["transaction_id"] %></a>
+                              </div>
+                              <div class="entity-cell-secondary justify-start font-mono tabular-nums"><%= row_date %></div>
+                            </div>
+                          </div>
+
+                          <div class="w-36 shrink-0 pr-2">
+                            <div class="entity-cell-two-line">
+                              <div class="entity-cell-primary justify-start gap-1.5">
+                                <span class="<%= severity_chip_class.call(txn['severity_key']) %>"><%= txn["severity_label"].presence || "Low impact" %></span>
+                              </div>
+                              <div class="entity-cell-secondary justify-start truncate">
+                                <% if artifact_tags.any? %>
+                                  <%= artifact_tags.join(" · ") %>
+                                <% else %>
+                                  <%= txn["ledger_row_count"].to_i %> ledger row<%= "s" if txn["ledger_row_count"].to_i != 1 %>
+                                <% end %>
                               </div>
                             </div>
+                          </div>
 
-                            <div class="w-36 shrink-0 pr-2">
-                              <div class="entity-cell-two-line">
-                                <div class="entity-cell-primary justify-start gap-1.5">
-                                  <span class="<%= severity_chip_class.call(txn['severity_key']) %>"><%= txn["severity_label"].presence || "Low impact" %></span>
-                                </div>
-                                <div class="entity-cell-secondary justify-start truncate">
-                                  <% if artifact_tags.any? %>
-                                    <%= artifact_tags.join(" · ") %>
+                          <div class="w-24 shrink-0 pr-2">
+                            <div class="entity-cell-two-line">
+                              <div class="entity-cell-primary justify-start"><span class="entity-chip <%= type_variant %>"><%= type_code.presence || "—" %></span></div>
+                              <div class="entity-cell-secondary justify-start"><%= txn["trade_id"].present? ? "trade-linked" : "standalone" %></div>
+                            </div>
+                          </div>
+
+                          <div class="w-52 shrink-0 pr-2">
+                            <div class="grid grid-cols-[24px_1fr] grid-rows-[20px_14px]">
+                              <div class="row-span-2 flex items-center justify-start">
+                                <div class="w-5 h-5 rounded-full border border-border bg-background overflow-hidden flex items-center justify-center">
+                                  <% if player_id.positive? %>
+                                    <img
+                                      src="<%= player_headshot_url(player_id) %>"
+                                      alt="<%= player_name %>"
+                                      class="w-full h-full object-cover object-top"
+                                      loading="lazy"
+                                      decoding="async"
+                                      onerror="if (this.src !== '<%= headshot_fallback %>') { this.src = '<%= headshot_fallback %>'; }"
+                                    />
                                   <% else %>
-                                    <%= txn["ledger_row_count"].to_i %> ledger row<%= "s" if txn["ledger_row_count"].to_i != 1 %>
+                                    <span class="text-[8px] font-semibold text-muted-foreground">NBA</span>
                                   <% end %>
                                 </div>
                               </div>
-                            </div>
 
-                            <div class="w-24 shrink-0 pr-2">
-                              <div class="entity-cell-two-line">
-                                <div class="entity-cell-primary justify-start"><span class="entity-chip <%= type_variant %>"><%= type_code.presence || "—" %></span></div>
-                                <div class="entity-cell-secondary justify-start"><%= txn["trade_id"].present? ? "trade-linked" : "standalone" %></div>
+                              <div class="h-[20px] flex items-end min-w-0 pl-1.5">
+                                <% if player_id.positive? %>
+                                  <a href="<%= player_href(player_id) %>" class="font-medium truncate hover:underline" onclick="event.stopPropagation()"><%= player_name %></a>
+                                <% else %>
+                                  <span class="text-muted-foreground truncate">—</span>
+                                <% end %>
+                              </div>
+
+                              <div class="h-[14px] flex items-start min-w-0 pl-1.5 leading-none text-[10px] text-muted-foreground/80 tabular-nums">
+                                id: <code class="font-mono tabular-nums"><%= player_id.positive? ? player_id : "—" %></code>
                               </div>
                             </div>
+                          </div>
 
-                            <div class="w-52 shrink-0 pr-2">
-                              <div class="grid grid-cols-[24px_1fr] grid-rows-[20px_14px]">
-                                <div class="row-span-2 flex items-center justify-start">
-                                  <div class="w-5 h-5 rounded-full border border-border bg-background overflow-hidden flex items-center justify-center">
-                                    <% if player_id.positive? %>
+                          <div class="w-52 shrink-0 pr-2">
+                            <div class="entity-cell-two-line">
+                              <div class="entity-cell-primary justify-start gap-1.5 min-w-0">
+                                <span class="inline-flex items-center gap-1 min-w-0">
+                                  <span class="w-4 h-4 rounded border border-border bg-background overflow-hidden flex items-center justify-center shrink-0">
+                                    <% if from_team_logo.present? %>
                                       <img
-                                        src="<%= player_headshot_url(player_id) %>"
-                                        alt="<%= player_name %>"
-                                        class="w-full h-full object-cover object-top"
+                                        src="<%= from_team_logo %>"
+                                        alt="<%= from_team_code %>"
+                                        class="w-full h-full object-contain"
                                         loading="lazy"
                                         decoding="async"
-                                        onerror="if (this.src !== '<%= headshot_fallback %>') { this.src = '<%= headshot_fallback %>'; }"
+                                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                                       />
+                                      <span class="hidden text-[8px] font-mono text-muted-foreground"><%= from_team_code %></span>
                                     <% else %>
-                                      <span class="text-[8px] font-semibold text-muted-foreground">NBA</span>
-                                    <% end %>
-                                  </div>
-                                </div>
-
-                                <div class="h-[20px] flex items-end min-w-0 pl-1.5">
-                                  <% if player_id.positive? %>
-                                    <a href="<%= player_href(player_id) %>" class="font-medium truncate hover:underline" onclick="event.stopPropagation()"><%= player_name %></a>
-                                  <% else %>
-                                    <span class="text-muted-foreground truncate">—</span>
-                                  <% end %>
-                                </div>
-
-                                <div class="h-[14px] flex items-start min-w-0 pl-1.5 leading-none text-[10px] text-muted-foreground/80 tabular-nums">
-                                  id: <code class="font-mono tabular-nums"><%= player_id.positive? ? player_id : "—" %></code>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div class="w-52 shrink-0 pr-2">
-                              <div class="entity-cell-two-line">
-                                <div class="entity-cell-primary justify-start gap-1.5 min-w-0">
-                                  <span class="inline-flex items-center gap-1 min-w-0">
-                                    <span class="w-4 h-4 rounded border border-border bg-background overflow-hidden flex items-center justify-center shrink-0">
-                                      <% if from_team_logo.present? %>
-                                        <img
-                                          src="<%= from_team_logo %>"
-                                          alt="<%= from_team_code %>"
-                                          class="w-full h-full object-contain"
-                                          loading="lazy"
-                                          decoding="async"
-                                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                                        />
-                                        <span class="hidden text-[8px] font-mono text-muted-foreground"><%= from_team_code %></span>
-                                      <% else %>
-                                        <span class="text-[8px] font-mono text-muted-foreground"><%= from_team_code %></span>
-                                      <% end %>
-                                    </span>
-                                    <% if txn["from_team_code"].present? %>
-                                      <a href="<%= team_href(team_code: txn['from_team_code']) %>" class="font-medium hover:underline truncate" onclick="event.stopPropagation()"><%= from_team_code %></a>
-                                    <% else %>
-                                      <span class="text-muted-foreground">—</span>
+                                      <span class="text-[8px] font-mono text-muted-foreground"><%= from_team_code %></span>
                                     <% end %>
                                   </span>
+                                  <% if txn["from_team_code"].present? %>
+                                    <a href="<%= team_href(team_code: txn['from_team_code']) %>" class="font-medium hover:underline truncate" onclick="event.stopPropagation()"><%= from_team_code %></a>
+                                  <% else %>
+                                    <span class="text-muted-foreground">—</span>
+                                  <% end %>
+                                </span>
 
-                                  <span class="text-muted-foreground/60 shrink-0">→</span>
+                                <span class="text-muted-foreground/60 shrink-0">→</span>
 
-                                  <span class="inline-flex items-center gap-1 min-w-0">
-                                    <span class="w-4 h-4 rounded border border-border bg-background overflow-hidden flex items-center justify-center shrink-0">
-                                      <% if to_team_logo.present? %>
-                                        <img
-                                          src="<%= to_team_logo %>"
-                                          alt="<%= to_team_code %>"
-                                          class="w-full h-full object-contain"
-                                          loading="lazy"
-                                          decoding="async"
-                                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                                        />
-                                        <span class="hidden text-[8px] font-mono text-muted-foreground"><%= to_team_code %></span>
-                                      <% else %>
-                                        <span class="text-[8px] font-mono text-muted-foreground"><%= to_team_code %></span>
-                                      <% end %>
-                                    </span>
-                                    <% if txn["to_team_code"].present? %>
-                                      <a href="<%= team_href(team_code: txn['to_team_code']) %>" class="font-medium hover:underline truncate" onclick="event.stopPropagation()"><%= to_team_code %></a>
+                                <span class="inline-flex items-center gap-1 min-w-0">
+                                  <span class="w-4 h-4 rounded border border-border bg-background overflow-hidden flex items-center justify-center shrink-0">
+                                    <% if to_team_logo.present? %>
+                                      <img
+                                        src="<%= to_team_logo %>"
+                                        alt="<%= to_team_code %>"
+                                        class="w-full h-full object-contain"
+                                        loading="lazy"
+                                        decoding="async"
+                                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                                      />
+                                      <span class="hidden text-[8px] font-mono text-muted-foreground"><%= to_team_code %></span>
                                     <% else %>
-                                      <span class="text-muted-foreground">—</span>
+                                      <span class="text-[8px] font-mono text-muted-foreground"><%= to_team_code %></span>
                                     <% end %>
                                   </span>
-                                </div>
-                                <div class="entity-cell-secondary justify-start gap-1.5 min-w-0">
-                                  <span class="<%= route_chip_class.call(route_cue[:key]) %>"><%= route_cue[:label] %></span>
-                                  <span class="truncate"><%= route_cue[:detail].presence || ([txn["from_team_name"], txn["to_team_name"]].compact.reject(&:blank?).join(" → ").presence || "No team route") %></span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div class="w-56 shrink-0 pr-2">
-                              <div class="entity-cell-two-line">
-                                <div class="entity-cell-primary justify-start gap-1.5 font-mono tabular-nums">
-                                  <span class="<%= delta_class_for.call(max_delta) %>">Max Δ <%= format_salary(max_delta) %></span>
-                                  <span class="text-muted-foreground/60">·</span>
-                                  <span class="text-muted-foreground"><%= txn["ledger_row_count"].to_i %> rows</span>
-                                </div>
-                                <div class="entity-cell-secondary justify-start gap-1.5 font-mono tabular-nums truncate">
-                                  <span class="<%= delta_class_for.call(txn['cap_change_total']) %>">Cap <%= format_salary(txn["cap_change_total"]) %></span>
-                                  <span class="text-muted-foreground/50">·</span>
-                                  <span class="<%= delta_class_for.call(txn['tax_change_total']) %>">Tax <%= format_salary(txn["tax_change_total"]) %></span>
-                                  <span class="text-muted-foreground/50">·</span>
-                                  <span class="<%= delta_class_for.call(txn['apron_change_total']) %>">Apron <%= format_salary(txn["apron_change_total"]) %></span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div class="w-[20rem] shrink-0 pr-1">
-                              <div class="entity-cell-two-line">
-                                <div class="entity-cell-primary justify-start text-[11px] truncate"><%= txn["transaction_description_lk"].presence || "—" %></div>
-                                <div class="entity-cell-secondary justify-start gap-1 truncate">
-                                  <% if @query.present? && txn["intent_match_cue"].present? %>
-                                    <span class="uppercase tracking-wide text-[9px] text-muted-foreground/70">match</span>
-                                    <span class="font-medium text-foreground/90 truncate" title="<%= txn['intent_match_title'] %>"><%= txn["intent_match_cue"] %></span>
+                                  <% if txn["to_team_code"].present? %>
+                                    <a href="<%= team_href(team_code: txn['to_team_code']) %>" class="font-medium hover:underline truncate" onclick="event.stopPropagation()"><%= to_team_code %></a>
                                   <% else %>
-                                    <span class="text-muted-foreground/60"><%= txn["signed_method_lk"].presence || txn["contract_type_lk"].presence || "No intent cue" %></span>
+                                    <span class="text-muted-foreground">—</span>
                                   <% end %>
-                                </div>
+                                </span>
+                              </div>
+                              <div class="entity-cell-secondary justify-start gap-1.5 min-w-0">
+                                <span class="<%= route_chip_class.call(route_cue[:key]) %>"><%= route_cue[:label] %></span>
+                                <span class="truncate"><%= route_cue[:detail].presence || ([txn["from_team_name"], txn["to_team_name"]].compact.reject(&:blank?).join(" → ").presence || "No team route") %></span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="w-56 shrink-0 pr-2">
+                            <div class="entity-cell-two-line">
+                              <div class="entity-cell-primary justify-start gap-1.5 font-mono tabular-nums">
+                                <span class="<%= delta_class_for.call(max_delta) %>">Max Δ <%= format_salary(max_delta) %></span>
+                                <span class="text-muted-foreground/60">·</span>
+                                <span class="text-muted-foreground"><%= txn["ledger_row_count"].to_i %> rows</span>
+                              </div>
+                              <div class="entity-cell-secondary justify-start gap-1.5 font-mono tabular-nums truncate">
+                                <span class="<%= delta_class_for.call(txn['cap_change_total']) %>">Cap <%= format_salary(txn["cap_change_total"]) %></span>
+                                <span class="text-muted-foreground/50">·</span>
+                                <span class="<%= delta_class_for.call(txn['tax_change_total']) %>">Tax <%= format_salary(txn["tax_change_total"]) %></span>
+                                <span class="text-muted-foreground/50">·</span>
+                                <span class="<%= delta_class_for.call(txn['apron_change_total']) %>">Apron <%= format_salary(txn["apron_change_total"]) %></span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="w-[20rem] shrink-0 pr-1">
+                            <div class="entity-cell-two-line">
+                              <div class="entity-cell-primary justify-start text-[11px] truncate"><%= txn["transaction_description_lk"].presence || "—" %></div>
+                              <div class="entity-cell-secondary justify-start gap-1 truncate">
+                                <% if @query.present? && txn["intent_match_cue"].present? %>
+                                  <span class="uppercase tracking-wide text-[9px] text-muted-foreground/70">match</span>
+                                  <span class="font-medium text-foreground/90 truncate" title="<%= txn['intent_match_title'] %>"><%= txn["intent_match_cue"] %></span>
+                                <% else %>
+                                  <span class="text-muted-foreground/60"><%= txn["signed_method_lk"].presence || txn["contract_type_lk"].presence || "No intent cue" %></span>
+                                <% end %>
                               </div>
                             </div>
                           </div>
                         </div>
-                      <% end %>
-                    </div>
+                      </div>
+                    <% end %>
                   </div>
-                <% end %>
-              </div>
-            </section>
-          <% end %>
-        </div>
+                </div>
+              <% end %>
+            </div>
+          </section>
+        <% end %>
+      </div>
     </div>
   <% end %>
 </div>

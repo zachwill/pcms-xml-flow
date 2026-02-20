@@ -1,8 +1,9 @@
 <%
-  severity_lanes = Array(@transaction_severity_lanes)
-  if severity_lanes.empty? && @transactions.any?
-    severity_lanes = [{ key: "all", headline: "All impact lanes", subline: nil, row_count: @transactions.size, date_groups: Array(@transaction_date_groups) }]
-  end
+  results_payload = @transaction_results_payload.is_a?(Hash) ? @transaction_results_payload : {}
+  severity_lanes = Array(results_payload[:severity_lanes] || @transaction_severity_lanes)
+  lane_scan_rows = Array(results_payload[:lane_scan_rows] || @transaction_lane_scan_rows)
+  route_summary_rows = Array(results_payload[:route_summary_rows] || @transaction_route_cues)
+  route_scope_label = results_payload[:route_scope_label].to_s.presence || @transaction_route_scope_label.to_s.presence || "League-wide route perspective"
 
   severity_chip_class = lambda do |key|
     case key.to_s
@@ -10,18 +11,6 @@
     when "high" then "entity-chip entity-chip--warning"
     when "medium" then "entity-chip entity-chip--accent"
     else "entity-chip entity-chip--muted"
-    end
-  end
-
-  route_label_for_key = lambda do |key|
-    case key.to_s
-    when "outbound" then "Outbound"
-    when "inbound" then "Inbound"
-    when "team_to_team" then "Team→team"
-    when "internal" then "In-place"
-    when "entry" then "Entry"
-    when "exit" then "Exit"
-    else "Unmapped"
     end
   end
 
@@ -37,109 +26,27 @@
     end
   end
 
-  severity_rule_cue = lambda do |key|
-    case key.to_s
-    when "critical" then "Dead-money rows or max Δ ≥ $20M / apron Δ ≥ $8M"
-    when "high" then "Exception usage or max Δ ≥ $10M / apron Δ ≥ $4M"
-    when "medium" then "Ledger movement or max Δ ≥ $2M"
-    else "Low/no immediate financial movement"
-    end
-  end
-
   route_cue_for_row = lambda do |txn|
-    from_code = txn["from_team_code"].to_s.upcase.presence
-    to_code = txn["to_team_code"].to_s.upcase.presence
-    scoped_code = @team.to_s.upcase.presence
+    row_route_cue = txn["route_cue"]
 
-    if from_code.present? && to_code.present?
-      if from_code == to_code
-        {
-          key: "internal",
-          label: route_label_for_key.call("internal"),
-          detail: "#{to_code} internal move"
-        }
-      elsif scoped_code.present? && to_code == scoped_code
-        {
-          key: "inbound",
-          label: route_label_for_key.call("inbound"),
-          detail: "#{scoped_code} received from #{from_code}"
-        }
-      elsif scoped_code.present? && from_code == scoped_code
-        {
-          key: "outbound",
-          label: route_label_for_key.call("outbound"),
-          detail: "#{scoped_code} sent to #{to_code}"
-        }
-      else
-        {
-          key: "team_to_team",
-          label: route_label_for_key.call("team_to_team"),
-          detail: "#{from_code} → #{to_code}"
-        }
-      end
-    elsif to_code.present?
-      inbound_key = scoped_code.present? && to_code == scoped_code ? "inbound" : "entry"
+    if row_route_cue.is_a?(Hash)
+      cue_key = row_route_cue[:key].to_s.presence || row_route_cue["key"].to_s.presence || "unmapped"
+      cue_label = row_route_cue[:label].to_s.presence || row_route_cue["label"].to_s.presence || "Unmapped"
+      cue_detail = row_route_cue[:detail].to_s.presence || row_route_cue["detail"].to_s.presence
+
       {
-        key: inbound_key,
-        label: route_label_for_key.call(inbound_key),
-        detail: "→ #{to_code} (source team not tagged)"
-      }
-    elsif from_code.present?
-      outbound_key = scoped_code.present? && from_code == scoped_code ? "outbound" : "exit"
-      {
-        key: outbound_key,
-        label: route_label_for_key.call(outbound_key),
-        detail: "#{from_code} → (destination not tagged)"
+        key: cue_key,
+        label: cue_label,
+        detail: cue_detail
       }
     else
       {
-        key: "unmapped",
-        label: route_label_for_key.call("unmapped"),
-        detail: "No route teams tagged"
+        key: txn["route_cue_key"].to_s.presence || "unmapped",
+        label: txn["route_cue_label"].to_s.presence || "Unmapped",
+        detail: txn["route_cue_detail"].to_s.presence
       }
     end
   end
-
-  route_order = %w[outbound inbound team_to_team internal entry exit unmapped]
-
-  lane_scan_rows = Array(@transaction_lane_scan_rows)
-  if lane_scan_rows.empty?
-    lane_scan_rows = severity_lanes.map do |lane|
-      lane_rows = Array(lane[:date_groups]).flat_map { |group| Array(group[:rows]) }
-      route_counts = Hash.new(0)
-
-      lane_rows.each do |txn|
-        route_key = txn["route_cue_key"].to_s.presence || route_cue_for_row.call(txn)[:key]
-        route_counts[route_key] += 1
-      end
-
-      {
-        key: lane[:key].to_s,
-        headline: lane[:headline],
-        row_count: lane[:row_count].to_i,
-        rubric: severity_rule_cue.call(lane[:key]),
-        route_cues: route_counts.map { |key, count| { key: key, label: route_label_for_key.call(key), count: count } }
-          .sort_by { |cue| [(route_order.index(cue[:key]) || route_order.length), -cue[:count].to_i, cue[:label]] }
-          .first(2)
-      }
-    end
-  end
-
-  route_summary_rows = Array(@transaction_route_cues)
-  if route_summary_rows.empty?
-    route_counts = Hash.new(0)
-
-    Array(@transactions).each do |txn|
-      route_key = txn["route_cue_key"].to_s.presence || route_cue_for_row.call(txn)[:key]
-      route_counts[route_key] += 1
-    end
-
-    route_summary_rows = route_counts.map do |key, count|
-      { key: key, label: route_label_for_key.call(key), count: count }
-    end.sort_by { |cue| [(route_order.index(cue[:key]) || route_order.length), -cue[:count].to_i, cue[:label]] }
-  end
-
-  route_scope_label = @transaction_route_scope_label.presence || (@team.present? ? "#{@team} route perspective" : "League-wide route perspective")
 
   delta_class_for = lambda do |value|
     amount = value.to_f
@@ -257,15 +164,7 @@
                         <% to_team_code = txn["to_team_code"].presence || "—" %>
                         <% from_team_logo = txn["from_team_id"].present? ? team_logo_url(txn["from_team_id"]) : nil %>
                         <% to_team_logo = txn["to_team_id"].present? ? team_logo_url(txn["to_team_id"]) : nil %>
-                        <% route_cue = if txn["route_cue_key"].present? || txn["route_cue_label"].present?
-                          {
-                            key: txn["route_cue_key"].to_s.presence || "unmapped",
-                            label: txn["route_cue_label"].to_s.presence || route_label_for_key.call(txn["route_cue_key"]),
-                            detail: txn["route_cue_detail"].to_s.presence
-                          }
-                        else
-                          route_cue_for_row.call(txn)
-                        end %>
+                        <% route_cue = route_cue_for_row.call(txn) %>
 
                         <div
                           class="group cursor-pointer hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"

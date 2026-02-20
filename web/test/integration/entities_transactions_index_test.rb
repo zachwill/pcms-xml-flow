@@ -20,6 +20,7 @@ class EntitiesTransactionsIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="transactions-severity-lanes"'
       assert_includes response.body, 'id="transactions-severity-lane-critical"'
       assert_includes response.body, "Severity + route scan cues"
+      assert_includes response.body, "Dead-money rows or max Δ ≥ $20M / apron Δ ≥ $8M"
       assert_includes response.body, "Route totals"
       assert_includes response.body, "Route cue"
       assert_includes response.body, "Critical impact"
@@ -296,6 +297,8 @@ class EntitiesTransactionsIndexTest < ActionDispatch::IntegrationTest
         @transactions = Array(@transactions).first(200)
         build_transaction_date_groups!
         build_transaction_severity_lanes!
+        annotate_transaction_route_cues!(rows: @transactions, scoped_team_code: @team)
+        build_transaction_scan_cues!
         build_sidebar_summary!(selected_transaction_id: @selected_transaction_id)
       end
 

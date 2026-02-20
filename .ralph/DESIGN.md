@@ -131,9 +131,10 @@ Each task is one iteration of focused work (~10 min). Commit when done.
 
 ## Supervisor corrective tasks (2026-02-20, review pass 2)
 
-- [ ] [P2] [TOOL] /transactions — consolidate route/severity cue derivation into one server-owned payload contract
+- [x] [P2] [TOOL] /transactions — consolidate route/severity cue derivation into one server-owned payload contract
   Files: web/app/controllers/transactions_controller.rb, web/app/views/transactions/_results.html.erb, web/test/integration/entities_transactions_index_test.rb
   Why: Route cue derivation and severity rubric fallbacks currently exist in both controller and ERB, which risks semantic drift and harder future edits.
+  Note: Transactions controller now emits a single `@transaction_results_payload` (lanes, rubrics, route totals, scope label, row route cues), and results ERB consumes that payload without recomputing route/severity semantics.
 
 ## /drafts — cross-view consistency
 

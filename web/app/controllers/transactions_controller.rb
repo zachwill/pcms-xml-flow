@@ -1,5 +1,14 @@
 class TransactionsController < ApplicationController
   ROUTE_CUE_ORDER = %w[outbound inbound team_to_team internal entry exit unmapped].freeze
+  ROUTE_CUE_LABELS = {
+    "outbound" => "Outbound",
+    "inbound" => "Inbound",
+    "team_to_team" => "Team→team",
+    "internal" => "In-place",
+    "entry" => "Entry",
+    "exit" => "Exit",
+    "unmapped" => "Unmapped"
+  }.freeze
   SEVERITY_RULE_CUES = {
     "critical" => "Dead-money rows or max Δ ≥ $20M / apron Δ ≥ $8M",
     "high" => "Exception usage or max Δ ≥ $10M / apron Δ ≥ $4M",
@@ -116,32 +125,71 @@ class TransactionsController < ApplicationController
 
     Array(rows).each do |row|
       cue = route_cue_for_transaction(row, scoped_team_code: normalized_scope_code)
-      row["route_cue_key"] = cue[:key]
-      row["route_cue_label"] = cue[:label]
-      row["route_cue_detail"] = cue[:detail]
+      route_cue_payload = {
+        key: cue[:key].to_s,
+        label: cue[:label].to_s,
+        detail: cue[:detail].to_s
+      }
+
+      row["route_cue"] = route_cue_payload
+      row["route_cue_key"] = route_cue_payload[:key]
+      row["route_cue_label"] = route_cue_payload[:label]
+      row["route_cue_detail"] = route_cue_payload[:detail]
     end
   end
 
   def build_transaction_scan_cues!
-    @transaction_route_scope_label = if @team.present?
+    severity_lanes = resolved_transaction_severity_lanes
+    route_scope_label = if @team.present?
       "#{@team} route perspective"
     else
       "League-wide route perspective"
     end
 
-    @transaction_route_cues = summarize_route_cues(rows: @transactions)
+    route_summary_rows = summarize_route_cues(rows: @transactions)
 
-    @transaction_lane_scan_rows = Array(@transaction_severity_lanes).map do |lane|
+    lane_scan_rows = severity_lanes.map do |lane|
       lane_rows = Array(lane[:date_groups]).flat_map { |group| Array(group[:rows]) }
 
       {
         key: lane[:key].to_s,
         headline: lane[:headline],
         row_count: lane[:row_count].to_i,
-        rubric: SEVERITY_RULE_CUES[lane[:key].to_s] || lane[:subline].to_s,
+        rubric: severity_rule_rubric_for(lane[:key], fallback: lane[:subline]),
         route_cues: summarize_route_cues(rows: lane_rows).first(2)
       }
     end
+
+    @transaction_results_payload = {
+      severity_lanes: severity_lanes,
+      lane_scan_rows: lane_scan_rows,
+      route_summary_rows: route_summary_rows,
+      route_scope_label: route_scope_label
+    }
+
+    # Keep existing ivars for compatibility with any sidebar/test code still reading them.
+    @transaction_severity_lanes = severity_lanes
+    @transaction_route_scope_label = route_scope_label
+    @transaction_route_cues = route_summary_rows
+    @transaction_lane_scan_rows = lane_scan_rows
+  end
+
+  def resolved_transaction_severity_lanes
+    lanes = Array(@transaction_severity_lanes)
+    return lanes if lanes.any?
+    return [] if @transactions.blank?
+
+    [{
+      key: "all",
+      headline: "All impact lanes",
+      subline: nil,
+      row_count: Array(@transactions).size,
+      date_groups: Array(@transaction_date_groups)
+    }]
+  end
+
+  def severity_rule_rubric_for(key, fallback: nil)
+    SEVERITY_RULE_CUES[key.to_s] || fallback.to_s
   end
 
   def summarize_route_cues(rows:)
@@ -229,15 +277,7 @@ class TransactionsController < ApplicationController
   end
 
   def route_cue_label(cue_key)
-    case cue_key.to_s
-    when "outbound" then "Outbound"
-    when "inbound" then "Inbound"
-    when "team_to_team" then "Team→team"
-    when "internal" then "In-place"
-    when "entry" then "Entry"
-    when "exit" then "Exit"
-    else "Unmapped"
-    end
+    ROUTE_CUE_LABELS[cue_key.to_s] || ROUTE_CUE_LABELS["unmapped"]
   end
 
   def selected_overlay_visible?(overlay_type:, overlay_id:)

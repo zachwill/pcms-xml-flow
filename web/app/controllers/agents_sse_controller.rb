@@ -12,9 +12,13 @@ class AgentsSseController < AgentsController
     load_directory_workspace_state!
 
     requested_overlay_type, requested_overlay_id = requested_overlay_context
-    overlay_html, resolved_overlay_type, resolved_overlay_id = refreshed_overlay_payload(
+    requested_return_type, requested_return_id = requested_overlay_return_context(current_overlay_type: requested_overlay_type)
+
+    overlay_html, resolved_overlay_type, resolved_overlay_id, resolved_return_type, resolved_return_id = refreshed_overlay_payload(
       requested_type: requested_overlay_type,
-      requested_id: requested_overlay_id
+      requested_id: requested_overlay_id,
+      requested_return_type: requested_return_type,
+      requested_return_id: requested_return_id
     )
 
     with_sse_stream do |sse|
@@ -51,7 +55,9 @@ class AgentsSseController < AgentsController
         sortkey: @sort_key,
         sortdir: @sort_dir,
         overlaytype: resolved_overlay_type,
-        overlayid: resolved_overlay_id
+        overlayid: resolved_overlay_id,
+        overlayreturntype: resolved_return_type,
+        overlayreturnid: resolved_return_id
       )
     end
   end
@@ -59,35 +65,63 @@ class AgentsSseController < AgentsController
   private
 
   def requested_overlay_context
-    overlay_type = params[:selected_type].to_s.strip.downcase
-    return [nil, nil] unless OVERLAY_TYPES.include?(overlay_type)
-
-    overlay_id = Integer(params[:selected_id], 10)
-    return [nil, nil] if overlay_id <= 0
-
-    [overlay_type, overlay_id]
-  rescue ArgumentError, TypeError
-    [nil, nil]
+    overlay_context_from_params(type_param: :selected_type, id_param: :selected_id)
   end
 
-  def refreshed_overlay_payload(requested_type:, requested_id:)
-    return [overlay_clear_html, "none", ""] unless selected_overlay_visible?(overlay_type: requested_type, overlay_id: requested_id)
+  def requested_overlay_return_context(current_overlay_type:)
+    overlay_context_from_params(
+      type_param: :selected_return_type,
+      id_param: :selected_return_id,
+      disallow_type: current_overlay_type
+    )
+  end
+
+  def refreshed_overlay_payload(requested_type:, requested_id:, requested_return_type:, requested_return_id:)
+    return [overlay_clear_html, "none", "", "none", ""] unless selected_overlay_visible?(overlay_type: requested_type, overlay_id: requested_id)
+
+    resolved_return_type, resolved_return_id = resolved_overlay_return_context(
+      requested_type: requested_return_type,
+      requested_id: requested_return_id
+    )
 
     html = without_view_annotations do
-      render_overlay_for_refresh(overlay_type: requested_type, overlay_id: requested_id)
+      render_overlay_for_refresh(
+        overlay_type: requested_type,
+        overlay_id: requested_id,
+        return_overlay_type: resolved_return_type,
+        return_overlay_id: resolved_return_id
+      )
     end
 
-    [html, requested_type, requested_id.to_s]
+    [html, requested_type, requested_id.to_s, resolved_return_type, resolved_return_id]
   rescue ActiveRecord::RecordNotFound
-    [overlay_clear_html, "none", ""]
+    [overlay_clear_html, "none", "", "none", ""]
   end
 
-  def render_overlay_for_refresh(overlay_type:, overlay_id:)
+  def resolved_overlay_return_context(requested_type:, requested_id:)
+    return ["none", ""] unless selected_overlay_visible?(overlay_type: requested_type, overlay_id: requested_id)
+
+    [requested_type, requested_id.to_s]
+  end
+
+  def render_overlay_for_refresh(overlay_type:, overlay_id:, return_overlay_type:, return_overlay_id:)
     case overlay_type
     when "agent"
-      render_to_string(partial: "agents/rightpanel_overlay_agent", locals: load_sidebar_agent_payload(overlay_id))
+      render_to_string(
+        partial: "agents/rightpanel_overlay_agent",
+        locals: load_sidebar_agent_payload(overlay_id).merge(
+          return_overlay_type:,
+          return_overlay_id:
+        )
+      )
     when "agency"
-      render_to_string(partial: "agents/rightpanel_overlay_agency", locals: load_sidebar_agency_payload(overlay_id))
+      render_to_string(
+        partial: "agents/rightpanel_overlay_agency",
+        locals: load_sidebar_agency_payload(overlay_id).merge(
+          return_overlay_type:,
+          return_overlay_id:
+        )
+      )
     else
       overlay_clear_html
     end

@@ -59,9 +59,10 @@ Each task is one iteration of focused work (~10 min). Commit when done.
   Why: Mode/scope feels split; users lose track of whether they're scoped to an agency.
   Note: Added explicit Agent scope controls in commandbar, carried scope params through lens pivots/SSE URLs, and rehydrated scope state in agencies mode so scope context stays visible until cleared.
 
-- [ ] [P2] [INDEX] /agents — smooth agent↔agency overlay pivots
+- [x] [P2] [INDEX] /agents — smooth agent↔agency overlay pivots
   Files: web/app/views/agents/_rightpanel_overlay_agent.html.erb, web/app/views/agents/_rightpanel_overlay_agency.html.erb, web/app/controllers/agents_sse_controller.rb
   Why: Overlay pivots between agent and agency detail should preserve context, not feel like a page reset.
+  Note: Agent↔agency pivots now carry one-step return context (including SSE refresh), so Back returns to the prior overlay instead of clearing like a reset.
 
 - [ ] [P2] [INDEX] /agencies — make posture lanes first-class row actions
   Files: web/app/views/agencies/index.html.erb, web/app/views/agencies/_workspace_main.html.erb, web/app/controllers/agencies_controller.rb

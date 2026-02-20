@@ -28,6 +28,19 @@
   player_option_count = agency["player_option_count"].to_i
   team_option_count = agency["team_option_count"].to_i
   prior_year_nba_now_free_agent_count = agency["prior_year_nba_now_free_agent_count"].to_i
+
+  overlay_return_type = local_assigns.fetch(:return_overlay_type, nil).to_s
+  overlay_return_id = local_assigns.fetch(:return_overlay_id, nil).to_i
+  has_return_overlay = overlay_return_id.positive? && %w[agent agency].include?(overlay_return_type) && overlay_return_type != "agency"
+
+  back_expr = if has_return_overlay
+    "$overlaytype = '#{overlay_return_type}'; $overlayid = '#{overlay_return_id}'; $overlayreturntype = 'none'; $overlayreturnid = ''; @get('/agents/sidebar/#{overlay_return_type}/#{overlay_return_id}')"
+  else
+    "$overlaytype = 'none'; $overlayid = ''; $overlayreturntype = 'none'; $overlayreturnid = ''; @get('/agents/sidebar/clear')"
+  end
+  back_label = has_return_overlay ? "Back to #{overlay_return_type}" : "Back"
+
+  agency_id = agency["agency_id"].to_i
 %>
 
 <% prefetch_canonical_slugs(entity_type: "agency", entity_ids: [agency["agency_id"]]) %>
@@ -42,10 +55,10 @@
       type="button"
       class="cursor-pointer flex items-center gap-1.5 text-sm transition-colors text-muted-foreground hover:text-foreground
              focus-visible:outline-none focus-visible:ring-0 focus-visible:border-foreground dark:focus-visible:border-foreground"
-      data-on:click="$overlaytype = 'none'; $overlayid = ''; @get('/agents/sidebar/clear')"
+      data-on:click="<%= back_expr %>"
     >
       <%= lucide_icon("arrow-left", class: "w-4 h-4", "aria-hidden": true) %>
-      <span class="font-medium">Back</span>
+      <span class="font-medium"><%= back_label %></span>
     </button>
 
     <a href="<%= agency_href(agency['agency_id']) %>" class="text-xs text-muted-foreground hover:text-foreground hover:underline">Open agency page</a>
@@ -241,8 +254,8 @@
               tabindex="0"
               class="group cursor-pointer w-full text-left flex items-center justify-between gap-2 py-1.5 px-1.5 rounded-md hover:bg-muted/50 transition-colors
                      focus-visible:outline-none focus-visible:ring-0 focus-visible:border-foreground dark:focus-visible:border-foreground"
-              data-on:click="$overlaytype = 'agent'; $overlayid = '<%= a['agent_id'] %>'; @get('/agents/sidebar/agent/<%= a['agent_id'] %>')"
-              data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); $overlaytype = 'agent'; $overlayid = '<%= a['agent_id'] %>'; @get('/agents/sidebar/agent/<%= a['agent_id'] %>') }"
+              data-on:click="$overlayreturntype = 'agency'; $overlayreturnid = '<%= agency_id %>'; $overlaytype = 'agent'; $overlayid = '<%= a['agent_id'] %>'; @get('/agents/sidebar/agent/<%= a['agent_id'] %>?return_type=agency&return_id=<%= agency_id %>')"
+              data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); $overlayreturntype = 'agency'; $overlayreturnid = '<%= agency_id %>'; $overlaytype = 'agent'; $overlayid = '<%= a['agent_id'] %>'; @get('/agents/sidebar/agent/<%= a['agent_id'] %>?return_type=agency&return_id=<%= agency_id %>') }"
             >
               <div class="flex-1 min-w-0">
                 <div class="h-[26px] flex items-end gap-2 min-w-0">

@@ -20,7 +20,10 @@
     '&agency_scope=' + ($agencyscopeactive ? '1' : '0') +
     '&agency_scope_id=' + encodeURIComponent($agencyscopeid)"
 
-  selected_overlay_query_expr = "'selected_type=' + encodeURIComponent($overlaytype) + '&selected_id=' + encodeURIComponent($overlayid)"
+  selected_overlay_query_expr = "'selected_type=' + encodeURIComponent($overlaytype) +
+    '&selected_id=' + encodeURIComponent($overlayid) +
+    '&selected_return_type=' + encodeURIComponent($overlayreturntype || '') +
+    '&selected_return_id=' + encodeURIComponent($overlayreturnid || '')"
   refresh_expr = "@get('/agents/sse/refresh?' + (#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr})); window.history.replaceState({}, '', '/agents?' + (#{pane_query_expr}))"
 
   agency_scope_id = summary[:agency_scope_id].to_i
@@ -140,7 +143,7 @@
           <button
             type="button"
             class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
-            data-on:click="$overlaytype = '<%= is_agency ? 'agency' : 'agent' %>'; $overlayid = '<%= row_id %>'; @get('<%= sidebar_url %>')"
+            data-on:click="$overlaytype = '<%= is_agency ? 'agency' : 'agent' %>'; $overlayid = '<%= row_id %>'; $overlayreturntype = 'none'; $overlayreturnid = ''; @get('<%= sidebar_url %>')"
           >
             <div class="entity-cell-two-line">
               <div class="entity-cell-primary justify-between gap-2">

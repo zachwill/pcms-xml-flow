@@ -16,7 +16,10 @@
     '&agency_scope=' + ($agencyscopeactive ? '1' : '0') +
     '&agency_scope_id=' + encodeURIComponent($agencyscopeid)"
 
-  selected_overlay_query_expr = "'selected_type=' + encodeURIComponent($overlaytype) + '&selected_id=' + encodeURIComponent($overlayid)"
+  selected_overlay_query_expr = "'selected_type=' + encodeURIComponent($overlaytype) +
+    '&selected_id=' + encodeURIComponent($overlayid) +
+    '&selected_return_type=' + encodeURIComponent($overlayreturntype || '') +
+    '&selected_return_id=' + encodeURIComponent($overlayreturnid || '')"
   refresh_expr = "@get('/agents/sse/refresh?' + (#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr})); window.history.replaceState({}, '', '/agents?' + (#{pane_query_expr}))"
 
   shared_lens_query = {
@@ -168,8 +171,8 @@
                 role="button"
                 tabindex="0"
                 data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'agent' && $overlayid === '<%= row_agent_id %>', 'bg-violet-50/50 dark:bg-violet-900/15': <%= agency_overlay_match_expr %> }"
-                data-on:click="$overlaytype = 'agent'; $overlayid = '<%= row_agent_id %>'; @get('/agents/sidebar/agent/<%= row_agent_id %>')"
-                data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); $overlaytype = 'agent'; $overlayid = '<%= row_agent_id %>'; @get('/agents/sidebar/agent/<%= row_agent_id %>') }"
+                data-on:click="$overlaytype = 'agent'; $overlayid = '<%= row_agent_id %>'; $overlayreturntype = 'none'; $overlayreturnid = ''; @get('/agents/sidebar/agent/<%= row_agent_id %>')"
+                data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); $overlaytype = 'agent'; $overlayid = '<%= row_agent_id %>'; $overlayreturntype = 'none'; $overlayreturnid = ''; @get('/agents/sidebar/agent/<%= row_agent_id %>') }"
               >
                 <div class="flex items-center px-3 min-h-[48px] text-xs">
                   <div class="w-[25rem] shrink-0">
@@ -185,7 +188,7 @@
                           <button
                             type="button"
                             class="cursor-pointer truncate text-left text-muted-foreground hover:text-foreground hover:underline"
-                            data-on:click="evt.stopPropagation(); $overlaytype = 'agency'; $overlayid = '<%= row_agency_id %>'; @get('/agents/sidebar/agency/<%= row_agency_id %>')"
+                            data-on:click="evt.stopPropagation(); $overlaytype = 'agency'; $overlayid = '<%= row_agency_id %>'; $overlayreturntype = 'none'; $overlayreturnid = ''; @get('/agents/sidebar/agency/<%= row_agency_id %>')"
                           ><%= a["agency_name"] %></button>
                         <% elsif a["agency_name"].present? %>
                           <span class="truncate"><%= a["agency_name"] %></span>
@@ -326,8 +329,8 @@
                 role="button"
                 tabindex="0"
                 data-class="{ 'bg-yellow-100/80 dark:bg-yellow-900/20': $overlaytype === 'agency' && $overlayid === '<%= row_agency_id %>' }"
-                data-on:click="$overlaytype = 'agency'; $overlayid = '<%= row_agency_id %>'; @get('/agents/sidebar/agency/<%= row_agency_id %>')"
-                data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); $overlaytype = 'agency'; $overlayid = '<%= row_agency_id %>'; @get('/agents/sidebar/agency/<%= row_agency_id %>') }"
+                data-on:click="$overlaytype = 'agency'; $overlayid = '<%= row_agency_id %>'; $overlayreturntype = 'none'; $overlayreturnid = ''; @get('/agents/sidebar/agency/<%= row_agency_id %>')"
+                data-on:keydown="if (evt.key === 'Enter' || evt.key === ' ') { evt.preventDefault(); $overlaytype = 'agency'; $overlayid = '<%= row_agency_id %>'; $overlayreturntype = 'none'; $overlayreturnid = ''; @get('/agents/sidebar/agency/<%= row_agency_id %>') }"
               >
                 <div class="flex items-center px-3 min-h-[48px] text-xs">
                   <div class="w-72 shrink-0">

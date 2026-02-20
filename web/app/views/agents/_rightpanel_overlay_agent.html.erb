@@ -26,6 +26,23 @@
   team_option_count = agent["team_option_count"].to_i
   prior_year_nba_now_free_agent_count = agent["prior_year_nba_now_free_agent_count"].to_i
 
+  overlay_return_type = local_assigns.fetch(:return_overlay_type, nil).to_s
+  overlay_return_id = local_assigns.fetch(:return_overlay_id, nil).to_i
+  has_return_overlay = overlay_return_id.positive? && %w[agent agency].include?(overlay_return_type) && overlay_return_type != "agent"
+
+  back_expr = if has_return_overlay
+    "$overlaytype = '#{overlay_return_type}'; $overlayid = '#{overlay_return_id}'; $overlayreturntype = 'none'; $overlayreturnid = ''; @get('/agents/sidebar/#{overlay_return_type}/#{overlay_return_id}')"
+  else
+    "$overlaytype = 'none'; $overlayid = ''; $overlayreturntype = 'none'; $overlayreturnid = ''; @get('/agents/sidebar/clear')"
+  end
+  back_label = has_return_overlay ? "Back to #{overlay_return_type}" : "Back"
+
+  agent_id = agent["agent_id"].to_i
+  agency_id = agent["agency_id"].to_i
+  agency_pivot_expr = if agent_id.positive? && agency_id.positive?
+    "$overlayreturntype = 'agent'; $overlayreturnid = '#{agent_id}'; $overlaytype = 'agency'; $overlayid = '#{agency_id}'; @get('/agents/sidebar/agency/#{agency_id}?return_type=agent&return_id=#{agent_id}')"
+  end
+
   short_year = ->(y) { y.to_i.to_s[-2..] }
 
   # Next contract inflection marker (matches Salary Book _sidebar_agent pattern)
@@ -86,10 +103,10 @@
       type="button"
       class="cursor-pointer flex items-center gap-1.5 text-sm transition-colors text-muted-foreground hover:text-foreground
              focus-visible:outline-none focus-visible:ring-0 focus-visible:border-foreground dark:focus-visible:border-foreground"
-      data-on:click="$overlaytype = 'none'; $overlayid = ''; @get('/agents/sidebar/clear')"
+      data-on:click="<%= back_expr %>"
     >
       <%= lucide_icon("arrow-left", class: "w-4 h-4", "aria-hidden": true) %>
-      <span class="font-medium">Back</span>
+      <span class="font-medium"><%= back_label %></span>
     </button>
 
     <a href="<%= agent_href(agent['agent_id']) %>" class="text-xs text-muted-foreground hover:text-foreground hover:underline">Open agent page</a>
@@ -112,7 +129,7 @@
             <button
               type="button"
               class="cursor-pointer min-w-0 truncate hover:text-foreground hover:underline"
-              data-on:click="$overlaytype = 'agency'; $overlayid = '<%= agent['agency_id'] %>'; @get('/agents/sidebar/agency/<%= agent['agency_id'] %>')"
+              data-on:click="<%= agency_pivot_expr.presence || "$overlaytype = 'agency'; $overlayid = '#{agent['agency_id']}'; $overlayreturntype = 'none'; $overlayreturnid = ''; @get('/agents/sidebar/agency/#{agent['agency_id']}')" %>"
             ><%= agent["agency_name"] %></button>
             <a
               href="<%= agency_href(agent['agency_id']) %>"

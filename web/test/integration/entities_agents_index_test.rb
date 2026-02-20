@@ -251,12 +251,13 @@ class EntitiesAgentsIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, 'id="maincanvas"'
       assert_includes response.body, 'id="agent-sort-key-select"'
       assert_includes response.body, "$overlaytype === 'agent'"
-      assert_includes response.body, "$overlaytype = 'agency'; $overlayid = '501'; @get('/agents/sidebar/agency/501')"
+      assert_includes response.body, "$overlaytype = 'agency'; $overlayid = '501'; $overlayreturntype = 'none'; $overlayreturnid = ''; @get('/agents/sidebar/agency/501')"
       assert_includes response.body, "bg-violet-50/50 dark:bg-violet-900/15"
       assert_includes response.body, 'data-show="$overlaytype === &#39;agency&#39; &amp;&amp; $overlayid === &#39;501&#39;"'
       assert_includes response.body, 'id="agents-scope-to-overlay"'
       assert_includes response.body, 'id="agents-sidebar-scope-overlay"'
       assert_includes response.body, 'agencyscopeactive: false'
+      assert_includes response.body, "overlayreturntype: 'none'"
       refute_includes response.body, '<table class="entity-table'
     end
   end
@@ -299,7 +300,7 @@ class EntitiesAgentsIndexTest < ActionDispatch::IntegrationTest
       get "/agents/sidebar/agency/501", headers: modern_headers
 
       assert_response :success
-      assert_includes response.body, "$overlaytype = 'agent'; $overlayid = '11'; @get('/agents/sidebar/agent/11')"
+      assert_includes response.body, "$overlayreturntype = 'agency'; $overlayreturnid = '501'; $overlaytype = 'agent'; $overlayid = '11'; @get('/agents/sidebar/agent/11?return_type=agency&return_id=501')"
       assert_includes response.body, "Open agency page"
     end
   end
@@ -390,6 +391,34 @@ class EntitiesAgentsIndexTest < ActionDispatch::IntegrationTest
       assert_includes response.body, '"agencyscopeid":"501"'
       assert_includes response.body, '"overlaytype":"agency"'
       assert_includes response.body, '"overlayid":"501"'
+    end
+  end
+
+  test "agents refresh preserves cross-overlay return context" do
+    with_fake_connection do
+      get "/agents/sse/refresh", params: {
+        q: "",
+        kind: "agents",
+        active_only: "0",
+        certified_only: "0",
+        with_clients: "0",
+        with_book: "0",
+        with_restrictions: "0",
+        with_expiring: "0",
+        year: "2025",
+        sort: "book",
+        dir: "desc",
+        selected_type: "agency",
+        selected_id: "501",
+        selected_return_type: "agent",
+        selected_return_id: "11"
+      }, headers: modern_headers
+
+      assert_response :success
+      assert_includes response.media_type, "text/event-stream"
+      assert_includes response.body, "Back to agent"
+      assert_includes response.body, '"overlayreturntype":"agent"'
+      assert_includes response.body, '"overlayreturnid":"11"'
     end
   end
 

@@ -30,7 +30,12 @@ class AgentsController < ApplicationController
   # GET /agents/sidebar/agent/:id
   def sidebar_agent
     agent_id = Integer(params[:id])
-    render partial: "agents/rightpanel_overlay_agent", locals: load_sidebar_agent_payload(agent_id)
+    return_overlay_type, return_overlay_id = sidebar_return_overlay_context(current_overlay_type: "agent")
+
+    render partial: "agents/rightpanel_overlay_agent", locals: load_sidebar_agent_payload(agent_id).merge(
+      return_overlay_type:,
+      return_overlay_id:
+    )
   rescue ArgumentError
     raise ActiveRecord::RecordNotFound
   end
@@ -38,7 +43,12 @@ class AgentsController < ApplicationController
   # GET /agents/sidebar/agency/:id
   def sidebar_agency
     agency_id = Integer(params[:id])
-    render partial: "agents/rightpanel_overlay_agency", locals: load_sidebar_agency_payload(agency_id)
+    return_overlay_type, return_overlay_id = sidebar_return_overlay_context(current_overlay_type: "agency")
+
+    render partial: "agents/rightpanel_overlay_agency", locals: load_sidebar_agency_payload(agency_id).merge(
+      return_overlay_type:,
+      return_overlay_id:
+    )
   rescue ArgumentError
     raise ActiveRecord::RecordNotFound
   end
@@ -200,6 +210,27 @@ class AgentsController < ApplicationController
     filter_option_name = Array(@agency_filter_options).find { |row| row["agency_id"].to_i == agency_id }&.dig("agency_name")
 
     scoped_row_name.presence || filter_option_name.presence || queries.fetch_agency_name(agency_id)
+  end
+
+  def sidebar_return_overlay_context(current_overlay_type:)
+    overlay_context_from_params(
+      type_param: :return_type,
+      id_param: :return_id,
+      disallow_type: current_overlay_type
+    )
+  end
+
+  def overlay_context_from_params(type_param:, id_param:, disallow_type: nil)
+    overlay_type = params[type_param].to_s.strip.downcase
+    return [nil, nil] unless OVERLAY_TYPES.include?(overlay_type)
+    return [nil, nil] if disallow_type.present? && overlay_type == disallow_type.to_s
+
+    overlay_id = Integer(params[id_param], 10)
+    return [nil, nil] if overlay_id <= 0
+
+    [overlay_type, overlay_id]
+  rescue ArgumentError, TypeError
+    [nil, nil]
   end
 
   def selected_overlay_visible?(overlay_type:, overlay_id:)

@@ -21,17 +21,17 @@
   ]
 
   sort_options_by_key = sort_options.to_h
-  sort_primary_keys = %w[name book agents clients max]
-  sort_secondary_keys = %w[expirings restr options two_ways]
+  sort_primary_keys = %w[name book agents clients]
+  sort_secondary_keys = %w[max expirings restr options two_ways]
 
   agents_sort_key = %w[book clients max expirings options name].include?(@sort_key.to_s) ? @sort_key.to_s : "book"
   agents_view_href = "/agents?#{ { kind: 'agents', year: @book_year, sort: agents_sort_key, dir: @sort_dir }.to_query }"
   agencies_view_href = "/agencies?#{ { year: @book_year, sort: @sort_key, dir: @sort_dir }.to_query }"
 %>
 
-<header id="commandbar" class="sticky top-0 z-40 shrink-0 h-[130px] border-b border-border bg-background px-4 pt-3 flex items-start gap-4 select-none">
+<header id="commandbar" class="sticky top-0 z-40 shrink-0 h-[130px] border-b border-border bg-background px-4 pt-3 flex items-start gap-2 select-none">
   <div class="flex items-start min-w-0 overflow-x-auto pb-1 pr-1">
-    <div class="min-w-[8.25rem] w-[8.25rem] space-y-1 shrink-0">
+    <div class="w-fit min-w-[5.25rem] space-y-1 shrink-0">
       <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">View</div>
       <div class="space-y-1">
         <label class="flex items-center gap-1.5 cursor-pointer select-none">
@@ -59,9 +59,9 @@
       </div>
     </div>
 
-    <div class="h-20 w-px bg-border self-center shrink-0 mx-2"></div>
+    <div class="h-20 w-px bg-border self-center shrink-0 mx-3"></div>
 
-    <div class="min-w-[8rem] w-[8rem] space-y-1 shrink-0">
+    <div class="w-fit min-w-[5.25rem] space-y-1 shrink-0">
       <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Book Year</div>
       <div class="space-y-1">
         <% [2025, 2026, 2027].each do |year| %>
@@ -82,11 +82,11 @@
       </div>
     </div>
 
-    <div class="h-20 w-px bg-border self-center shrink-0 mx-2"></div>
+    <div class="h-20 w-px bg-border self-center shrink-0 mx-3"></div>
 
-    <div class="min-w-[11.5rem] w-[11.5rem] space-y-1 shrink-0">
+    <div class="w-fit space-y-1 shrink-0">
       <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Sort By</div>
-      <div class="grid grid-cols-2 gap-x-2 gap-y-1">
+      <div class="grid grid-cols-[max-content_max-content] gap-x-6 gap-y-1">
         <div class="space-y-1">
           <% sort_primary_keys.each do |key| %>
             <% label = sort_options_by_key[key] %>

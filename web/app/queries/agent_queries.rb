@@ -344,6 +344,85 @@ class AgentQueries
     SQL
   end
 
+  def fetch_index_top_clients_for_agents(agent_ids, limit_per_agent: 3, book_total_sql: "sbw.cap_2025")
+    ids = Array(agent_ids).map(&:to_i).select(&:positive?).uniq
+    return [] if ids.empty?
+
+    limit = limit_per_agent.to_i
+    limit = 3 if limit <= 0
+
+    conn.exec_query(<<~SQL).to_a
+      WITH ranked AS (
+        SELECT
+          sbw.agent_id,
+          sbw.player_id,
+          sbw.player_name,
+          sbw.team_code,
+          COALESCE(sbw.is_two_way, false)::boolean AS is_two_way,
+          COALESCE(#{book_total_sql}, 0)::bigint AS book_total,
+          ROW_NUMBER() OVER (
+            PARTITION BY sbw.agent_id
+            ORDER BY #{book_total_sql} DESC NULLS LAST, sbw.player_name ASC
+          ) AS row_num
+        FROM pcms.salary_book_warehouse sbw
+        WHERE sbw.agent_id IN (#{ids.join(',')})
+      )
+      SELECT
+        ranked.agent_id,
+        ranked.player_id,
+        ranked.player_name,
+        ranked.team_code,
+        ranked.is_two_way,
+        ranked.book_total
+      FROM ranked
+      WHERE ranked.row_num <= #{limit}
+      ORDER BY ranked.agent_id ASC, ranked.row_num ASC
+    SQL
+  end
+
+  def fetch_index_top_teams_for_agents(agent_ids, limit_per_agent: 3, book_total_sql: "sbw.cap_2025")
+    ids = Array(agent_ids).map(&:to_i).select(&:positive?).uniq
+    return [] if ids.empty?
+
+    limit = limit_per_agent.to_i
+    limit = 3 if limit <= 0
+
+    conn.exec_query(<<~SQL).to_a
+      WITH grouped AS (
+        SELECT
+          sbw.agent_id,
+          sbw.team_code,
+          t.team_id,
+          COUNT(*)::integer AS player_count,
+          COALESCE(SUM(#{book_total_sql}), 0)::bigint AS book_total
+        FROM pcms.salary_book_warehouse sbw
+        LEFT JOIN pcms.teams t
+          ON t.team_code = sbw.team_code
+         AND t.league_lk = 'NBA'
+        WHERE sbw.agent_id IN (#{ids.join(',')})
+          AND sbw.team_code IS NOT NULL
+        GROUP BY sbw.agent_id, sbw.team_code, t.team_id
+      ), ranked AS (
+        SELECT
+          grouped.*,
+          ROW_NUMBER() OVER (
+            PARTITION BY grouped.agent_id
+            ORDER BY grouped.player_count DESC, grouped.book_total DESC, grouped.team_code ASC
+          ) AS row_num
+        FROM grouped
+      )
+      SELECT
+        ranked.agent_id,
+        ranked.team_code,
+        ranked.team_id,
+        ranked.player_count,
+        ranked.book_total
+      FROM ranked
+      WHERE ranked.row_num <= #{limit}
+      ORDER BY ranked.agent_id ASC, ranked.row_num ASC
+    SQL
+  end
+
   def fetch_agency_id_for_agent(agent_id)
     id_sql = conn.quote(agent_id)
 

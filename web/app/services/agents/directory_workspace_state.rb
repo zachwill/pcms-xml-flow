@@ -47,7 +47,7 @@ module Agents
     attr_reader :params, :queries, :book_years, :agent_sort_keys, :agency_sort_keys
 
     def setup_directory_filters!
-      @directory_kind = params[:kind].to_s == "agencies" ? "agencies" : "agents"
+      @directory_kind = "agents"
       @query = params[:q].to_s.strip
 
       @active_only = cast_bool(params[:active_only])
@@ -132,9 +132,9 @@ module Agents
       else
         sort_sql = sql_sort_for_agents(book_total_sql:, expiring_sql:)
         where_clauses = ["1 = 1"]
+        where_clauses << "COALESCE(w.client_count, 0) > 0"
         where_clauses << "COALESCE(w.is_active, true) = true" if @active_only
         where_clauses << "COALESCE(w.is_certified, false) = true" if @certified_only
-        where_clauses << "COALESCE(w.client_count, 0) > 0" if @with_clients
         where_clauses << "COALESCE(#{book_total_sql}, 0) > 0" if @with_book
         where_clauses << "COALESCE(#{expiring_sql}, 0) > 0" if @with_expiring
         where_clauses << "(COALESCE(w.no_trade_count, 0) > 0 OR COALESCE(w.trade_kicker_count, 0) > 0 OR COALESCE(w.trade_restricted_count, 0) > 0)" if @with_restrictions
@@ -165,7 +165,59 @@ module Agents
           expiring_sql: expiring_sql
         )
 
+        attach_top_clients_preview_for_agents!(book_total_sql: sql_client_book_total("sbw"))
+        attach_top_teams_preview_for_agents!(book_total_sql: sql_client_book_total("sbw"))
+
         @agencies = []
+      end
+    end
+
+    def attach_top_clients_preview_for_agents!(book_total_sql:)
+      rows = Array(@agents)
+      return if rows.empty?
+
+      agent_ids = rows.map { |row| row["agent_id"].to_i }.select(&:positive?).uniq
+      preview_rows = queries.fetch_index_top_clients_for_agents(
+        agent_ids,
+        limit_per_agent: 3,
+        book_total_sql: book_total_sql
+      )
+      previews_by_agent = preview_rows.group_by { |row| row["agent_id"].to_i }
+
+      rows.each do |row|
+        row["top_clients_preview"] = Array(previews_by_agent[row["agent_id"].to_i]).map do |preview|
+          {
+            "player_id" => preview["player_id"],
+            "player_name" => preview["player_name"],
+            "team_code" => preview["team_code"],
+            "is_two_way" => preview["is_two_way"],
+            "book_total" => preview["book_total"]
+          }
+        end
+      end
+    end
+
+    def attach_top_teams_preview_for_agents!(book_total_sql:)
+      rows = Array(@agents)
+      return if rows.empty?
+
+      agent_ids = rows.map { |row| row["agent_id"].to_i }.select(&:positive?).uniq
+      preview_rows = queries.fetch_index_top_teams_for_agents(
+        agent_ids,
+        limit_per_agent: 3,
+        book_total_sql: book_total_sql
+      )
+      previews_by_agent = preview_rows.group_by { |row| row["agent_id"].to_i }
+
+      rows.each do |row|
+        row["top_teams_preview"] = Array(previews_by_agent[row["agent_id"].to_i]).map do |preview|
+          {
+            "team_id" => preview["team_id"],
+            "team_code" => preview["team_code"],
+            "player_count" => preview["player_count"],
+            "book_total" => preview["book_total"]
+          }
+        end
       end
     end
 
@@ -276,6 +328,14 @@ module Agents
       when 2026 then "#{table_alias}.cap_2026_total"
       when 2027 then "#{table_alias}.cap_2027_total"
       else "#{table_alias}.cap_2025_total"
+      end
+    end
+
+    def sql_client_book_total(table_alias)
+      case @book_year
+      when 2026 then "#{table_alias}.cap_2026"
+      when 2027 then "#{table_alias}.cap_2027"
+      else "#{table_alias}.cap_2025"
       end
     end
 

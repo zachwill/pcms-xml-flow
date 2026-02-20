@@ -72,11 +72,13 @@
 
       <div class="min-w-0 space-y-0.5">
         <h2 class="text-lg font-semibold text-foreground truncate"><%= agency_name.presence || "Agency" %></h2>
-        <div class="text-sm text-muted-foreground truncate flex items-center gap-2">
+        <div class="text-xs text-muted-foreground/80 tabular-nums flex items-center gap-1 min-w-0 overflow-hidden whitespace-nowrap">
+          <span class="truncate"><%= pluralize(agent_count, "agent") %></span>
+          <span class="text-muted-foreground/50">·</span>
+          <span class="truncate"><%= pluralize(client_count, "client") %></span>
           <% if agency["is_active"] == false %>
-            <span class="entity-chip entity-chip--muted shrink-0">inactive</span>
-          <% else %>
-            <span class="entity-chip entity-chip--success shrink-0">active</span>
+            <span class="text-muted-foreground/50">·</span>
+            <span class="text-muted-foreground/60">inactive</span>
           <% end %>
         </div>
       </div>

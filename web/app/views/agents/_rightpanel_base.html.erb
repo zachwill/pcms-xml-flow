@@ -2,128 +2,71 @@
   summary = @sidebar_summary || {}
   year = summary[:year].to_i
   year = 2025 if year <= 0
-  year_label = format_year_label(year).split("-").first
-  top_rows = Array(summary[:top_rows])
+  year_label = format_year_label(year)
+  top_rows = Array(summary[:top_rows]).select { |row| row[:type].to_s != "agency" }
 
-  # Batch-load canonical slugs for agents and agencies in top rows to avoid N+1 queries.
-  agent_ids = top_rows.select { |r| r[:type].to_s != "agency" }.map { |r| r[:id] }
-  agency_ids = top_rows.select { |r| r[:type].to_s == "agency" }.map { |r| r[:id] }
-  prefetch_canonical_slugs(entity_type: "agent", entity_ids: agent_ids) if agent_ids.any?
-  prefetch_canonical_slugs(entity_type: "agency", entity_ids: agency_ids) if agency_ids.any?
+  prefetch_canonical_slugs(entity_type: "agent", entity_ids: top_rows.map { |r| r[:id] })
 
-  pane_query_expr = "'q=' + encodeURIComponent($agentquery) +
-    '&kind=' + $entitykind +
-    '&active_only=' + ($activeonly ? '1' : '0') +
-    '&certified_only=' + ($certifiedonly ? '1' : '0') +
-    '&with_clients=' + ($withclients ? '1' : '0') +
-    '&with_book=' + ($withbook ? '1' : '0') +
-    '&with_restrictions=' + ($withrestrictions ? '1' : '0') +
-    '&with_expiring=' + ($withexpiring ? '1' : '0') +
-    '&agency_id=' + encodeURIComponent($agencyfilterid) +
-    '&year=' + $bookyear +
-    '&sort=' + $sortkey +
-    '&dir=' + $sortdir +
-    '&agency_scope=' + ($agencyscopeactive ? '1' : '0') +
-    '&agency_scope_id=' + encodeURIComponent($agencyscopeid)"
+  compact_currency = lambda do |amount|
+    return "—" if amount.nil?
 
-  selected_overlay_query_expr = "'selected_type=' + encodeURIComponent($overlaytype) +
-    '&selected_id=' + encodeURIComponent($overlayid) +
-    '&selected_return_type=' + encodeURIComponent($overlayreturntype || '') +
-    '&selected_return_id=' + encodeURIComponent($overlayreturnid || '')"
-  refresh_expr = "@get('/agents/sse/refresh?' + (#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr})); window.history.replaceState({}, '', '/agents?' + (#{pane_query_expr}))"
+    value = amount.to_f
+    return "—" unless value.positive?
 
-  agency_scope_id = summary[:agency_scope_id].to_i
-  agency_scope_name = summary[:agency_scope_name].to_s
-  agency_scope_label = agency_scope_name.presence || (agency_scope_id.positive? ? "Agency ##{agency_scope_id}" : "Agency")
+    abs = value.abs
+    if abs >= 1_000_000_000
+      "$#{format('%.1f', abs / 1_000_000_000)}B"
+    else
+      format_compact_currency(value)
+    end
+  end
 %>
 
-<div id="rightpanel-base" class="space-y-3">
-  <div class="border border-border bg-background p-3 space-y-2">
-    <div>
-      <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Workspace snapshot</div>
-      <div class="text-sm font-semibold">
-        <%= summary[:kind].to_s == "agencies" ? "Agencies" : "Agents" %>
-        <span class="text-muted-foreground font-medium">· <%= summary[:row_count].to_i %> rows</span>
-      </div>
-    </div>
-
-    <% if summary[:kind].to_s == "agents" %>
-      <div class="border border-border bg-muted/20 px-2 py-1.5 space-y-1">
-        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Agency narrowing</div>
-        <div class="flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-wide">
-          <button
-            id="agents-sidebar-scope-overlay"
-            type="button"
-            class="cursor-pointer rounded border border-violet-400/70 bg-violet-100/70 px-1.5 py-0.5 font-semibold text-violet-800 transition-colors hover:bg-violet-100 dark:border-violet-500/60 dark:bg-violet-900/30 dark:text-violet-200"
-            data-show="$overlaytype === 'agency' && !$agencyscopeactive"
-            style="display: none;"
-            data-on:click="$agencyscopeactive = true; $agencyscopeid = $overlayid; <%= refresh_expr %>"
-          >Scope to active overlay</button>
-
-          <button
-            id="agents-sidebar-clear-scope"
-            type="button"
-            class="cursor-pointer rounded border border-border px-1.5 py-0.5 text-muted-foreground transition-colors hover:text-foreground hover:border-foreground/20"
-            data-show="$agencyscopeactive"
-            style="display: none;"
-            data-on:click="$agencyscopeactive = false; $agencyscopeid = ''; <%= refresh_expr %>"
-          >Show all agents</button>
-
-          <span
-            class="rounded border border-violet-400/60 bg-violet-100/60 px-1.5 py-0.5 font-semibold text-violet-800 dark:border-violet-500/50 dark:bg-violet-900/25 dark:text-violet-200"
-            data-show="$agencyscopeactive"
-            style="display: none;"
-          >Scoped: <%= agency_scope_label %></span>
-        </div>
-      </div>
-    <% end %>
+<div id="rightpanel-base" class="space-y-4">
+  <div class="px-1 space-y-2">
+    <div class="text-lg font-semibold leading-tight">Agents</div>
 
     <div class="grid grid-cols-2 gap-1.5">
-      <%= render partial: "salary_book/kpi_cell", locals: {
-        label: "Rows",
-        value: summary[:row_count].to_i.to_s,
-        class_name: "w-full"
-      } %>
+      <div class="h-12 border border-border bg-background px-2 flex flex-col justify-center">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Book total · <%= year_label %></div>
+        <div class="tabular-nums text-sm font-semibold"><%= compact_currency.call(summary[:book_total]) %></div>
+      </div>
 
-      <%= render partial: "salary_book/kpi_cell", locals: {
-        label: "Active",
-        value: summary[:active_count].to_i.to_s,
-        class_name: "w-full"
-      } %>
-
-      <%= render partial: "salary_book/kpi_cell", locals: {
-        label: "Clients",
-        value: summary[:client_total].to_i.to_s,
-        class_name: "w-full"
-      } %>
-
-      <%= render partial: "salary_book/kpi_cell", locals: {
-        label: "Book '#{year_label}",
-        value: format_compact_currency(summary[:book_total]),
-        class_name: "w-full"
-      } %>
+      <div class="h-12 border border-border bg-background px-2 flex flex-col justify-center">
+        <div class="text-[10px] uppercase tracking-wide text-muted-foreground/80">Agents</div>
+        <div class="tabular-nums text-sm font-semibold"><%= summary[:row_count].to_i %></div>
+      </div>
     </div>
 
-    <div class="grid grid-cols-3 gap-1.5">
-      <%= render partial: "salary_book/kpi_cell", locals: {
-        label: "Max",
-        value: summary[:max_total].to_i.to_s,
-        class_name: "w-full"
-      } %>
-      <%= render partial: "salary_book/kpi_cell", locals: {
-        label: "Exp",
-        value: summary[:expiring_total].to_i.to_s,
-        class_name: "w-full"
-      } %>
-      <%= render partial: "salary_book/kpi_cell", locals: {
-        label: "Opts",
-        value: summary[:option_total].to_i.to_s,
-        class_name: "w-full"
-      } %>
+    <div class="bg-background divide-y divide-border/60">
+      <div class="px-2 py-1.5 flex items-center justify-between gap-2">
+        <span class="text-sm text-muted-foreground">Active</span>
+        <span class="tabular-nums text-sm font-medium"><%= summary[:active_count].to_i %></span>
+      </div>
+      <div class="px-2 py-1.5 flex items-center justify-between gap-2">
+        <span class="text-sm text-muted-foreground">Clients</span>
+        <span class="tabular-nums text-sm font-medium"><%= summary[:client_total].to_i %></span>
+      </div>
+      <div class="px-2 py-1.5 flex items-center justify-between gap-2">
+        <span class="text-sm text-muted-foreground">Teams</span>
+        <span class="tabular-nums text-sm font-medium"><%= summary[:team_total].to_i %></span>
+      </div>
+      <div class="px-2 py-1.5 flex items-center justify-between gap-2">
+        <span class="text-sm text-muted-foreground">Max</span>
+        <span class="tabular-nums text-sm font-medium"><%= summary[:max_total].to_i %></span>
+      </div>
+      <div class="px-2 py-1.5 flex items-center justify-between gap-2">
+        <span class="text-sm text-muted-foreground">Expiring</span>
+        <span class="tabular-nums text-sm font-medium"><%= summary[:expiring_total].to_i %></span>
+      </div>
+      <div class="px-2 py-1.5 flex items-center justify-between gap-2">
+        <span class="text-sm text-muted-foreground">Options</span>
+        <span class="tabular-nums text-sm font-medium"><%= summary[:option_total].to_i %></span>
+      </div>
     </div>
 
     <% if Array(summary[:filters]).any? %>
-      <div class="pt-1 flex flex-wrap gap-1">
+      <div class="pt-0.5 flex flex-wrap gap-1">
         <% Array(summary[:filters]).each do |label| %>
           <span class="entity-chip entity-chip--muted"><%= label %></span>
         <% end %>
@@ -133,7 +76,7 @@
 
   <div class="border border-border bg-background">
     <div class="px-3 py-2 border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground/80">
-      Top <%= summary[:kind].to_s == "agencies" ? "agencies" : "agents" %> by current sort
+      Top agents by current sort
     </div>
 
     <% if top_rows.empty? %>
@@ -142,23 +85,27 @@
       <div class="divide-y divide-border">
         <% top_rows.each do |row| %>
           <% row_id = row[:id] %>
-          <% is_agency = row[:type].to_s == "agency" %>
-          <% sidebar_url = is_agency ? "/agents/sidebar/agency/#{row_id}" : "/agents/sidebar/agent/#{row_id}" %>
+          <% row_has_book = row[:book_total].to_f.positive? %>
+          <% row_percentile_int = representation_percentile_int(row[:percentile]) %>
 
           <button
             type="button"
-            class="cursor-pointer w-full px-2.5 py-1.5 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
-            data-on:click="$overlaytype = '<%= is_agency ? 'agency' : 'agent' %>'; $overlayid = '<%= row_id %>'; $overlayreturntype = 'none'; $overlayreturnid = ''; @get('<%= sidebar_url %>')"
+            class="cursor-pointer w-full px-3 py-2 text-left hover:bg-yellow-50/70 dark:hover:bg-yellow-900/10 transition-colors duration-75"
+            data-on:click="$overlaytype = 'agent'; $overlayid = '<%= row_id %>'; $overlayreturntype = 'none'; $overlayreturnid = ''; @get('/agents/sidebar/agent/<%= row_id %>')"
           >
             <div class="entity-cell-two-line">
               <div class="entity-cell-primary justify-between gap-2">
-                <span class="truncate font-medium"><%= row[:title] %></span>
-                <span class="font-mono tabular-nums text-[11px] shrink-0"><%= format_compact_currency(row[:book_total]) %></span>
+                <a href="<%= agent_href(row_id) %>" class="truncate font-medium hover:underline" onclick="event.stopPropagation()"><%= row[:title] %></a>
+                <% if row_has_book %>
+                  <span class="font-mono tabular-nums text-[11px] shrink-0"><%= compact_currency.call(row[:book_total]) %></span>
+                <% else %>
+                  <span class="font-mono tabular-nums text-[11px] shrink-0 min-w-8 text-center text-muted-foreground/50">—</span>
+                <% end %>
               </div>
               <div class="entity-cell-secondary justify-between gap-2">
                 <span class="truncate"><%= row[:subtitle] %></span>
-                <% if representation_percentile_int(row[:percentile]).present? %>
-                  <span class="font-mono tabular-nums <%= representation_percentile_color_class(row[:percentile]) %>">P<%= representation_percentile_int(row[:percentile]) %></span>
+                <% if row_has_book && row_percentile_int.present? %>
+                  <span class="font-mono tabular-nums <%= representation_percentile_color_class(row[:percentile]) %>">P<%= row_percentile_int %></span>
                 <% end %>
               </div>
             </div>
@@ -168,10 +115,7 @@
     <% end %>
   </div>
 
-  <div class="border-t border-border pt-2 text-[10px] text-muted-foreground/70 tabular-nums px-1 space-y-0.5">
-    <% if summary[:query].present? %>
-      <div>Search: <span class="text-foreground"><%= summary[:query] %></span></div>
-    <% end %>
-    <div>Sort: <%= summary[:sort_key].to_s.humanize.presence || "Book" %> · <%= summary[:sort_dir].to_s.upcase.presence || "DESC" %></div>
+  <div class="text-[10px] text-muted-foreground/70 tabular-nums px-1">
+    Sort: <%= summary[:sort_key].to_s.humanize.presence || "Book" %> · <%= summary[:sort_dir].to_s.upcase.presence || "DESC" %>
   </div>
 </div>

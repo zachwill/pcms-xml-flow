@@ -1,5 +1,4 @@
-<% directory_scope = @directory_kind.to_s == "agencies" ? "agencies" : "agents" %>
-<% content_for :title, directory_scope == "agencies" ? "Agencies" : "Agents" %>
+<% content_for :title, "Agents" %>
 
 <div
   id="agents-workspace"
@@ -7,7 +6,7 @@
   style="height: 100dvh;"
   data-signals="{
     agentquery: <%= @query.to_json %>,
-    entitykind: '<%= @directory_kind %>',
+    entitykind: 'agents',
     activeonly: <%= @active_only ? 'true' : 'false' %>,
     certifiedonly: <%= @certified_only ? 'true' : 'false' %>,
     withclients: <%= @with_clients ? 'true' : 'false' %>,

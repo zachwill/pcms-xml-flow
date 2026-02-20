@@ -50,9 +50,9 @@
   <% else %>
     <section class="border-b border-border bg-background">
       <div class="min-w-[80rem]">
-        <div class="sticky top-0 z-10 bg-muted border-b border-border">
+        <div class="sticky top-0 z-30 bg-muted border-b border-border">
           <div class="flex items-center px-3 h-8 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
-            <div class="w-72 shrink-0 sticky left-0 z-20 h-full flex items-center bg-muted relative after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/60">Agency</div>
+            <div class="w-72 shrink-0 sticky left-3 z-40 h-full flex items-center bg-muted relative after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/60">Agency</div>
             <div class="w-24 shrink-0 text-center">Book <%= year_label %></div>
             <div class="w-20 shrink-0 text-center">Agents</div>
             <div class="w-24 shrink-0">Top agents</div>
@@ -109,7 +109,7 @@
             >
               <div class="flex items-center px-3 min-h-[40px] text-xs">
                 <div
-                  class="w-72 shrink-0 sticky left-0 z-20 relative bg-background transition-colors duration-75
+                  class="w-72 shrink-0 sticky left-3 z-[5] relative bg-background transition-colors duration-75
                          group-hover:bg-yellow-50 dark:group-hover:bg-yellow-900
                          after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-border/50"
                   data-class="{ 'bg-yellow-100 dark:bg-yellow-900': $overlaytype === 'agency' && $overlayid === '<%= agency_id %>' }"

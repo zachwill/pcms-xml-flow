@@ -1,0 +1,165 @@
+<%
+  pane_query_expr = "'q=' + encodeURIComponent($agencyquery) +
+    '&activity=' + encodeURIComponent($agencyactivity) +
+    '&year=' + encodeURIComponent($agencyyear) +
+    '&sort=' + encodeURIComponent($agencysort) +
+    '&dir=' + encodeURIComponent($agencydir)"
+
+  selected_overlay_query_expr = "'selected_id=' + encodeURIComponent($overlayid)"
+
+  refresh_expr = "@get('/agencies/sse/refresh?' + (#{pane_query_expr}) + '&' + (#{selected_overlay_query_expr})); window.history.replaceState({}, '', '/agencies?' + (#{pane_query_expr}))"
+  clear_query_expr = "$agencyquery = ''; #{refresh_expr}"
+
+  posture_options = [
+    ["all", "All"],
+    ["active", "Active"],
+    ["inactive", "Inactive"],
+    ["inactive_live_book", "Inactive + live"],
+    ["live_book_risk", "Live risk"]
+  ]
+
+  sort_options = [
+    ["book", "Book"],
+    ["clients", "Clients"],
+    ["agents", "Agents"],
+    ["teams", "Teams"],
+    ["max", "Max"],
+    ["expirings", "Exp"],
+    ["options", "Opts"],
+    ["name", "Name"]
+  ]
+%>
+
+<header id="commandbar" class="shrink-0 h-[130px] border-b border-border bg-background px-4 pt-3 flex items-start gap-4 select-none">
+  <div class="flex items-start min-w-0 overflow-x-auto pb-1">
+    <div class="min-w-[16rem] w-[16rem] space-y-2">
+      <div class="space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Search</div>
+        <div class="flex items-center gap-1.5">
+          <input
+            id="agencies-search"
+            type="text"
+            placeholder="Agency name or id"
+            class="h-7 w-full rounded border border-border bg-background px-2 text-xs text-foreground"
+            data-bind="agencyquery"
+            data-on:keydown="if (evt.key === 'Enter') { evt.preventDefault(); <%= refresh_expr %>; }"
+          />
+          <button
+            type="button"
+            class="cursor-pointer h-7 px-2 rounded border border-border text-[10px] font-semibold uppercase tracking-wide text-foreground/80 hover:text-foreground hover:border-foreground/20"
+            data-on:click="<%= refresh_expr %>"
+          >Apply</button>
+          <button
+            type="button"
+            class="cursor-pointer h-7 px-2 rounded border border-border text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground hover:border-foreground/20"
+            data-show="$agencyquery !== ''"
+            style="display: none;"
+            data-on:click="<%= clear_query_expr %>"
+          >Clear</button>
+        </div>
+      </div>
+
+      <div class="space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Book year</div>
+        <div class="flex items-center gap-2">
+          <% [2025, 2026, 2027].each do |year| %>
+            <label class="flex items-center gap-1 cursor-pointer select-none">
+              <input
+                type="radio"
+                id="agencies-book-year-<%= year %>"
+                name="agencies-book-year"
+                value="<%= year %>"
+                class="size-3.5 accent-primary"
+                <%= "checked" if @book_year == year %>
+                data-bind="agencyyear"
+                data-on:change="<%= refresh_expr %>"
+              />
+              <span class="text-[11px] leading-none tabular-nums text-foreground/90"><%= year %></span>
+            </label>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <div class="h-20 w-px bg-border self-center shrink-0 mx-3"></div>
+
+    <div class="min-w-[12.5rem] w-[12.5rem] space-y-1">
+      <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Posture lens</div>
+      <div class="space-y-1">
+        <% posture_options.each do |value, label| %>
+          <label class="flex items-center gap-1.5 cursor-pointer select-none">
+            <input
+              type="radio"
+              id="agencies-activity-<%= value %>"
+              name="agencies-activity"
+              value="<%= value %>"
+              class="size-3.5 accent-primary"
+              <%= "checked" if @activity_lens == value %>
+              data-bind="agencyactivity"
+              data-on:change="if (el.checked) { <%= refresh_expr %>; }"
+            />
+            <span
+              class="text-[11px] leading-none"
+              data-class="{ 'text-foreground font-semibold': $agencyactivity === '<%= value %>', 'text-muted-foreground': $agencyactivity !== '<%= value %>' }"
+            ><%= label %></span>
+          </label>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="h-20 w-px bg-border self-center shrink-0 mx-3"></div>
+
+    <div class="min-w-[11.5rem] w-[11.5rem] space-y-2">
+      <div class="space-y-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Sort</div>
+        <div class="flex items-center gap-1.5">
+          <select
+            id="agencies-sort-key"
+            class="h-7 w-24 rounded border border-border bg-background px-2 text-xs text-foreground"
+            data-bind="agencysort"
+            data-on:change="<%= refresh_expr %>"
+          >
+            <% sort_options.each do |value, label| %>
+              <option value="<%= value %>" <%= "selected" if @sort_key == value %>><%= label %></option>
+            <% end %>
+          </select>
+
+          <label class="flex items-center gap-1 cursor-pointer select-none">
+            <input
+              type="radio"
+              id="agencies-sort-desc"
+              name="agencies-sort-direction"
+              value="desc"
+              class="size-3.5 accent-primary"
+              <%= "checked" if @sort_dir == "desc" %>
+              data-bind="agencydir"
+              data-on:change="<%= refresh_expr %>"
+            />
+            <span class="text-[11px] leading-none text-foreground/90">↓</span>
+          </label>
+
+          <label class="flex items-center gap-1 cursor-pointer select-none">
+            <input
+              type="radio"
+              id="agencies-sort-asc"
+              name="agencies-sort-direction"
+              value="asc"
+              class="size-3.5 accent-primary"
+              <%= "checked" if @sort_dir == "asc" %>
+              data-bind="agencydir"
+              data-on:change="<%= refresh_expr %>"
+            />
+            <span class="text-[11px] leading-none text-foreground/90">↑</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="rounded border border-border/60 bg-muted/20 px-2 py-1 text-[10px] leading-tight text-muted-foreground">
+        <div>Live risk = Book year &gt; 0 + restrictions</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="h-20 w-px bg-border self-center ml-auto shrink-0"></div>
+  <%= render partial: "shared/commandbar_navigation", locals: { active_destination: "agents" } %>
+</header>

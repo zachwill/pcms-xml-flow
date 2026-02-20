@@ -40,7 +40,7 @@
 <% prefetch_canonical_slugs(entity_type: "player", entity_ids: top_clients.map { |c| c["player_id"] }) %>
 <% prefetch_canonical_slugs(entity_type: "team", entity_ids: top_clients.map { |c| c["team_id"] }) %>
 
-<div id="rightpanel-overlay" class="h-full">
+<div id="rightpanel-overlay" class="h-full bg-background overflow-y-auto overflow-x-hidden overscroll-y-contain scroll-touch">
   <div class="sticky top-0 z-20 h-10 px-4 flex items-center justify-between border-b border-border bg-background">
     <button
       type="button"

@@ -1,13 +1,60 @@
-<div id="trades-results" class="space-y-3 px-4 py-4">
+<div id="trades-results" class="py-3">
   <% if @trades.empty? %>
-    <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">
-      No trades found for this time period and filters.
+    <div class="px-4">
+      <div class="p-4 rounded-lg bg-muted/30 border border-border/50 text-sm text-muted-foreground italic">
+        No trades found for this time period and filters.
+      </div>
     </div>
   <% else %>
-    <% headshot_fallback = fallback_headshot_data_uri %>
-    <div id="trades-board" class="min-w-[92rem] border-y border-border bg-background">
-      <div id="trades-flex-header" class="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90">
-          <div class="flex items-center h-8 px-3 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
+    <%
+      headshot_fallback = fallback_headshot_data_uri
+      summary = @sidebar_summary || {}
+
+      daterange_label = case @daterange.to_s
+      when "today" then "Today"
+      when "week" then "This week"
+      when "month" then "This month"
+      when "season" then "This season"
+      else "All dates"
+      end
+    %>
+
+    <section class="px-4 pb-3 border-b border-border">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0 space-y-2">
+          <h2 class="text-sm font-semibold text-foreground">
+            Trades
+            <span class="text-muted-foreground font-medium">· <%= pluralize(summary[:row_count].to_i, "deal") %></span>
+          </h2>
+
+          <div class="flex flex-wrap gap-1.5 text-[10px]">
+            <span class="entity-chip entity-chip--muted"><%= daterange_label %></span>
+            <span class="entity-chip entity-chip--muted">Sort: <%= @sort_label %></span>
+            <% if @team.present? %>
+              <span class="entity-chip entity-chip--accent">Team: <%= @team %></span>
+            <% end %>
+            <% unless @lens == "all" %>
+              <span class="entity-chip entity-chip--warning"><%= @lens_label %></span>
+            <% end %>
+            <% unless @composition == "all" %>
+              <span class="entity-chip entity-chip--success"><%= @composition_label %></span>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="ml-auto shrink-0 grid grid-cols-4 gap-1.5">
+          <%= render partial: "salary_book/kpi_cell", locals: { label: "Assets", value: summary[:complexity_asset_total].to_i.to_s, class_name: "w-full" } %>
+          <%= render partial: "salary_book/kpi_cell", locals: { label: "Complex", value: summary[:complex_deal_count].to_i.to_s, class_name: "w-full" } %>
+          <%= render partial: "salary_book/kpi_cell", locals: { label: "Player", value: summary[:player_heavy_deal_count].to_i.to_s, class_name: "w-full" } %>
+          <%= render partial: "salary_book/kpi_cell", locals: { label: "Pick", value: summary[:pick_heavy_deal_count].to_i.to_s, class_name: "w-full" } %>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-border">
+      <div id="trades-board" class="min-w-[92rem] bg-background">
+        <div id="trades-flex-header" class="sticky top-0 z-10 border-b border-border bg-muted">
+          <div class="flex items-center h-9 px-3 text-[10px] uppercase tracking-wide text-muted-foreground/90 font-medium">
             <div class="w-28 shrink-0">When</div>
             <div class="w-40 shrink-0">Deal</div>
             <div class="w-[30rem] shrink-0">Team impact (OUT / IN)</div>
@@ -200,6 +247,7 @@
             </div>
           <% end %>
         </div>
-    </div>
+      </div>
+    </section>
   <% end %>
 </div>

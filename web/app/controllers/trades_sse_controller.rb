@@ -73,7 +73,7 @@ class TradesSseController < TradesController
   end
 
   def overlay_clear_html
-    '<div id="rightpanel-overlay"></div>'
+    '<div id="rightpanel-overlay" class="absolute inset-0 z-20 pointer-events-none"></div>'
   end
 
   def without_view_annotations

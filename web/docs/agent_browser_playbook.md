@@ -42,18 +42,8 @@ Default local URL is usually `http://localhost:3000`.
 # 1) Open page
 agent-browser open http://localhost:3000/team-summary
 
-# 2) Wait for load
-agent-browser wait --load networkidle
-
-# 3) Capture interactive tree (refs)
-agent-browser snapshot -i -C -c
-
-# 4) Capture visual baseline
+# 2) Capture visual baseline
 agent-browser screenshot --annotate /tmp/agent-browser/team-summary-before.png
-
-# 5) Interact via refs (@eN), then re-snapshot
-agent-browser click @e12
-agent-browser snapshot -i -C -c
 ```
 
 ## Evidence package contract (required for redesign tasks)
@@ -71,9 +61,8 @@ Artifact path convention:
 
 ### Why this pattern
 
-- `snapshot` refs (`@e1`, `@e2`, …) are deterministic and stable for AI agents.
 - `--annotate` screenshots map visual labels to the same refs.
-- Re-snapshot after any meaningful page change.
+- `snapshot` refs (`@e1`, `@e2`, …) are deterministic and stable for AI agents.
 
 ## Annotated screenshot review loop (required for autonomous redesign runs)
 
@@ -107,6 +96,13 @@ agent-browser press Enter
 agent-browser scroll down 800
 ```
 
+### Visual output
+
+```bash
+agent-browser screenshot --annotate <path>
+agent-browser screenshot --full <path>
+```
+
 ### State + inspection
 
 ```bash
@@ -116,13 +112,6 @@ agent-browser get url
 agent-browser get title
 agent-browser is visible <sel-or-ref>
 agent-browser get styles <selector>
-```
-
-### Visual output
-
-```bash
-agent-browser screenshot --annotate <path>
-agent-browser screenshot --full <path>
 ```
 
 ### Reliability helpers
@@ -169,12 +158,6 @@ Use a dedicated session for this project to avoid cross-site state bleed:
 
 ```bash
 agent-browser --session pcms-web open http://localhost:3000
-```
-
-Close when done:
-
-```bash
-agent-browser close
 ```
 
 ---

@@ -47,6 +47,7 @@ class TeamsController < ApplicationController
   # GET /teams
   def index
     load_index_workspace_state!
+    load_index_overlay_state!
     render :index
   end
 
@@ -141,6 +142,22 @@ class TeamsController < ApplicationController
   def load_index_team_row!(team_id)
     @sidebar_team_row = fetch_index_team_row(team_id)
     raise ActiveRecord::RecordNotFound unless @sidebar_team_row
+  end
+
+  def load_index_overlay_state!
+    @sidebar_team_row = nil
+
+    selected_id = @selected_team_id.to_i
+    if selected_id <= 0 || !selected_overlay_visible?(overlay_id: selected_id)
+      @selected_team_id = nil
+      return
+    end
+
+    load_index_team_row!(selected_id)
+    @selected_team_id = selected_id
+  rescue ActiveRecord::RecordNotFound
+    @sidebar_team_row = nil
+    @selected_team_id = nil
   end
 
   def fetch_index_team_row(team_id)

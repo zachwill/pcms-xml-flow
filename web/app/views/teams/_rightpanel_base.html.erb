@@ -155,7 +155,6 @@
         <div class="divide-y divide-border">
           <% top_rows.each do |row| %>
             <% team_id = row["team_id"] %>
-            <% team_code = row["team_code"].to_s %>
             <% pressure_bucket = row["pressure_bucket"].to_s %>
             <% pressure_label, pressure_classes = case pressure_bucket
               when "over_apron2"
@@ -179,7 +178,7 @@
             >
               <div class="entity-cell-two-line">
                 <div class="entity-cell-primary justify-between gap-2">
-                  <a href="<%= team_href(team_code: team_code, team_id: team_id) %>" class="truncate font-medium hover:underline" onclick="event.stopPropagation()"><%= row["team_name"] %></a>
+                  <span class="truncate font-medium"><%= row["team_name"] %></span>
                   <span class="font-mono tabular-nums text-[11px] shrink-0 <%= row['room_under_apron2'].to_f < 0 ? 'text-red-600 dark:text-red-400' : '' %>"><%= row["room_under_apron2"].nil? ? "—" : format_room_amount(row["room_under_apron2"]) %></span>
                 </div>
                 <div class="entity-cell-secondary justify-between gap-2">

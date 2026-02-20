@@ -1,7 +1,10 @@
 <% content_for :title, "Teams" %>
 
 <%
-  signals_literal = "{ teamsquery: #{@query.to_json}, teamsconference: #{@conference_lens.to_json}, teamspressure: #{@pressure_lens.to_json}, teamssort: #{@sort_lens.to_json}, selectedteamid: #{@selected_team_id.to_s.to_json}, overlaytype: #{@selected_team_id.present? ? 'team'.to_json : 'none'.to_json} }"
+  overlay_team_active = @selected_team_id.present? && @sidebar_team_row.present?
+  selected_team_signal = overlay_team_active ? @selected_team_id.to_s : ""
+
+  signals_literal = "{ teamsquery: #{@query.to_json}, teamsconference: #{@conference_lens.to_json}, teamspressure: #{@pressure_lens.to_json}, teamssort: #{@sort_lens.to_json}, selectedteamid: #{selected_team_signal.to_json}, overlaytype: #{(overlay_team_active ? 'team' : 'none').to_json} }"
 %>
 
 <div id="teams-workspace" class="h-screen w-screen flex flex-col overflow-hidden bg-background" data-signals="<%= signals_literal %>">
@@ -23,7 +26,11 @@
         <%= render partial: "teams/rightpanel_base" %>
       </div>
 
-      <div id="rightpanel-overlay"></div>
+      <% if @sidebar_team_row.present? %>
+        <%= render partial: "teams/rightpanel_overlay_team", locals: { team_row: @sidebar_team_row } %>
+      <% else %>
+        <%= render partial: "teams/rightpanel_clear" %>
+      <% end %>
     </aside>
   </div>
 </div>

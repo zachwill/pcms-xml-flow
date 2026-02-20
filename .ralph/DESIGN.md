@@ -8,9 +8,10 @@ Each task is one iteration of focused work (~10 min). Commit when done.
 
 ## /teams — interaction predictability
 
-- [ ] [P1] [INDEX] /teams — unify row click → overlay drill-in behavior
+- [x] [P1] [INDEX] /teams — unify row click → overlay drill-in behavior
   Files: web/app/views/teams/index.html.erb, web/app/views/teams/_workspace_main.html.erb, web/app/views/teams/_rightpanel_overlay_team.html.erb, web/app/controllers/teams_controller.rb
   Why: Row click should predictably open the team overlay in #rightpanel-overlay, matching Salary Book's click-row-to-sidebar pattern.
+  Note: Team rows now consistently drill into overlay (no inline row-level nav escape), and index boot hydrates/clears overlay state from selected_id deterministically.
 
 - [ ] [P1] [INDEX] /teams — sync commandbar lane counts with filtered row set
   Files: web/app/views/teams/_commandbar.html.erb, web/app/views/teams/_pressure_section.html.erb, web/app/controllers/teams_controller.rb
